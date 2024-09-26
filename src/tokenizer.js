@@ -96,14 +96,14 @@ function tokenize(expression, onigFlags = '') {
     isDotAllOn: () => context.modifierStack.at(-1).dotAll,
     isExtendedOn: () => context.modifierStack.at(-1).extended,
     reuseCurrentGroupModifiers: () => context.modifierStack.push({...context.modifierStack.at(-1)}),
-    // TODO: Can refactor as `numNamedCaptures` unless I end up including this in the returned obj
+    // TODO: Can refactor as `numNamedCaptures` unless this is included in the returned obj
     captureNames: [],
     potentialUnnamedCaptureTokens: [],
     hasDotAllDot: false,
     hasNonDotAllDot: false,
     hasMultilineAnchor: false,
   };
-  const tokens = [];
+  let tokens = [];
   let hasCaseInsensitiveToken = false;
   let hasCaseSensitiveToken = false;
   let match;
@@ -138,19 +138,9 @@ function tokenize(expression, onigFlags = '') {
   }
   const numCaptures = context.captureNames.length || context.potentialUnnamedCaptureTokens.length;
   // Split escaped nums, now that we have all the necessary details
-  let numCharClassesOpen = 0;
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
-    if (t.type === TokenTypes.CC_OPEN) {
-      numCharClassesOpen++;
-    } else if (t.type === TokenTypes.CC_CLOSE) {
-      numCharClassesOpen--;
-    } else if (t.type === TokenTypes.ESCAPED_NUM) {
-      const result = splitEscapedNumToken(t, numCaptures, !!context.captureNames.length, !!numCharClassesOpen);
-      tokens.splice(i, 1, ...result); // In place
-      i += result.length - 1;
-    }
-  }
+  tokens = tokens.
+    map(t => t.type === TokenTypes.ESCAPED_NUM ? splitEscapedNumToken(t, numCaptures, !!context.captureNames.length) : t).
+    flat();
 
   // Include JS flag i if a case insensitive token was used and no case sensitive tokens were used
   const includeFlagI = (onigFlags.includes('i') || hasCaseInsensitiveToken) && !hasCaseSensitiveToken;
@@ -219,7 +209,10 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     if (m1 === 'K') {
       throw new Error(`Unsupported escape "${m}"`);
     }
-    return getTokenWithDetailsFromSharedEscape(m, context.isIgnoreCaseOn());
+    return getTokenWithDetailsFromSharedEscape(m, {
+      inCharClass: false,
+      ignoreCase: context.isIgnoreCaseOn(),
+    });
   }
   if (m0 === '(') {
     // Unnamed capture if no named captures, else noncapturing group
@@ -398,13 +391,12 @@ function getAllTokensForCharClass(expression, opener, lastIndex, ignoreCase) {
   }
 }
 
-// TODO: Currently inconsistent about whether prop `ignoreCase` is included on each token
-// (`getTokenWithDetailsFromSharedEscape` sets it to `false`). Either always exclude it or set `false`
-// (probably always set it to make things simpler elsewhere, e.g. for `splitEscapedNumToken`); but
-// see comments "don't need to set `ignoreCase`"
 function getCharClassTokenWithDetails(m) {
   if (m[0] === '\\') {
-    return getTokenWithDetailsFromSharedEscape(m);
+    return getTokenWithDetailsFromSharedEscape(m, {
+      inCharClass: true,
+      ignoreCase: false,
+    });
   }
   // Range (possibly invalid) or literal hyphen
   if (m === '-') {
@@ -427,7 +419,8 @@ function getCharClassTokenWithDetails(m) {
 }
 
 // Tokens shared by base syntax and character class syntax that start with `\`
-function getTokenWithDetailsFromSharedEscape(m, ignoreCase = false) {
+// TODO: Refactor to return token details early
+function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
   const m1 = m[1];
   let token;
   let hasCase = false;
@@ -457,6 +450,7 @@ function getTokenWithDetailsFromSharedEscape(m, ignoreCase = false) {
     // Assume it's a backref that includes characters with case or an octal that refs a cased char
     hasCase = true;
     token = createToken(TokenTypes.ESCAPED_NUM, m, {
+      inCharClass,
       // Can't emulate a different value for backref case sensitivity except in JS envs that
       // support mode modifiers, but track this anyway (can use it for octals)
       ignoreCase,
@@ -482,13 +476,13 @@ function getTokenWithDetailsFromSharedEscape(m, ignoreCase = false) {
 
 // Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,
 // possibly followed by 1-2 literal digits
-function splitEscapedNumToken(token, numCaptures, hasNamedCapture, inCharClass) {
+function splitEscapedNumToken(token, numCaptures, hasNamedCapture) {
   const {raw, ignoreCase} = token;
   // Keep any leading 0s since they indicate octal
   const value = raw.slice(1);
   // Backref (possibly invalid)
   if (
-    !inCharClass &&
+    !token.inCharClass &&
     ( // Single digit 1-9 is always treated as a backref
       (value !== '0' && value.length === 1) ||
       // Leading 0 makes it octal; backrefs can't include following literal digits
@@ -520,7 +514,7 @@ function splitEscapedNumToken(token, numCaptures, hasNamedCapture, inCharClass) 
     }
     tokens.push(createToken(TokenTypes.CHAR, (i === 0 ? '\\' : '') + m, {
       charCode,
-      ignoreCase: ignoreCase && !inCharClass && charHasCase(String.fromCodePoint(charCode)),
+      ignoreCase: ignoreCase && !token.inCharClass && charHasCase(String.fromCodePoint(charCode)),
     }));
   }
   return tokens;
