@@ -97,6 +97,8 @@ function tokenize(expression, onigFlags = '') {
   const isExtendedOn = () => modifierStack.at(-1).extended;
   const reuseCurrentGroupModifiers = () => modifierStack.push({...modifierStack.at(-1)});
   const captureNames = [];
+  const potentialUnnamedCaptures = [];
+  let numPotentialUnnamedCaptures = 0;
   let hasCaseSensitiveToken = false;
   let hasCaseInsensitiveToken = false;
   let hasDotAllDot = false;
@@ -148,13 +150,18 @@ function tokenize(expression, onigFlags = '') {
     } else if (m0 === '(') {
       // Unnamed capture if no named captures, else noncapturing
       if (m === '(') {
+        numPotentialUnnamedCaptures++;
         reuseCurrentGroupModifiers();
-        tokens.push(createToken(TokenTypes.GROUP_OPEN, m, {
+        const token = createToken(TokenTypes.GROUP_OPEN, m, {
           // Will change to `CAPTURING` and add `number` in a second pass if no named captures
           kind: TokenGroupKinds.GROUP,
+          // Will be removed if not a capture due to presense of named capture
+          number: numPotentialUnnamedCaptures,
           // Track this for subroutines that might reference the group (TODO: track other flags)
           ignoreCase: isIgnoreCaseOn(),
-        }));
+        });
+        potentialUnnamedCaptures.push(token);
+        tokens.push(token);
       // Noncapturing group
       } else if (m === '(?:') {
         reuseCurrentGroupModifiers();
@@ -253,18 +260,16 @@ function tokenize(expression, onigFlags = '') {
     allTokens.push(...tokens);
   }
 
-  let numUnnamedCaptures = 0;
   // Second pass to enable unnamed captures if no named captures used
-  if (!captureNames.length) {
-    for (const t of allTokens) {
-      if (t.type === TokenTypes.GROUP_OPEN && t.raw === '(') {
-        numUnnamedCaptures++
-        t.kind = TokenGroupKinds.CAPTURING;
-        t.number = numUnnamedCaptures;
-      }
+  for (const t of potentialUnnamedCaptures) {
+    if (captureNames.length) {
+      delete t.number;
+      delete t.ignoreCase;
+    } else {
+      t.kind = TokenGroupKinds.CAPTURING;
     }
   }
-  const numCaptures = captureNames.length || numUnnamedCaptures;
+  const numCaptures = captureNames.length || numPotentialUnnamedCaptures;
   // Third pass to split escaped nums, now that we have the necessary context
   let numCharClassesOpen = 0;
   for (let i = 0; i < allTokens.length; i++) {
