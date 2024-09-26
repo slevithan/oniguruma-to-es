@@ -96,9 +96,9 @@ function tokenize(expression, onigFlags = '') {
     isDotAllOn: () => context.modifierStack.at(-1).dotAll,
     isExtendedOn: () => context.modifierStack.at(-1).extended,
     reuseCurrentGroupModifiers: () => context.modifierStack.push({...context.modifierStack.at(-1)}),
+    // TODO: Can refactor as `numNamedCaptures` unless I end up including this in the returned obj
     captureNames: [],
-    potentialUnnamedCaptures: [],
-    numPotentialUnnamedCaptures: 0,
+    potentialUnnamedCaptureTokens: [],
     hasDotAllDot: false,
     hasNonDotAllDot: false,
     hasMultilineAnchor: false,
@@ -128,7 +128,7 @@ function tokenize(expression, onigFlags = '') {
   }
 
   // Enable unnamed captures if no named captures used
-  for (const t of context.potentialUnnamedCaptures) {
+  for (const t of context.potentialUnnamedCaptureTokens) {
     if (context.captureNames.length) {
       delete t.number;
       delete t.ignoreCase;
@@ -136,7 +136,7 @@ function tokenize(expression, onigFlags = '') {
       t.kind = TokenGroupKinds.CAPTURING;
     }
   }
-  const numCaptures = context.captureNames.length || context.numPotentialUnnamedCaptures;
+  const numCaptures = context.captureNames.length || context.potentialUnnamedCaptureTokens.length;
   // Split escaped nums, now that we have all the necessary details
   let numCharClassesOpen = 0;
   for (let i = 0; i < tokens.length; i++) {
@@ -224,17 +224,16 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   if (m0 === '(') {
     // Unnamed capture if no named captures, else noncapturing group
     if (m === '(') {
-      context.numPotentialUnnamedCaptures++;
       context.reuseCurrentGroupModifiers();
       const token = createToken(TokenTypes.GROUP_OPEN, m, {
         // Will change to `CAPTURING` and add `number` in a second pass if no named captures
         kind: TokenGroupKinds.GROUP,
-        // Will be removed if not a capture due to presense of named capture
-        number: context.numPotentialUnnamedCaptures,
+        // Will be removed if not a capture (due to presense of named capture)
+        number: context.potentialUnnamedCaptureTokens.length + 1,
         // Track this for subroutines that might reference the group (TODO: track other flags)
         ignoreCase: context.isIgnoreCaseOn(),
       });
-      context.potentialUnnamedCaptures.push(token);
+      context.potentialUnnamedCaptureTokens.push(token);
       return {
         token,
       };
