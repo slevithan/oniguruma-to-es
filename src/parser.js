@@ -25,8 +25,7 @@ const AstAssertionKinds = {
   lookbehind: 'lookbehind',
 };
 
-// TODO: See if the extra args are needed
-function parse({tokens, jsFlags, numCaptures, captureNames}) {
+function parse({tokens, jsFlags}) {
   const context = {
     current: 0,
     ignoreCase: jsFlags.ignoreCase,

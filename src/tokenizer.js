@@ -85,198 +85,59 @@ function tokenize(expression, onigFlags = '') {
   if (!/^[imx]*$/.test(onigFlags)) {
     throw new Error(`Unsupported Oniguruma flag "${onigFlags}"; only imx supported`);
   }
+  const context = {
+    modifierStack: [{
+      ignoreCase: onigFlags.includes('i'),
+      // By default, Onig uses flag m for dotAll, unlike JS's use of flag s
+      dotAll: onigFlags.includes('m'),
+      extended: onigFlags.includes('x'),
+    }],
+    isIgnoreCaseOn: () => context.modifierStack.at(-1).ignoreCase,
+    isDotAllOn: () => context.modifierStack.at(-1).dotAll,
+    isExtendedOn: () => context.modifierStack.at(-1).extended,
+    reuseCurrentGroupModifiers: () => context.modifierStack.push({...context.modifierStack.at(-1)}),
+    captureNames: [],
+    potentialUnnamedCaptures: [],
+    numPotentialUnnamedCaptures: 0,
+    hasDotAllDot: false,
+    hasNonDotAllDot: false,
+    hasMultilineAnchor: false,
+  };
   const tokens = [];
-  const modifierStack = [{
-    ignoreCase: onigFlags.includes('i'),
-    // By default, Onig uses flag m for dotAll, unlike JS's use of flag s
-    dotAll: onigFlags.includes('m'),
-    extended: onigFlags.includes('x'),
-  }];
-  const isIgnoreCaseOn = () => modifierStack.at(-1).ignoreCase;
-  const isDotAllOn = () => modifierStack.at(-1).dotAll;
-  const isExtendedOn = () => modifierStack.at(-1).extended;
-  const reuseCurrentGroupModifiers = () => modifierStack.push({...modifierStack.at(-1)});
-  const captureNames = [];
-  const potentialUnnamedCaptures = [];
-  let numPotentialUnnamedCaptures = 0;
-  let hasCaseSensitiveToken = false;
   let hasCaseInsensitiveToken = false;
-  let hasDotAllDot = false;
-  let hasNonDotAllDot = false;
-  let hasMultilineAnchor = false;
+  let hasCaseSensitiveToken = false;
   let match;
   tokenRe.lastIndex = 0;
   while (match = tokenRe.exec(expression)) {
-    const m = match[0];
-    const [m0, m1, m2] = m;
-    // For char classes, will be assigned an array of tokens
-    let token;
-    let hasCase = false;
-    if (m === '#' && isExtendedOn()) {
-      // Onig's only line break char is line feed
-      const end = expression.indexOf('\n', tokenRe.lastIndex);
-      // Jump forward to the end of the comment for the next loop iteration
-      tokenRe.lastIndex = end === -1 ? expression.length : end;
-      continue;
-    } else if (/^\s$/.test(m) && isExtendedOn()) {
-      continue;
-    } else if (m0 === '\\') {
-      if ('AbBGzZ'.includes(m1)) {
-        token = createToken(TokenTypes.ASSERTION, m);
-      } else if (m.startsWith('\\g<')) {
-        // Subroutines follow the status of flag modifiers from the groups they reference, and not
-        // any modifiers preceding themselves. Thus, no need to set `hasCase = true` or the
-        // `ignoreCase` prop. Instead, can later reference `ignoreCase`, etc. from the
-        // `GROUP_OPEN` token that the subroutine references
-        token = createToken(TokenTypes.SUBROUTINE, m);
-      } else if (m.startsWith('\\k<')) {
-        // Assume the backref includes characters with case
-        hasCase = true;
-        // Note: Numbered backrefs like `\k<1>` are invalid if named capture is present
-        token = createToken(TokenTypes.BACKREF_K, m, {
-          // Can't emulate a different value for backref case sensitivity except in JS envs that
-          // support mode modifiers, but track this anyway
-          ignoreCase: isIgnoreCaseOn(),
-        });
-      } else if ('RX'.includes(m1)) {
-        token = createToken(TokenTypes.VARCHAR_SET, m);
-      // Unsupported; avoid treating as an identity escape
-      } else if (m1 === 'K') {
-        throw new Error(`Unsupported escape "${m}"`);
-      } else {
-        const result = getTokenFromSharedEscapeMatch(m, isIgnoreCaseOn());
-        hasCase = result.hasCase;
-        token = result.token;
-      }
-    } else if (m0 === '(') {
-      // Unnamed capture if no named captures, else noncapturing
-      if (m === '(') {
-        numPotentialUnnamedCaptures++;
-        reuseCurrentGroupModifiers();
-        const t = createToken(TokenTypes.GROUP_OPEN, m, {
-          // Will change to `CAPTURING` and add `number` in a second pass if no named captures
-          kind: TokenGroupKinds.GROUP,
-          // Will be removed if not a capture due to presense of named capture
-          number: numPotentialUnnamedCaptures,
-          // Track this for subroutines that might reference the group (TODO: track other flags)
-          ignoreCase: isIgnoreCaseOn(),
-        });
-        token = t;
-        potentialUnnamedCaptures.push(t);
-      // Noncapturing group
-      } else if (m === '(?:') {
-        reuseCurrentGroupModifiers();
-        token = createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: TokenGroupKinds.GROUP,
-        });
-      // Atomic group
-      } else if (m === '(?>') {
-        reuseCurrentGroupModifiers();
-        token = createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: TokenGroupKinds.ATOMIC,
-        });
-      // Lookaround
-      } else if (m === '(?=' || m === '(?!' || m === '(?<=' || m === '(?<!') {
-        reuseCurrentGroupModifiers();
-        token = createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: m2 === '<' ? TokenGroupKinds.LOOKBEHIND : TokenGroupKinds.LOOKAHEAD,
-          negate: m.endsWith('!'),
-        });
-      // Named capture (checked after lookbehind due to similar syntax)
-      } else if (m2 === '<' || m2 === "'") {
-        const name = m.slice(3, -1);
-        captureNames.push(name);
-        reuseCurrentGroupModifiers();
-        token = createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: TokenGroupKinds.CAPTURING,
-          number: captureNames.length,
-          name,
-          // Track this for subroutines that might reference the group (TODO: track other flags)
-          ignoreCase: isIgnoreCaseOn(),
-        });
-      // Comment group
-      } else if (m2 === '#') {
-        if (!m.endsWith(')')) {
-          throw new Error('Unclosed comment group "(?#"');
-        }
-        continue;
-      // Modifier/flag group
-      } else {
-        const newMods = getNewModsFromFlagGroup(m, isIgnoreCaseOn(), isDotAllOn(), isExtendedOn());
-        // Ex: `(?im-x)`
-        if (m.endsWith(')')) {
-          // Replace modifiers until the end of the current group
-          modifierStack[modifierStack.length - 1] = newMods;
-          continue;
-        }
-        // Ex: `(?im-x:`
-        modifierStack.push(newMods);
-        token = createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: TokenGroupKinds.GROUP,
-        });
-      }
-    } else if (m === ')') {
-      modifierStack.pop();
-      token = createToken(TokenTypes.GROUP_CLOSE, m);
-    // TODO: Move to/near top
-    } else if (m0 === '[') {
-      const result = getTokensFromCharClass(expression, m, tokenRe.lastIndex, isIgnoreCaseOn());
-      hasCase = result.hasCase;
-      token = result.tokens;
-      // Jump forward to the end of the char class for the next loop iteration
-      tokenRe.lastIndex = result.lastIndex;
-    } else if (m === '.') {
-      const dotAll = isDotAllOn();
-      if (dotAll) {
-        hasDotAllDot = true;
-      } else {
-        hasNonDotAllDot = true;
-      }
-      token = createToken(TokenTypes.CHAR_SET, m, {
-        kind: 'any',
-        dotAll,
-      });
-    } else if (m === '^' || m === '$') {
-      hasMultilineAnchor = true;
-      token = createToken(TokenTypes.ASSERTION, m);
-    } else if (m === '|') {
-      token = createToken(TokenTypes.ALTERNATOR, m);
-    } else if (quantifierRe.test(m)) {
-      token = createToken(TokenTypes.QUANTIFIER, m);
-    } else {
-      assertSingleChar(m);
-      hasCase = charHasCase(m);
-      token = createToken(TokenTypes.CHAR, m, {
-        charCode: m.codePointAt(0),
-        ignoreCase: isIgnoreCaseOn(),
-      });
-    }
-  
-    if (hasCase) {
-      if (isIgnoreCaseOn()) {
+    const result = getTokenWithDetails(context, expression, match[0], tokenRe.lastIndex) ?? {};
+    if (result.hasCase) {
+      if (context.isIgnoreCaseOn()) {
         hasCaseInsensitiveToken = true;
       } else {
         hasCaseSensitiveToken = true;
       }
     }
-    if (Array.isArray(token)) {
-      tokens.push(...token);
-    } else {
-      tokens.push(token);
+    if (result.tokens) {
+      tokens.push(...result.tokens);
+    } else if (result.token) {
+      tokens.push(result.token);
+    }
+    if (result.lastIndex !== undefined) {
+      tokenRe.lastIndex = result.lastIndex;
     }
   }
 
   // Enable unnamed captures if no named captures used
-  for (const t of potentialUnnamedCaptures) {
-    if (captureNames.length) {
+  for (const t of context.potentialUnnamedCaptures) {
+    if (context.captureNames.length) {
       delete t.number;
       delete t.ignoreCase;
     } else {
       t.kind = TokenGroupKinds.CAPTURING;
     }
   }
-  const numCaptures = captureNames.length || numPotentialUnnamedCaptures;
-  // Split escaped nums, now that we have all the necessary context
+  const numCaptures = context.captureNames.length || context.numPotentialUnnamedCaptures;
+  // Split escaped nums, now that we have all the necessary details
   let numCharClassesOpen = 0;
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
@@ -285,8 +146,8 @@ function tokenize(expression, onigFlags = '') {
     } else if (t.type === TokenTypes.CC_CLOSE) {
       numCharClassesOpen--;
     } else if (t.type === TokenTypes.ESCAPED_NUM) {
-      const result = splitEscapedNumToken(t, numCaptures, !!captureNames.length, !!numCharClassesOpen);
-      tokens.splice(i, 1, ...result);
+      const result = splitEscapedNumToken(t, numCaptures, !!context.captureNames.length, !!numCharClassesOpen);
+      tokens.splice(i, 1, ...result); // In place
       i += result.length - 1;
     }
   }
@@ -294,10 +155,10 @@ function tokenize(expression, onigFlags = '') {
   // Include JS flag i if a case insensitive token was used and no case sensitive tokens were used
   const includeFlagI = (onigFlags.includes('i') || hasCaseInsensitiveToken) && !hasCaseSensitiveToken;
   // Include JS flag s (Onig flag m) if a dotAll dot was used and no non-dotAll dots were used
-  const includeFlagS = (onigFlags.includes('m') || hasDotAllDot) && !hasNonDotAllDot;
+  const includeFlagS = (onigFlags.includes('m') || context.hasDotAllDot) && !context.hasNonDotAllDot;
   // Include JS flag m (not the same as Onig flag m) if `^` or `$` are used, so they work the same
   // as Onig (there's a slight difference since Onig's only line break char is line feed)
-  const includeFlagM = hasMultilineAnchor;
+  const includeFlagM = context.hasMultilineAnchor;
   return {
     tokens,
     // Drop Onig flag x since we've already accounted for it during tokenization (JS doesn't
@@ -307,64 +168,207 @@ function tokenize(expression, onigFlags = '') {
       multiline: includeFlagM,
       dotAll: includeFlagS,
     },
-    numCaptures,
-    captureNames,
   };
 }
 
-// Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,
-// possibly followed by 1-2 literal digits
-function splitEscapedNumToken(token, numCaptures, hasNamedCapture, inCharClass) {
-  const {raw, ignoreCase} = token;
-  // Keep any leading 0s since they indicate octal
-  const value = raw.slice(1);
-  // Backref (possibly invalid)
-  if (
-    !inCharClass &&
-    ( // Single digit 1-9 is always treated as a backref
-      (value !== '0' && value.length === 1) ||
-      // Leading 0 makes it octal; backrefs can't include following literal digits
-      (value[0] !== '0' && +value <= numCaptures)
-    )
-  ) {
-    if (+value > numCaptures) {
-      throw new Error(`Invalid backref "${raw}"`);
-    }
-    if (hasNamedCapture) {
-      throw new Error('Numbered backrefs not allowed when using named capture');
-    }
-    //  `ignoreCase`
-    return [createToken(TokenTypes.BACKREF, raw, {
-      // Can't emulate a different value for backref case sensitivity except in JS envs that
-      // support mode modifiers, but track this anyway
-      ignoreCase,
-    })];
+function getTokenWithDetails(context, expression, m, lastIndex) {
+  const [m0, m1, m2] = m;
+  if (m0 === '[') {
+    const result = getAllTokensForCharClass(expression, m, lastIndex, context.isIgnoreCaseOn());
+    return {
+      hasCase: result.charClassHasCase,
+      // Token array
+      tokens: result.tokens,
+      // Jump forward to the end of the char class
+      lastIndex: result.lastIndex,
+    };
   }
-  const tokens = [];
-  // Gives 1-3 matches; the first (only) might be octal
-  const matches = value.match(/^[0-7]+|\d/g);
-  for (let i = 0; i < matches.length; i++) {
-    const m = matches[i];
-    let charCode = m.codePointAt(0);
-    // Octal digits are 0-7
-    if (i === 0 && m !== '8' && m !== '9') {
-      charCode = parseInt(m, 8);
+  if (m0 === '\\') {
+    if ('AbBGzZ'.includes(m1)) {
+      return {
+        token: createToken(TokenTypes.ASSERTION, m),
+      };
     }
-    tokens.push(createToken(TokenTypes.CHAR, (i === 0 ? '\\' : '') + m, {
-      charCode,
-      ignoreCase: ignoreCase && !inCharClass && charHasCase(String.fromCodePoint(charCode)),
-    }));
+    if (m.startsWith('\\g<')) {
+      // Subroutines follow the status of flag modifiers from the groups they reference, and not
+      // any modifiers preceding themselves. Thus, no need to set `hasCase = true` or the
+      // `ignoreCase` prop. Instead, can later reference `ignoreCase`, etc. from the
+      // `GROUP_OPEN` token that the subroutine references
+      return {
+        token: createToken(TokenTypes.SUBROUTINE, m),
+      };
+    }
+    if (m.startsWith('\\k<')) {
+      // Note: Numbered backrefs like `\k<1>` are invalid if named capture is present [TODO]
+      return {
+        // Assume the backref includes characters with case
+        hasCase: true,
+        token: createToken(TokenTypes.BACKREF_K, m, {
+          // Can't emulate a different value for backref case sensitivity except in JS envs that
+          // support mode modifiers, but track this anyway
+          ignoreCase: context.isIgnoreCaseOn(),
+        }),
+      };
+    }
+    if ('RX'.includes(m1)) {
+      return {
+        token: createToken(TokenTypes.VARCHAR_SET, m),
+      };
+    }
+    // Unsupported; avoid treating as an identity escape
+    if (m1 === 'K') {
+      throw new Error(`Unsupported escape "${m}"`);
+    }
+    return getTokenWithDetailsFromSharedEscape(m, context.isIgnoreCaseOn());
   }
-  return tokens;
+  if (m0 === '(') {
+    // Unnamed capture if no named captures, else noncapturing group
+    if (m === '(') {
+      context.numPotentialUnnamedCaptures++;
+      context.reuseCurrentGroupModifiers();
+      const token = createToken(TokenTypes.GROUP_OPEN, m, {
+        // Will change to `CAPTURING` and add `number` in a second pass if no named captures
+        kind: TokenGroupKinds.GROUP,
+        // Will be removed if not a capture due to presense of named capture
+        number: context.numPotentialUnnamedCaptures,
+        // Track this for subroutines that might reference the group (TODO: track other flags)
+        ignoreCase: context.isIgnoreCaseOn(),
+      });
+      context.potentialUnnamedCaptures.push(token);
+      return {
+        token,
+      };
+    }
+    // Noncapturing group
+    if (m === '(?:') {
+      context.reuseCurrentGroupModifiers();
+      return {
+        token: createToken(TokenTypes.GROUP_OPEN, m, {
+          kind: TokenGroupKinds.GROUP,
+        }),
+      };
+    }
+    // Atomic group
+    if (m === '(?>') {
+      context.reuseCurrentGroupModifiers();
+      return {
+        token: createToken(TokenTypes.GROUP_OPEN, m, {
+          kind: TokenGroupKinds.ATOMIC,
+        }),
+      };
+    }
+    // Lookaround
+    if (m === '(?=' || m === '(?!' || m === '(?<=' || m === '(?<!') {
+      context.reuseCurrentGroupModifiers();
+      return {
+        token: createToken(TokenTypes.GROUP_OPEN, m, {
+          kind: m2 === '<' ? TokenGroupKinds.LOOKBEHIND : TokenGroupKinds.LOOKAHEAD,
+          negate: m.endsWith('!'),
+        }),
+      };
+    }
+    // Named capture (checked after lookbehind due to similar syntax)
+    if (m2 === '<' || m2 === "'") {
+      const name = m.slice(3, -1);
+      context.captureNames.push(name);
+      context.reuseCurrentGroupModifiers();
+      return {
+        token: createToken(TokenTypes.GROUP_OPEN, m, {
+          kind: TokenGroupKinds.CAPTURING,
+          number: context.captureNames.length,
+          name,
+          // Track this for subroutines that might reference the group (TODO: track other flags)
+          ignoreCase: context.isIgnoreCaseOn(),
+        }),
+      }
+    }
+    // Comment group
+    if (m2 === '#') {
+      if (!m.endsWith(')')) {
+        throw new Error('Unclosed comment group "(?#"');
+      }
+      return;
+    }
+    // Else, modifier/flag group
+    const newMods = getNewModsFromFlagGroup(m, context.isIgnoreCaseOn(), context.isDotAllOn(), context.isExtendedOn());
+    // Ex: `(?im-x)`
+    if (m.endsWith(')')) {
+      // Replace modifiers until the end of the current group
+      context.modifierStack[context.modifierStack.length - 1] = newMods;
+      return;
+    }
+    // Ex: `(?im-x:`
+    context.modifierStack.push(newMods);
+    return {
+      token: createToken(TokenTypes.GROUP_OPEN, m, {
+        kind: TokenGroupKinds.GROUP,
+      }),
+    };
+  }
+  if (m === ')') {
+    context.modifierStack.pop();
+    return {
+      token: createToken(TokenTypes.GROUP_CLOSE, m),
+    };
+  }
+  if (m === '#' && context.isExtendedOn()) {
+    // Onig's only line break char is line feed
+    const end = expression.indexOf('\n', lastIndex);
+    return {
+      // Jump forward to the end of the comment
+      lastIndex: end === -1 ? expression.length : end,
+    };
+  }
+  if (/^\s$/.test(m) && context.isExtendedOn()) {
+    return;
+  }
+  if (m === '.') {
+    const dotAll = context.isDotAllOn();
+    if (dotAll) {
+      context.hasDotAllDot = true;
+    } else {
+      context.hasNonDotAllDot = true;
+    }
+    return {
+      token: createToken(TokenTypes.CHAR_SET, m, {
+        kind: 'any',
+        dotAll,
+      }),
+    };
+  }
+  if (m === '^' || m === '$') {
+    context.hasMultilineAnchor = true;
+    return {
+      token: createToken(TokenTypes.ASSERTION, m),
+    };
+  }
+  if (m === '|') {
+    return {
+      token: createToken(TokenTypes.ALTERNATOR, m),
+    };
+  }
+  if (quantifierRe.test(m)) {
+    return {
+      token: createToken(TokenTypes.QUANTIFIER, m),
+    };
+  }
+  assertSingleChar(m);
+  return {
+    hasCase: charHasCase(m),
+    token: createToken(TokenTypes.CHAR, m, {
+      charCode: m.codePointAt(0),
+      ignoreCase: context.isIgnoreCaseOn(),
+    }),
+  };
 }
 
-function getTokensFromCharClass(expression, opener, lastIndex, ignoreCase) {
+function getAllTokensForCharClass(expression, opener, lastIndex, ignoreCase) {
   assertNonEmptyCharClass(opener);
-  let numCharClassesOpen = 1;
   const tokens = [createToken(TokenTypes.CC_OPEN, opener, {
     // Only mark this here; not for tokens within this (outermost) char class
     ignoreCase,
   })];
+  let numCharClassesOpen = 1;
   let charClassHasCase = false;
   let match;
   charClassTokenRe.lastIndex = lastIndex;
@@ -381,7 +385,7 @@ function getTokensFromCharClass(expression, opener, lastIndex, ignoreCase) {
         break;
       }
     } else {
-      const result = getTokenFromCharClassMatch(m);
+      const result = getCharClassTokenWithDetails(m);
       if (result.hasCase) {
         charClassHasCase = true;
       }
@@ -389,43 +393,42 @@ function getTokensFromCharClass(expression, opener, lastIndex, ignoreCase) {
     }
   }
   return {
-    hasCase: charClassHasCase,
+    charClassHasCase,
     tokens,
     lastIndex: charClassTokenRe.lastIndex || expression.length,
   }
 }
 
 // TODO: Currently inconsistent about whether prop `ignoreCase` is included on each token
-// (`getTokenFromSharedEscapeMatch` sets it to `false`). Either always exclude it or set `false`
+// (`getTokenWithDetailsFromSharedEscape` sets it to `false`). Either always exclude it or set `false`
 // (probably always set it to make things simpler elsewhere, e.g. for `splitEscapedNumToken`); but
 // see comments "don't need to set `ignoreCase`"
-function getTokenFromCharClassMatch(m) {
-  let token;
-  let hasCase = false;
+function getCharClassTokenWithDetails(m) {
   if (m[0] === '\\') {
-    const result = getTokenFromSharedEscapeMatch(m);
-    hasCase = result.hasCase;
-    token = result.token;
-  // Range, error, or literal hyphen
-  } else if (m === '-') {
-    token = createToken(TokenTypes.CC_HYPHEN, m);
-  } else if (m === '&&') {
-    token = createToken(TokenTypes.CC_INTERSECTOR, m);
-  } else {
-    assertSingleChar(m);
-    hasCase = charHasCase(m);
-    token = createToken(TokenTypes.CHAR, m, {
-      charCode: m.codePointAt(0),
-    });
+    return getTokenWithDetailsFromSharedEscape(m);
   }
+  // Range (possibly invalid) or literal hyphen
+  if (m === '-') {
+    return {
+      token: createToken(TokenTypes.CC_HYPHEN, m),
+    }
+  }
+  if (m === '&&') {
+    return {
+      token: createToken(TokenTypes.CC_INTERSECTOR, m),
+    };
+  }
+  assertSingleChar(m);
   return {
-    hasCase,
-    token,
+    hasCase: charHasCase(m),
+    token: createToken(TokenTypes.CHAR, m, {
+      charCode: m.codePointAt(0),
+    }),
   };
 }
 
 // Tokens shared by base syntax and character class syntax that start with `\`
-function getTokenFromSharedEscapeMatch(m, ignoreCase = false) {
+function getTokenWithDetailsFromSharedEscape(m, ignoreCase = false) {
   const m1 = m[1];
   let token;
   let hasCase = false;
@@ -476,6 +479,52 @@ function getTokenFromSharedEscapeMatch(m, ignoreCase = false) {
     hasCase,
     token,
   };
+}
+
+// Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,
+// possibly followed by 1-2 literal digits
+function splitEscapedNumToken(token, numCaptures, hasNamedCapture, inCharClass) {
+  const {raw, ignoreCase} = token;
+  // Keep any leading 0s since they indicate octal
+  const value = raw.slice(1);
+  // Backref (possibly invalid)
+  if (
+    !inCharClass &&
+    ( // Single digit 1-9 is always treated as a backref
+      (value !== '0' && value.length === 1) ||
+      // Leading 0 makes it octal; backrefs can't include following literal digits
+      (value[0] !== '0' && +value <= numCaptures)
+    )
+  ) {
+    if (+value > numCaptures) {
+      throw new Error(`Invalid backref "${raw}"`);
+    }
+    if (hasNamedCapture) {
+      throw new Error('Numbered backrefs not allowed when using named capture');
+    }
+    //  `ignoreCase`
+    return [createToken(TokenTypes.BACKREF, raw, {
+      // Can't emulate a different value for backref case sensitivity except in JS envs that
+      // support mode modifiers, but track this anyway
+      ignoreCase,
+    })];
+  }
+  const tokens = [];
+  // Returns 1-3 matches; the first (only) might be octal
+  const matches = value.match(/^[0-7]+|\d/g);
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
+    let charCode = m.codePointAt(0);
+    // Octal digits are 0-7
+    if (i === 0 && m !== '8' && m !== '9') {
+      charCode = parseInt(m, 8);
+    }
+    tokens.push(createToken(TokenTypes.CHAR, (i === 0 ? '\\' : '') + m, {
+      charCode,
+      ignoreCase: ignoreCase && !inCharClass && charHasCase(String.fromCodePoint(charCode)),
+    }));
+  }
+  return tokens;
 }
 
 function getValidatedUnicodeCharCode(raw) {
