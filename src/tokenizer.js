@@ -2,7 +2,7 @@ import {charHasCase, KeylessUnicodeProperties} from './unicode.js';
 
 const TokenTypes = {
   ALTERNATOR: 'ALTERNATOR',
-  ASSERTION: 'ASSERTION', // TODO: Handle in parser. Rename as `ASSERTION_ESC` since the parser also uses `Assertion` for lookaround?
+  ASSERTION_ESC: 'ASSERTION_ESC',
   BACKREF: 'BACKREF',
   BACKREF_K: 'BACKREF_K', // TODO: Handle in parser
   CC_CLOSE: 'CC_CLOSE',
@@ -176,7 +176,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   if (m0 === '\\') {
     if ('AbBGzZ'.includes(m1)) {
       return {
-        token: createToken(TokenTypes.ASSERTION, m),
+        token: createToken(TokenTypes.ASSERTION_ESC, m),
       };
     }
     if (m.startsWith('\\g<')) {
@@ -332,7 +332,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   if (m === '^' || m === '$') {
     context.hasMultilineAnchor = true;
     return {
-      token: createToken(TokenTypes.ASSERTION, m),
+      token: createToken(TokenTypes.ASSERTION_ESC, m),
     };
   }
   if (m === '|') {
@@ -558,7 +558,7 @@ function createToken(type, raw, data = {}) {
     case TokenTypes.CC_INTERSECTOR:
     case TokenTypes.GROUP_CLOSE:
       return base;
-    case TokenTypes.ASSERTION:
+    case TokenTypes.ASSERTION_ESC:
     case TokenTypes.VARCHAR_SET:
       return {
         ...base,

@@ -21,8 +21,15 @@ const AstTypes = {
 };
 
 const AstAssertionKinds = {
+  line_end: 'line_end',
+  line_start: 'line_start',
   lookahead: 'lookahead',
   lookbehind: 'lookbehind',
+  search_start: 'search_start',
+  string_end: 'string_end',
+  string_end_newline: 'string_end_newline',
+  string_start: 'string_start',
+  word_boundary: 'word_boundary',
 };
 
 function parse({tokens, jsFlags}) {
@@ -37,6 +44,8 @@ function parse({tokens, jsFlags}) {
         case TokenTypes.ALTERNATOR:
           // Only handles top-level alternation (groups handle their own)
           return createAlternative(parent.parent);
+        case TokenTypes.ASSERTION_ESC:
+          return createAssertionFromToken(parent, token);
         case TokenTypes.BACKREF:
           return createBackreference(parent, token.ref);
         case TokenTypes.CC_HYPHEN:
@@ -154,17 +163,34 @@ function createAlternative(parent) {
 }
 
 function createAssertionFromToken(parent, token) {
+  const base = getNodeBase(parent, AstTypes.Assertion);
   if (token.type === TokenTypes.GROUP_OPEN) {
     return withInitialAlternative({
-      ...getNodeBase(parent, AstTypes.Assertion),
+      ...base,
       kind: token.kind === TokenGroupKinds.LOOKBEHIND ?
         AstAssertionKinds.lookbehind :
         AstAssertionKinds.lookahead,
       negate: token.negate,
     });
   }
-  // TODO: Add remaining assertion types
-  throw new Error(`Unexpected assertion type ${token.type}`);
+  const kind = throwIfNot({
+    '^': AstAssertionKinds.line_start,
+    '$': AstAssertionKinds.line_end,
+    '\\A': AstAssertionKinds.string_start,
+    '\\b': AstAssertionKinds.word_boundary,
+    '\\B': AstAssertionKinds.word_boundary,
+    '\\G': AstAssertionKinds.search_start,
+    '\\z': AstAssertionKinds.string_end,
+    '\\Z': AstAssertionKinds.string_end_newline,
+  }[token.kind], `Unexpected assertion kind "${token.kind}"`);
+  const node = {
+    ...base,
+    kind,
+  };
+  if (kind === AstAssertionKinds.word_boundary) {
+    node.negate = token.kind === '\\B';
+  }
+  return node;
 }
 
 function createAtomicGroup(parent) {
@@ -330,6 +356,13 @@ function replaceElementsPropWithElementsFrom(newParent, oldParent) {
   for (const child of newParent.elements) {
     child.parent = newParent;
   }
+}
+
+function throwIfNot(value, msg) {
+  if (!value) {
+    throw new Error(msg ?? 'Expected value');
+  }
+  return value;
 }
 
 function throwIfUnclosedCharacterClass(token) {
