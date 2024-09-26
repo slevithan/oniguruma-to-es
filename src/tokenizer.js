@@ -209,6 +209,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     if (m1 === 'K') {
       throw new Error(`Unsupported escape "${m}"`);
     }
+    // Run last since it assumes an identity escape as final condition
     return getTokenWithDetailsFromSharedEscape(m, {
       inCharClass: false,
       ignoreCase: context.isIgnoreCaseOn(),
@@ -393,6 +394,7 @@ function getAllTokensForCharClass(expression, opener, lastIndex, ignoreCase) {
 
 function getCharClassTokenWithDetails(m) {
   if (m[0] === '\\') {
+    // Assumes an identity escape as final condition
     return getTokenWithDetailsFromSharedEscape(m, {
       inCharClass: true,
       ignoreCase: false,
@@ -419,58 +421,71 @@ function getCharClassTokenWithDetails(m) {
 }
 
 // Tokens shared by base syntax and character class syntax that start with `\`
-// TODO: Refactor to return token details early
 function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
   const m1 = m[1];
-  let token;
-  let hasCase = false;
   if ('cC'.includes(m1)) {
-    token = createTokenForControlChar(m);
-  } else if ('dDhHsSwW'.includes(m1)) {
-    token = createTokenForShorthandCharClass(m);
-  } else if (/^\\[pP]\{/.test(m)) {
-    // Assume the set includes characters with case
-    hasCase = true;
-    token = createTokenForUnicodeProperty(m);
-  } else if ('ux'.includes(m1)) {
+    return {
+      token: createTokenForControlChar(m),
+    };
+  }
+  if ('dDhHsSwW'.includes(m1)) {
+    return {
+      token: createTokenForShorthandCharClass(m),
+    };
+  }
+  if (/^\\[pP]\{/.test(m)) {
+    return {
+      // Assume the set includes characters with case
+      hasCase: true,
+      token: createTokenForUnicodeProperty(m),
+    };
+  }
+  if ('ux'.includes(m1)) {
     const charCode = getValidatedUnicodeCharCode(m);
-    hasCase = charHasCase(String.fromCodePoint(charCode));
-    token = createToken(TokenTypes.CHAR, m, {
-      charCode,
-      ignoreCase,
-    });
-  } else if (EscapeCharCodes.has(m1)) {
-    token = createToken(TokenTypes.CHAR, m, {
-      charCode: EscapeCharCodes.get(m1),
-      // None of these have case so don't need to set `ignoreCase`
-    });
+    return {
+      hasCase: charHasCase(String.fromCodePoint(charCode)),
+      token: createToken(TokenTypes.CHAR, m, {
+        charCode,
+        ignoreCase,
+      }),
+    };
+  }
+  if (EscapeCharCodes.has(m1)) {
+    return {
+      token: createToken(TokenTypes.CHAR, m, {
+        charCode: EscapeCharCodes.get(m1),
+        // None of these have case so don't need to set `ignoreCase`
+      }),
+    };
+  }
   // Escaped number: backref (possibly invalid), null, octal, or identity escape, possibly followed
   // by 1-2 literal digits
-  } else if (!isNaN(m1)) {
-    // Assume it's a backref that includes characters with case or an octal that refs a cased char
-    hasCase = true;
-    token = createToken(TokenTypes.ESCAPED_NUM, m, {
-      inCharClass,
-      // Can't emulate a different value for backref case sensitivity except in JS envs that
-      // support mode modifiers, but track this anyway (can use it for octals)
-      ignoreCase,
-    });
+  if (!isNaN(m1)) {
+    return {
+      // Assume it's a backref that includes chars with case or an octal that refs a cased char
+      hasCase: true,
+      token: createToken(TokenTypes.ESCAPED_NUM, m, {
+        inCharClass,
+        // Can't emulate a different value for backref case sensitivity except in JS envs that
+        // support mode modifiers, but track this anyway (can use it for octals)
+        ignoreCase,
+      }),
+    };
+  }
   // Unsupported; avoid treating as an identity escape
-  } else if (m1 === 'M') {
+  if (m1 === 'M') {
     throw new Error(`Unsupported escape "${m}"`);
-  } else if (m === '\\') {
+  }
+  if (m === '\\') {
     throw new Error('Incomplete escape "\\"');
-  // Identity escape
-  } else {
-    hasCase = charHasCase(m1);
-    token = createToken(TokenTypes.CHAR, m, {
+  }
+  // Else, identity escape
+  return {
+    hasCase: charHasCase(m1),
+    token: createToken(TokenTypes.CHAR, m, {
       charCode: m.codePointAt(1),
       ignoreCase,
-    });
-  }
-  return {
-    hasCase,
-    token,
+    }),
   };
 }
 
