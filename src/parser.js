@@ -14,6 +14,7 @@ const AstTypes = {
   Flags: 'Flags',
   Group: 'Group',
   Pattern: 'Pattern',
+  Quantifier: 'Quantifier',
   RegExp: 'RegExp',
   // Non-final representations
   ICharacter: 'ICharacter',
@@ -35,6 +36,7 @@ const AstAssertionKinds = {
 function parse({tokens, jsFlags}) {
   const context = {
     current: 0,
+    // TODO: Remove from `context` and pass as an arg where needed
     ignoreCase: jsFlags.ignoreCase,
     walk: parent => {
       let token = tokens[context.current];
@@ -44,7 +46,7 @@ function parse({tokens, jsFlags}) {
         case TokenTypes.ALTERNATOR:
           // Only handles top-level alternation (groups handle their own)
           return createAlternative(parent.parent);
-        case TokenTypes.ASSERTION_ESC:
+        case TokenTypes.ASSERTION:
           return createAssertionFromToken(parent, token);
         case TokenTypes.BACKREF:
           return createBackreference(parent, token.ref);
@@ -57,6 +59,8 @@ function parse({tokens, jsFlags}) {
           return createCharacterFromToken(parent, token, context.ignoreCase, false);
         case TokenTypes.GROUP_OPEN:
           return parseGroupOpen(context, parent, token, tokens);
+        case TokenTypes.QUANTIFIER:
+          return parseQuantifier(parent, token);
         default:
           throw new Error(`Unexpected token type "${token.type}"`);
       }
@@ -152,6 +156,24 @@ function parseGroupOpen(context, parent, token, tokens) {
   }
   // Skip the closing parenthesis
   context.current++;
+  return node;
+}
+
+function parseQuantifier(parent, token) {
+  // First child in `Alternative`
+  if (!parent.elements.length) {
+    throw new Error('Nothing to repeat');
+  }
+  const node = createQuantifier(
+    parent,
+    parent.elements.at(-1),
+    token.min,
+    token.max,
+    token.greedy,
+    token.possessive
+  );
+  node.element.parent = node;
+  parent.elements.pop();
   return node;
 }
 
@@ -334,6 +356,20 @@ function createGroup(parent) {
 
 function createPattern(parent) {
   return withInitialAlternative(getNodeBase(parent, AstTypes.Pattern));
+}
+
+function createQuantifier(parent, element, min, max, greedy, possessive) {
+  if (max < min) {
+    throw new Error('Quantifier range out of order');
+  }
+  return {
+    ...getNodeBase(parent, AstTypes.Quantifier),
+    min,
+    max,
+    greedy,
+    possessive,
+    element,
+  };
 }
 
 function createRegExp(pattern, flags) {
