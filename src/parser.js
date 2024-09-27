@@ -36,8 +36,6 @@ const AstAssertionKinds = {
 function parse({tokens, jsFlags}) {
   const context = {
     current: 0,
-    // TODO: Remove from `context` and pass as an arg where needed
-    ignoreCase: jsFlags.ignoreCase,
     walk: parent => {
       let token = tokens[context.current];
       // Advance for the next iteration
@@ -53,10 +51,10 @@ function parse({tokens, jsFlags}) {
         case TokenTypes.CC_HYPHEN:
           return parseCharacterClassHyphen(context, parent, token, tokens);
         case TokenTypes.CC_OPEN:
-          return parseCharacterClassOpen(context, parent, token, tokens);
+          return parseCharacterClassOpen(context, parent, token, tokens, jsFlags.ignoreCase);
         case TokenTypes.CHAR:
           // TODO: Set arg `inCaseInsensitiveCharacterClass` correctly
-          return createCharacterFromToken(parent, token, context.ignoreCase, false);
+          return createCharacterFromToken(parent, token, jsFlags.ignoreCase, false);
         case TokenTypes.GROUP_OPEN:
           return parseGroupOpen(context, parent, token, tokens);
         case TokenTypes.QUANTIFIER:
@@ -105,8 +103,8 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
   return createCharacterFromToken(parent, token);
 }
 
-function parseCharacterClassOpen(context, parent, token, tokens) {
-  const node = createCharacterClassFromToken(parent, token, context.ignoreCase);
+function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
+  const node = createCharacterClassFromToken(parent, token, ignoreCase);
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   while (nextToken.type !== TokenTypes.CC_CLOSE) {

@@ -14,7 +14,7 @@ const TokenTypes = {
   GROUP_CLOSE: 'GROUP_CLOSE',
   GROUP_OPEN: 'GROUP_OPEN',
   SUBROUTINE: 'SUBROUTINE', // TODO: Handle in parser
-  QUANTIFIER: 'QUANTIFIER', // TODO: Handle in parser
+  QUANTIFIER: 'QUANTIFIER',
   VARCHAR_SET: 'VARCHAR_SET', // TODO: Handle in parser
   // Non-final representations
   ESCAPED_NUM: 'ESCAPED_NUM',
