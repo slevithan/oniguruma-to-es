@@ -107,7 +107,7 @@ function tokenize(expression, onigFlags = '') {
     isDotAllOn: () => context.modifierStack.at(-1).dotAll,
     isExtendedOn: () => context.modifierStack.at(-1).extended,
     reuseCurrentGroupModifiers: () => context.modifierStack.push({...context.modifierStack.at(-1)}),
-    // TODO: Can refactor as `numNamedCaptures` unless this is included in the returned obj
+    // TODO: Refactor as `numNamedCaptures` unless this is included in the returned obj
     captureNames: [],
     potentialUnnamedCaptureTokens: [],
     hasDotAllDot: false,

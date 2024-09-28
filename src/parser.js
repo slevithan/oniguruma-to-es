@@ -17,9 +17,6 @@ const AstTypes = {
   Pattern: 'Pattern',
   Quantifier: 'Quantifier',
   RegExp: 'RegExp',
-  // Non-final representations
-  ICharacter: 'ICharacter',
-  ICharacterClass: 'ICharacterClass',
 };
 
 const AstAssertionKinds = {
@@ -96,7 +93,6 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
     nextToken.type !== TokenTypes.CharacterClassIntersector
   ) {
     const nextNode = context.walk(parent);
-    // No need to check `ICharacter` since the tokenizer only sets `ignoreCase` on the outer class
     if (prevNode.type === AstTypes.Character && nextNode.type === AstTypes.Character) {
       parent.elements.pop();
       const node = createCharacterClassRange(parent, prevNode, nextNode);
@@ -115,7 +111,7 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   while (nextToken.type !== TokenTypes.CharacterClassClose) {
     if (nextToken.type === TokenTypes.CharacterClassIntersector) {
-      intersection.classes.push(createCharacterClassBase(intersection, false));
+      intersection.classes.push(createCharacterClassBase(intersection));
       // Skip the intersector
       context.current++;
     } else {
@@ -257,7 +253,7 @@ function createCapturingGroupFromToken(parent, token) {
   }
   if (ignoreCase) {
     // Track this for subroutines that might reference the group
-    // TODO: Delete the prop after handling
+    // TODO: Delete the prop after handling all subroutines (maybe move this to a map of captures)
     node.ignoreCase = ignoreCase;
   }
   return withInitialAlternative(node);
@@ -272,35 +268,23 @@ function createCharacter(parent, charCode) {
 
 // Create node from token type `Character` or `CharacterClassHyphen`
 function createCharacterFromToken(parent, token, ignoreCase, inCaseInsensitiveCharacterClass) {
-  const char = String.fromCodePoint(token.charCode);
+  const {charCode} = token;
+  const node = createCharacter(parent, charCode);
   if (
     !ignoreCase &&
     (token.ignoreCase || inCaseInsensitiveCharacterClass) &&
-    charHasCase(char)
+    charHasCase(String.fromCodePoint(charCode))
   ) {
-    return createICharacter(parent, char);
+    // Only used when a pattern is partially case insensitive; otherwise flag i is relied on. When
+    // mode modifiers are included in a pattern, determining whether to apply character-specific
+    // case insensitivity accounts for whether any chars with case (or backrefs) appear in case
+    // sensitive segments (if not, flag i is turned on for the whole pattern)
+    node.ignoreCase = true;
   }
-  return createCharacter(parent, token.charCode);
+  return node;
 }
 
-// TODO: Transform this away
-// Only used when a pattern is partially case insensitive; otherwise flag i is relied on. When mode
-// modifiers are included in a pattern, determining whether to apply character-specific case
-// insensitivity accounts for whether any chars with case (or backrefs) appear in case sensitive
-// segments (if not, flag i is turned on for the whole pattern)
-function createICharacter(parent, char) {
-  // Unicode case folding is complicated, and this doesn't support all aspects of it.
-  // - Ex: Doesn't derive/add titlecase versions of chars like Serbo-Croatian 'ǅ'.
-  // - Ex: Doesn't handle language-specific edge cases like Turkish İ. In JS, both
-  //   `/i/iv.test('İ')` and `/İ/iv.test('i')` return `false`, although lowercase `İ` is `i`.
-  return {
-    ...getNodeBase(parent, AstTypes.ICharacter),
-    lower: char.toLowerCase(),
-    upper: char.toUpperCase(),
-  };
-}
-
-function createCharacterClassBase(parent, negate) {
+function createCharacterClassBase(parent, negate = false) {
   return {
     ...getNodeBase(parent, AstTypes.CharacterClass),
     negate,
@@ -309,22 +293,16 @@ function createCharacterClassBase(parent, negate) {
 }
 
 function createCharacterClassFromToken(parent, token, ignoreCase) {
+  const node = createCharacterClassBase(parent, token.negate);
   if (!ignoreCase && token.ignoreCase) {
-    return createICharacterClassFromToken(parent, token);
+    node.ignoreCase = true;
   }
-  return withInitialIntersection(createCharacterClassBase(parent, token.negate));
-}
-
-// TODO: Transform this away
-function createICharacterClassFromToken(parent, token) {
-  const node = withInitialIntersection(createCharacterClassBase(parent, token.negate));
-  node.type = AstTypes.ICharacterClass;
-  return node;
+  return withInitialIntersection(node);
 }
 
 function createCharacterClassIntersection(parent) {
   const intersection = getNodeBase(parent, AstTypes.CharacterClassIntersection);
-  intersection.classes = [createCharacterClassBase(intersection, false)];
+  intersection.classes = [createCharacterClassBase(intersection)];
   return intersection;
 }
 
@@ -340,25 +318,23 @@ function createCharacterClassRange(parent, min, max) {
 }
 
 function createCharacterSetFromToken(parent, token, dotAll) {
-  const {kind} = token;
-  if (kind === TokenCharacterSetKinds.any && token.dotAll && !dotAll) {
-    // Negated empty char class matches any char including newlines
-    return createCharacterClassBase(parent, true);
-  }
+  const {kind, negate, property} = token;
   const node = {
     ...getNodeBase(parent, AstTypes.CharacterSet),
     kind: AstCharacterSetKinds[kind],
   };
-  if (
+  if (kind === TokenCharacterSetKinds.any && token.dotAll && !dotAll) {
+    node.dotAll = true;
+  } else if (
     kind === TokenCharacterSetKinds.digit ||
     kind === TokenCharacterSetKinds.hex ||
     kind === TokenCharacterSetKinds.property ||
     kind === TokenCharacterSetKinds.space ||
     kind === TokenCharacterSetKinds.word
   ) {
-    node.negate = token.negate;
+    node.negate = negate;
     if (kind === TokenCharacterSetKinds.property) {
-      node.property = getJsUnicodePropertyName(token.property);
+      node.property = getJsUnicodePropertyName(property);
     }
   }
   return node;
