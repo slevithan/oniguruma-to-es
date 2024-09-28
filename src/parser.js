@@ -50,16 +50,16 @@ function parse({tokens, jsFlags}) {
           return createAlternative(parent.parent);
         case TokenTypes.Assertion:
           return createAssertionFromToken(parent, token);
-        case TokenTypes.Backref:
+        case TokenTypes.Backreference:
           return createBackreference(parent, token.ref);
-        case TokenTypes.CcHyphen:
-          return parseCharacterClassHyphen(context, parent, token, tokens);
-        case TokenTypes.CcOpen:
-          return parseCharacterClassOpen(context, parent, token, tokens, jsFlags.ignoreCase);
-        case TokenTypes.Char:
+        case TokenTypes.Character:
           // TODO: Set arg `inCaseInsensitiveCharacterClass` correctly
           return createCharacterFromToken(parent, token, jsFlags.ignoreCase, false);
-        case TokenTypes.CharSet:
+        case TokenTypes.CharacterClassHyphen:
+          return parseCharacterClassHyphen(context, parent, token, tokens);
+        case TokenTypes.CharacterClassOpen:
+          return parseCharacterClassOpen(context, parent, token, tokens, jsFlags.ignoreCase);
+        case TokenTypes.CharacterSet:
           return createCharacterSetFromToken(parent, token, jsFlags.dotAll);
         case TokenTypes.GroupOpen:
           return parseGroupOpen(context, parent, token, tokens);
@@ -91,9 +91,9 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
     prevNode &&
     prevNode.type !== AstTypes.CharacterClass &&
     nextToken &&
-    nextToken.type !== TokenTypes.CcOpen &&
-    nextToken.type !== TokenTypes.CcClose &&
-    nextToken.type !== TokenTypes.CcIntersector
+    nextToken.type !== TokenTypes.CharacterClassOpen &&
+    nextToken.type !== TokenTypes.CharacterClassClose &&
+    nextToken.type !== TokenTypes.CharacterClassIntersector
   ) {
     const nextNode = context.walk(parent);
     // No need to check `ICharacter` since the tokenizer only sets `ignoreCase` on the outer class
@@ -113,8 +113,8 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
   const node = createCharacterClassFromToken(parent, token, ignoreCase);
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
-  while (nextToken.type !== TokenTypes.CcClose) {
-    if (nextToken.type === TokenTypes.CcIntersector) {
+  while (nextToken.type !== TokenTypes.CharacterClassClose) {
+    if (nextToken.type === TokenTypes.CharacterClassIntersector) {
       intersection.classes.push(createCharacterClassBase(intersection, false));
       // Skip the intersector
       context.current++;
@@ -247,13 +247,20 @@ function createByGroupKind(parent, token) {
 }
 
 function createCapturingGroupFromToken(parent, token) {
-  return withInitialAlternative({
+  const {number, name, ignoreCase} = token;
+  const node = {
     ...getNodeBase(parent, AstTypes.CapturingGroup),
-    number: token.number,
-    ...(token.name ? {name: token.name} : null),
-    // Track this for subroutines that might reference the group [TODO]
-    ignoreCase: token.ignoreCase,
-  });
+    number,
+  };
+  if (name) {
+    node.name = name;
+  }
+  if (ignoreCase) {
+    // Track this for subroutines that might reference the group
+    // TODO: Delete the prop after handling
+    node.ignoreCase = ignoreCase;
+  }
+  return withInitialAlternative(node);
 }
 
 function createCharacter(parent, charCode) {
@@ -263,7 +270,7 @@ function createCharacter(parent, charCode) {
   };
 }
 
-// Create node from token type `CHAR` or `CC_HYPHEN`
+// Create node from token type `Character` or `CharacterClassHyphen`
 function createCharacterFromToken(parent, token, ignoreCase, inCaseInsensitiveCharacterClass) {
   const char = String.fromCodePoint(token.charCode);
   if (
@@ -450,23 +457,17 @@ function replaceElementsPropWithElementsFrom(newParent, oldParent) {
 
 function throwIfNot(value, msg) {
   if (!value) {
-    throw new Error(msg ?? 'Expected value');
+    throw new Error(msg ?? 'Value expected');
   }
   return value;
 }
 
 function throwIfUnclosedCharacterClass(token) {
-  if (!token) {
-    throw new Error('Unclosed character class');
-  }
-  return token;
+  return throwIfNot(token, 'Unclosed character class');
 }
 
 function throwIfUnclosedGroup(token) {
-  if (!token) {
-    throw new Error('Unclosed group');
-  }
-  return token;
+  return throwIfNot(token, 'Unclosed group');
 }
 
 function withInitialAlternative(node) {
