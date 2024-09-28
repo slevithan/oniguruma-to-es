@@ -1,31 +1,40 @@
-import {charHasCase, KeylessUnicodeProperties} from './unicode.js';
+import {charHasCase} from './unicode.js';
 
 const TokenTypes = {
-  ALTERNATOR: 'ALTERNATOR',
-  ASSERTION: 'ASSERTION',
-  BACKREF: 'BACKREF',
-  BACKREF_K: 'BACKREF_K', // TODO: Handle in parser
-  CC_CLOSE: 'CC_CLOSE',
-  CC_HYPHEN: 'CC_HYPHEN',
-  CC_INTERSECTOR: 'CC_INTERSECTOR',
-  CC_OPEN: 'CC_OPEN',
-  CHAR: 'CHAR',
-  CHAR_SET: 'CHAR_SET', // TODO: Handle in parser
-  GROUP_CLOSE: 'GROUP_CLOSE',
-  GROUP_OPEN: 'GROUP_OPEN',
-  SUBROUTINE: 'SUBROUTINE', // TODO: Handle in parser
-  QUANTIFIER: 'QUANTIFIER',
-  VARCHAR_SET: 'VARCHAR_SET', // TODO: Handle in parser
+  Alternator: 'Alternator',
+  Assertion: 'Assertion',
+  Backref: 'Backref',
+  BackrefK: 'BackrefK', // TODO: Handle in parser
+  CcClose: 'CcClose',
+  CcHyphen: 'CcHyphen',
+  CcIntersector: 'CcIntersector',
+  CcOpen: 'CcOpen',
+  Char: 'Char',
+  CharSet: 'CharSet',
+  GroupClose: 'GroupClose',
+  GroupOpen: 'GroupOpen',
+  Subroutine: 'Subroutine', // TODO: Handle in parser
+  Quantifier: 'Quantifier',
+  VarcharSet: 'VarcharSet', // TODO: Handle in parser
   // Non-final representations
-  ESCAPED_NUM: 'ESCAPED_NUM',
+  EscapedNum: 'EscapedNum',
+};
+
+const TokenCharacterSetKinds = {
+  any: 'any',
+  digit: 'digit',
+  hex: 'hex',
+  property: 'property',
+  space: 'space',
+  word: 'word',
 };
 
 const TokenGroupKinds = {
-  ATOMIC: 'ATOMIC',
-  CAPTURING: 'CAPTURING',
-  GROUP: 'GROUP',
-  LOOKAHEAD: 'LOOKAHEAD',
-  LOOKBEHIND: 'LOOKBEHIND',
+  atomic: 'atomic',
+  capturing: 'capturing',
+  group: 'group',
+  lookahead: 'lookahead',
+  lookbehind: 'lookbehind',
 };
 
 const EscapeCharCodes = new Map([
@@ -40,7 +49,8 @@ const EscapeCharCodes = new Map([
 ]);
 
 const controlCharPattern = 'c.? | C(?:-.?)?';
-const unicodePropertyPattern = String.raw`[pP]\{\^?[\x20\w]+\}`;
+// Oniguruma considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and `\p{gc=L}` are invalid
+const unicodePropertyPattern = String.raw`[pP]\{(?:\^?[\x20\w]+\})?`;
 const hexCharPattern = String.raw`u\{[^\}]*\}? | u\p{AHex}{0,4} | x\p{AHex}{0,2}`;
 const escapedNumPattern = '\\d{1,3}';
 const charClassOpenPattern = String.raw`\[\^?\]?`;
@@ -133,13 +143,13 @@ function tokenize(expression, onigFlags = '') {
       delete t.number;
       delete t.ignoreCase;
     } else {
-      t.kind = TokenGroupKinds.CAPTURING;
+      t.kind = TokenGroupKinds.capturing;
     }
   }
   const numCaptures = context.captureNames.length || context.potentialUnnamedCaptureTokens.length;
   // Split escaped nums, now that we have all the necessary details
   tokens = tokens.
-    map(t => t.type === TokenTypes.ESCAPED_NUM ? splitEscapedNumToken(t, numCaptures, !!context.captureNames.length) : t).
+    map(t => t.type === TokenTypes.EscapedNum ? splitEscapedNumToken(t, numCaptures, !!context.captureNames.length) : t).
     flat();
 
   // Include JS flag i if a case insensitive token was used and no case sensitive tokens were used
@@ -176,16 +186,16 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   if (m0 === '\\') {
     if ('AbBGzZ'.includes(m1)) {
       return {
-        token: createToken(TokenTypes.ASSERTION, m),
+        token: createToken(TokenTypes.Assertion, m),
       };
     }
     if (m.startsWith('\\g<')) {
       // Subroutines follow the status of flag modifiers from the groups they reference, and not
       // any modifiers preceding themselves. Thus, no need to set `hasCase = true` or the
-      // `ignoreCase` prop. Instead, can later reference `ignoreCase`, etc. from the
-      // `GROUP_OPEN` token that the subroutine references
+      // `ignoreCase` prop. Instead, can later reference `ignoreCase`, etc. from the `GroupOpen`
+      // token that the subroutine references
       return {
-        token: createToken(TokenTypes.SUBROUTINE, m),
+        token: createToken(TokenTypes.Subroutine, m),
       };
     }
     if (m.startsWith('\\k<')) {
@@ -193,7 +203,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
       return {
         // Assume the backref includes characters with case
         hasCase: true,
-        token: createToken(TokenTypes.BACKREF_K, m, {
+        token: createToken(TokenTypes.BackrefK, m, {
           // Can't emulate a different value for backref case sensitivity except in JS envs that
           // support mode modifiers, but track this anyway
           ignoreCase: context.isIgnoreCaseOn(),
@@ -202,7 +212,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     if ('RX'.includes(m1)) {
       return {
-        token: createToken(TokenTypes.VARCHAR_SET, m),
+        token: createToken(TokenTypes.VarcharSet, m),
       };
     }
     // Unsupported; avoid treating as an identity escape
@@ -219,9 +229,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     // Unnamed capture if no named captures, else noncapturing group
     if (m === '(') {
       context.reuseCurrentGroupModifiers();
-      const token = createToken(TokenTypes.GROUP_OPEN, m, {
-        // Will change to `CAPTURING` and add `number` in a second pass if no named captures
-        kind: TokenGroupKinds.GROUP,
+      const token = createToken(TokenTypes.GroupOpen, m, {
+        // Will change to `capturing` and add `number` in a second pass if no named captures
+        kind: TokenGroupKinds.group,
         // Will be removed if not a capture (due to presense of named capture)
         number: context.potentialUnnamedCaptureTokens.length + 1,
         // Track this for subroutines that might reference the group (TODO: track other flags)
@@ -236,8 +246,8 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     if (m === '(?:') {
       context.reuseCurrentGroupModifiers();
       return {
-        token: createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: TokenGroupKinds.GROUP,
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: TokenGroupKinds.group,
         }),
       };
     }
@@ -245,8 +255,8 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     if (m === '(?>') {
       context.reuseCurrentGroupModifiers();
       return {
-        token: createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: TokenGroupKinds.ATOMIC,
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: TokenGroupKinds.atomic,
         }),
       };
     }
@@ -254,8 +264,8 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     if (m === '(?=' || m === '(?!' || m === '(?<=' || m === '(?<!') {
       context.reuseCurrentGroupModifiers();
       return {
-        token: createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: m2 === '<' ? TokenGroupKinds.LOOKBEHIND : TokenGroupKinds.LOOKAHEAD,
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: m2 === '<' ? TokenGroupKinds.lookbehind : TokenGroupKinds.lookahead,
           negate: m.endsWith('!'),
         }),
       };
@@ -266,8 +276,8 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
       context.captureNames.push(name);
       context.reuseCurrentGroupModifiers();
       return {
-        token: createToken(TokenTypes.GROUP_OPEN, m, {
-          kind: TokenGroupKinds.CAPTURING,
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: TokenGroupKinds.capturing,
           number: context.captureNames.length,
           name,
           // Track this for subroutines that might reference the group (TODO: track other flags)
@@ -293,15 +303,15 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     // Ex: `(?im-x:`
     context.modifierStack.push(newMods);
     return {
-      token: createToken(TokenTypes.GROUP_OPEN, m, {
-        kind: TokenGroupKinds.GROUP,
+      token: createToken(TokenTypes.GroupOpen, m, {
+        kind: TokenGroupKinds.group,
       }),
     };
   }
   if (m === ')') {
     context.modifierStack.pop();
     return {
-      token: createToken(TokenTypes.GROUP_CLOSE, m),
+      token: createToken(TokenTypes.GroupClose, m),
     };
   }
   if (m === '#' && context.isExtendedOn()) {
@@ -323,8 +333,8 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
       context.hasNonDotAllDot = true;
     }
     return {
-      token: createToken(TokenTypes.CHAR_SET, m, {
-        kind: 'any',
+      token: createToken(TokenTypes.CharSet, m, {
+        kind: TokenCharacterSetKinds.any,
         dotAll,
       }),
     };
@@ -332,23 +342,23 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   if (m === '^' || m === '$') {
     context.hasMultilineAnchor = true;
     return {
-      token: createToken(TokenTypes.ASSERTION, m),
+      token: createToken(TokenTypes.Assertion, m),
     };
   }
   if (m === '|') {
     return {
-      token: createToken(TokenTypes.ALTERNATOR, m),
+      token: createToken(TokenTypes.Alternator, m),
     };
   }
   if (quantifierRe.test(m)) {
     return {
-      token: createToken(TokenTypes.QUANTIFIER, m),
+      token: createToken(TokenTypes.Quantifier, m),
     };
   }
   assertSingleChar(m);
   return {
     hasCase: charHasCase(m),
-    token: createToken(TokenTypes.CHAR, m, {
+    token: createToken(TokenTypes.Char, m, {
       charCode: m.codePointAt(0),
       ignoreCase: context.isIgnoreCaseOn(),
     }),
@@ -357,7 +367,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
 
 function getAllTokensForCharClass(expression, opener, lastIndex, ignoreCase) {
   assertNonEmptyCharClass(opener);
-  const tokens = [createToken(TokenTypes.CC_OPEN, opener, {
+  const tokens = [createToken(TokenTypes.CcOpen, opener, {
     // Only mark this here; not for tokens within this (outermost) char class
     ignoreCase,
   })];
@@ -370,10 +380,10 @@ function getAllTokensForCharClass(expression, opener, lastIndex, ignoreCase) {
     if (m[0] === '[') {
       assertNonEmptyCharClass(m);
       numCharClassesOpen++;
-      tokens.push(createToken(TokenTypes.CC_OPEN, m));
+      tokens.push(createToken(TokenTypes.CcOpen, m));
     } else if (m === ']') {
       numCharClassesOpen--;
-      tokens.push(createToken(TokenTypes.CC_CLOSE, m));
+      tokens.push(createToken(TokenTypes.CcClose, m));
       if (!numCharClassesOpen) {
         break;
       }
@@ -403,18 +413,18 @@ function getCharClassTokenWithDetails(m) {
   // Range (possibly invalid) or literal hyphen
   if (m === '-') {
     return {
-      token: createToken(TokenTypes.CC_HYPHEN, m),
+      token: createToken(TokenTypes.CcHyphen, m),
     }
   }
   if (m === '&&') {
     return {
-      token: createToken(TokenTypes.CC_INTERSECTOR, m),
+      token: createToken(TokenTypes.CcIntersector, m),
     };
   }
   assertSingleChar(m);
   return {
     hasCase: charHasCase(m),
-    token: createToken(TokenTypes.CHAR, m, {
+    token: createToken(TokenTypes.Char, m, {
       charCode: m.codePointAt(0),
     }),
   };
@@ -434,6 +444,9 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
     };
   }
   if (/^\\[pP]\{/.test(m)) {
+    if (m.length === 3) {
+      throw new Error('Invalid Oniguruma Unicode property');
+    }
     return {
       // Assume the set includes characters with case
       hasCase: true,
@@ -444,7 +457,7 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
     const charCode = getValidatedUnicodeCharCode(m);
     return {
       hasCase: charHasCase(String.fromCodePoint(charCode)),
-      token: createToken(TokenTypes.CHAR, m, {
+      token: createToken(TokenTypes.Char, m, {
         charCode,
         ignoreCase,
       }),
@@ -452,7 +465,7 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
   }
   if (EscapeCharCodes.has(m1)) {
     return {
-      token: createToken(TokenTypes.CHAR, m, {
+      token: createToken(TokenTypes.Char, m, {
         charCode: EscapeCharCodes.get(m1),
         // None of these have case so don't need to set `ignoreCase`
       }),
@@ -464,7 +477,7 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
     return {
       // Assume it's a backref that includes chars with case or an octal that refs a cased char
       hasCase: true,
-      token: createToken(TokenTypes.ESCAPED_NUM, m, {
+      token: createToken(TokenTypes.EscapedNum, m, {
         inCharClass,
         // Can't emulate a different value for backref case sensitivity except in JS envs that
         // support mode modifiers, but track this anyway (can use it for octals)
@@ -482,7 +495,7 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
   // Else, identity escape
   return {
     hasCase: charHasCase(m1),
-    token: createToken(TokenTypes.CHAR, m, {
+    token: createToken(TokenTypes.Char, m, {
       charCode: m.codePointAt(1),
       ignoreCase,
     }),
@@ -511,7 +524,7 @@ function splitEscapedNumToken(token, numCaptures, hasNamedCapture) {
       throw new Error('Numbered backrefs not allowed when using named capture');
     }
     //  `ignoreCase`
-    return [createToken(TokenTypes.BACKREF, raw, {
+    return [createToken(TokenTypes.Backref, raw, {
       // Can't emulate a different value for backref case sensitivity except in JS envs that
       // support mode modifiers, but track this anyway
       ignoreCase,
@@ -527,7 +540,7 @@ function splitEscapedNumToken(token, numCaptures, hasNamedCapture) {
     if (i === 0 && m !== '8' && m !== '9') {
       charCode = parseInt(m, 8);
     }
-    tokens.push(createToken(TokenTypes.CHAR, (i === 0 ? '\\' : '') + m, {
+    tokens.push(createToken(TokenTypes.Char, (i === 0 ? '\\' : '') + m, {
       charCode,
       ignoreCase: ignoreCase && !token.inCharClass && charHasCase(String.fromCodePoint(charCode)),
     }));
@@ -553,51 +566,51 @@ function createToken(type, raw, data = {}) {
     raw,
   };
   switch (type) {
-    case TokenTypes.ALTERNATOR:
-    case TokenTypes.CC_CLOSE:
-    case TokenTypes.CC_INTERSECTOR:
-    case TokenTypes.GROUP_CLOSE:
+    case TokenTypes.Alternator:
+    case TokenTypes.CcClose:
+    case TokenTypes.CcIntersector:
+    case TokenTypes.GroupClose:
       return base;
-    case TokenTypes.ASSERTION:
-    case TokenTypes.VARCHAR_SET:
+    case TokenTypes.Assertion:
+    case TokenTypes.VarcharSet:
       return {
         ...base,
         kind: raw,
       };
-    case TokenTypes.BACKREF:
+    case TokenTypes.Backref:
       return {
         ...base,
         ...data,
         ref: +raw.slice(1), // TODO: Probably remove since it can be derived from `raw`
       };
-    case TokenTypes.BACKREF_K:
-    case TokenTypes.SUBROUTINE:
+    case TokenTypes.BackrefK:
+    case TokenTypes.Subroutine:
       return {
         ...base,
         ...data,
         // \k<name>, \k<n>, \g<name>, etc.
         ref: raw.slice(3, -1), // TODO: Probably remove since it can be derived from `raw`
       };
-    case TokenTypes.CC_HYPHEN:
+    case TokenTypes.CcHyphen:
       return {
         ...base,
         charCode: 45,
       };
-    case TokenTypes.CC_OPEN:
+    case TokenTypes.CcOpen:
       return {
         ...base,
         ...data,
         negate: raw[1] === '^',
       };
-    case TokenTypes.CHAR:
-    case TokenTypes.CHAR_SET:
-    case TokenTypes.ESCAPED_NUM:
-    case TokenTypes.GROUP_OPEN:
+    case TokenTypes.Char:
+    case TokenTypes.CharSet:
+    case TokenTypes.EscapedNum:
+    case TokenTypes.GroupOpen:
       return {
         ...base,
         ...data,
       };
-    case TokenTypes.QUANTIFIER:
+    case TokenTypes.Quantifier:
       return {
         ...base,
         ...getQuantifierTokenProps(raw),
@@ -615,7 +628,7 @@ function createTokenForControlChar(raw) {
     // an extreme edge case so it's easier to not support it
     throw new Error(`Unsupported control character "${raw}"`);
   }
-  return createToken(TokenTypes.CHAR, raw, {
+  return createToken(TokenTypes.Char, raw, {
     charCode: char.toUpperCase().codePointAt(0) - 64,
     // None of these have case so don't need to set `ignoreCase`
   });
@@ -623,11 +636,11 @@ function createTokenForControlChar(raw) {
 
 function createTokenForShorthandCharClass(raw) {
   const lower = raw[1].toLowerCase();
-  return createToken(TokenTypes.CHAR_SET, raw, {
+  return createToken(TokenTypes.CharSet, raw, {
     kind: {
       'd': 'digit',
       'h': 'hex', // Not available in JS
-      // Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, FF, but close enough!
+      // Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, and FF
       's': 'space',
       'w': 'word',
     }[lower],
@@ -636,20 +649,16 @@ function createTokenForShorthandCharClass(raw) {
 }
 
 function createTokenForUnicodeProperty(raw) {
-  const {p, neg, prop} = /^\\(?<p>[pP])\{(?<neg>\^?)(?<prop>[ \w]+)/.exec(raw).groups;
+  const {p, neg, property} = /^\\(?<p>[pP])\{(?<neg>\^?)(?<property>[ \w]+)/.exec(raw).groups;
   const negate = (p === 'P' && !neg) || (p === 'p' && !!neg);
-  const jsProp = getJsUnicodePropertyName(prop);
-  const keyless = KeylessUnicodeProperties.has(jsProp);
-  return createToken(TokenTypes.CHAR_SET, raw, {
+  return createToken(TokenTypes.CharSet, raw, {
     kind: 'property',
     negate,
-    // If not identified as a JS binary property or general category, assume it's a script
-    property: keyless ? jsProp : 'sc',
-    value: keyless ? null : jsProp,
+    property,
     // Handling `ignoreCase` in JS envs without support for mode modifiers would require
-    // heavyweight Unicode character data, and in any case is rarely needed since most Unicode
-    // properties that include cased chars either include all cases or are explicitly cased
-    // (ex: `\p{Lower}`) so are unlikely to be intentionally adjusted by an `(?i)` modifier
+    // heavyweight Unicode character data, and in any case it's rarely needed since most Unicode
+    // properties that include cased chars either include all cases or are explicitly cased (ex:
+    // `\p{Lower}`) so are unlikely to be intentionally adjusted by an `(?i)` modifier
   });
 }
 
@@ -682,35 +691,6 @@ function getNewModsFromFlagGroup(raw, ignoreCase, dotAll, extended) {
   };
 }
 
-// Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
-// underscores, and require underscores in specific positions. This is a best effort and doesn't
-// find a mapping for all possible differences
-function getJsUnicodePropertyName(property) {
-  // Most JS Unicode properties use casing 'Like_This', but there are exceptions
-  let mapped = property.
-    trim().
-    replace(/\s+/g, '_').
-    // Change `PropertyName` to `Property_Name`
-    replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_');
-  if (KeylessUnicodeProperties.has(mapped)) {
-    return mapped;
-  }
-  const variations = [
-    str => str.toUpperCase(),
-    str => str.toLowerCase(),
-    // Try `Title_Case` last so we pass this version through in case it's a script name not found
-    // in `KeylessUnicodeProperties`
-    str => str.replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase()),
-  ];
-  for (const fn of variations) {
-    mapped = fn(mapped);
-    if (KeylessUnicodeProperties.has(mapped)) {
-      return mapped;
-    }
-  }
-  return mapped;
-}
-
 function assertNonEmptyCharClass(raw) {
   if (raw.endsWith(']')) {
     throw new Error(`Empty char class "${raw}" not allowed by Oniguruma`);
@@ -725,6 +705,7 @@ function assertSingleChar(raw) {
 
 export {
   tokenize,
+  TokenCharacterSetKinds,
   TokenGroupKinds,
   TokenTypes,
 };

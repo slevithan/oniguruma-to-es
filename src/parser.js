@@ -1,5 +1,5 @@
-import {TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {charHasCase} from './unicode.js';
+import {TokenCharacterSetKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
+import {charHasCase, KeylessUnicodeProperties} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -11,6 +11,7 @@ const AstTypes = {
   CharacterClass: 'CharacterClass',
   CharacterClassIntersection: 'CharacterClassIntersection',
   CharacterClassRange: 'CharacterClassRange',
+  CharacterSet: 'CharacterSet',
   Flags: 'Flags',
   Group: 'Group',
   Pattern: 'Pattern',
@@ -33,6 +34,9 @@ const AstAssertionKinds = {
   word_boundary: 'word_boundary',
 };
 
+// Identical values
+const AstCharacterSetKinds = TokenCharacterSetKinds;
+
 function parse({tokens, jsFlags}) {
   const context = {
     current: 0,
@@ -41,23 +45,25 @@ function parse({tokens, jsFlags}) {
       // Advance for the next iteration
       context.current++;
       switch (token.type) {
-        case TokenTypes.ALTERNATOR:
+        case TokenTypes.Alternator:
           // Only handles top-level alternation (groups handle their own)
           return createAlternative(parent.parent);
-        case TokenTypes.ASSERTION:
+        case TokenTypes.Assertion:
           return createAssertionFromToken(parent, token);
-        case TokenTypes.BACKREF:
+        case TokenTypes.Backref:
           return createBackreference(parent, token.ref);
-        case TokenTypes.CC_HYPHEN:
+        case TokenTypes.CcHyphen:
           return parseCharacterClassHyphen(context, parent, token, tokens);
-        case TokenTypes.CC_OPEN:
+        case TokenTypes.CcOpen:
           return parseCharacterClassOpen(context, parent, token, tokens, jsFlags.ignoreCase);
-        case TokenTypes.CHAR:
+        case TokenTypes.Char:
           // TODO: Set arg `inCaseInsensitiveCharacterClass` correctly
           return createCharacterFromToken(parent, token, jsFlags.ignoreCase, false);
-        case TokenTypes.GROUP_OPEN:
+        case TokenTypes.CharSet:
+          return createCharacterSetFromToken(parent, token, jsFlags.dotAll);
+        case TokenTypes.GroupOpen:
           return parseGroupOpen(context, parent, token, tokens);
-        case TokenTypes.QUANTIFIER:
+        case TokenTypes.Quantifier:
           return parseQuantifier(parent, token);
         default:
           throw new Error(`Unexpected token type "${token.type}"`);
@@ -85,9 +91,9 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
     prevNode &&
     prevNode.type !== AstTypes.CharacterClass &&
     nextToken &&
-    nextToken.type !== TokenTypes.CC_OPEN &&
-    nextToken.type !== TokenTypes.CC_CLOSE &&
-    nextToken.type !== TokenTypes.CC_INTERSECTOR
+    nextToken.type !== TokenTypes.CcOpen &&
+    nextToken.type !== TokenTypes.CcClose &&
+    nextToken.type !== TokenTypes.CcIntersector
   ) {
     const nextNode = context.walk(parent);
     // No need to check `ICharacter` since the tokenizer only sets `ignoreCase` on the outer class
@@ -107,9 +113,9 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
   const node = createCharacterClassFromToken(parent, token, ignoreCase);
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
-  while (nextToken.type !== TokenTypes.CC_CLOSE) {
-    if (nextToken.type === TokenTypes.CC_INTERSECTOR) {
-      intersection.classes.push(createCharacterClassIntersectionChildClass(intersection));
+  while (nextToken.type !== TokenTypes.CcClose) {
+    if (nextToken.type === TokenTypes.CcIntersector) {
+      intersection.classes.push(createCharacterClassBase(intersection, false));
       // Skip the intersector
       context.current++;
     } else {
@@ -141,8 +147,8 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
 function parseGroupOpen(context, parent, token, tokens) {
   const node = createByGroupKind(parent, token);
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
-  while (nextToken.type !== TokenTypes.GROUP_CLOSE) {
-    if (nextToken.type === TokenTypes.ALTERNATOR) {
+  while (nextToken.type !== TokenTypes.GroupClose) {
+    if (nextToken.type === TokenTypes.Alternator) {
       node.alternatives.push(createAlternative(node));
       // Skip the alternator
       context.current++;
@@ -184,10 +190,10 @@ function createAlternative(parent) {
 
 function createAssertionFromToken(parent, token) {
   const base = getNodeBase(parent, AstTypes.Assertion);
-  if (token.type === TokenTypes.GROUP_OPEN) {
+  if (token.type === TokenTypes.GroupOpen) {
     return withInitialAlternative({
       ...base,
-      kind: token.kind === TokenGroupKinds.LOOKBEHIND ?
+      kind: token.kind === TokenGroupKinds.lookbehind ?
         AstAssertionKinds.lookbehind :
         AstAssertionKinds.lookahead,
       negate: token.negate,
@@ -226,14 +232,14 @@ function createBackreference(parent, ref) {
 
 function createByGroupKind(parent, token) {
   switch (token.kind) {
-    case TokenGroupKinds.ATOMIC:
+    case TokenGroupKinds.atomic:
       return createAtomicGroup(parent);
-    case TokenGroupKinds.CAPTURING:
+    case TokenGroupKinds.capturing:
       return createCapturingGroupFromToken(parent, token);
-    case TokenGroupKinds.GROUP:
+    case TokenGroupKinds.group:
       return createGroup(parent);
-    case TokenGroupKinds.LOOKAHEAD:
-    case TokenGroupKinds.LOOKBEHIND:
+    case TokenGroupKinds.lookahead:
+    case TokenGroupKinds.lookbehind:
       return createAssertionFromToken(parent, token);
     default:
       throw new Error(`Unexpected group kind "${token.kind}"`);
@@ -287,36 +293,32 @@ function createICharacter(parent, char) {
   };
 }
 
+function createCharacterClassBase(parent, negate) {
+  return {
+    ...getNodeBase(parent, AstTypes.CharacterClass),
+    negate,
+    elements: [],
+  };
+}
+
 function createCharacterClassFromToken(parent, token, ignoreCase) {
   if (!ignoreCase && token.ignoreCase) {
     return createICharacterClassFromToken(parent, token);
   }
-  return withInitialCharacterClassIntersection({
-    ...getNodeBase(parent, AstTypes.CharacterClass),
-    negate: token.negate,
-  });
+  return withInitialCharacterClassIntersection(createCharacterClassBase(parent, token.negate));
 }
 
 // TODO: Transform this away
 function createICharacterClassFromToken(parent, token) {
-  return withInitialCharacterClassIntersection({
-    ...getNodeBase(parent, AstTypes.ICharacterClass),
-    negate: token.negate,
-  });
+  const node = withInitialCharacterClassIntersection(createCharacterClassBase(parent, token.negate));
+  node.type = AstTypes.ICharacterClass;
+  return node;
 }
 
 function createCharacterClassIntersection(parent) {
   const intersection = getNodeBase(parent, AstTypes.CharacterClassIntersection);
-  intersection.classes = [createCharacterClassIntersectionChildClass(intersection)];
+  intersection.classes = [createCharacterClassBase(intersection, false)];
   return intersection;
-}
-
-function createCharacterClassIntersectionChildClass(parent) {
-  return {
-    ...getNodeBase(parent, AstTypes.CharacterClass),
-    negate: false,
-    elements: [],
-  };
 }
 
 function createCharacterClassRange(parent, min, max) {
@@ -328,6 +330,31 @@ function createCharacterClassRange(parent, min, max) {
     min,
     max,
   };
+}
+
+function createCharacterSetFromToken(parent, token, dotAll) {
+  const {kind, negate, property} = token;
+  if (kind === TokenCharacterSetKinds.any && token.dotAll && !dotAll) {
+    // Negated empty char class matches any char including newlines
+    return createCharacterClassBase(parent, true);
+  }
+  const node = {
+    ...getNodeBase(parent, AstTypes.CharacterSet),
+    kind: AstCharacterSetKinds[kind],
+  };
+  if (
+    kind === TokenCharacterSetKinds.digit ||
+    kind === TokenCharacterSetKinds.hex ||
+    kind === TokenCharacterSetKinds.space ||
+    kind === TokenCharacterSetKinds.word
+  ) {
+    node.negate = negate;
+  }
+  if (kind === TokenCharacterSetKinds.property) {
+    node.negate = negate;
+    node.property = getJsUnicodePropertyName(property);
+  }
+  return node;
 }
 
 function createFlags(parent, {ignoreCase, multiline, dotAll}) {
@@ -383,6 +410,35 @@ function getNodeBase(parent, type) {
     type,
     parent,
   };
+}
+
+// Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
+// underscores, and require underscores in specific positions. This is a best effort and doesn't
+// find a mapping for all possible differences
+function getJsUnicodePropertyName(property) {
+  // Most JS Unicode properties use casing 'Like_This', but there are exceptions
+  let mapped = property.
+    trim().
+    replace(/\s+/g, '_').
+    // Change `PropertyName` to `Property_Name`
+    replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_');
+  if (KeylessUnicodeProperties.has(mapped)) {
+    return mapped;
+  }
+  const variations = [
+    str => str.toUpperCase(),
+    str => str.toLowerCase(),
+    // Try `Title_Case` last so we pass this version through in case it's a script name that's not
+    // found in `KeylessUnicodeProperties`
+    str => str.replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase()),
+  ];
+  for (const fn of variations) {
+    mapped = fn(mapped);
+    if (KeylessUnicodeProperties.has(mapped)) {
+      return mapped;
+    }
+  }
+  return mapped;
 }
 
 function replaceElementsPropWithElementsFrom(newParent, oldParent) {
