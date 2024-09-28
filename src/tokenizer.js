@@ -13,6 +13,7 @@ const TokenTypes = {
   CharacterSet: 'CharacterSet',
   GroupClose: 'GroupClose',
   GroupOpen: 'GroupOpen',
+  Keep: 'Keep', // TODO: Handle in parser
   Subroutine: 'Subroutine', // TODO: Handle in parser
   Quantifier: 'Quantifier',
   VarcharSet: 'VarcharSet', // TODO: Handle in parser
@@ -154,20 +155,20 @@ function tokenize(expression, onigFlags = '') {
     flat();
 
   // Include JS flag i if a case insensitive token was used and no case sensitive tokens were used
-  const includeFlagI = (onigFlags.includes('i') || hasCaseInsensitiveToken) && !hasCaseSensitiveToken;
+  const jsFlagI = (onigFlags.includes('i') || hasCaseInsensitiveToken) && !hasCaseSensitiveToken;
   // Include JS flag s (Onig flag m) if a dotAll dot was used and no non-dotAll dots were used
-  const includeFlagS = (onigFlags.includes('m') || context.hasDotAllDot) && !context.hasNonDotAllDot;
-  // Include JS flag m (not the same as Onig flag m) if `^` or `$` are used, so they work the same
-  // as Onig (there's a slight difference since Onig's only line break char is line feed)
-  const includeFlagM = context.hasMultilineAnchor;
+  const jsFlagS = (onigFlags.includes('m') || context.hasDotAllDot) && !context.hasNonDotAllDot;
+  // Include JS flag m (not the same as Onig flag m) if `^` or `$` were used, which makes them work
+  // the same as in Onig (slight difference since Onig's only line break char is line feed)
+  const jsFlagM = context.hasMultilineAnchor;
+  // Drop Onig flag x since we've already accounted for it during tokenization; JS doesn't support
+  // it and Onig uses different free spacing rules than the `regex` library
   return {
     tokens,
-    // Drop Onig flag x since we've already accounted for it during tokenization (JS doesn't
-    // support it and Onig uses different free spacing rules than the `regex` library)
     jsFlags: {
-      ignoreCase: includeFlagI,
-      multiline: includeFlagM,
-      dotAll: includeFlagS,
+      ignoreCase: jsFlagI,
+      multiline: jsFlagM,
+      dotAll: jsFlagS,
     },
   };
 }
@@ -211,14 +212,15 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
         }),
       };
     }
+    if (m1 === 'K') {
+      return {
+        token: createToken(TokenTypes.Keep, m),
+      };
+    }
     if ('RX'.includes(m1)) {
       return {
         token: createToken(TokenTypes.VarcharSet, m),
       };
-    }
-    // Unsupported; avoid treating as an identity escape
-    if (m1 === 'K') {
-      throw new Error(`Unsupported escape "${m}"`);
     }
     // Run last since it assumes an identity escape as final condition
     return getTokenWithDetailsFromSharedEscape(m, {
@@ -431,7 +433,7 @@ function getCharClassTokenWithDetails(m) {
   };
 }
 
-// Tokens shared by base syntax and character class syntax that start with `\`
+// Tokens shared by base syntax and char class syntax that start with `\`
 function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
   const m1 = m[1];
   if ('cC'.includes(m1)) {
@@ -571,6 +573,7 @@ function createToken(type, raw, data = {}) {
     case TokenTypes.CharacterClassClose:
     case TokenTypes.CharacterClassIntersector:
     case TokenTypes.GroupClose:
+    case TokenTypes.Keep:
       return base;
     case TokenTypes.Assertion:
     case TokenTypes.VarcharSet:
