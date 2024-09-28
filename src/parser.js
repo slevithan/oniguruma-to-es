@@ -305,12 +305,12 @@ function createCharacterClassFromToken(parent, token, ignoreCase) {
   if (!ignoreCase && token.ignoreCase) {
     return createICharacterClassFromToken(parent, token);
   }
-  return withInitialCharacterClassIntersection(createCharacterClassBase(parent, token.negate));
+  return withInitialIntersection(createCharacterClassBase(parent, token.negate));
 }
 
 // TODO: Transform this away
 function createICharacterClassFromToken(parent, token) {
-  const node = withInitialCharacterClassIntersection(createCharacterClassBase(parent, token.negate));
+  const node = withInitialIntersection(createCharacterClassBase(parent, token.negate));
   node.type = AstTypes.ICharacterClass;
   return node;
 }
@@ -333,7 +333,7 @@ function createCharacterClassRange(parent, min, max) {
 }
 
 function createCharacterSetFromToken(parent, token, dotAll) {
-  const {kind, negate, property} = token;
+  const {kind} = token;
   if (kind === TokenCharacterSetKinds.any && token.dotAll && !dotAll) {
     // Negated empty char class matches any char including newlines
     return createCharacterClassBase(parent, true);
@@ -345,14 +345,14 @@ function createCharacterSetFromToken(parent, token, dotAll) {
   if (
     kind === TokenCharacterSetKinds.digit ||
     kind === TokenCharacterSetKinds.hex ||
+    kind === TokenCharacterSetKinds.property ||
     kind === TokenCharacterSetKinds.space ||
     kind === TokenCharacterSetKinds.word
   ) {
-    node.negate = negate;
-  }
-  if (kind === TokenCharacterSetKinds.property) {
-    node.negate = negate;
-    node.property = getJsUnicodePropertyName(property);
+    node.negate = token.negate;
+    if (kind === TokenCharacterSetKinds.property) {
+      node.property = getJsUnicodePropertyName(token.property);
+    }
   }
   return node;
 }
@@ -475,7 +475,7 @@ function withInitialAlternative(node) {
   return node;
 }
 
-function withInitialCharacterClassIntersection(node) {
+function withInitialIntersection(node) {
   const intersection = createCharacterClassIntersection(node);
   node.elements = [intersection];
   return node;

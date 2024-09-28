@@ -1,11 +1,11 @@
 import {parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 
-function createAST(pattern, flags) {
+function createAst(pattern, flags) {
   return parse(tokenize(pattern, flags));
 }
 
 export {
-  createAST,
+  createAst,
   tokenize, // TODO: Remove (only for debugging)
 };
