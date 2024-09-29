@@ -58,6 +58,7 @@ const charClassOpenPattern = String.raw`\[\^?\]?`;
 // Even with flag x, Onig doesn't allow whitespace to separate a quantifier from the `?` or `+`
 // that makes it lazy or possessive
 const quantifierRe = /[?*+][?+]?|\{\d+(?:,\d*)?\}\??/;
+// TODO: Add support for backrefs and subroutines with `\k'name'` and `\g'name'` syntax
 const tokenRe = new RegExp(String.raw`
   \\ (?:
     ${controlCharPattern}
@@ -79,6 +80,7 @@ const tokenRe = new RegExp(String.raw`
   | ${charClassOpenPattern}
   | .
 `.replace(/\s+/g, ''), 'gsu');
+// TODO: Add support for POSIX classes (type `CharacterSet`)
 const charClassTokenRe = new RegExp(String.raw`
   \\ (?:
     ${controlCharPattern}
@@ -662,7 +664,10 @@ function createTokenForUnicodeProperty(raw) {
     // Handling `ignoreCase` in JS envs without support for mode modifiers would require
     // heavyweight Unicode character data, and in any case it's rarely needed since most Unicode
     // properties that include cased chars either include all cases or are explicitly cased (ex:
-    // `\p{Lower}`) so are unlikely to be intentionally adjusted by an `(?i)` modifier
+    // `\p{Lowercase}`) so are unlikely to be intentionally adjusted by an `(?i)` modifier. Plus,
+    // `\p{Lowercase}`, `\p{Uppercase}`, `\p{Lowercase_Letter}`, `\p{Uppercase_Letter}`, and their
+    // aliases are given special-case support
+    // TODO: Add `ignoreCase` prop to enable special-case support for `\p{Lowercase}`, etc.
   });
 }
 

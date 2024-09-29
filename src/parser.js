@@ -14,6 +14,7 @@ const AstTypes = {
   CharacterSet: 'CharacterSet',
   Flags: 'Flags',
   Group: 'Group',
+  Keep: 'Keep',
   Pattern: 'Pattern',
   Quantifier: 'Quantifier',
   RegExp: 'RegExp',
@@ -60,6 +61,8 @@ function parse({tokens, jsFlags}) {
           return createCharacterSetFromToken(parent, token, jsFlags.dotAll);
         case TokenTypes.GroupOpen:
           return parseGroupOpen(context, parent, token, tokens);
+        case TokenTypes.Keep:
+          return createKeep(parent);
         case TokenTypes.Quantifier:
           return parseQuantifier(parent, token);
         default:
@@ -360,6 +363,12 @@ function createFlags(parent, {ignoreCase, multiline, dotAll}) {
 
 function createGroup(parent) {
   return withInitialAlternative(getNodeBase(parent, AstTypes.Group));
+}
+
+function createKeep(parent) {
+  return {
+    ...getNodeBase(parent, AstTypes.Keep),
+  };
 }
 
 function createPattern(parent) {
