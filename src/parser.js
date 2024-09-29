@@ -1,10 +1,9 @@
-import {TokenCharacterSetKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
+import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
 import {charHasCase, KeylessUnicodeProperties} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
   Assertion: 'Assertion',
-  AtomicGroup: 'AtomicGroup',
   Backreference: 'Backreference',
   CapturingGroup: 'CapturingGroup',
   Character: 'Character',
@@ -12,9 +11,9 @@ const AstTypes = {
   CharacterClassIntersection: 'CharacterClassIntersection',
   CharacterClassRange: 'CharacterClassRange',
   CharacterSet: 'CharacterSet',
+  Directive: 'Directive',
   Flags: 'Flags',
   Group: 'Group',
-  Keep: 'Keep',
   Pattern: 'Pattern',
   Quantifier: 'Quantifier',
   RegExp: 'RegExp',
@@ -35,6 +34,7 @@ const AstAssertionKinds = {
 
 // Identical values
 const AstCharacterSetKinds = TokenCharacterSetKinds;
+const AstDirectiveKinds = TokenDirectiveKinds;
 
 const AstVariableLengthCharacterSetKinds = {
   newline: 'newline',
@@ -50,7 +50,7 @@ function parse({tokens, jsFlags}) {
       context.current++;
       switch (token.type) {
         case TokenTypes.Alternator:
-          // Only handles top-level alternation (groups handle their own)
+          // Only handles top-level alternation; groups handle their own alternators
           return createAlternative(parent.parent);
         case TokenTypes.Assertion:
           return createAssertionFromToken(parent, token);
@@ -65,10 +65,10 @@ function parse({tokens, jsFlags}) {
           return parseCharacterClassOpen(context, parent, token, tokens, jsFlags.ignoreCase);
         case TokenTypes.CharacterSet:
           return createCharacterSetFromToken(parent, token, jsFlags.dotAll);
+        case TokenTypes.Directive:
+          return createDirective(parent, token.kind);
         case TokenTypes.GroupOpen:
           return parseGroupOpen(context, parent, token, tokens);
-        case TokenTypes.Keep:
-          return createKeep(parent);
         case TokenTypes.Quantifier:
           return parseQuantifier(parent, token);
         case TokenTypes.VarcharSet:
@@ -81,12 +81,12 @@ function parse({tokens, jsFlags}) {
   const ast = createRegExp(createPattern(null), createFlags(null, jsFlags));
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
-    const result = context.walk(top);
-    if (result.type === AstTypes.Alternative) {
-      ast.pattern.alternatives.push(result);
-      top = result;
+    const node = context.walk(top);
+    if (node.type === AstTypes.Alternative) {
+      ast.pattern.alternatives.push(node);
+      top = node;
     } else {
-      top.elements.push(result);
+      top.elements.push(node);
     }
   }
   return ast;
@@ -226,10 +226,6 @@ function createAssertionFromToken(parent, token) {
   return node;
 }
 
-function createAtomicGroup(parent) {
-  return withInitialAlternative(getNodeBase(parent, AstTypes.AtomicGroup));
-}
-
 function createBackreference(parent, ref) {
   return {
     ...getNodeBase(parent, AstTypes.Backreference),
@@ -240,7 +236,7 @@ function createBackreference(parent, ref) {
 function createByGroupKind(parent, token) {
   switch (token.kind) {
     case TokenGroupKinds.atomic:
-      return createAtomicGroup(parent);
+      return createGroup(parent, true);
     case TokenGroupKinds.capturing:
       return createCapturingGroupFromToken(parent, token);
     case TokenGroupKinds.group:
@@ -332,7 +328,7 @@ function createCharacterSetFromToken(parent, token, dotAll) {
   const {kind, negate, property} = token;
   const node = {
     ...getNodeBase(parent, AstTypes.CharacterSet),
-    kind: AstCharacterSetKinds[kind],
+    kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
   };
   if (kind === TokenCharacterSetKinds.any && token.dotAll && !dotAll) {
     node.dotAll = true;
@@ -349,6 +345,13 @@ function createCharacterSetFromToken(parent, token, dotAll) {
     }
   }
   return node;
+}
+
+function createDirective(parent, kind) {
+  return {
+    ...getNodeBase(parent, AstTypes.Directive),
+    kind: throwIfNot(AstDirectiveKinds[kind], `Unexpected directive kind "${kind}"`),
+  };
 }
 
 function createFlags(parent, {ignoreCase, multiline, dotAll}) {
@@ -369,14 +372,12 @@ function createFlags(parent, {ignoreCase, multiline, dotAll}) {
   };
 }
 
-function createGroup(parent) {
-  return withInitialAlternative(getNodeBase(parent, AstTypes.Group));
-}
-
-function createKeep(parent) {
-  return {
-    ...getNodeBase(parent, AstTypes.Keep),
-  };
+function createGroup(parent, atomic = false) {
+  const node = getNodeBase(parent, AstTypes.Group);
+  if (atomic) {
+    node.atomic = true;
+  }
+  return withInitialAlternative(node);
 }
 
 function createPattern(parent) {
@@ -411,7 +412,7 @@ function createVariableLengthCharacterSet(parent, kind) {
     kind: throwIfNot({
       '\\R': AstVariableLengthCharacterSetKinds.newline,
       '\\X': AstVariableLengthCharacterSetKinds.grapheme,
-    }[kind], `Unexpected character set kind "${kind}"`),
+    }[kind], `Unexpected varchar set kind "${kind}"`),
   };
 }
 

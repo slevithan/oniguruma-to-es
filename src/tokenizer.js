@@ -11,13 +11,13 @@ const TokenTypes = {
   CharacterClassIntersector: 'CharacterClassIntersector',
   CharacterClassOpen: 'CharacterClassOpen',
   CharacterSet: 'CharacterSet',
+  Directive: 'Directive',
   GroupClose: 'GroupClose',
   GroupOpen: 'GroupOpen',
-  Keep: 'Keep',
   Subroutine: 'Subroutine', // TODO: Handle in parser
   Quantifier: 'Quantifier',
   VarcharSet: 'VarcharSet',
-  // Non-final representations
+  // Non-final representation
   EscapedNumber: 'EscapedNumber',
 };
 
@@ -28,6 +28,10 @@ const TokenCharacterSetKinds = {
   property: 'property',
   space: 'space',
   word: 'word',
+};
+
+const TokenDirectiveKinds = {
+  keep: 'keep',
 };
 
 const TokenGroupKinds = {
@@ -216,7 +220,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     if (m1 === 'K') {
       return {
-        token: createToken(TokenTypes.Keep, m),
+        token: createToken(TokenTypes.Directive, m, {
+          kind: TokenDirectiveKinds.keep,
+        }),
       };
     }
     if ('RX'.includes(m1)) {
@@ -575,7 +581,6 @@ function createToken(type, raw, data = {}) {
     case TokenTypes.CharacterClassClose:
     case TokenTypes.CharacterClassIntersector:
     case TokenTypes.GroupClose:
-    case TokenTypes.Keep:
       return base;
     case TokenTypes.Assertion:
     case TokenTypes.VarcharSet:
@@ -599,6 +604,7 @@ function createToken(type, raw, data = {}) {
       };
     case TokenTypes.Character:
     case TokenTypes.CharacterSet:
+    case TokenTypes.Directive:
     case TokenTypes.EscapedNumber:
     case TokenTypes.GroupOpen:
       return {
@@ -715,6 +721,7 @@ function assertSingleChar(raw) {
 export {
   tokenize,
   TokenCharacterSetKinds,
+  TokenDirectiveKinds,
   TokenGroupKinds,
   TokenTypes,
 };
