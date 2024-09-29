@@ -13,10 +13,10 @@ const TokenTypes = {
   CharacterSet: 'CharacterSet',
   GroupClose: 'GroupClose',
   GroupOpen: 'GroupOpen',
-  Keep: 'Keep', // TODO: Handle in parser
+  Keep: 'Keep',
   Subroutine: 'Subroutine', // TODO: Handle in parser
   Quantifier: 'Quantifier',
-  VarcharSet: 'VarcharSet', // TODO: Handle in parser
+  VarcharSet: 'VarcharSet',
   // Non-final representations
   EscapedNumber: 'EscapedNumber',
 };

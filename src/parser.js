@@ -18,6 +18,7 @@ const AstTypes = {
   Pattern: 'Pattern',
   Quantifier: 'Quantifier',
   RegExp: 'RegExp',
+  VariableLengthCharacterSet: 'VariableLengthCharacterSet',
 };
 
 const AstAssertionKinds = {
@@ -34,6 +35,11 @@ const AstAssertionKinds = {
 
 // Identical values
 const AstCharacterSetKinds = TokenCharacterSetKinds;
+
+const AstVariableLengthCharacterSetKinds = {
+  newline: 'newline',
+  grapheme: 'grapheme',
+};
 
 function parse({tokens, jsFlags}) {
   const context = {
@@ -65,6 +71,8 @@ function parse({tokens, jsFlags}) {
           return createKeep(parent);
         case TokenTypes.Quantifier:
           return parseQuantifier(parent, token);
+        case TokenTypes.VarcharSet:
+          return createVariableLengthCharacterSet(parent, token.kind);
         default:
           throw new Error(`Unexpected token type "${token.type}"`);
       }
@@ -394,6 +402,16 @@ function createRegExp(pattern, flags) {
     ...getNodeBase(null, AstTypes.RegExp),
     pattern,
     flags,
+  };
+}
+
+function createVariableLengthCharacterSet(parent, kind) {
+  return {
+    ...getNodeBase(parent, AstTypes.VariableLengthCharacterSet),
+    kind: throwIfNot({
+      '\\R': AstVariableLengthCharacterSetKinds.newline,
+      '\\X': AstVariableLengthCharacterSetKinds.grapheme,
+    }[kind], `Unexpected character set kind "${kind}"`),
   };
 }
 
