@@ -131,20 +131,19 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
     }
     nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   }
-  // Simplify tree for classes that contain a single non-negated class
+  // Simplify tree for classes that contain a single class
   for (const cc of intersection.classes) {
     const firstChild = cc.elements[0];
-    if (
-      cc.elements.length === 1 &&
-      firstChild.type === AstTypes.CharacterClass &&
-      !firstChild.negate
-    ) {
-      replaceElementsPropWithElementsFrom(cc, firstChild);
+    if (firstChild.type === AstTypes.CharacterClass && cc.elements.length === 1) {
+      replaceElementsWithElementsFrom(cc, firstChild);
+      cc.negate = cc.negate !== firstChild.negate;
     }
   }
   // Simplify tree if we don't need the intersection wrapper
   if (intersection.classes.length === 1) {
-    replaceElementsPropWithElementsFrom(node, intersection.classes[0]);
+    const cc = intersection.classes[0];
+    replaceElementsWithElementsFrom(node, cc);
+    node.negate = node.negate !== cc.negate;
   }
   // Skip the closing square bracket
   context.current++;
@@ -452,7 +451,7 @@ function getJsUnicodePropertyName(property) {
   return mapped;
 }
 
-function replaceElementsPropWithElementsFrom(newParent, oldParent) {
+function replaceElementsWithElementsFrom(newParent, oldParent) {
   newParent.elements = oldParent.elements;
   for (const child of newParent.elements) {
     child.parent = newParent;
