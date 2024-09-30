@@ -41,8 +41,9 @@ const AstVariableLengthCharacterSetKinds = {
   grapheme: 'grapheme',
 };
 
-function parse({tokens, jsFlags}) {
+function parse({tokens, jsFlags}, {optimize} = {}) {
   const context = {
+    optimize,
     current: 0,
     walk: parent => {
       let token = tokens[context.current];
@@ -117,7 +118,7 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
 }
 
 function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
-  const node = createCharacterClassFromToken(parent, token, ignoreCase);
+  let node = createCharacterClassFromToken(parent, token, ignoreCase);
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   while (nextToken.type !== TokenTypes.CharacterClassClose) {
@@ -131,19 +132,23 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
     }
     nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   }
-  // Simplify tree for classes that contain a single class
-  for (const cc of intersection.classes) {
-    const firstChild = cc.elements[0];
-    if (firstChild.type === AstTypes.CharacterClass && cc.elements.length === 1) {
-      replaceElementsWithElementsFrom(cc, firstChild);
-      cc.negate = cc.negate !== firstChild.negate;
+  if (context.optimize) {
+    for (const cc of intersection.classes) {
+      const firstChild = cc.elements[0];
+      if (cc.elements.length === 1 && firstChild.type === AstTypes.CharacterClass) {
+        intersection.classes[intersection.classes.length - 1] = firstChild;
+        firstChild.parent = intersection;
+        firstChild.negate = cc.negate !== firstChild.negate;
+      }
     }
   }
   // Simplify tree if we don't need the intersection wrapper
   if (intersection.classes.length === 1) {
     const cc = intersection.classes[0];
-    replaceElementsWithElementsFrom(node, cc);
-    node.negate = node.negate !== cc.negate;
+    cc.parent = parent;
+    // Only needed when `optimize` is on since direct children of the intersection aren't negated
+    cc.negate = node.negate !== cc.negate;
+    node = cc;
   }
   // Skip the closing square bracket
   context.current++;
@@ -151,7 +156,7 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
 }
 
 function parseGroupOpen(context, parent, token, tokens) {
-  const node = createByGroupKind(parent, token);
+  let node = createByGroupKind(parent, token);
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
   while (nextToken.type !== TokenTypes.GroupClose) {
     if (nextToken.type === TokenTypes.Alternator) {
@@ -163,6 +168,21 @@ function parseGroupOpen(context, parent, token, tokens) {
       alt.elements.push(context.walk(alt));
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
+  }
+  if (context.optimize) {
+    const firstAlt = node.alternatives[0];
+    const firstEl = firstAlt.elements[0];
+    if (
+      node.alternatives.length === 1 &&
+      firstAlt.elements.length === 1 &&
+      node.type === AstTypes.Group &&
+      firstEl.type === AstTypes.Group
+    ) {
+      node.parent.elements.pop();
+      firstEl.parent = node.parent;
+      firstEl.atomic ||= node.atomic;
+      node = firstEl;
+    }
   }
   // Skip the closing parenthesis
   context.current++;
@@ -372,11 +392,10 @@ function createFlags(parent, {ignoreCase, multiline, dotAll}) {
 }
 
 function createGroup(parent, atomic = false) {
-  const node = getNodeBase(parent, AstTypes.Group);
-  if (atomic) {
-    node.atomic = true;
-  }
-  return withInitialAlternative(node);
+  return withInitialAlternative({
+    ...getNodeBase(parent, AstTypes.Group),
+    atomic,
+  });
 }
 
 function createPattern(parent) {
@@ -449,13 +468,6 @@ function getJsUnicodePropertyName(property) {
     }
   }
   return mapped;
-}
-
-function replaceElementsWithElementsFrom(newParent, oldParent) {
-  newParent.elements = oldParent.elements;
-  for (const child of newParent.elements) {
-    child.parent = newParent;
-  }
 }
 
 function throwIfNot(value, msg) {
