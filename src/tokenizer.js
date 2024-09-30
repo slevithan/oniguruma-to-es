@@ -4,7 +4,7 @@ const TokenTypes = {
   Alternator: 'Alternator',
   Assertion: 'Assertion',
   Backreference: 'Backreference',
-  BackreferenceK: 'BackreferenceK', // TODO: Handle in parser
+  BackreferenceK: 'BackreferenceK', // TODO: Handle in parser; combine token type with `Backreference`
   Character: 'Character',
   CharacterClassClose: 'CharacterClassClose',
   CharacterClassHyphen: 'CharacterClassHyphen',
@@ -16,7 +16,7 @@ const TokenTypes = {
   GroupOpen: 'GroupOpen',
   Subroutine: 'Subroutine', // TODO: Handle in parser
   Quantifier: 'Quantifier',
-  VarcharSet: 'VarcharSet',
+  VariableLengthCharacterSet: 'VariableLengthCharacterSet',
   // Non-final representation
   EscapedNumber: 'EscapedNumber',
 };
@@ -227,7 +227,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     if ('RX'.includes(m1)) {
       return {
-        token: createToken(TokenTypes.VarcharSet, m),
+        token: createToken(TokenTypes.VariableLengthCharacterSet, m),
       };
     }
     // Run last since it assumes an identity escape as final condition
@@ -583,7 +583,7 @@ function createToken(type, raw, data = {}) {
     case TokenTypes.GroupClose:
       return base;
     case TokenTypes.Assertion:
-    case TokenTypes.VarcharSet:
+    case TokenTypes.VariableLengthCharacterSet:
       return {
         ...base,
         kind: raw,

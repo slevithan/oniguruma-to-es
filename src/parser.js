@@ -72,7 +72,7 @@ function parse({tokens, jsFlags}, {optimize} = {}) {
           return parseGroupOpen(context, parent, token, tokens);
         case TokenTypes.Quantifier:
           return parseQuantifier(parent, token);
-        case TokenTypes.VarcharSet:
+        case TokenTypes.VariableLengthCharacterSet:
           return createVariableLengthCharacterSet(parent, token.kind);
         default:
           throw new Error(`Unexpected token type "${token.type}"`);
@@ -147,7 +147,7 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
   if (intersection.classes.length === 1) {
     const cc = intersection.classes[0];
     cc.parent = parent;
-    // Only needed if `optimize` is on, since otherwise direct intersection kids are never negated
+    // Only needed if `optimize` is on; otherwise an intersection's direct kids are never negated
     cc.negate = node.negate !== cc.negate;
     node = cc;
   }
