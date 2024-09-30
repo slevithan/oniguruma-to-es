@@ -147,7 +147,7 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
   if (intersection.classes.length === 1) {
     const cc = intersection.classes[0];
     cc.parent = parent;
-    // Only needed when `optimize` is on since direct children of the intersection aren't negated
+    // Only needed if `optimize` is on, since otherwise direct intersection kids are never negated
     cc.negate = node.negate !== cc.negate;
     node = cc;
   }
@@ -175,11 +175,10 @@ function parseGroupOpen(context, parent, token, tokens) {
     const firstEl = firstAlt.elements[0];
     if (
       node.alternatives.length === 1 &&
-      firstAlt.elements.length === 1 &&
       node.type === AstTypes.Group &&
+      firstAlt.elements.length === 1 &&
       firstEl.type === AstTypes.Group
     ) {
-      node.parent.elements.pop();
       firstEl.parent = node.parent;
       firstEl.atomic ||= node.atomic;
       node = firstEl;
