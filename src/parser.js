@@ -133,10 +133,11 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
     nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   }
   if (context.optimize) {
-    for (const cc of intersection.classes) {
+    for (let i = 0; i < intersection.classes.length; i++) {
+      const cc = intersection.classes[i];
       const firstChild = cc.elements[0];
       if (cc.elements.length === 1 && firstChild.type === AstTypes.CharacterClass) {
-        intersection.classes[intersection.classes.length - 1] = firstChild;
+        intersection.classes[i] = firstChild;
         firstChild.parent = intersection;
         firstChild.negate = cc.negate !== firstChild.negate;
       }
