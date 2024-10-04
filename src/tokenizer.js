@@ -304,21 +304,24 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     if (m === '(?') {
       throw new Error('Invalid group');
     }
-    // Else, modifier/flag group
-    const newMods = getNewModsFromFlagGroup(m, context.isIgnoreCaseOn(), context.isDotAllOn(), context.isExtendedOn());
-    // Ex: `(?im-x)`
-    if (m.endsWith(')')) {
-      // Replace modifiers until the end of the current group
-      context.modifierStack[context.modifierStack.length - 1] = newMods;
-      return;
+    // Modifier/flag group
+    if ('-imx'.includes(m2)) {
+      const newMods = getNewModsFromFlagGroup(m, context.isIgnoreCaseOn(), context.isDotAllOn(), context.isExtendedOn());
+      // Ex: `(?im-x)`
+      if (m.endsWith(')')) {
+        // Replace modifiers until the end of the current group
+        context.modifierStack[context.modifierStack.length - 1] = newMods;
+        return;
+      }
+      // Ex: `(?im-x:`
+      context.modifierStack.push(newMods);
+      return {
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: TokenGroupKinds.group,
+        }),
+      };
     }
-    // Ex: `(?im-x:`
-    context.modifierStack.push(newMods);
-    return {
-      token: createToken(TokenTypes.GroupOpen, m, {
-        kind: TokenGroupKinds.group,
-      }),
-    };
+    throw new Error(`Unexpected group option "${m}"`);
   }
   if (m === ')') {
     context.modifierStack.pop();
@@ -497,21 +500,24 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
       }),
     };
   }
+  if (m === '\\') {
+    throw new Error('Incomplete escape "\\"');
+  }
   // Unsupported; avoid treating as an identity escape
   if (m1 === 'M') {
     throw new Error(`Unsupported escape "${m}"`);
   }
-  if (m === '\\') {
-    throw new Error('Incomplete escape "\\"');
+  // Identity escape
+  if (m.length === 2) {
+    return {
+      hasCase: charHasCase(m1),
+      token: createToken(TokenTypes.Character, m, {
+        charCode: m.codePointAt(1),
+        ignoreCase,
+      }),
+    };
   }
-  // Else, identity escape
-  return {
-    hasCase: charHasCase(m1),
-    token: createToken(TokenTypes.Character, m, {
-      charCode: m.codePointAt(1),
-      ignoreCase,
-    }),
-  };
+  throw new Error(`Unexpected escape "${m}"`);
 }
 
 // Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,
