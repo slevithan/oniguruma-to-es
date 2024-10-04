@@ -4,7 +4,6 @@ const TokenTypes = {
   Alternator: 'Alternator',
   Assertion: 'Assertion',
   Backreference: 'Backreference',
-  BackreferenceK: 'BackreferenceK', // TODO: Handle in parser; combine token type with `Backreference`
   Character: 'Character',
   CharacterClassClose: 'CharacterClassClose',
   CharacterClassHyphen: 'CharacterClassHyphen',
@@ -62,21 +61,22 @@ const charClassOpenPattern = String.raw`\[\^?\]?`;
 // Even with flag x, Onig doesn't allow whitespace to separate a quantifier from the `?` or `+`
 // that makes it lazy or possessive
 const quantifierRe = /[?*+][?+]?|\{\d+(?:,\d*)?\}\??/;
-// TODO: Add support for backrefs and subroutines with `\k'name'` and `\g'name'` syntax
+// TODO: Throw on invalid group open `(?`
 const tokenRe = new RegExp(String.raw`
   \\ (?:
     ${controlCharPattern}
     | ${unicodePropertyPattern}
     | ${hexCharPattern}
     | ${escapedNumPattern}
-    | [gk]<[^>]+>
+    | [gk]<[^>]*>
+    | [gk]'[^']*'
     | .
   )
   | \( (?: \? (?:
     [:=!>]
     | <[=!]
-    | <[^>]+>
-    | '[^']+'
+    | <[^>]*>
+    | '[^']*'
     | # (?:[^)\\] | \\.?)* \)?
     | [imx\-]+[:)]
   )?)?
@@ -113,8 +113,7 @@ function tokenize(expression, onigFlags = '') {
     isDotAllOn: () => context.modifierStack.at(-1).dotAll,
     isExtendedOn: () => context.modifierStack.at(-1).extended,
     reuseCurrentGroupModifiers: () => context.modifierStack.push({...context.modifierStack.at(-1)}),
-    // TODO: Refactor as `numNamedCaptures` unless this is included in the returned obj
-    captureNames: [],
+    captureNames: [], // Duplicate names should increase the length
     potentialUnnamedCaptureTokens: [],
     hasDotAllDot: false,
     hasNonDotAllDot: false,
@@ -144,6 +143,12 @@ function tokenize(expression, onigFlags = '') {
     }
   }
 
+  const numCaptures = context.captureNames.length || context.potentialUnnamedCaptureTokens.length;
+  // Split escaped nums, now that we have all the necessary details
+  tokens = tokens.map(
+    t => t.type === TokenTypes.EscapedNumber ? splitEscapedNumToken(t, numCaptures) : t
+  ).flat();
+
   // Enable unnamed captures if no named captures used
   for (const t of context.potentialUnnamedCaptureTokens) {
     if (context.captureNames.length) {
@@ -153,12 +158,6 @@ function tokenize(expression, onigFlags = '') {
       t.kind = TokenGroupKinds.capturing;
     }
   }
-  const numCaptures = context.captureNames.length || context.potentialUnnamedCaptureTokens.length;
-  // Split escaped nums, now that we have all the necessary details
-  tokens = tokens.
-    map(t => t.type === TokenTypes.EscapedNumber ?
-      splitEscapedNumToken(t, numCaptures, !!context.captureNames.length) : t).
-    flat();
 
   // Include JS flag i if a case insensitive token was used and no case sensitive tokens were used
   const jsFlagI = (onigFlags.includes('i') || hasCaseInsensitiveToken) && !hasCaseSensitiveToken;
@@ -176,6 +175,7 @@ function tokenize(expression, onigFlags = '') {
       multiline: jsFlagM,
       dotAll: jsFlagS,
     },
+    captureNames: context.captureNames,
   };
 }
 
@@ -197,7 +197,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
         token: createToken(TokenTypes.Assertion, m),
       };
     }
-    if (m.startsWith('\\g<')) {
+    if (/^\\g[<']/.test(m)) {
       // Subroutines follow the status of flag modifiers from the groups they reference, and not
       // any modifiers preceding themselves. Thus, no need to set `hasCase = true` or the
       // `ignoreCase` prop. Instead, can later reference `ignoreCase`, etc. from the `GroupOpen`
@@ -206,12 +206,11 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
         token: createToken(TokenTypes.Subroutine, m),
       };
     }
-    if (m.startsWith('\\k<')) {
-      // Note: Numbered backrefs like `\k<1>` are invalid if named capture is present [TODO]
+    if (/^\\k[<']/.test(m)) {
       return {
         // Assume the backref includes characters with case
         hasCase: true,
-        token: createToken(TokenTypes.BackreferenceK, m, {
+        token: createToken(TokenTypes.Backreference, m, {
           // Can't emulate a different value for backref case sensitivity except in JS envs that
           // support mode modifiers, but track this anyway
           ignoreCase: context.isIgnoreCaseOn(),
@@ -515,7 +514,7 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass, ignoreCase}) {
 
 // Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,
 // possibly followed by 1-2 literal digits
-function splitEscapedNumToken(token, numCaptures, hasNamedCapture) {
+function splitEscapedNumToken(token, numCaptures) {
   const {raw, ignoreCase} = token;
   // Keep any leading 0s since they indicate octal
   const value = raw.slice(1);
@@ -528,13 +527,6 @@ function splitEscapedNumToken(token, numCaptures, hasNamedCapture) {
       (value[0] !== '0' && +value <= numCaptures)
     )
   ) {
-    if (+value > numCaptures) {
-      throw new Error(`Invalid backref "${raw}"`);
-    }
-    if (hasNamedCapture) {
-      throw new Error('Numbered backrefs not allowed when using named capture');
-    }
-    //  `ignoreCase`
     return [createToken(TokenTypes.Backreference, raw, {
       // Can't emulate a different value for backref case sensitivity except in JS envs that
       // support mode modifiers, but track this anyway
@@ -546,11 +538,10 @@ function splitEscapedNumToken(token, numCaptures, hasNamedCapture) {
   const matches = value.match(/^[0-7]+|\d/g);
   for (let i = 0; i < matches.length; i++) {
     const m = matches[i];
-    let charCode = m.codePointAt(0);
     // Octal digits are 0-7
-    if (i === 0 && m !== '8' && m !== '9') {
-      charCode = parseInt(m, 8);
-    }
+    const charCode = (i === 0 && m !== '8' && m !== '9') ?
+      parseInt(m, 8) :
+      m.codePointAt(0);
     tokens.push(createToken(TokenTypes.Character, (i === 0 ? '\\' : '') + m, {
       charCode,
       ignoreCase: ignoreCase && !token.inCharClass && charHasCase(String.fromCodePoint(charCode)),
@@ -589,24 +580,12 @@ function createToken(type, raw, data = {}) {
         kind: raw,
       };
     case TokenTypes.Backreference:
-      return {
-        ...base,
-        ...data,
-        ref: +raw.slice(1), // TODO: Probably remove since it can be derived from `raw`
-      };
-    case TokenTypes.BackreferenceK:
-    case TokenTypes.Subroutine:
-      return {
-        ...base,
-        ...data,
-        // \k<name>, \k<n>, \g<name>, etc.
-        ref: raw.slice(3, -1), // TODO: Probably remove since it can be derived from `raw`
-      };
     case TokenTypes.Character:
     case TokenTypes.CharacterSet:
     case TokenTypes.Directive:
     case TokenTypes.EscapedNumber:
     case TokenTypes.GroupOpen:
+    case TokenTypes.Subroutine:
       return {
         ...base,
         ...data,

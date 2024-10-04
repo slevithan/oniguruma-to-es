@@ -41,10 +41,12 @@ const AstVariableLengthCharacterSetKinds = {
   grapheme: 'grapheme',
 };
 
-function parse({tokens, jsFlags}, {optimize} = {}) {
+function parse({tokens, jsFlags, captureNames}, {optimize} = {}) {
   const context = {
     optimize,
     current: 0,
+    capturingNodes: new Map(),
+    numCapturesToLeft: 0,
     walk: parent => {
       let token = tokens[context.current];
       // Advance for the next iteration
@@ -56,7 +58,7 @@ function parse({tokens, jsFlags}, {optimize} = {}) {
         case TokenTypes.Assertion:
           return createAssertionFromToken(parent, token);
         case TokenTypes.Backreference:
-          return createBackreference(parent, token.ref);
+          return parseBackreference(context, parent, token, !!captureNames.length, jsFlags.ignoreCase);
         case TokenTypes.Character:
           // TODO: Set arg `inCaseInsensitiveCharacterClass` correctly
           return createCharacterFromToken(parent, token, jsFlags.ignoreCase, false);
@@ -93,6 +95,52 @@ function parse({tokens, jsFlags}, {optimize} = {}) {
   return ast;
 }
 
+// Supported (if the backref appears to the right of the reffed capture's opening paren):
+// - `\k<name>`, `\k'name'`
+// - When named capture not used:
+//   - `\n`, `\nn`, `\nnn`
+//   - `\k<n>`, `\k'n'
+//   - `\k<-n>`, `\k'-n'`
+// Unsupported:
+// - `\k<+n>`, `\k'+n'` - Note that, Unlike Oniguruma, Onigmo doesn't support this as special
+//   syntax and therefore considers it a valid group name.
+// - Backref with recursion level (with num or name): `\k<n+level>`, `\k<n-level>`, etc.
+//   (Onigmo also supports `\k<-n+level>`, `\k<-n-level>`, etc.)
+function parseBackreference(context, parent, token, hasNamedCapture, flagIgnoreCase) {
+  const {numCapturesToLeft, capturingNodes} = context;
+  const {raw, ignoreCase} = token;
+  const ignoreCaseArgs = [ignoreCase, flagIgnoreCase];
+  const hasKWrapper = /^\\k[<']/.test(raw);
+  const ref = hasKWrapper ? raw.slice(3, -1) : raw.slice(1);
+  const fromNum = (num, isRelative = false) => {
+    if (num > numCapturesToLeft) {
+      throw new Error(`Not enough capturing groups defined to the left: "${raw}"`);
+    }
+    return createBackreference(parent, [
+      capturingNodes.get(isRelative ? numCapturesToLeft + 1 - num : num).node
+    ], ...ignoreCaseArgs);
+  };
+  if (hasKWrapper) {
+    const numberedRef = /^(?<relative>-)?0*(?<num>[1-9]\d*)$/.exec(ref);
+    if (numberedRef) {
+      if (hasNamedCapture) {
+        throw new Error(`Numbered backref not allowed when using named capture: "${raw}"`);
+      }
+      return fromNum(+numberedRef.groups.num, !!numberedRef.groups.relative);
+    } else {
+      if (/[-+]/.test(ref)) {
+        throw new Error(`Invalid backref name: "${raw}"`);
+      }
+      // TODO: Convert invalid JS group names to a generated valid value
+      if (!capturingNodes.has(ref)) {
+        throw new Error(`Group name not defined to the left: "${raw}"`);
+      }
+      return createBackreference(parent, capturingNodes.get(ref).map(({node}) => node), ...ignoreCaseArgs);
+    }
+  }
+  return fromNum(+ref);
+}
+
 function parseCharacterClassHyphen(context, parent, token, tokens) {
   const prevNode = parent.elements.at(-1);
   const nextToken = tokens[context.current];
@@ -117,8 +165,8 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
   return createCharacterFromToken(parent, token);
 }
 
-function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
-  let node = createCharacterClassFromToken(parent, token, ignoreCase);
+function parseCharacterClassOpen(context, parent, token, tokens, flagIgnoreCase) {
+  let node = createCharacterClassFromToken(parent, token, flagIgnoreCase);
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   while (nextToken.type !== TokenTypes.CharacterClassClose) {
@@ -133,6 +181,7 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
     nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   }
   if (context.optimize) {
+    // TODO: Move logic out
     for (let i = 0; i < intersection.classes.length; i++) {
       const cc = intersection.classes[i];
       const firstChild = cc.elements[0];
@@ -158,6 +207,26 @@ function parseCharacterClassOpen(context, parent, token, tokens, ignoreCase) {
 
 function parseGroupOpen(context, parent, token, tokens) {
   let node = createByGroupKind(parent, token);
+
+  // Track capturing group details for backrefs and subroutines. Track before parsing the group's
+  // contents so that nested groups with the same name are tracked in order
+  if (node.type === AstTypes.CapturingGroup) {
+    const nodeWithDetails = {
+      node,
+      // Track for subroutines that might reference the group
+      ignoreCase: token.ignoreCase, // TODO: Handle `ignoreCase` for subroutines (elsewhere)
+    };
+    if (node.name) {
+      if (!context.capturingNodes.has(node.name)) {
+        context.capturingNodes.set(node.name, []);
+      }
+      context.capturingNodes.get(node.name).push(nodeWithDetails);
+    } else {
+      context.capturingNodes.set(node.number, nodeWithDetails);
+    }
+    context.numCapturesToLeft++;
+  }
+
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
   while (nextToken.type !== TokenTypes.GroupClose) {
     if (nextToken.type === TokenTypes.Alternator) {
@@ -170,7 +239,9 @@ function parseGroupOpen(context, parent, token, tokens) {
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }
+
   if (context.optimize) {
+    // TODO: Move `if` logic out
     const firstAlt = node.alternatives[0];
     const firstEl = firstAlt.elements[0];
     if (
@@ -184,6 +255,7 @@ function parseGroupOpen(context, parent, token, tokens) {
       node = firstEl;
     }
   }
+
   // Skip the closing parenthesis
   context.current++;
   return node;
@@ -245,42 +317,46 @@ function createAssertionFromToken(parent, token) {
   return node;
 }
 
-function createBackreference(parent, ref) {
-  return {
+function createBackreference(parent, refs, tokenIgnoreCase, flagIgnoreCase) {
+  const node = {
     ...getNodeBase(parent, AstTypes.Backreference),
-    ref,
+    refs,
   };
+  if (!flagIgnoreCase && tokenIgnoreCase) {
+    // Only used when a pattern is partially case insensitive; otherwise flag i is relied on
+    node.ignoreCase = true;
+  }
+  return node;
 }
 
 function createByGroupKind(parent, token) {
-  switch (token.kind) {
+  const {kind, number, name} = token;
+  switch (kind) {
     case TokenGroupKinds.atomic:
       return createGroup(parent, true);
     case TokenGroupKinds.capturing:
-      return createCapturingGroupFromToken(parent, token);
+      return createCapturingGroup(parent, number, name);
     case TokenGroupKinds.group:
       return createGroup(parent);
     case TokenGroupKinds.lookahead:
     case TokenGroupKinds.lookbehind:
       return createAssertionFromToken(parent, token);
     default:
-      throw new Error(`Unexpected group kind "${token.kind}"`);
+      throw new Error(`Unexpected group kind "${kind}"`);
   }
 }
 
-function createCapturingGroupFromToken(parent, token) {
-  const {number, name, ignoreCase} = token;
+function createCapturingGroup(parent, number, name) {
   const node = {
     ...getNodeBase(parent, AstTypes.CapturingGroup),
     number,
   };
-  if (name) {
+  if (name !== undefined) {
+    if (/^(?:[-\d]|$)/.test(name)) {
+      throw new Error(`Invalid group name: "${name}"`);
+    }
+    // TODO: Convert invalid JS group names to a generated valid value
     node.name = name;
-  }
-  if (ignoreCase) {
-    // Track this for subroutines that might reference the group
-    // TODO: Delete the prop after handling all subroutines (maybe move this to a map of captures)
-    node.ignoreCase = ignoreCase;
   }
   return withInitialAlternative(node);
 }
@@ -293,11 +369,11 @@ function createCharacter(parent, charCode) {
 }
 
 // Create node from token type `Character` or `CharacterClassHyphen`
-function createCharacterFromToken(parent, token, ignoreCase, inCaseInsensitiveCharacterClass) {
+function createCharacterFromToken(parent, token, flagIgnoreCase, inCaseInsensitiveCharacterClass) {
   const {charCode} = token;
   const node = createCharacter(parent, charCode);
   if (
-    !ignoreCase &&
+    !flagIgnoreCase &&
     (token.ignoreCase || inCaseInsensitiveCharacterClass) &&
     charHasCase(String.fromCodePoint(charCode))
   ) {
@@ -318,9 +394,10 @@ function createCharacterClassBase(parent, negate = false) {
   };
 }
 
-function createCharacterClassFromToken(parent, token, ignoreCase) {
+function createCharacterClassFromToken(parent, token, flagIgnoreCase) {
   const node = createCharacterClassBase(parent, token.negate);
-  if (!ignoreCase && token.ignoreCase) {
+  if (!flagIgnoreCase && token.ignoreCase) {
+    // Only used when a pattern is partially case insensitive; otherwise flag i is relied on
     node.ignoreCase = true;
   }
   return withInitialIntersection(node);
@@ -343,13 +420,13 @@ function createCharacterClassRange(parent, min, max) {
   };
 }
 
-function createCharacterSetFromToken(parent, token, dotAll) {
+function createCharacterSetFromToken(parent, token, flagDotAll) {
   const {kind, negate, property} = token;
   const node = {
     ...getNodeBase(parent, AstTypes.CharacterSet),
     kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
   };
-  if (kind === TokenCharacterSetKinds.any && token.dotAll && !dotAll) {
+  if (kind === TokenCharacterSetKinds.any && token.dotAll && !flagDotAll) {
     node.dotAll = true;
   } else if (
     kind === TokenCharacterSetKinds.digit ||
