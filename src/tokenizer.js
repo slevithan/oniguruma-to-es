@@ -61,7 +61,6 @@ const charClassOpenPattern = String.raw`\[\^?\]?`;
 // Even with flag x, Onig doesn't allow whitespace to separate a quantifier from the `?` or `+`
 // that makes it lazy or possessive
 const quantifierRe = /[?*+][?+]?|\{\d+(?:,\d*)?\}\??/;
-// TODO: Throw on invalid group open `(?`
 const tokenRe = new RegExp(String.raw`
   \\ (?:
     ${controlCharPattern}
@@ -301,6 +300,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
         throw new Error('Unclosed comment group "(?#"');
       }
       return;
+    }
+    if (m === '(?') {
+      throw new Error('Invalid group');
     }
     // Else, modifier/flag group
     const newMods = getNewModsFromFlagGroup(m, context.isIgnoreCaseOn(), context.isDotAllOn(), context.isExtendedOn());

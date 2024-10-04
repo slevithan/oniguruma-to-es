@@ -114,7 +114,7 @@ function parseBackreference(context, parent, token, hasNamedCapture, flagIgnoreC
   const ref = hasKWrapper ? raw.slice(3, -1) : raw.slice(1);
   const fromNum = (num, isRelative = false) => {
     if (num > numCapturesToLeft) {
-      throw new Error(`Not enough capturing groups defined to the left: "${raw}"`);
+      throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
     }
     return createBackreference(parent, [
       capturingNodes.get(isRelative ? numCapturesToLeft + 1 - num : num).node
@@ -124,16 +124,16 @@ function parseBackreference(context, parent, token, hasNamedCapture, flagIgnoreC
     const numberedRef = /^(?<relative>-)?0*(?<num>[1-9]\d*)$/.exec(ref);
     if (numberedRef) {
       if (hasNamedCapture) {
-        throw new Error(`Numbered backref not allowed when using named capture: "${raw}"`);
+        throw new Error(`Numbered backref not allowed when using named capture "${raw}"`);
       }
       return fromNum(+numberedRef.groups.num, !!numberedRef.groups.relative);
     } else {
       if (/[-+]/.test(ref)) {
-        throw new Error(`Invalid backref name: "${raw}"`);
+        throw new Error(`Invalid backref name "${raw}"`);
       }
       // TODO: Convert invalid JS group names to a generated valid value
       if (!capturingNodes.has(ref)) {
-        throw new Error(`Group name not defined to the left: "${raw}"`);
+        throw new Error(`Group name not defined to the left "${raw}"`);
       }
       return createBackreference(parent, capturingNodes.get(ref).map(({node}) => node), ...ignoreCaseArgs);
     }
@@ -353,7 +353,7 @@ function createCapturingGroup(parent, number, name) {
   };
   if (name !== undefined) {
     if (/^(?:[-\d]|$)/.test(name)) {
-      throw new Error(`Invalid group name: "${name}"`);
+      throw new Error(`Invalid group name "${name}"`);
     }
     // TODO: Convert invalid JS group names to a generated valid value
     node.name = name;
