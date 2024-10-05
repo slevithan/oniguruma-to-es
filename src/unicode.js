@@ -3,8 +3,54 @@ function charHasCase(char) {
   return casedRe.test(char);
 }
 
-const KeylessUnicodeProperties = new Set([
-  // General categories and their aliases (ES2024). Not all are supported by Oniguruma.
+// Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
+// don't allow inserting whitespace and underscores. Definitions at
+// <https://github.com/kkos/oniguruma/blob/master/doc/RE> (POSIX bracket: Unicode Case)
+const OnigurumaPosixClasses = {
+  alnum: '[\\p{Alpha}\\p{Nd}]',
+  alpha: '\\p{Alpha}',
+  ascii: '\\p{ASCII}',
+  blank: '[\\p{Zs}\\t]',
+  cntrl: '\\p{cntrl}',
+  digit: '\\p{Nd}',
+  graph: '[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]',
+  lower: '\\p{Lower}',
+  print: '[[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]\\p{Zs}]',
+  punct: '[\\p{P}\\p{S}]',
+  space: '\\p{space}',
+  upper: '\\p{Upper}',
+  word: '[\\p{Alpha}\\p{M}\\p{Nd}\\p{Pc}]',
+  xdigit: '\\p{AHex}',
+};
+
+// The Oniguruma list of supported Unicode properties is at
+// <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>, and several more are
+// explicitly added (those below). See: <https://github.com/kkos/oniguruma/blob/master/doc/RE>
+const OnigurumaExtraUnicodeProperties = {
+  Alnum: OnigurumaPosixClasses.alnum,
+  Blank: OnigurumaPosixClasses.blank,
+  Graph: OnigurumaPosixClasses.graph,
+  Print: OnigurumaPosixClasses.print,
+  Word: OnigurumaPosixClasses.word,
+  XDigit: OnigurumaPosixClasses.xdigit,
+  // The following are available with the same name in JS
+  // - Alpha (JS: Alpha)
+  // - ASCII (JS: ASCII)
+  // - Cntrl (JS: cntrl)
+  // - Digit (JS: digit)
+  // - Lower (JS: Lower)
+  // - Punct (JS: punct)
+  // - Space (JS: space)
+  // - Upper (JS: Upper)
+};
+
+// To work in JS, Unicode properties must be mapped to properties supported by JS, and also apply
+// JS's stricter rules for casing, whitespace, and underscores in Unicode property names. This
+// library takes a best effort approach to mapping, in order to avoid adding heavyweight Unicode
+// character data. As part of this approach, following are all ES2024 Unicode properties that don't
+// require a key/prefix (like `sc=` for scripts)
+const JsKeylessUnicodeProperties = new Set([
+  // General categories and their aliases supported by JS; not all are supported by Oniguruma
   // See: <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
   'C', 'Other',
   'Cc', 'Control', 'cntrl',
@@ -45,7 +91,7 @@ const KeylessUnicodeProperties = new Set([
   'Zp', 'Paragraph_Separator',
   'Zs', 'Space_Separator',
 
-  // Binary properties and their aliases (ES2024). Not all are supported by Oniguruma.
+  // Binary properties and their aliases supported by JS; not all are supported by Oniguruma
   // See: <https://tc39.es/ecma262/multipage/text-processing.html#table-binary-unicode-properties>
   'ASCII',
   'ASCII_Hex_Digit', 'AHex',
@@ -104,5 +150,7 @@ const KeylessUnicodeProperties = new Set([
 
 export {
   charHasCase,
-  KeylessUnicodeProperties,
+  JsKeylessUnicodeProperties,
+  OnigurumaExtraUnicodeProperties,
+  OnigurumaPosixClasses,
 };

@@ -1,4 +1,4 @@
-import {charHasCase} from './unicode.js';
+import {charHasCase, OnigurumaPosixClasses} from './unicode.js';
 
 const TokenTypes = {
   Alternator: 'Alternator',
@@ -24,6 +24,7 @@ const TokenCharacterSetKinds = {
   any: 'any',
   digit: 'digit',
   hex: 'hex',
+  posix: 'posix',
   property: 'property',
   space: 'space',
   word: 'word',
@@ -53,7 +54,7 @@ const EscapeCharCodes = new Map([
 ]);
 
 const controlCharPattern = 'c.? | C(?:-.?)?';
-// Oniguruma considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and `\p{gc=L}` are invalid
+// Onig considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and `\p{gc=L}` are invalid
 const unicodePropertyPattern = String.raw`[pP]\{(?:\^?[\x20\w]+\})?`;
 const hexCharPattern = String.raw`u\{[^\}]*\}? | u\p{AHex}{0,4} | x\p{AHex}{0,2}`;
 const escapedNumPattern = '\\d{1,3}';
@@ -83,7 +84,6 @@ const tokenRe = new RegExp(String.raw`
   | ${charClassOpenPattern}
   | .
 `.replace(/\s+/g, ''), 'gsu');
-// TODO: Add support for POSIX classes (type `CharacterSet`)
 const charClassTokenRe = new RegExp(String.raw`
   \\ (?:
     ${controlCharPattern}
@@ -92,6 +92,7 @@ const charClassTokenRe = new RegExp(String.raw`
     | ${escapedNumPattern}
     | .
   )
+  | \[:[^:]*:\]
   | ${charClassOpenPattern}
   | &&
   | .
@@ -381,7 +382,7 @@ function getAllTokensForCharClass(expression, opener, lastIndex, ignoreCase) {
   charClassTokenRe.lastIndex = lastIndex;
   while (match = charClassTokenRe.exec(expression)) {
     const m = match[0];
-    if (m[0] === '[') {
+    if (m[0] === '[' && m[1] !== ':') {
       assertNonEmptyCharClass(m);
       numCharClassesOpen++;
       tokens.push(createToken(TokenTypes.CharacterClassOpen, m));
@@ -413,6 +414,20 @@ function getCharClassTokenWithDetails(m) {
       inCharClass: true,
       ignoreCase: false,
     });
+  }
+  // POSIX class: `[:name:]` or `[:^name:]`
+  if (m[0] === '[') {
+    const posix = /\[:(?<negate>\^?)(?<name>[a-z]+):\]/.exec(m);
+    if (!posix || !OnigurumaPosixClasses[posix.groups.name]) {
+      throw new Error(`Invalid POSIX class type "${m}"`);
+    }
+    return {
+      token: createToken(TokenTypes.CharacterSet, m, {
+        kind: TokenCharacterSetKinds.posix,
+        negate: !!posix.groups.negate,
+        property: posix.groups.name,
+      }),
+    };
   }
   // Range (possibly invalid) or literal hyphen
   if (m === '-') {
@@ -626,11 +641,10 @@ function createTokenForShorthandCharClass(raw) {
   const lower = raw[1].toLowerCase();
   return createToken(TokenTypes.CharacterSet, raw, {
     kind: {
-      'd': 'digit',
-      'h': 'hex', // Not available in JS
-      // Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, and FF
-      's': 'space',
-      'w': 'word',
+      'd': TokenCharacterSetKinds.digit,
+      'h': TokenCharacterSetKinds.hex, // Not available in JS
+      's': TokenCharacterSetKinds.space, // Different than JS
+      'w': TokenCharacterSetKinds.word,
     }[lower],
     negate: raw[1] !== lower,
   });
@@ -640,7 +654,7 @@ function createTokenForUnicodeProperty(raw) {
   const {p, neg, property} = /^\\(?<p>[pP])\{(?<neg>\^?)(?<property>[ \w]+)/.exec(raw).groups;
   const negate = (p === 'P' && !neg) || (p === 'p' && !!neg);
   return createToken(TokenTypes.CharacterSet, raw, {
-    kind: 'property',
+    kind: TokenCharacterSetKinds.property,
     negate,
     property,
     // Handling `ignoreCase` in JS envs without support for mode modifiers would require

@@ -1,5 +1,5 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {charHasCase, KeylessUnicodeProperties} from './unicode.js';
+import {charHasCase, JsKeylessUnicodeProperties} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -487,12 +487,15 @@ function createCharacterSetFromToken(parent, token, flagDotAll) {
   } else if (
     kind === TokenCharacterSetKinds.digit ||
     kind === TokenCharacterSetKinds.hex ||
+    kind === TokenCharacterSetKinds.posix ||
     kind === TokenCharacterSetKinds.property ||
     kind === TokenCharacterSetKinds.space ||
     kind === TokenCharacterSetKinds.word
   ) {
     node.negate = negate;
-    if (kind === TokenCharacterSetKinds.property) {
+    if (kind === TokenCharacterSetKinds.posix) {
+      node.property = property;
+    } else if (kind === TokenCharacterSetKinds.property) {
       node.property = getJsUnicodePropertyName(property);
     }
   }
@@ -591,19 +594,19 @@ function getJsUnicodePropertyName(property) {
     replace(/\s+/g, '_').
     // Change `PropertyName` to `Property_Name`
     replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_');
-  if (KeylessUnicodeProperties.has(mapped)) {
+  if (JsKeylessUnicodeProperties.has(mapped)) {
     return mapped;
   }
   const variations = [
     str => str.toUpperCase(),
     str => str.toLowerCase(),
-    // Try `Title_Case` last so we pass this version through in case it's a script name that's not
-    // found in `KeylessUnicodeProperties`
+    // Try `Title_Case` last so we pass this version through if it's a script name that's not found
+    // in `JsKeylessUnicodeProperties`
     str => str.replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase()),
   ];
   for (const fn of variations) {
     mapped = fn(mapped);
-    if (KeylessUnicodeProperties.has(mapped)) {
+    if (JsKeylessUnicodeProperties.has(mapped)) {
       return mapped;
     }
   }
