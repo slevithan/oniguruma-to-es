@@ -13,7 +13,7 @@ const TokenTypes = {
   Directive: 'Directive',
   GroupClose: 'GroupClose',
   GroupOpen: 'GroupOpen',
-  Subroutine: 'Subroutine', // TODO: Handle in parser
+  Subroutine: 'Subroutine',
   Quantifier: 'Quantifier',
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
   // Non-final representation
@@ -112,7 +112,7 @@ function tokenize(expression, onigFlags = '') {
     isDotAllOn: () => context.modifierStack.at(-1).dotAll,
     isExtendedOn: () => context.modifierStack.at(-1).extended,
     reuseCurrentGroupModifiers: () => context.modifierStack.push({...context.modifierStack.at(-1)}),
-    captureNames: [], // Duplicate names should increase the length
+    numNamedCaptures: 0,
     potentialUnnamedCaptureTokens: [],
     hasDotAllDot: false,
     hasNonDotAllDot: false,
@@ -142,20 +142,17 @@ function tokenize(expression, onigFlags = '') {
     }
   }
 
-  const numCaptures = context.captureNames.length || context.potentialUnnamedCaptureTokens.length;
+  const numCaptures = context.numNamedCaptures || context.potentialUnnamedCaptureTokens.length;
   // Split escaped nums, now that we have all the necessary details
   tokens = tokens.map(
     t => t.type === TokenTypes.EscapedNumber ? splitEscapedNumToken(t, numCaptures) : t
   ).flat();
 
-  // Enable unnamed captures if no named captures used
-  for (const t of context.potentialUnnamedCaptureTokens) {
-    if (context.captureNames.length) {
-      delete t.number;
-      delete t.ignoreCase;
-    } else {
+  if (!context.numNamedCaptures) {
+    context.potentialUnnamedCaptureTokens.forEach((t, i) => {
       t.kind = TokenGroupKinds.capturing;
-    }
+      t.number = i + 1;
+    });
   }
 
   // Include JS flag i if a case insensitive token was used and no case sensitive tokens were used
@@ -174,7 +171,6 @@ function tokenize(expression, onigFlags = '') {
       multiline: jsFlagM,
       dotAll: jsFlagS,
     },
-    captureNames: context.captureNames,
   };
 }
 
@@ -241,10 +237,6 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
       const token = createToken(TokenTypes.GroupOpen, m, {
         // Will change to `capturing` and add `number` in a second pass if no named captures
         kind: TokenGroupKinds.group,
-        // Will be removed if not a capture (due to presense of named capture)
-        number: context.potentialUnnamedCaptureTokens.length + 1,
-        // Track this for subroutines that might reference the group (TODO: track other flags)
-        ignoreCase: context.isIgnoreCaseOn(),
       });
       context.potentialUnnamedCaptureTokens.push(token);
       return {
@@ -281,16 +273,13 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     // Named capture (checked after lookbehind due to similar syntax)
     if (m2 === '<' || m2 === "'") {
-      const name = m.slice(3, -1);
-      context.captureNames.push(name);
+      context.numNamedCaptures++;
       context.reuseCurrentGroupModifiers();
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
           kind: TokenGroupKinds.capturing,
-          number: context.captureNames.length,
-          name,
-          // Track this for subroutines that might reference the group (TODO: track other flags)
-          ignoreCase: context.isIgnoreCaseOn(),
+          number: context.numNamedCaptures,
+          name: m.slice(3, -1),
         }),
       }
     }

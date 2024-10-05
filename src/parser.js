@@ -17,6 +17,7 @@ const AstTypes = {
   Pattern: 'Pattern',
   Quantifier: 'Quantifier',
   RegExp: 'RegExp',
+  Subroutine: 'Subroutine',
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
 };
 
@@ -41,12 +42,14 @@ const AstVariableLengthCharacterSetKinds = {
   grapheme: 'grapheme',
 };
 
-function parse({tokens, jsFlags, captureNames}, {optimize} = {}) {
+function parse({tokens, jsFlags}, {optimize} = {}) {
   const context = {
     optimize,
     current: 0,
-    capturingNodes: new Map(),
-    numCapturesToLeft: 0,
+    namedGroups: new Map(),
+    capturingGroups: [],
+    subroutines: [],
+    hasNumberedGroupRef: false,
     walk: parent => {
       let token = tokens[context.current];
       // Advance for the next iteration
@@ -58,7 +61,7 @@ function parse({tokens, jsFlags, captureNames}, {optimize} = {}) {
         case TokenTypes.Assertion:
           return createAssertionFromToken(parent, token);
         case TokenTypes.Backreference:
-          return parseBackreference(context, parent, token, !!captureNames.length, jsFlags.ignoreCase);
+          return parseBackreference(context, parent, token, jsFlags.ignoreCase);
         case TokenTypes.Character:
           // TODO: Set arg `inCaseInsensitiveCharacterClass` correctly
           return createCharacterFromToken(parent, token, jsFlags.ignoreCase, false);
@@ -74,6 +77,8 @@ function parse({tokens, jsFlags, captureNames}, {optimize} = {}) {
           return parseGroupOpen(context, parent, token, tokens);
         case TokenTypes.Quantifier:
           return parseQuantifier(parent, token);
+        case TokenTypes.Subroutine:
+          return parseSubroutine(context, parent, token);
         case TokenTypes.VariableLengthCharacterSet:
           return createVariableLengthCharacterSet(parent, token.kind);
         default:
@@ -81,6 +86,7 @@ function parse({tokens, jsFlags, captureNames}, {optimize} = {}) {
       }
     },
   };
+
   const ast = createRegExp(createPattern(null), createFlags(null, jsFlags));
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
@@ -90,6 +96,22 @@ function parse({tokens, jsFlags, captureNames}, {optimize} = {}) {
       top = node;
     } else {
       top.elements.push(node);
+    }
+  }
+
+  if (context.hasNumberedGroupRef && context.namedGroups.size) {
+    throw new Error('Numbered backref/subroutine not allowed when using named capture');
+  }
+  for (const {ref} of context.subroutines) {
+    if (typeof ref === 'number') {
+      // Relative nums are already resolved
+      if (ref < 1 || ref > context.capturingGroups.length) {
+        throw new Error('Subroutine uses a group number that is not defined');
+      }
+    } else if (!context.namedGroups.has(ref)) {
+      throw new Error(`Subroutine uses a group name that is not defined "\\g<${ref}>"`);
+    } else if (context.namedGroups.get(ref).length > 1) {
+      throw new Error(`Subroutine uses a non-unique group name "\\g<${ref}>"`);
     }
   }
   return ast;
@@ -106,39 +128,79 @@ function parse({tokens, jsFlags, captureNames}, {optimize} = {}) {
 //   syntax and therefore considers it a valid group name.
 // - Backref with recursion level (with num or name): `\k<n+level>`, `\k<n-level>`, etc.
 //   (Onigmo also supports `\k<-n+level>`, `\k<-n-level>`, etc.)
-function parseBackreference(context, parent, token, hasNamedCapture, flagIgnoreCase) {
-  const {numCapturesToLeft, capturingNodes} = context;
+// Backrefs in Onig multiplex for duplicate group names (rules can be complicated when overlapping
+// with subroutines), but this isn't captured by the AST so it needs to by handled by callers
+function parseBackreference(context, parent, token, flagIgnoreCase) {
   const {raw, ignoreCase} = token;
   const ignoreCaseArgs = [ignoreCase, flagIgnoreCase];
   const hasKWrapper = /^\\k[<']/.test(raw);
   const ref = hasKWrapper ? raw.slice(3, -1) : raw.slice(1);
   const fromNum = (num, isRelative = false) => {
-    if (num > numCapturesToLeft) {
+    const numCapsToLeft = context.capturingGroups.length;
+    if (num > numCapsToLeft) {
       throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
     }
-    return createBackreference(parent, [
-      capturingNodes.get(isRelative ? numCapturesToLeft + 1 - num : num).node
-    ], ...ignoreCaseArgs);
+    context.hasNumberedGroupRef = true;
+    return createBackreference(parent, isRelative ? numCapsToLeft + 1 - num : num, ...ignoreCaseArgs);
   };
   if (hasKWrapper) {
-    const numberedRef = /^(?<relative>-)?0*(?<num>[1-9]\d*)$/.exec(ref);
+    const numberedRef = /^(?<sign>-?)0*(?<num>[1-9]\d*)$/.exec(ref);
     if (numberedRef) {
-      if (hasNamedCapture) {
-        throw new Error(`Numbered backref not allowed when using named capture "${raw}"`);
-      }
-      return fromNum(+numberedRef.groups.num, !!numberedRef.groups.relative);
-    } else {
-      if (/[-+]/.test(ref)) {
-        throw new Error(`Invalid backref name "${raw}"`);
-      }
-      // TODO: Convert invalid JS group names to a generated valid value
-      if (!capturingNodes.has(ref)) {
-        throw new Error(`Group name not defined to the left "${raw}"`);
-      }
-      return createBackreference(parent, capturingNodes.get(ref).map(({node}) => node), ...ignoreCaseArgs);
+      return fromNum(+numberedRef.groups.num, !!numberedRef.groups.sign);
     }
+    // Invalid in a backref name even when valid in a group name
+    if (/[-+]/.test(ref)) {
+      throw new Error(`Invalid backref name "${raw}"`);
+    }
+    if (!context.namedGroups.has(ref)) {
+      throw new Error(`Group name not defined to the left "${raw}"`);
+    }
+    return createBackreference(parent, ref, ...ignoreCaseArgs);
   }
   return fromNum(+ref);
+}
+
+function parseSubroutine(context, parent, token) {
+// Onig subroutine behavior:
+// - Subroutines can appear before the groups they reference; ex: `\g<1>(a)` is valid
+// - Multiple subroutines can reference the same group
+// - Subroutines can use relative references (backward or forward); ex: `\g<+1>(.)\g<-1>`
+// - Subroutines don't get their own capturing group number; ex: `(.)\g<1>\2` is invalid
+// - Subroutines use the flags that apply to their referenced group, so e.g. `(?-i)(?<a>a)(?i)\g<a>`
+//   is fully case sensitive
+// - Different from PCRE/Perl/regex subroutines:
+//   - Subroutines can't reference duplicate group names (duplicate group names are otherwise valid)
+//   - Subroutines can't use absolute or relative numbers if named capture used anywhere
+//   - Backrefs must be to the right of their group definition, so the backref in `\g<a>\k<a>(?<a>)`
+//     is invalid (not directly related to subroutines)
+//   - Subroutines don't restore capturing group match values (for backrefs) upon exit, so e.g.
+//     `(?<a>(?<b>[ab]))\g<a>\k<b>` matches `abb` but not `aba`; same for numbered
+// - The interaction of backref multiplexing (an Onig-specific feature) and subroutines is complex:
+//   - Only the most recent value matched by a capturing group and its subroutines is considered
+//     for backref multiplexing, and this also applies to capturing groups nested within a group
+//     that is referenced by a subroutine
+//   - Although a subroutine can't reference a group with a duplicate name, it can reference a
+//     group with a nested capture whose name is duplicated (e.g. outside of the referenced group)
+//     - These duplicate names can then multiplex; but only the most recent value matched from
+//       within the outer group and the subroutines that reference it is available for multiplexing
+//   - Ex: With `(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`, the backref `\k<b>` can only match `0`
+//     or whatever was matched by the most recently matched subroutine; if you took out `(?<b>0)`,
+//     no multiplexing would occur
+  let ref = token.raw.slice(3, -1);
+  const numberedRef = /^(?<sign>[-+]?)0*(?<num>[1-9]\d*)$/.exec(ref);
+  if (numberedRef) {
+    const num = +numberedRef.groups.num;
+    const numCapsToLeft = context.capturingGroups.length;
+    context.hasNumberedGroupRef = true;
+    ref = {
+      '': num,
+      '+': numCapsToLeft + num,
+      '-': numCapsToLeft + 1 - num,
+    }[numberedRef.groups.sign];
+  }
+  const node = createSubroutine(parent, ref);
+  context.subroutines.push(node);
+  return node;
 }
 
 function parseCharacterClassHyphen(context, parent, token, tokens) {
@@ -211,20 +273,13 @@ function parseGroupOpen(context, parent, token, tokens) {
   // Track capturing group details for backrefs and subroutines. Track before parsing the group's
   // contents so that nested groups with the same name are tracked in order
   if (node.type === AstTypes.CapturingGroup) {
-    const nodeWithDetails = {
-      node,
-      // Track for subroutines that might reference the group
-      ignoreCase: token.ignoreCase, // TODO: Handle `ignoreCase` for subroutines (elsewhere)
-    };
+    context.capturingGroups.push(node);
     if (node.name) {
-      if (!context.capturingNodes.has(node.name)) {
-        context.capturingNodes.set(node.name, []);
+      if (!context.namedGroups.has(node.name)) {
+        context.namedGroups.set(node.name, []);
       }
-      context.capturingNodes.get(node.name).push(nodeWithDetails);
-    } else {
-      context.capturingNodes.set(node.number, nodeWithDetails);
+      context.namedGroups.get(node.name).push(node);
     }
-    context.numCapturesToLeft++;
   }
 
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
@@ -317,12 +372,12 @@ function createAssertionFromToken(parent, token) {
   return node;
 }
 
-function createBackreference(parent, refs, tokenIgnoreCase, flagIgnoreCase) {
+function createBackreference(parent, ref, tokenIgnoreCase, flagIgnoreCase) {
   const node = {
     ...getNodeBase(parent, AstTypes.Backreference),
-    refs,
+    ref,
   };
-  if (!flagIgnoreCase && tokenIgnoreCase) {
+  if (tokenIgnoreCase && !flagIgnoreCase) {
     // Only used when a pattern is partially case insensitive; otherwise flag i is relied on
     node.ignoreCase = true;
   }
@@ -352,10 +407,10 @@ function createCapturingGroup(parent, number, name) {
     number,
   };
   if (name !== undefined) {
-    if (/^(?:[-\d]|$)/.test(name)) {
+    if (!isValidOnigurumaGroupName(name)) {
       throw new Error(`Invalid group name "${name}"`);
     }
-    // TODO: Convert invalid JS group names to a generated valid value
+    // TODO: Convert invalid JS group names to a generated valid value (also for backrefs and subroutines)
     node.name = name;
   }
   return withInitialAlternative(node);
@@ -369,12 +424,13 @@ function createCharacter(parent, charCode) {
 }
 
 // Create node from token type `Character` or `CharacterClassHyphen`
+// TODO: Can `inCaseInsensitiveCharacterClass` be removed (since `ignoreCase` is already set on the class)?
 function createCharacterFromToken(parent, token, flagIgnoreCase, inCaseInsensitiveCharacterClass) {
   const {charCode} = token;
   const node = createCharacter(parent, charCode);
   if (
-    !flagIgnoreCase &&
     (token.ignoreCase || inCaseInsensitiveCharacterClass) &&
+    !flagIgnoreCase &&
     charHasCase(String.fromCodePoint(charCode))
   ) {
     // Only used when a pattern is partially case insensitive; otherwise flag i is relied on. When
@@ -396,7 +452,7 @@ function createCharacterClassBase(parent, negate = false) {
 
 function createCharacterClassFromToken(parent, token, flagIgnoreCase) {
   const node = createCharacterClassBase(parent, token.negate);
-  if (!flagIgnoreCase && token.ignoreCase) {
+  if (token.ignoreCase && !flagIgnoreCase) {
     // Only used when a pattern is partially case insensitive; otherwise flag i is relied on
     node.ignoreCase = true;
   }
@@ -501,6 +557,13 @@ function createRegExp(pattern, flags) {
   };
 }
 
+function createSubroutine(parent, ref) {
+  return {
+    ...getNodeBase(parent, AstTypes.Subroutine),
+    ref,
+  };
+}
+
 function createVariableLengthCharacterSet(parent, kind) {
   return {
     ...getNodeBase(parent, AstTypes.VariableLengthCharacterSet),
@@ -545,6 +608,10 @@ function getJsUnicodePropertyName(property) {
     }
   }
   return mapped;
+}
+
+function isValidOnigurumaGroupName(name) {
+  return !/^(?:[-\d]|$)/.test(name);
 }
 
 function throwIfNot(value, msg) {
