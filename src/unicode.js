@@ -49,7 +49,7 @@ const OnigurumaExtraUnicodeProperties = {
 // library takes a best effort approach to mapping, in order to avoid adding heavyweight Unicode
 // character data. As part of this approach, following are all ES2024 Unicode properties that don't
 // require a key/prefix (like `sc=` for scripts)
-const JsKeylessUnicodeProperties = new Set([
+const JsKeylessUnicodeProperties = [
   // General categories and their aliases supported by JS; not all are supported by Oniguruma
   // See: <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
   'C', 'Other',
@@ -146,11 +146,22 @@ const JsKeylessUnicodeProperties = new Set([
   'White_Space', 'space',
   'XID_Continue', 'XIDC',
   'XID_Start', 'XIDS',
-]);
+];
+
+// Generates a Unicode property lookup name: lowercase, with hyphens, spaces, and underscores removed
+function normalize(name) {
+  return name.replace(/[- _]+/g, '').toLowerCase();
+}
+
+const JsKeylessUnicodePropertiesLookup = new Map();
+for (const p of JsKeylessUnicodeProperties) {
+  JsKeylessUnicodePropertiesLookup.set(normalize(p), p);
+}
 
 export {
   charHasCase,
-  JsKeylessUnicodeProperties,
+  JsKeylessUnicodePropertiesLookup,
+  normalize,
   OnigurumaExtraUnicodeProperties,
   OnigurumaPosixClasses,
 };

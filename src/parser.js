@@ -1,5 +1,5 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {charHasCase, JsKeylessUnicodeProperties} from './unicode.js';
+import {charHasCase, JsKeylessUnicodePropertiesLookup, normalize} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -588,29 +588,17 @@ function getNodeBase(parent, type) {
 // underscores, and require underscores in specific positions. This is a best effort and doesn't
 // find a mapping for all possible differences
 function getJsUnicodePropertyName(property) {
-  // Most JS Unicode properties use casing 'Like_This', but there are exceptions
-  let mapped = property.
+  const jsName = JsKeylessUnicodePropertiesLookup.get(normalize(property));
+  if (jsName) {
+    return jsName;
+  }
+  // Assume it's a script name; JS requires formatting 'Like_This'
+  return property.
     trim().
     replace(/\s+/g, '_').
     // Change `PropertyName` to `Property_Name`
-    replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_');
-  if (JsKeylessUnicodeProperties.has(mapped)) {
-    return mapped;
-  }
-  const variations = [
-    str => str.toUpperCase(),
-    str => str.toLowerCase(),
-    // Try `Title_Case` last so we pass this version through if it's a script name that's not found
-    // in `JsKeylessUnicodeProperties`
-    str => str.replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase()),
-  ];
-  for (const fn of variations) {
-    mapped = fn(mapped);
-    if (JsKeylessUnicodeProperties.has(mapped)) {
-      return mapped;
-    }
-  }
-  return mapped;
+    replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_').
+    replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase());
 }
 
 function isValidOnigurumaGroupName(name) {
