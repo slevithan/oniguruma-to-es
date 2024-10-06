@@ -153,15 +153,15 @@ function normalize(name) {
   return name.replace(/[- _]+/g, '').toLowerCase();
 }
 
-const JsKeylessUnicodePropertiesLookup = new Map();
+const NormalizedJsKeylessUnicodeProperties = new Map();
 for (const p of JsKeylessUnicodeProperties) {
-  JsKeylessUnicodePropertiesLookup.set(normalize(p), p);
+  NormalizedJsKeylessUnicodeProperties.set(normalize(p), p);
 }
 
 export {
-  charHasCase,
-  JsKeylessUnicodePropertiesLookup,
+  charHasCase, // TODO: Not used yet
   normalize,
-  OnigurumaExtraUnicodeProperties,
+  NormalizedJsKeylessUnicodeProperties,
+  OnigurumaExtraUnicodeProperties, // TODO: Not used yet
   OnigurumaPosixClasses,
 };

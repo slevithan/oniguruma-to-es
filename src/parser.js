@@ -1,5 +1,5 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {charHasCase, JsKeylessUnicodePropertiesLookup, normalize} from './unicode.js';
+import {normalize, NormalizedJsKeylessUnicodeProperties} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -42,7 +42,7 @@ const AstVariableLengthCharacterSetKinds = {
   grapheme: 'grapheme',
 };
 
-function parse({tokens, jsFlags}, {optimize} = {}) {
+function parse({tokens, flags}, {optimize} = {}) {
   const context = {
     optimize,
     current: 0,
@@ -61,16 +61,15 @@ function parse({tokens, jsFlags}, {optimize} = {}) {
         case TokenTypes.Assertion:
           return createAssertionFromToken(parent, token);
         case TokenTypes.Backreference:
-          return parseBackreference(context, parent, token, jsFlags.ignoreCase);
+          return parseBackreference(context, parent, token);
         case TokenTypes.Character:
-          // TODO: Set arg `inCaseInsensitiveCharacterClass` correctly
-          return createCharacterFromToken(parent, token, jsFlags.ignoreCase, false);
+          return createCharacter(parent, token.charCode);
         case TokenTypes.CharacterClassHyphen:
-          return parseCharacterClassHyphen(context, parent, token, tokens);
+          return parseCharacterClassHyphen(context, parent, tokens[context.current]);
         case TokenTypes.CharacterClassOpen:
-          return parseCharacterClassOpen(context, parent, token, tokens, jsFlags.ignoreCase);
+          return parseCharacterClassOpen(context, parent, token.negate, tokens);
         case TokenTypes.CharacterSet:
-          return createCharacterSetFromToken(parent, token, jsFlags.dotAll);
+          return createCharacterSetFromToken(parent, token);
         case TokenTypes.Directive:
           return createDirectiveFromToken(parent, token);
         case TokenTypes.GroupOpen:
@@ -87,7 +86,7 @@ function parse({tokens, jsFlags}, {optimize} = {}) {
     },
   };
 
-  const ast = createRegExp(createPattern(null), createFlags(null, jsFlags));
+  const ast = createRegExp(createPattern(null), createFlags(null, flags));
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
     const node = context.walk(top);
@@ -128,11 +127,11 @@ function parse({tokens, jsFlags}, {optimize} = {}) {
 //   syntax and therefore considers it a valid group name.
 // - Backref with recursion level (with num or name): `\k<n+level>`, `\k<n-level>`, etc.
 //   (Onigmo also supports `\k<-n+level>`, `\k<-n-level>`, etc.)
-// Backrefs in Onig multiplex for duplicate group names (rules can be complicated when overlapping
-// with subroutines), but this isn't captured by the AST so it needs to by handled by callers
-function parseBackreference(context, parent, token, flagIgnoreCase) {
-  const {raw, ignoreCase} = token;
-  const ignoreCaseArgs = [ignoreCase, flagIgnoreCase];
+// Backrefs in Onig use multiplexing for duplicate group names (the rules can be complicated when
+// overlapping with subroutines), but a `Backreference`'s simple `ref` prop doesn't capture these
+// details so multiplexed ref pointers need to derived when working with the AST
+function parseBackreference(context, parent, token) {
+  const {raw} = token;
   const hasKWrapper = /^\\k[<']/.test(raw);
   const ref = hasKWrapper ? raw.slice(3, -1) : raw.slice(1);
   const fromNum = (num, isRelative = false) => {
@@ -141,7 +140,7 @@ function parseBackreference(context, parent, token, flagIgnoreCase) {
       throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
     }
     context.hasNumberedGroupRef = true;
-    return createBackreference(parent, isRelative ? numCapsToLeft + 1 - num : num, ...ignoreCaseArgs);
+    return createBackreference(parent, isRelative ? numCapsToLeft + 1 - num : num);
   };
   if (hasKWrapper) {
     const numberedRef = /^(?<sign>-?)0*(?<num>[1-9]\d*)$/.exec(ref);
@@ -155,7 +154,7 @@ function parseBackreference(context, parent, token, flagIgnoreCase) {
     if (!context.namedGroups.has(ref)) {
       throw new Error(`Group name not defined to the left "${raw}"`);
     }
-    return createBackreference(parent, ref, ...ignoreCaseArgs);
+    return createBackreference(parent, ref);
   }
   return fromNum(+ref);
 }
@@ -203,9 +202,8 @@ function parseSubroutine(context, parent, token) {
   return node;
 }
 
-function parseCharacterClassHyphen(context, parent, token, tokens) {
+function parseCharacterClassHyphen(context, parent, nextToken) {
   const prevNode = parent.elements.at(-1);
-  const nextToken = tokens[context.current];
   if (
     prevNode &&
     prevNode.type !== AstTypes.CharacterClass &&
@@ -224,14 +222,12 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
     }
     throw new Error('Invalid character class range');
   }
-  return createCharacterFromToken(parent, {
-    ...token,
-    charCode: 45,
-  });
+  // Literal hyphen
+  return createCharacter(parent, 45);
 }
 
-function parseCharacterClassOpen(context, parent, token, tokens, flagIgnoreCase) {
-  let node = createCharacterClassFromToken(parent, token, flagIgnoreCase);
+function parseCharacterClassOpen(context, parent, negate, tokens) {
+  let node = createCharacterClass(parent, negate);
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   while (nextToken.type !== TokenTypes.CharacterClassClose) {
@@ -324,8 +320,8 @@ function parseGroupOpen(context, parent, token, tokens) {
 }
 
 function parseQuantifier(parent, token) {
-  // First child in `Alternative`
   if (!parent.elements.length) {
+    // First child in `Alternative`
     throw new Error('Nothing to repeat');
   }
   const node = createQuantifier(
@@ -379,16 +375,11 @@ function createAssertionFromToken(parent, token) {
   return node;
 }
 
-function createBackreference(parent, ref, tokenIgnoreCase, flagIgnoreCase) {
-  const node = {
+function createBackreference(parent, ref) {
+  return {
     ...getNodeBase(parent, AstTypes.Backreference),
     ref,
   };
-  if (tokenIgnoreCase && !flagIgnoreCase) {
-    // Only used when a pattern is partially case insensitive; otherwise flag i is relied on
-    node.ignoreCase = true;
-  }
-  return node;
 }
 
 function createByGroupKind(parent, token) {
@@ -430,23 +421,8 @@ function createCharacter(parent, charCode) {
   };
 }
 
-// Create node from token type `Character` or `CharacterClassHyphen`
-// TODO: Can `inCaseInsensitiveCharacterClass` be removed (since `ignoreCase` is already set on the class)?
-function createCharacterFromToken(parent, token, flagIgnoreCase, inCaseInsensitiveCharacterClass) {
-  const {charCode} = token;
-  const node = createCharacter(parent, charCode);
-  if (
-    (token.ignoreCase || inCaseInsensitiveCharacterClass) &&
-    !flagIgnoreCase &&
-    charHasCase(String.fromCodePoint(charCode))
-  ) {
-    // Only used when a pattern is partially case insensitive; otherwise flag i is relied on. When
-    // mode modifiers are included in a pattern, determining whether to apply character-specific
-    // case insensitivity accounts for whether any chars with case (or backrefs) appear in case
-    // sensitive segments (if not, flag i is turned on for the whole pattern)
-    node.ignoreCase = true;
-  }
-  return node;
+function createCharacterClass(parent, negate) {
+  return withInitialIntersection(createCharacterClassBase(parent, negate));
 }
 
 function createCharacterClassBase(parent, negate = false) {
@@ -455,15 +431,6 @@ function createCharacterClassBase(parent, negate = false) {
     negate,
     elements: [],
   };
-}
-
-function createCharacterClassFromToken(parent, token, flagIgnoreCase) {
-  const node = createCharacterClassBase(parent, token.negate);
-  if (token.ignoreCase && !flagIgnoreCase) {
-    // Only used when a pattern is partially case insensitive; otherwise flag i is relied on
-    node.ignoreCase = true;
-  }
-  return withInitialIntersection(node);
 }
 
 function createCharacterClassIntersection(parent) {
@@ -483,15 +450,13 @@ function createCharacterClassRange(parent, min, max) {
   };
 }
 
-function createCharacterSetFromToken(parent, token, flagDotAll) {
+function createCharacterSetFromToken(parent, token) {
   const {kind, negate, property} = token;
   const node = {
     ...getNodeBase(parent, AstTypes.CharacterSet),
     kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
   };
-  if (kind === TokenCharacterSetKinds.any && token.dotAll && !flagDotAll) {
-    node.dotAll = true;
-  } else if (
+  if (
     kind === TokenCharacterSetKinds.digit ||
     kind === TokenCharacterSetKinds.hex ||
     kind === TokenCharacterSetKinds.posix ||
@@ -516,28 +481,19 @@ function createDirectiveFromToken(parent, token) {
     kind: throwIfNot(AstDirectiveKinds[kind], `Unexpected directive kind "${kind}"`),
   };
   // Can't create a `Group` with `flags` and wrap the remainder of the open group/pattern in it
-  // because this flag modifier might extend across alternation
+  // because this flag modifier might extend across alternation; i.e. `a(?i)b|c` is different than
+  // both `a(?i:b|c)` and `a(?i:b)|c`
   if (node.kind === AstDirectiveKinds.flags) {
     node.flags = flags;
   }
   return node;
 }
 
-function createFlags(parent, {ignoreCase, multiline, dotAll}) {
+function createFlags(parent, {ignoreCase, dotAll}) {
   return {
     ...getNodeBase(parent, AstTypes.Flags),
     ignoreCase,
-    multiline,
     dotAll,
-    // Always add flag v because that gives us JS support for important Onig features (nested
-    // classes, set intersection, Unicode properties, \u{...}) and allows relying on one set of JS
-    // regex syntax (but requires translating for v's strict rules)
-    unicodeSets: true,
-    // JS regex flags not provided by the Onig tokenizer
-    global: false,
-    hasIndices: false,
-    sticky: false,
-    unicode: false,
   };
 }
 
@@ -602,14 +558,14 @@ function getNodeBase(parent, type) {
 }
 
 // Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
-// underscores, and require underscores in specific positions. This is a best effort and doesn't
-// find a mapping for all possible differences
+// underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(property) {
-  const jsName = JsKeylessUnicodePropertiesLookup.get(normalize(property));
+  const jsName = NormalizedJsKeylessUnicodeProperties.get(normalize(property));
   if (jsName) {
     return jsName;
   }
-  // Assume it's a script name; JS requires formatting 'Like_This'
+  // Assume it's a script name; JS requires formatting 'Like_This', so use a best effort to
+  // reformat the name (doesn't find a mapping for all possible formatting differences)
   return property.
     trim().
     replace(/\s+/g, '_').

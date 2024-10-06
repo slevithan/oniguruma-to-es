@@ -3,7 +3,7 @@
 
 // TODO: Also check for extra Unicode properties like `\p{Blank}`
 // TODO: Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, and FF
-// const keyless = JsKeylessUnicodePropertiesLookup.has(property);
+// const keyless = NormalizedJsKeylessUnicodeProperties.has(property);
 // // If not identified as a JS binary property or general category, assume it's a script
 // const key = keyless ? property : 'sc';
 // const value = keyless ? null : property;
