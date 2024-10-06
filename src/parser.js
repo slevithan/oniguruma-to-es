@@ -224,7 +224,10 @@ function parseCharacterClassHyphen(context, parent, token, tokens) {
     }
     throw new Error('Invalid character class range');
   }
-  return createCharacterFromToken(parent, token);
+  return createCharacterFromToken(parent, {
+    ...token,
+    charCode: 45,
+  });
 }
 
 function parseCharacterClassOpen(context, parent, token, tokens, flagIgnoreCase) {

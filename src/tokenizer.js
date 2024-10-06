@@ -16,7 +16,7 @@ const TokenTypes = {
   Subroutine: 'Subroutine',
   Quantifier: 'Quantifier',
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
-  // Non-final representation
+  // Intermediate representation not included in results
   EscapedNumber: 'EscapedNumber',
 };
 
@@ -573,7 +573,6 @@ function getValidatedUnicodeCharCode(raw) {
   return parseInt(hex, 16);
 }
 
-// TODO: Refactor to offer individual functions with a `getTokenBase` like in the parser
 function createToken(type, raw, data = {}) {
   const base = {
     type,
@@ -582,6 +581,7 @@ function createToken(type, raw, data = {}) {
   switch (type) {
     case TokenTypes.Alternator:
     case TokenTypes.CharacterClassClose:
+    case TokenTypes.CharacterClassHyphen:
     case TokenTypes.CharacterClassIntersector:
     case TokenTypes.GroupClose:
       return base;
@@ -601,11 +601,6 @@ function createToken(type, raw, data = {}) {
       return {
         ...base,
         ...data,
-      };
-    case TokenTypes.CharacterClassHyphen:
-      return {
-        ...base,
-        charCode: 45,
       };
     case TokenTypes.CharacterClassOpen:
       return {
