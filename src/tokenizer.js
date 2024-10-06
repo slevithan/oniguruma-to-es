@@ -32,6 +32,7 @@ const TokenCharacterSetKinds = {
 
 const TokenDirectiveKinds = {
   keep: 'keep',
+  flags: 'flags',
 };
 
 const TokenGroupKinds = {
@@ -291,27 +292,35 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
       }
       return;
     }
-    if (m === '(?') {
-      throw new Error('Invalid group');
-    }
     // Modifier/flag group
     if ('-imx'.includes(m2)) {
-      const newMods = getNewModsFromFlagGroup(m, context.isIgnoreCaseOn(), context.isDotAllOn(), context.isExtendedOn());
+      let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[imx\-]*))?/.exec(m).groups;
+      off ??= '';
+      const flags = {
+        enable: getMods(on),
+        disable: getMods(off),
+      };
       // Ex: `(?im-x)`
       if (m.endsWith(')')) {
-        // Replace modifiers until the end of the current group
-        context.modifierStack[context.modifierStack.length - 1] = newMods;
-        return;
+        return {
+          token: createToken(TokenTypes.Directive, m, {
+            kind: TokenDirectiveKinds.flags,
+            flags,
+          }),
+        };
       }
       // Ex: `(?im-x:`
-      context.modifierStack.push(newMods);
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
           kind: TokenGroupKinds.group,
+          flags,
         }),
       };
     }
-    throw new Error(`Unexpected group option "${m}"`);
+    if (m === '(?') {
+      throw new Error('Invalid group');
+    }
+    throw new Error(`Unexpected group "${m}"`);
   }
   if (m === ')') {
     context.modifierStack.pop();
@@ -681,14 +690,20 @@ function getQuantifierTokenProps(raw) {
   };
 }
 
-function getNewModsFromFlagGroup(raw, ignoreCase, dotAll, extended) {
-  let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[imx\-]*))?/.exec(raw).groups;
-  off ??= '';
-  return {
-    ignoreCase: (ignoreCase || on.includes('i')) && !off.includes('i'),
-    dotAll: (dotAll || on.includes('m')) && !off.includes('m'),
-    extended: (extended || on.includes('x')) && !off.includes('x'),
-  };
+function getMods(flags) {
+  // Don't include `false` for flags that aren't included
+  const obj = {};
+  if (flags.includes('i')) {
+    obj.ignoreCase = true;
+  }
+  // Onig flag m is equiv to JS flag s
+  if (flags.includes('m')) {
+    obj.dotAll = true;
+  }
+  if (flags.includes('x')) {
+    obj.extended = true;
+  }
+  return obj;
 }
 
 function assertNonEmptyCharClass(raw) {

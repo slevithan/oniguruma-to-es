@@ -72,7 +72,7 @@ function parse({tokens, jsFlags}, {optimize} = {}) {
         case TokenTypes.CharacterSet:
           return createCharacterSetFromToken(parent, token, jsFlags.dotAll);
         case TokenTypes.Directive:
-          return createDirective(parent, token.kind);
+          return createDirectiveFromToken(parent, token);
         case TokenTypes.GroupOpen:
           return parseGroupOpen(context, parent, token, tokens);
         case TokenTypes.Quantifier:
@@ -301,16 +301,20 @@ function parseGroupOpen(context, parent, token, tokens) {
   if (context.optimize) {
     // TODO: Move `if` logic out
     const firstAlt = node.alternatives[0];
-    const firstEl = firstAlt.elements[0];
+    const firstAltFirstEl = firstAlt.elements[0];
     if (
-      node.alternatives.length === 1 &&
       node.type === AstTypes.Group &&
+      node.alternatives.length === 1 &&
       firstAlt.elements.length === 1 &&
-      firstEl.type === AstTypes.Group
+      firstAltFirstEl.type === AstTypes.Group &&
+      !node.flags &&
+      !(node.atomic && firstAltFirstEl.flags)
     ) {
-      firstEl.parent = node.parent;
-      firstEl.atomic ||= node.atomic;
-      node = firstEl;
+      firstAltFirstEl.parent = node.parent;
+      if (node.atomic) {
+        firstAltFirstEl.atomic = true;
+      }
+      node = firstAltFirstEl;
     }
   }
 
@@ -388,14 +392,14 @@ function createBackreference(parent, ref, tokenIgnoreCase, flagIgnoreCase) {
 }
 
 function createByGroupKind(parent, token) {
-  const {kind, number, name} = token;
+  const {kind, number, name, flags} = token;
   switch (kind) {
     case TokenGroupKinds.atomic:
-      return createGroup(parent, true);
+      return createGroup(parent, {atomic: true});
     case TokenGroupKinds.capturing:
       return createCapturingGroup(parent, number, name);
     case TokenGroupKinds.group:
-      return createGroup(parent);
+      return createGroup(parent, {flags});
     case TokenGroupKinds.lookahead:
     case TokenGroupKinds.lookbehind:
       return createAssertionFromToken(parent, token);
@@ -463,9 +467,9 @@ function createCharacterClassFromToken(parent, token, flagIgnoreCase) {
 }
 
 function createCharacterClassIntersection(parent) {
-  const intersection = getNodeBase(parent, AstTypes.CharacterClassIntersection);
-  intersection.classes = [createCharacterClassBase(intersection)];
-  return intersection;
+  const node = getNodeBase(parent, AstTypes.CharacterClassIntersection);
+  node.classes = [createCharacterClassBase(node)];
+  return node;
 }
 
 function createCharacterClassRange(parent, min, max) {
@@ -505,11 +509,18 @@ function createCharacterSetFromToken(parent, token, flagDotAll) {
   return node;
 }
 
-function createDirective(parent, kind) {
-  return {
+function createDirectiveFromToken(parent, token) {
+  const {kind, flags} = token;
+  const node = {
     ...getNodeBase(parent, AstTypes.Directive),
     kind: throwIfNot(AstDirectiveKinds[kind], `Unexpected directive kind "${kind}"`),
   };
+  // Can't create a `Group` with `flags` and wrap the remainder of the open group/pattern in it
+  // because this flag modifier might extend across alternation
+  if (node.kind === AstDirectiveKinds.flags) {
+    node.flags = flags;
+  }
+  return node;
 }
 
 function createFlags(parent, {ignoreCase, multiline, dotAll}) {
@@ -530,11 +541,14 @@ function createFlags(parent, {ignoreCase, multiline, dotAll}) {
   };
 }
 
-function createGroup(parent, atomic = false) {
-  return withInitialAlternative({
-    ...getNodeBase(parent, AstTypes.Group),
-    atomic,
-  });
+function createGroup(parent, {atomic, flags} = {}) {
+  const node = getNodeBase(parent, AstTypes.Group);
+  if (atomic) {
+    node.atomic = true;
+  } else if (flags) {
+    node.flags = flags;
+  }
+  return withInitialAlternative(node);
 }
 
 function createPattern(parent) {
