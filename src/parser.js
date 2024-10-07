@@ -44,7 +44,6 @@ const AstVariableLengthCharacterSetKinds = {
 
 function parse({tokens, flags}, {optimize} = {}) {
   const context = {
-    optimize,
     current: 0,
     namedGroups: new Map(),
     capturingGroups: [],
@@ -67,13 +66,13 @@ function parse({tokens, flags}, {optimize} = {}) {
         case TokenTypes.CharacterClassHyphen:
           return parseCharacterClassHyphen(context, parent, tokens[context.current]);
         case TokenTypes.CharacterClassOpen:
-          return parseCharacterClassOpen(context, parent, token.negate, tokens);
+          return parseCharacterClassOpen(context, parent, token.negate, tokens, optimize);
         case TokenTypes.CharacterSet:
           return createCharacterSetFromToken(parent, token);
         case TokenTypes.Directive:
           return createDirectiveFromToken(parent, token);
         case TokenTypes.GroupOpen:
-          return parseGroupOpen(context, parent, token, tokens);
+          return parseGroupOpen(context, parent, token, tokens, optimize);
         case TokenTypes.Quantifier:
           return parseQuantifier(parent, token);
         case TokenTypes.Subroutine:
@@ -226,7 +225,7 @@ function parseCharacterClassHyphen(context, parent, nextToken) {
   return createCharacter(parent, 45);
 }
 
-function parseCharacterClassOpen(context, parent, negate, tokens) {
+function parseCharacterClassOpen(context, parent, negate, tokens, optimize) {
   let node = createCharacterClass(parent, negate);
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
@@ -241,17 +240,8 @@ function parseCharacterClassOpen(context, parent, negate, tokens) {
     }
     nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   }
-  if (context.optimize) {
-    // TODO: Move logic out
-    for (let i = 0; i < intersection.classes.length; i++) {
-      const cc = intersection.classes[i];
-      const firstChild = cc.elements[0];
-      if (cc.elements.length === 1 && firstChild.type === AstTypes.CharacterClass) {
-        intersection.classes[i] = firstChild;
-        firstChild.parent = intersection;
-        firstChild.negate = cc.negate !== firstChild.negate;
-      }
-    }
+  if (optimize) {
+    optimizeCharacterClassIntersection(intersection);
   }
   // Simplify tree if we don't need the intersection wrapper
   if (intersection.classes.length === 1) {
@@ -266,9 +256,8 @@ function parseCharacterClassOpen(context, parent, negate, tokens) {
   return node;
 }
 
-function parseGroupOpen(context, parent, token, tokens) {
+function parseGroupOpen(context, parent, token, tokens, optimize) {
   let node = createByGroupKind(parent, token);
-
   // Track capturing group details for backrefs and subroutines. Track before parsing the group's
   // contents so that nested groups with the same name are tracked in order
   if (node.type === AstTypes.CapturingGroup) {
@@ -280,7 +269,6 @@ function parseGroupOpen(context, parent, token, tokens) {
       context.namedGroups.get(node.name).push(node);
     }
   }
-
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
   while (nextToken.type !== TokenTypes.GroupClose) {
     if (nextToken.type === TokenTypes.Alternator) {
@@ -293,27 +281,9 @@ function parseGroupOpen(context, parent, token, tokens) {
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }
-
-  if (context.optimize) {
-    // TODO: Move `if` logic out
-    const firstAlt = node.alternatives[0];
-    const firstAltFirstEl = firstAlt.elements[0];
-    if (
-      node.type === AstTypes.Group &&
-      node.alternatives.length === 1 &&
-      firstAlt.elements.length === 1 &&
-      firstAltFirstEl.type === AstTypes.Group &&
-      !node.flags &&
-      !(node.atomic && firstAltFirstEl.flags)
-    ) {
-      firstAltFirstEl.parent = node.parent;
-      if (node.atomic) {
-        firstAltFirstEl.atomic = true;
-      }
-      node = firstAltFirstEl;
-    }
+  if (optimize) {
+    node = getOptimizedGroup(node);
   }
-
   // Skip the closing parenthesis
   context.current++;
   return node;
@@ -405,10 +375,9 @@ function createCapturingGroup(parent, number, name) {
     number,
   };
   if (name !== undefined) {
-    if (!isValidOnigurumaGroupName(name)) {
+    if (!isValidJsGroupName(name)) {
       throw new Error(`Invalid group name "${name}"`);
     }
-    // TODO: Convert invalid JS group names to a generated valid value (also for backrefs and subroutines)
     node.name = name;
   }
   return withInitialAlternative(node);
@@ -552,13 +521,6 @@ function createVariableLengthCharacterSet(parent, kind) {
   };
 }
 
-function getNodeBase(parent, type) {
-  return {
-    type,
-    parent,
-  };
-}
-
 // Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
 // underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(property) {
@@ -576,8 +538,54 @@ function getJsUnicodePropertyName(property) {
     replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase());
 }
 
-function isValidOnigurumaGroupName(name) {
-  return !/^(?:[-\d]|$)/.test(name);
+function getNodeBase(parent, type) {
+  return {
+    type,
+    parent,
+  };
+}
+
+// If a direct child group is needlessly nested, return it instead (after modifying it)
+function getOptimizedGroup(node) {
+  const firstAlt = node.alternatives[0];
+  const firstAltFirstEl = firstAlt.elements[0];
+  if (
+    node.type === AstTypes.Group &&
+    node.alternatives.length === 1 &&
+    firstAlt.elements.length === 1 &&
+    firstAltFirstEl.type === AstTypes.Group &&
+    !(node.atomic && firstAltFirstEl.flags) &&
+    !(node.flags && (firstAltFirstEl.atomic || firstAltFirstEl.flags))
+  ) {
+    firstAltFirstEl.parent = node.parent;
+    if (node.atomic) {
+      firstAltFirstEl.atomic = true;
+    } else if (node.flags) {
+      firstAltFirstEl.flags = node.flags;
+    }
+    return firstAltFirstEl;
+  }
+  return node;
+}
+
+function isValidJsGroupName(name) {
+  // Oniguruma group name rules are much more permissive than JS, with invalid names seemingly only
+  // being those matched by `/^(?:[-\d]|$)/`. All of these are also invalid by JS rules
+  // See <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
+  return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
+}
+
+// For any intersection classes that contain only a class, swap the parent with its (modded) child
+function optimizeCharacterClassIntersection(intersection) {
+  for (let i = 0; i < intersection.classes.length; i++) {
+    const cc = intersection.classes[i];
+    const firstChild = cc.elements[0];
+    if (cc.elements.length === 1 && firstChild.type === AstTypes.CharacterClass) {
+      intersection.classes[i] = firstChild;
+      firstChild.parent = intersection;
+      firstChild.negate = cc.negate !== firstChild.negate;
+    }
+  }
 }
 
 function throwIfNot(value, msg) {

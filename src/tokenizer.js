@@ -205,7 +205,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
       };
     }
     // Run last since it assumes an identity escape as final condition
-    return getTokenWithDetailsFromSharedEscape(m, {inCharClass: false});
+    return {
+      token: createTokenForSharedEscape(m, {inCharClass: false}),
+    };
   }
   if (m0 === '(') {
     // Unnamed capture if no named captures, else noncapturing group
@@ -339,7 +341,8 @@ function getAllTokensForCharClass(expression, opener, lastIndex) {
   charClassTokenRe.lastIndex = lastIndex;
   while (match = charClassTokenRe.exec(expression)) {
     const m = match[0];
-    // POSIX classes are handled as a single token, not a nested char class
+    // Start of nested char class
+    // POSIX classes are handled as a single token; not as a nested char class
     if (m[0] === '[' && m[1] !== ':') {
       assertNonEmptyCharClass(m);
       numCharClassesOpen++;
@@ -353,7 +356,7 @@ function getAllTokensForCharClass(expression, opener, lastIndex) {
         break;
       }
     } else {
-      tokens.push(getCharClassTokenWithDetails(m).token);
+      tokens.push(createTokenForAnyTokenWithinCharClass(m));
     }
   }
   return {
@@ -362,118 +365,82 @@ function getAllTokensForCharClass(expression, opener, lastIndex) {
   }
 }
 
-// TODO: Return the token directly, rather than as a `token` prop (and remove 'WithDetails')
-function getCharClassTokenWithDetails(m) {
-  if (m[0] === '\\') {
+function createTokenForAnyTokenWithinCharClass(raw) {
+  if (raw[0] === '\\') {
     // Assumes an identity escape as final condition
-    return getTokenWithDetailsFromSharedEscape(m, {inCharClass: true});
+    return createTokenForSharedEscape(raw, {inCharClass: true});
   }
   // POSIX class: `[:name:]` or `[:^name:]`
-  if (m[0] === '[') {
-    const posix = /\[:(?<negate>\^?)(?<name>[a-z]+):\]/.exec(m);
+  if (raw[0] === '[') {
+    const posix = /\[:(?<negate>\^?)(?<name>[a-z]+):\]/.exec(raw);
     if (!posix || !OnigurumaPosixClasses[posix.groups.name]) {
-      throw new Error(`Invalid POSIX class type "${m}"`);
+      throw new Error(`Invalid POSIX class type "${raw}"`);
     }
-    return {
-      token: createToken(TokenTypes.CharacterSet, m, {
-        kind: TokenCharacterSetKinds.posix,
-        negate: !!posix.groups.negate,
-        property: posix.groups.name,
-      }),
-    };
+    return createToken(TokenTypes.CharacterSet, raw, {
+      kind: TokenCharacterSetKinds.posix,
+      negate: !!posix.groups.negate,
+      property: posix.groups.name,
+    });
   }
   // Range (possibly invalid) or literal hyphen
-  if (m === '-') {
-    return {
-      token: createToken(TokenTypes.CharacterClassHyphen, m),
-    }
+  if (raw === '-') {
+    return createToken(TokenTypes.CharacterClassHyphen, raw);
   }
-  if (m === '&&') {
-    return {
-      token: createToken(TokenTypes.CharacterClassIntersector, m),
-    };
+  if (raw === '&&') {
+    return createToken(TokenTypes.CharacterClassIntersector, raw);
   }
-  assertSingleChar(m);
-  return {
-    token: createToken(TokenTypes.Character, m, {
-      value: m.codePointAt(0),
-    }),
-  };
+  assertSingleChar(raw);
+  return createToken(TokenTypes.Character, raw, {
+    value: raw.codePointAt(0),
+  });
 }
 
 // Tokens shared by base syntax and char class syntax that start with `\`
-// TODO: Return the token directly, rather than as a `token` prop (and remove 'WithDetails')
-function getTokenWithDetailsFromSharedEscape(m, {inCharClass}) {
-  const m1 = m[1];
-  if ('cC'.includes(m1)) {
-    return {
-      token: createTokenForControlChar(m),
-    };
+function createTokenForSharedEscape(raw, {inCharClass}) {
+  const char1 = raw[1];
+  if (char1 === 'c' || char1 === 'C') {
+    return createTokenForControlChar(raw);
   }
-  if ('dDhHsSwW'.includes(m1)) {
-    return {
-      token: createTokenForShorthandCharClass(m),
-    };
+  if ('dDhHsSwW'.includes(char1)) {
+    return createTokenForShorthandCharClass(raw);
   }
-  if (/^\\[pP]\{/.test(m)) {
-    if (m.length === 3) {
+  if (/^\\[pP]\{/.test(raw)) {
+    if (raw.length === 3) {
       throw new Error('Invalid Oniguruma Unicode property');
     }
-    return {
-      token: createTokenForUnicodeProperty(m),
-    };
+    return createTokenForUnicodeProperty(raw);
   }
-  if ('ux'.includes(m1)) {
-    return {
-      token: createToken(TokenTypes.Character, m, {
-        value: getValidatedUnicodeCharCode(m),
-      }),
-    };
+  if (char1 === 'u' || char1 === 'x') {
+    return createToken(TokenTypes.Character, raw, {
+      value: getValidatedUnicodeCharCode(raw),
+    });
   }
-  if (EscapeCharCodes.has(m1)) {
-    return {
-      token: createToken(TokenTypes.Character, m, {
-        value: EscapeCharCodes.get(m1),
-      }),
-    };
+  if (EscapeCharCodes.has(char1)) {
+    return createToken(TokenTypes.Character, raw, {
+      value: EscapeCharCodes.get(char1),
+    });
   }
   // Escaped number: backref (possibly invalid), null, octal, or identity escape, possibly followed
   // by 1-2 literal digits
-  if (!isNaN(m1)) {
-    return {
-      token: createToken(TokenTypes.EscapedNumber, m, {
-        inCharClass,
-      }),
-    };
+  if (!isNaN(char1)) {
+    return createToken(TokenTypes.EscapedNumber, raw, {
+      inCharClass,
+    });
   }
-  if (m === '\\') {
+  if (raw === '\\') {
     throw new Error('Incomplete escape "\\"');
   }
   // Meta char `\M-x` and `\M-\C-x` are unsupported for now; avoid treating as an identity escape
-  if (m1 === 'M') {
-    throw new Error(`Unsupported escape "${m}"`);
+  if (char1 === 'M') {
+    throw new Error(`Unsupported escape "${raw}"`);
   }
   // Identity escape
-  if (m.length === 2) {
-    return {
-      token: createToken(TokenTypes.Character, m, {
-        value: m.codePointAt(1),
-      }),
-    };
+  if (raw.length === 2) {
+    return createToken(TokenTypes.Character, raw, {
+      value: raw.codePointAt(1),
+    });
   }
-  throw new Error(`Unexpected escape "${m}"`);
-}
-
-function assertNonEmptyCharClass(raw) {
-  if (raw.endsWith(']')) {
-    throw new Error(`Empty char class "${raw}" not allowed by Oniguruma`);
-  }
-}
-
-function assertSingleChar(raw) {
-  if (raw.length !== 1) {
-    throw new Error(`Expected match "${raw}" to be a single char`);
-  }
+  throw new Error(`Unexpected escape "${raw}"`);
 }
 
 function createToken(type, raw, data = {}) {
@@ -630,6 +597,18 @@ function splitEscapedNumToken(token, numCaptures) {
     }));
   }
   return tokens;
+}
+
+function assertNonEmptyCharClass(raw) {
+  if (raw.endsWith(']')) {
+    throw new Error(`Empty char class "${raw}" not allowed by Oniguruma`);
+  }
+}
+
+function assertSingleChar(raw) {
+  if (raw.length !== 1) {
+    throw new Error(`Expected match "${raw}" to be a single char`);
+  }
 }
 
 export {
