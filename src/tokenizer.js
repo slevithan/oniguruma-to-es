@@ -99,19 +99,15 @@ const charClassTokenRe = new RegExp(String.raw`
   | .
 `.replace(/\s+/g, ''), 'gsu');
 
-// Onig flags differ from JS flags.
-// - Only imx are supported
-// - Onig flag m is equivalent to JS flag s
+// Onig flag m is equivalent to JS flag s
 function tokenize(expression, flags = '') {
   if (!/^[imx]*$/.test(flags)) {
     throw new Error(`Unsupported Oniguruma flag "${flags}"; only imx supported`);
   }
   const context = {
-    modifierStack: [getModifiersForStack(flags.includes('x'))],
-    isExtendedOn: () => context.modifierStack.at(-1).extended,
-    reuseCurrentGroupModifiers: () => context.modifierStack.push({...context.modifierStack.at(-1)}),
-    numNamedCaptures: 0,
-    potentialUnnamedCaptureTokens: [],
+    xStack: [flags.includes('x')],
+    isXOn: () => context.xStack.at(-1),
+    reuseLastOnXStack: () => context.xStack.push(context.xStack.at(-1)),
   };
   let tokens = [];
   let match;
@@ -128,19 +124,30 @@ function tokenize(expression, flags = '') {
     }
   }
 
-  // TODO: Remove these vars from `context` and calculate them by looping over the list of tokens
-  const numCaptures = context.numNamedCaptures || context.potentialUnnamedCaptureTokens.length;
-  // Split escaped nums, now that we have all the necessary details
-  tokens = tokens.map(
-    t => t.type === TokenTypes.EscapedNumber ? splitEscapedNumToken(t, numCaptures) : t
-  ).flat();
-
-  if (!context.numNamedCaptures) {
-    context.potentialUnnamedCaptureTokens.forEach((t, i) => {
+  let numNamedCaptures = 0;
+  const potentialUnnamedCaptureTokens = [];
+  tokens.forEach(t => {
+    if (t.type === TokenTypes.GroupOpen) {
+      if (t.kind === TokenGroupKinds.capturing) {
+        numNamedCaptures++;
+        t.number = numNamedCaptures;
+      } else if (t.raw === '(') {
+        potentialUnnamedCaptureTokens.push(t);
+      }
+    }
+  });
+  // Enable unnamed capturing groups if no named captures
+  if (!numNamedCaptures) {
+    potentialUnnamedCaptureTokens.forEach((t, i) => {
       t.kind = TokenGroupKinds.capturing;
       t.number = i + 1;
     });
   }
+  const numCaptures = numNamedCaptures || potentialUnnamedCaptureTokens.length;
+  // Finally can split escaped nums accurately, now that we have `numCaptures`
+  tokens = tokens.map(
+    t => t.type === TokenTypes.EscapedNumber ? splitEscapedNumToken(t, numCaptures) : t
+  ).flat();
 
   return {
     tokens,
@@ -198,19 +205,18 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   if (m0 === '(') {
     // Unnamed capture if no named captures, else noncapturing group
     if (m === '(') {
-      context.reuseCurrentGroupModifiers();
+      context.reuseLastOnXStack();
       const token = createToken(TokenTypes.GroupOpen, m, {
         // Will change to `capturing` and add `number` in a second pass if no named captures
         kind: TokenGroupKinds.group,
       });
-      context.potentialUnnamedCaptureTokens.push(token);
       return {
         token,
       };
     }
     // Noncapturing group
     if (m === '(?:') {
-      context.reuseCurrentGroupModifiers();
+      context.reuseLastOnXStack();
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
           kind: TokenGroupKinds.group,
@@ -219,7 +225,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     // Atomic group
     if (m === '(?>') {
-      context.reuseCurrentGroupModifiers();
+      context.reuseLastOnXStack();
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
           kind: TokenGroupKinds.atomic,
@@ -228,7 +234,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     // Lookaround
     if (m === '(?=' || m === '(?!' || m === '(?<=' || m === '(?<!') {
-      context.reuseCurrentGroupModifiers();
+      context.reuseLastOnXStack();
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
           kind: m2 === '<' ? TokenGroupKinds.lookbehind : TokenGroupKinds.lookahead,
@@ -238,13 +244,12 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     // Named capture (checked after lookbehind due to similar syntax)
     if (m2 === '<' || m2 === "'") {
-      context.numNamedCaptures++;
-      context.reuseCurrentGroupModifiers();
+      context.reuseLastOnXStack();
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
           kind: TokenGroupKinds.capturing,
-          number: context.numNamedCaptures,
           name: m.slice(3, -1),
+          // Will add `number` in a second pass
         }),
       }
     }
@@ -271,12 +276,12 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     throw new Error(`Unexpected group "${m}"`);
   }
   if (m === ')') {
-    context.modifierStack.pop();
+    context.xStack.pop();
     return {
       token: createToken(TokenTypes.GroupClose, m),
     };
   }
-  if (m === '#' && context.isExtendedOn()) {
+  if (m === '#' && context.isXOn()) {
     // Onig's only line break char is line feed
     const end = expression.indexOf('\n', lastIndex);
     return {
@@ -284,7 +289,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
       lastIndex: end === -1 ? expression.length : end,
     };
   }
-  if (/^\s$/.test(m) && context.isExtendedOn()) {
+  if (/^\s$/.test(m) && context.isXOn()) {
     return;
   }
   if (m === '.') {
@@ -546,40 +551,36 @@ function createTokenForControlChar(raw) {
   });
 }
 
-// TODO: Fix this so it properly carries forward the existing modifiers on the `modifierStack`
 function createTokenForFlagGroup(raw, context) {
   let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[imx\-]*))?/.exec(raw).groups;
   off ??= '';
-  const stackMods = getModifiersForStack(
-    (context.isExtendedOn() || on.includes('x')) &&
-    !off.includes('x')
-  );
-  const tokenModsEnabled = getModifiersForToken(on);
-  const tokenModsDisabled = getModifiersForToken(off);
-  const tokenMods = {};
-  tokenModsEnabled && (tokenMods.enable = tokenModsEnabled);
-  tokenModsDisabled && (tokenMods.disable = tokenModsDisabled);
-  // Standalone flag modifier; ex: `(?im-x)`
+  // Flag `x` is used directly by the tokenizer; other flag modifiers are included in tokens
+  const isXOn = (context.isXOn() || on.includes('x')) && !off.includes('x');
+  const enabledFlags = getFlagPropsForToken(on);
+  const disabledFlags = getFlagPropsForToken(off);
+  const flagChanges = {};
+  enabledFlags && (flagChanges.enable = enabledFlags);
+  disabledFlags && (flagChanges.disable = disabledFlags);
+  // Standalone flags modifier; ex: `(?im-x)`
   if (raw.endsWith(')')) {
-    const stack = context.modifierStack;
-    // Replace modifiers until the end of the current group
-    stack[stack.length - 1] = stackMods;
-    if (tokenModsEnabled || tokenModsDisabled) {
+    // Replace value until the end of the current group
+    context.xStack[context.xStack.length - 1] = isXOn;
+    if (enabledFlags || disabledFlags) {
       return createToken(TokenTypes.Directive, raw, {
         kind: TokenDirectiveKinds.flags,
-        flags: tokenMods,
+        flags: flagChanges,
       });
     }
     return;
   }
   // Modifier/flag group opener; ex: `(?im-x:`
   if (raw.endsWith(':')) {
-    context.modifierStack.push(stackMods);
+    context.xStack.push(isXOn);
     const token = createToken(TokenTypes.GroupOpen, raw, {
       kind: TokenGroupKinds.group,
     });
-    if (tokenModsEnabled || tokenModsDisabled) {
-      token.flags = tokenMods;
+    if (enabledFlags || disabledFlags) {
+      token.flags = flagChanges;
     }
     return token;
   }
@@ -627,13 +628,7 @@ function createTokenForUnicodeProperty(raw) {
   });
 }
 
-function getModifiersForStack(extended) {
-  return {
-    extended,
-  };
-}
-
-function getModifiersForToken(flags) {
+function getFlagPropsForToken(flags) {
   // Don't include flag x (`extended`) since it's handled by the tokenizer
   // Don't include `false` for flags that aren't included
   const obj = {};
