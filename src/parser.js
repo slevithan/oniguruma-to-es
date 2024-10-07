@@ -85,7 +85,7 @@ function parse({tokens, flags}, {optimize} = {}) {
     },
   };
 
-  const ast = createRegExp(createPattern(null), createFlags(null, flags));
+  const ast = createRegExp(null, flags);
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
     const node = context.walk(top);
@@ -512,12 +512,11 @@ function createQuantifier(parent, element, min, max, greedy, possessive) {
   return node;
 }
 
-function createRegExp(pattern, flags) {
-  return {
-    ...getNodeBase(null, AstTypes.RegExp),
-    pattern,
-    flags,
-  };
+function createRegExp(parent, flags) {
+  const node = getNodeBase(parent, AstTypes.RegExp);
+  node.pattern = createPattern(node);
+  node.flags = createFlags(node, flags)
+  return node;
 }
 
 function createSubroutine(parent, ref) {
@@ -641,5 +640,7 @@ function withInitialIntersection(node) {
 }
 
 export {
+  AstAssertionKinds,
+  AstTypes,
   parse,
 };

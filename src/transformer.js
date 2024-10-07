@@ -3,7 +3,9 @@
 // Nodes to transform:
 // - Assertion (line_end, line_start, search_start, string_end, string_end_newline, string_start, word_boundary)
 // - Backreference (multiplexing)
-// - CharacterSet (hex, posix, space) - Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, and FF
+// - CharacterSet (hex, posix, property, space)
+//   - For property, add key
+//   - Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, and FF
 // - CapturingGroup (duplicate names)
 // - Directive (flags, keep)
 // - Flags (drop `extended`)
