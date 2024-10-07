@@ -44,9 +44,9 @@ const TokenGroupKinds = {
 };
 
 const EscapeCharCodes = new Map([
-  ['a', 7], // alert/bell [Not available in JS]
-  ['b', 8], // backspace; only in character classes
-  ['e', 27], // escape [Not available in JS]
+  ['a', 7], // alert/bell (Not available in JS)
+  ['b', 8], // backspace (only in character classes)
+  ['e', 27], // escape (Not available in JS)
   ['f', 12], // form feed
   ['n', 10], // line feed
   ['r', 13], // carriage return
@@ -312,7 +312,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   assertSingleChar(m);
   return {
     token: createToken(TokenTypes.Character, m, {
-      charCode: m.codePointAt(0),
+      value: m.codePointAt(0),
     }),
   };
 }
@@ -380,7 +380,7 @@ function getCharClassTokenWithDetails(m) {
   assertSingleChar(m);
   return {
     token: createToken(TokenTypes.Character, m, {
-      charCode: m.codePointAt(0),
+      value: m.codePointAt(0),
     }),
   };
 }
@@ -410,14 +410,14 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass}) {
   if ('ux'.includes(m1)) {
     return {
       token: createToken(TokenTypes.Character, m, {
-        charCode: getValidatedUnicodeCharCode(m),
+        value: getValidatedUnicodeCharCode(m),
       }),
     };
   }
   if (EscapeCharCodes.has(m1)) {
     return {
       token: createToken(TokenTypes.Character, m, {
-        charCode: EscapeCharCodes.get(m1),
+        value: EscapeCharCodes.get(m1),
       }),
     };
   }
@@ -441,7 +441,7 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass}) {
   if (m.length === 2) {
     return {
       token: createToken(TokenTypes.Character, m, {
-        charCode: m.codePointAt(1),
+        value: m.codePointAt(1),
       }),
     };
   }
@@ -471,11 +471,11 @@ function splitEscapedNumToken(token, numCaptures) {
   for (let i = 0; i < matches.length; i++) {
     const m = matches[i];
     // Octal digits are 0-7
-    const charCode = (i === 0 && m !== '8' && m !== '9') ?
+    const value = (i === 0 && m !== '8' && m !== '9') ?
       parseInt(m, 8) :
       m.codePointAt(0);
     tokens.push(createToken(TokenTypes.Character, (i === 0 ? '\\' : '') + m, {
-      charCode,
+      value,
     }));
   }
   return tokens;
@@ -542,7 +542,7 @@ function createTokenForControlChar(raw) {
     throw new Error(`Unsupported control character "${raw}"`);
   }
   return createToken(TokenTypes.Character, raw, {
-    charCode: char.toUpperCase().codePointAt(0) - 64,
+    value: char.toUpperCase().codePointAt(0) - 64,
   });
 }
 

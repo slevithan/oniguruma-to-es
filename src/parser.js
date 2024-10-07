@@ -1,5 +1,5 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {normalize, NormalizedJsKeylessUnicodeProperties} from './unicode.js';
+import {JsKeylessUnicodePropertiesMap, normalize} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -63,7 +63,7 @@ function parse({tokens, flags}, {optimize} = {}) {
         case TokenTypes.Backreference:
           return parseBackreference(context, parent, token);
         case TokenTypes.Character:
-          return createCharacter(parent, token.charCode);
+          return createCharacter(parent, token.value);
         case TokenTypes.CharacterClassHyphen:
           return parseCharacterClassHyphen(context, parent, tokens[context.current]);
         case TokenTypes.CharacterClassOpen:
@@ -560,7 +560,7 @@ function getNodeBase(parent, type) {
 // Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
 // underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(property) {
-  const jsName = NormalizedJsKeylessUnicodeProperties.get(normalize(property));
+  const jsName = JsKeylessUnicodePropertiesMap.get(normalize(property));
   if (jsName) {
     return jsName;
   }
