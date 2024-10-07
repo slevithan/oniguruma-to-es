@@ -489,11 +489,13 @@ function createDirectiveFromToken(parent, token) {
   return node;
 }
 
-function createFlags(parent, {ignoreCase, dotAll}) {
+function createFlags(parent, {ignoreCase, dotAll, extended}) {
   return {
     ...getNodeBase(parent, AstTypes.Flags),
     ignoreCase,
     dotAll,
+    // Flag x whitespace and comments already removed by the tokenizer
+    extended,
   };
 }
 

@@ -99,7 +99,6 @@ const charClassTokenRe = new RegExp(String.raw`
   | .
 `.replace(/\s+/g, ''), 'gsu');
 
-// Onig flag m is equivalent to JS flag s
 function tokenize(expression, flags = '') {
   if (!/^[imx]*$/.test(flags)) {
     throw new Error(`Unsupported Oniguruma flag "${flags}"; only imx supported`);
@@ -153,9 +152,11 @@ function tokenize(expression, flags = '') {
     tokens,
     flags: {
       ignoreCase: flags.includes('i'),
+      // Onig flag m is equivalent to JS flag s
       dotAll: flags.includes('m'),
-      // Drop flag x since we've already accounted for it during tokenization (JS doesn't support
-      // it and Onig uses different free spacing rules than the `regex` library)
+      // Flag x already fully accounted for during tokenization (and flag x modifiers stripped)
+      // Note: Flag x not supported by JS, and Onig uses different rules for it than `regex`
+      extended: flags.includes('x'),
     },
   };
 }
