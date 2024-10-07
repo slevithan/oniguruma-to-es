@@ -1,25 +1,23 @@
 import {AstAssertionKinds, AstTypes} from './parser.js';
 
 function traverse(ast, visitor) {
-  function traverseArray(array, parent) {
+  function traverseArray(array) {
     for (const node of array) {
-      traverseNode(node, parent);
+      traverseNode(node);
     }
   }
-  function traverseNode(node, parent) {
+  function traverseNode(node) {
     const {type, kind} = node;
     const methods = visitor[type];
-    if (methods?.enter) {
-      methods.enter(node, parent);
-    }
+    methods?.enter?.(node);
     switch (type) {
       case AstTypes.Alternative:
       case AstTypes.CharacterClass:
-        traverseArray(node.elements, node);
+        traverseArray(node.elements);
         break;
       case AstTypes.Assertion:
         if (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind) {
-          traverseArray(node.alternatives, node);
+          traverseArray(node.alternatives);
         }
         break;
       case AstTypes.Backreference:
@@ -33,30 +31,28 @@ function traverse(ast, visitor) {
       case AstTypes.CapturingGroup:
       case AstTypes.Group:
       case AstTypes.Pattern:
-        traverseArray(node.alternatives, node);
+        traverseArray(node.alternatives);
         break;
       case AstTypes.CharacterClassIntersection:
-        traverseArray(node.classes, node);
+        traverseArray(node.classes);
         break;
       case AstTypes.CharacterClassRange:
-        traverseNode(node.min, node);
-        traverseNode(node.max, node);
+        traverseNode(node.min);
+        traverseNode(node.max);
         break;
       case AstTypes.Quantifier:
-        traverseNode(node.element, node);
+        traverseNode(node.element);
         break;
       case AstTypes.RegExp:
-        traverseNode(node.pattern, node);
-        traverseNode(node.flags, node);
+        traverseNode(node.pattern);
+        traverseNode(node.flags);
         break;
       default:
         throw new Error(`Unexpected node type "${type}"`);
     }
-    if (methods?.exit) {
-      methods.exit(node, parent);
-    }
+    methods?.exit?.(node);
   }
-  traverseNode(ast, null);
+  traverseNode(ast);
 }
 
 export {

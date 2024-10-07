@@ -1,4 +1,5 @@
-// TODO: Transform Oniguruma AST to `regex` AST
+import {AstTypes} from './parser.js';
+import {traverse} from './traverser.js';
 
 // Nodes to transform:
 // - Assertion (line_end, line_start, search_start, string_end, string_end_newline, string_start, word_boundary)
@@ -26,3 +27,19 @@
 // - When you encounter a backref:
 //   - If there is a subroutine for the same group to the left, only use the most recent capturing group or subroutine's generated group number
 //   - Else, multiplex all the preceding groups of that name
+
+// Transform an Oniguruma AST to a `regex` AST (in-place)
+function transform(ast) {
+  traverse(ast, {
+    [AstTypes.Flags]: {
+      enter(node) {
+        delete node.extended;
+      },
+    },
+  });
+  return ast;
+}
+
+export {
+  transform,
+};

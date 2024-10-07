@@ -8,7 +8,7 @@
   "exports": "./dist/compiler.mjs",
   "browser": "./dist/compiler.min.js",
   "scripts": {
-    "bundle:global": "esbuild src/compiler.js --global-name=Oniguruma --bundle --minify --sourcemap --outfile=dist/compiler.min.js",
+    "bundle:global": "esbuild src/compiler.js --global-name=OnigurumaToES --bundle --minify --sourcemap --outfile=dist/compiler.min.js",
     "bundle:esm": "esbuild src/compiler.js --format=esm --bundle --sourcemap --outfile=dist/compiler.mjs",
     "prebuild": "rm -rf dist/*",
     "build": "npm run bundle:global && npm run bundle:esm",
