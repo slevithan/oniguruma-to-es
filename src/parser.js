@@ -1,5 +1,5 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {JsKeylessUnicodePropertiesMap, normalize} from './unicode.js';
+import {JsKeylessUnicodePropertiesMap, normalize, OnigurumaPosixProperties} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -158,49 +158,6 @@ function parseBackreference(context, parent, token) {
   return fromNum(+ref);
 }
 
-function parseSubroutine(context, parent, token) {
-// Onig subroutine behavior:
-// - Subroutines can appear before the groups they reference; ex: `\g<1>(a)` is valid
-// - Multiple subroutines can reference the same group
-// - Subroutines can use relative references (backward or forward); ex: `\g<+1>(.)\g<-1>`
-// - Subroutines don't get their own capturing group number; ex: `(.)\g<1>\2` is invalid
-// - Subroutines use the flags that apply to their referenced group, so e.g. `(?-i)(?<a>a)(?i)\g<a>`
-//   is fully case sensitive
-// - Different from PCRE/Perl/regex subroutines:
-//   - Subroutines can't reference duplicate group names (duplicate group names are otherwise valid)
-//   - Subroutines can't use absolute or relative numbers if named capture used anywhere
-//   - Backrefs must be to the right of their group definition, so the backref in `\g<a>\k<a>(?<a>)`
-//     is invalid (not directly related to subroutines)
-//   - Subroutines don't restore capturing group match values (for backrefs) upon exit, so e.g.
-//     `(?<a>(?<b>[ab]))\g<a>\k<b>` matches `abb` but not `aba`; same for numbered
-// - The interaction of backref multiplexing (an Onig-specific feature) and subroutines is complex:
-//   - Only the most recent value matched by a capturing group and its subroutines is considered
-//     for backref multiplexing, and this also applies to capturing groups nested within a group
-//     that is referenced by a subroutine
-//   - Although a subroutine can't reference a group with a duplicate name, it can reference a
-//     group with a nested capture whose name is duplicated (e.g. outside of the referenced group)
-//     - These duplicate names can then multiplex; but only the most recent value matched from
-//       within the outer group and the subroutines that reference it is available for multiplexing
-//   - Ex: With `(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`, the backref `\k<b>` can only match `0`
-//     or whatever was matched by the most recently matched subroutine; if you took out `(?<b>0)`,
-//     no multiplexing would occur
-  let ref = token.raw.slice(3, -1);
-  const numberedRef = /^(?<sign>[-+]?)0*(?<num>[1-9]\d*)$/.exec(ref);
-  if (numberedRef) {
-    const num = +numberedRef.groups.num;
-    const numCapsToLeft = context.capturingGroups.length;
-    context.hasNumberedGroupRef = true;
-    ref = {
-      '': num,
-      '+': numCapsToLeft + num,
-      '-': numCapsToLeft + 1 - num,
-    }[numberedRef.groups.sign];
-  }
-  const node = createSubroutine(parent, ref);
-  context.subroutines.push(node);
-  return node;
-}
-
 function parseCharacterClassHyphen(context, parent, nextToken) {
   const prevNode = parent.elements.at(-1);
   if (
@@ -304,6 +261,50 @@ function parseQuantifier(parent, token) {
   );
   node.element.parent = node;
   parent.elements.pop();
+  return node;
+}
+
+// Onig subroutine behavior:
+// - Subroutines can appear before the groups they reference; ex: `\g<1>(a)` is valid.
+// - Multiple subroutines can reference the same group.
+// - Subroutines can use relative references (backward or forward); ex: `\g<+1>(.)\g<-1>`.
+// - Subroutines don't get their own capturing group numbers; ex: `(.)\g<1>\2` is invalid.
+// - Subroutines use the flags that apply to their referenced group, so e.g.
+//   `(?-i)(?<a>a)(?i)\g<a>` is fully case sensitive.
+// - Differences from PCRE/Perl/regex subroutines:
+//   - Subroutines can't reference duplicate group names (though duplicate names are valid if no
+//     subroutines reference them).
+//   - Subroutines can't use absolute or relative numbers if named capture is used anywhere.
+//   - Backrefs must be to the right of their group definition, so the backref in
+//     `\g<a>\k<a>(?<a>)` is invalid (not directly related to subroutines).
+//   - Subroutines don't restore capturing group match values (for backrefs) upon exit, so e.g.
+//     `(?<a>(?<b>[ab]))\g<a>\k<b>` matches `abb` but not `aba`; same for numbered.
+// The interaction of backref multiplexing (an Onig-specific feature) and subroutines is complex:
+// - Only the most recent value matched by a capturing group and its subroutines is considered for
+//   backref multiplexing, and this also applies to capturing groups nested within a group that is
+//   referenced by a subroutine.
+// - Although a subroutine can't reference a group with a duplicate name, it can reference a group
+//   with a nested capture whose name is duplicated (e.g. outside of the referenced group).
+//   - These duplicate names can then multiplex; but only the most recent value matched from within
+//     the outer group and the subroutines that reference it is available for multiplexing.
+//   - Ex: With `(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`, the backref `\k<b>` can only match `0`
+//     or whatever was matched by the most recently matched subroutine. If you took out `(?<b>0)`,
+//     no multiplexing would occur.
+function parseSubroutine(context, parent, token) {
+  let ref = token.raw.slice(3, -1);
+  const numberedRef = /^(?<sign>[-+]?)0*(?<num>[1-9]\d*)$/.exec(ref);
+  if (numberedRef) {
+    const num = +numberedRef.groups.num;
+    const numCapsToLeft = context.capturingGroups.length;
+    context.hasNumberedGroupRef = true;
+    ref = {
+      '': num,
+      '+': numCapsToLeft + num,
+      '-': numCapsToLeft + 1 - num,
+    }[numberedRef.groups.sign];
+  }
+  const node = createSubroutine(parent, ref);
+  context.subroutines.push(node);
   return node;
 }
 
@@ -420,7 +421,14 @@ function createCharacterClassRange(parent, min, max) {
 }
 
 function createCharacterSetFromToken(parent, token) {
-  const {kind, negate, property} = token;
+  let {kind, negate, property} = token;
+  if (kind === TokenCharacterSetKinds.property) {
+    const normalized = normalize(property);
+    if (OnigurumaPosixProperties.has(normalized)) {
+      kind = TokenCharacterSetKinds.posix;
+      property = normalized;
+    }
+  }
   const node = {
     ...getNodeBase(parent, AstTypes.CharacterSet),
     kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
@@ -449,9 +457,9 @@ function createDirectiveFromToken(parent, token) {
     ...getNodeBase(parent, AstTypes.Directive),
     kind: throwIfNot(AstDirectiveKinds[kind], `Unexpected directive kind "${kind}"`),
   };
-  // Can't create a `Group` with `flags` and wrap the remainder of the open group/pattern in it
-  // because this flag modifier might extend across alternation; i.e. `a(?i)b|c` is different than
-  // both `a(?i:b|c)` and `a(?i:b)|c`
+  // Can't simply create a `Group` with a `flags` prop and wrap the remainder of the open group or
+  // pattern in it, because the flag modifier might extend across alternation; i.e. `a(?i)b|c` is
+  // equivalent to `a(?i:b)|(?i:c)`, not `a(?i:b|c)`
   if (node.kind === AstDirectiveKinds.flags) {
     node.flags = flags;
   }
@@ -486,7 +494,7 @@ function createQuantifier(parent, element, min, max, greedy, possessive) {
   if (max < min) {
     throw new Error('Quantifier range out of order');
   }
-  return {
+  const node = {
     ...getNodeBase(parent, AstTypes.Quantifier),
     min,
     max,
@@ -494,6 +502,14 @@ function createQuantifier(parent, element, min, max, greedy, possessive) {
     possessive,
     element,
   };
+  if (min !== max && isWithin(node, AstTypes.Assertion, AstAssertionKinds.lookbehind)) {
+    // JS supports this but Onig doesn't
+    throw new Error('Unsupported variable repetition within lookbehind');
+    // Additionally, Onig only supports variable-length alternation at the top level of lookbehind,
+    // but this isn't currently enforced. Ex: `(?<=a|bc)` and `(?<=a|b(c|d))` are valid, but not
+    // `(?<=a(b|cd))`
+  }
+  return node;
 }
 
 function createRegExp(pattern, flags) {
@@ -573,6 +589,15 @@ function isValidJsGroupName(name) {
   // being those matched by `/^(?:[-\d]|$)/`. All of these are also invalid by JS rules
   // See <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
+}
+
+function isWithin(node, type, kind) {
+  while (node = node.parent) {
+    if (node.type === type && (!kind || node.kind === kind)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // For any intersection classes that contain only a class, swap the parent with its (modded) child

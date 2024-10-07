@@ -1,6 +1,6 @@
-const casedRe = /^\p{Cased}$/u;
+// TODO: Not used yet
 function charHasCase(char) {
-  return casedRe.test(char);
+  return /^\p{Cased}$/u.test(char);
 }
 
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
@@ -23,35 +23,37 @@ const OnigurumaPosixClasses = {
   xdigit: '\\p{AHex}',
 };
 
-// The Oniguruma list of supported Unicode properties is at
-// <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>, and several more are
-// explicitly added (those below). See: <https://github.com/kkos/oniguruma/blob/master/doc/RE>
-const OnigurumaExtraUnicodeProperties = {
-  Alnum: OnigurumaPosixClasses.alnum,
-  Blank: OnigurumaPosixClasses.blank,
-  Graph: OnigurumaPosixClasses.graph,
-  Print: OnigurumaPosixClasses.print,
-  Word: OnigurumaPosixClasses.word,
-  XDigit: OnigurumaPosixClasses.xdigit,
-  // The following are available with the same name in JS
-  // - Alpha (JS: Alpha)
-  // - ASCII (JS: ASCII)
-  // - Cntrl (JS: cntrl)
-  // - Digit (JS: digit)
-  // - Lower (JS: Lower)
-  // - Punct (JS: punct)
-  // - Space (JS: space)
-  // - Upper (JS: Upper)
-};
+// Apart from the property names provided by Unicode, Oniguruma explicitly adds (see
+// <https://github.com/kkos/oniguruma/blob/master/doc/RE>) several names that can be used within
+// `\p{}` and `\P{}` (those below). These should be listed here in lowercase, though they aren't
+// case sensitive when used
+const OnigurumaPosixProperties = new Set([
+  'alnum',
+  'blank',
+  'graph',
+  'print',
+  'word',
+  'xdigit',
+  // The following are available with the same name in JS (see `JsKeylessUnicodeProperties`)
+  // - alpha (JS: Alpha)
+  // - ascii (JS: ASCII)
+  // - cntrl (JS: cntrl)
+  // - digit (JS: digit)
+  // - lower (JS: Lower)
+  // - punct (JS: punct)
+  // - space (JS: space)
+  // - upper (JS: Upper)
+]);
 
-// To work in JS, Unicode properties must be mapped to properties supported by JS, and also apply
-// JS's stricter rules for casing, whitespace, and underscores in Unicode property names. This
-// library takes a best effort approach to mapping, in order to avoid adding heavyweight Unicode
-// character data. As part of this approach, following are all ES2024 Unicode properties that don't
-// require a key/prefix (like `sc=` for scripts)
+// Unicode properties must be mapped to property names supported by JS, and must also apply JS's
+// stricter rules for casing, whitespace, and underscores in Unicode property names. In order to
+// remain lightweight, this library assumes properties not in this list are Unicode script names
+// (which require a `Script=` or `sc=` prefix in JS). Unlike JS, Oniguruma doesn't support script
+// extensions, and it supports some properties that aren't supported in JS (including blocks with
+// an `In_` prefix). See <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
 const JsKeylessUnicodeProperties = [
-  // General categories and their aliases supported by JS; not all are supported by Oniguruma
-  // See: <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
+  // ES2024 general categories and their aliases; all are supported by Oniguruma
+  // See <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
   'C', 'Other',
   'Cc', 'Control', 'cntrl',
   'Cf', 'Format',
@@ -91,8 +93,8 @@ const JsKeylessUnicodeProperties = [
   'Zp', 'Paragraph_Separator',
   'Zs', 'Space_Separator',
 
-  // Binary properties and their aliases supported by JS; not all are supported by Oniguruma
-  // See: <https://tc39.es/ecma262/multipage/text-processing.html#table-binary-unicode-properties>
+  // ES2024 binary properties and their aliases; all are supported by Oniguruma
+  // See <https://tc39.es/ecma262/multipage/text-processing.html#table-binary-unicode-properties>
   'ASCII',
   'ASCII_Hex_Digit', 'AHex',
   'Alphabetic', 'Alpha',
@@ -159,9 +161,9 @@ for (const p of JsKeylessUnicodeProperties) {
 }
 
 export {
-  charHasCase, // TODO: Not used yet
+  charHasCase,
   JsKeylessUnicodePropertiesMap,
   normalize,
-  OnigurumaExtraUnicodeProperties, // TODO: Not used yet
   OnigurumaPosixClasses,
+  OnigurumaPosixProperties,
 };
