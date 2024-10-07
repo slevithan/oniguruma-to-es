@@ -1,4 +1,4 @@
-import {OnigurumaPosixClasses} from './unicode.js';
+import {PosixClasses} from './unicode.js';
 
 const TokenTypes = {
   Alternator: 'Alternator',
@@ -373,7 +373,7 @@ function createTokenForAnyTokenWithinCharClass(raw) {
   // POSIX class: `[:name:]` or `[:^name:]`
   if (raw[0] === '[') {
     const posix = /\[:(?<negate>\^?)(?<name>[a-z]+):\]/.exec(raw);
-    if (!posix || !OnigurumaPosixClasses[posix.groups.name]) {
+    if (!posix || !PosixClasses[posix.groups.name]) {
       throw new Error(`Invalid POSIX class type "${raw}"`);
     }
     return createToken(TokenTypes.CharacterSet, raw, {

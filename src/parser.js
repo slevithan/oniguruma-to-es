@@ -1,5 +1,5 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {JsKeylessUnicodePropertiesMap, normalize, OnigurumaPosixProperties} from './unicode.js';
+import {JsUnicodePropertiesMap, normalize, PosixProperties} from './unicode.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -424,7 +424,7 @@ function createCharacterSetFromToken(parent, token) {
   let {kind, negate, property} = token;
   if (kind === TokenCharacterSetKinds.property) {
     const normalized = normalize(property);
-    if (OnigurumaPosixProperties.has(normalized)) {
+    if (PosixProperties.has(normalized)) {
       kind = TokenCharacterSetKinds.posix;
       property = normalized;
     }
@@ -540,7 +540,7 @@ function createVariableLengthCharacterSet(parent, kind) {
 // Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
 // underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(property) {
-  const jsName = JsKeylessUnicodePropertiesMap.get(normalize(property));
+  const jsName = JsUnicodePropertiesMap.get(normalize(property));
   if (jsName) {
     return jsName;
   }

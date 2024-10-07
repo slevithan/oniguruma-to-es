@@ -5,11 +5,11 @@
   "author": "Steven Levithan",
   "license": "MIT",
   "type": "module",
-  "exports": "./dist/index.mjs",
-  "browser": "./dist/index.min.js",
+  "exports": "./dist/compiler.mjs",
+  "browser": "./dist/compiler.min.js",
   "scripts": {
-    "bundle:global": "esbuild src/index.js --global-name=Oniguruma --bundle --minify --sourcemap --outfile=dist/index.min.js",
-    "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --outfile=dist/index.mjs",
+    "bundle:global": "esbuild src/compiler.js --global-name=Oniguruma --bundle --minify --sourcemap --outfile=dist/compiler.min.js",
+    "bundle:esm": "esbuild src/compiler.js --format=esm --bundle --sourcemap --outfile=dist/compiler.mjs",
     "prebuild": "rm -rf dist/*",
     "build": "npm run bundle:global && npm run bundle:esm",
     "pretest": "npm run build",
@@ -26,6 +26,7 @@
     "regex",
     "regexp",
     "oniguruma",
+    "onigmo",
     "textmate-grammar",
     "transpiler"
   ],

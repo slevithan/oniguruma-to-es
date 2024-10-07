@@ -6,7 +6,7 @@ function createAst(pattern, flags, options) {
 }
 
 export {
-  createAst,
-  parse, // TODO: Remove?
-  tokenize, // TODO: Remove?
+  createAst, // TODO: Replace with `compile`
+  parse,
+  tokenize,
 };

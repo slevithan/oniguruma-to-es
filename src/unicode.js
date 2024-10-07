@@ -1,57 +1,10 @@
-// TODO: Not used yet
-function charHasCase(char) {
-  return /^\p{Cased}$/u.test(char);
-}
-
-// Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
-// don't allow inserting whitespace and underscores. Definitions at
-// <https://github.com/kkos/oniguruma/blob/master/doc/RE> (POSIX bracket: Unicode Case)
-const OnigurumaPosixClasses = {
-  alnum: '[\\p{Alpha}\\p{Nd}]',
-  alpha: '\\p{Alpha}',
-  ascii: '\\p{ASCII}',
-  blank: '[\\p{Zs}\\t]',
-  cntrl: '\\p{cntrl}',
-  digit: '\\p{Nd}',
-  graph: '[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]',
-  lower: '\\p{Lower}',
-  print: '[[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]\\p{Zs}]',
-  punct: '[\\p{P}\\p{S}]',
-  space: '\\p{space}',
-  upper: '\\p{Upper}',
-  word: '[\\p{Alpha}\\p{M}\\p{Nd}\\p{Pc}]',
-  xdigit: '\\p{AHex}',
-};
-
-// Apart from the property names provided by Unicode, Oniguruma explicitly adds (see
-// <https://github.com/kkos/oniguruma/blob/master/doc/RE>) several names that can be used within
-// `\p{}` and `\P{}` (those below). These should be listed here in lowercase, though they aren't
-// case sensitive when used
-const OnigurumaPosixProperties = new Set([
-  'alnum',
-  'blank',
-  'graph',
-  'print',
-  'word',
-  'xdigit',
-  // The following are available with the same name in JS (see `JsKeylessUnicodeProperties`)
-  // - alpha (JS: Alpha)
-  // - ascii (JS: ASCII)
-  // - cntrl (JS: cntrl)
-  // - digit (JS: digit)
-  // - lower (JS: Lower)
-  // - punct (JS: punct)
-  // - space (JS: space)
-  // - upper (JS: Upper)
-]);
-
 // Unicode properties must be mapped to property names supported by JS, and must also apply JS's
 // stricter rules for casing, whitespace, and underscores in Unicode property names. In order to
 // remain lightweight, this library assumes properties not in this list are Unicode script names
 // (which require a `Script=` or `sc=` prefix in JS). Unlike JS, Oniguruma doesn't support script
 // extensions, and it supports some properties that aren't supported in JS (including blocks with
 // an `In_` prefix). See <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
-const JsKeylessUnicodeProperties = [
+const JsUnicodeProperties = [
   // ES2024 general categories and their aliases; all are supported by Oniguruma
   // See <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
   'C', 'Other',
@@ -150,20 +103,61 @@ const JsKeylessUnicodeProperties = [
   'XID_Start', 'XIDS',
 ];
 
+const JsUnicodePropertiesMap = new Map();
+for (const p of JsUnicodeProperties) {
+  JsUnicodePropertiesMap.set(normalize(p), p);
+}
+
 // Generates a Unicode property lookup name: lowercase, with hyphens, spaces, and underscores removed
 function normalize(name) {
   return name.replace(/[- _]+/g, '').toLowerCase();
 }
 
-const JsKeylessUnicodePropertiesMap = new Map();
-for (const p of JsKeylessUnicodeProperties) {
-  JsKeylessUnicodePropertiesMap.set(normalize(p), p);
-}
+// Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
+// don't allow inserting whitespace and underscores. Definitions at
+// <https://github.com/kkos/oniguruma/blob/master/doc/RE> (POSIX bracket: Unicode Case)
+const PosixClasses = {
+  alnum: '[\\p{Alpha}\\p{Nd}]',
+  alpha: '\\p{Alpha}',
+  ascii: '\\p{ASCII}',
+  blank: '[\\p{Zs}\\t]',
+  cntrl: '\\p{cntrl}',
+  digit: '\\p{Nd}',
+  graph: '[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]',
+  lower: '\\p{Lower}',
+  print: '[[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]\\p{Zs}]',
+  punct: '[\\p{P}\\p{S}]',
+  space: '\\p{space}',
+  upper: '\\p{Upper}',
+  word: '[\\p{Alpha}\\p{M}\\p{Nd}\\p{Pc}]',
+  xdigit: '\\p{AHex}',
+};
+
+// Apart from the property names provided by Unicode, Oniguruma explicitly adds (see
+// <https://github.com/kkos/oniguruma/blob/master/doc/RE>) several names that can be used within
+// `\p{}` and `\P{}` (those below). These should be listed here in lowercase, though they aren't
+// case sensitive when used
+const PosixProperties = new Set([
+  'alnum',
+  'blank',
+  'graph',
+  'print',
+  'word',
+  'xdigit',
+  // The following are available with the same name in JS (see `JsUnicodeProperties`)
+  // - alpha (JS: Alpha)
+  // - ascii (JS: ASCII)
+  // - cntrl (JS: cntrl)
+  // - digit (JS: digit)
+  // - lower (JS: Lower)
+  // - punct (JS: punct)
+  // - space (JS: space)
+  // - upper (JS: Upper)
+]);
 
 export {
-  charHasCase,
-  JsKeylessUnicodePropertiesMap,
+  JsUnicodePropertiesMap,
   normalize,
-  OnigurumaPosixClasses,
-  OnigurumaPosixProperties,
+  PosixClasses,
+  PosixProperties,
 };
