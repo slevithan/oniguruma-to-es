@@ -124,8 +124,8 @@ function tokenize(expression, flags = '') {
     }
   }
 
-  let numNamedCaptures = 0;
   const potentialUnnamedCaptureTokens = [];
+  let numNamedCaptures = 0;
   tokens.forEach(t => {
     if (t.type === TokenTypes.GroupOpen) {
       if (t.kind === TokenGroupKinds.capturing) {
@@ -144,7 +144,7 @@ function tokenize(expression, flags = '') {
     });
   }
   const numCaptures = numNamedCaptures || potentialUnnamedCaptureTokens.length;
-  // Finally can split escaped nums accurately, now that we have `numCaptures`
+  // Can now split escaped nums accurately, accounting for number of captures
   tokens = tokens.map(
     t => t.type === TokenTypes.EscapedNumber ? splitEscapedNumToken(t, numCaptures) : t
   ).flat();
@@ -174,7 +174,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   if (m0 === '\\') {
     if ('AbBGzZ'.includes(m1)) {
       return {
-        token: createToken(TokenTypes.Assertion, m),
+        token: createToken(TokenTypes.Assertion, m, {
+          kind: m,
+        }),
       };
     }
     if (/^\\g[<']/.test(m)) {
@@ -196,7 +198,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
     }
     if ('RX'.includes(m1)) {
       return {
-        token: createToken(TokenTypes.VariableLengthCharacterSet, m),
+        token: createToken(TokenTypes.VariableLengthCharacterSet, m, {
+          kind: m,
+        }),
       };
     }
     // Run last since it assumes an identity escape as final condition
@@ -301,7 +305,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   }
   if (m === '^' || m === '$') {
     return {
-      token: createToken(TokenTypes.Assertion, m),
+      token: createToken(TokenTypes.Assertion, m, {
+        kind: m,
+      }),
     };
   }
   if (m === '|') {
@@ -324,7 +330,9 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
 
 function getAllTokensForCharClass(expression, opener, lastIndex) {
   assertNonEmptyCharClass(opener);
-  const tokens = [createToken(TokenTypes.CharacterClassOpen, opener)];
+  const tokens = [createToken(TokenTypes.CharacterClassOpen, opener, {
+    negate: opener[1] === '^',
+  })];
   let numCharClassesOpen = 1;
   let match;
   charClassTokenRe.lastIndex = lastIndex;
@@ -334,7 +342,9 @@ function getAllTokensForCharClass(expression, opener, lastIndex) {
     if (m[0] === '[' && m[1] !== ':') {
       assertNonEmptyCharClass(m);
       numCharClassesOpen++;
-      tokens.push(createToken(TokenTypes.CharacterClassOpen, m));
+      tokens.push(createToken(TokenTypes.CharacterClassOpen, m, {
+        negate: m[1] === '^',
+      }));
     } else if (m === ']') {
       numCharClassesOpen--;
       tokens.push(createToken(TokenTypes.CharacterClassClose, m));
@@ -453,89 +463,24 @@ function getTokenWithDetailsFromSharedEscape(m, {inCharClass}) {
   throw new Error(`Unexpected escape "${m}"`);
 }
 
-// Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,
-// possibly followed by 1-2 literal digits
-function splitEscapedNumToken(token, numCaptures) {
-  const {raw, inCharClass} = token;
-  // Keep any leading 0s since they indicate octal
-  const value = raw.slice(1);
-  // Backref (possibly invalid)
-  if (
-    !inCharClass &&
-    ( // Single digit 1-9 outside a char class is always treated as a backref
-      (value !== '0' && value.length === 1) ||
-      // Leading 0 makes it octal; backrefs can't include following literal digits
-      (value[0] !== '0' && +value <= numCaptures)
-    )
-  ) {
-    return [createToken(TokenTypes.Backreference, raw)];
+function assertNonEmptyCharClass(raw) {
+  if (raw.endsWith(']')) {
+    throw new Error(`Empty char class "${raw}" not allowed by Oniguruma`);
   }
-  const tokens = [];
-  // Returns 1-3 matches; the first (only) might be octal
-  const matches = value.match(/^[0-7]+|\d/g);
-  for (let i = 0; i < matches.length; i++) {
-    const m = matches[i];
-    // Octal digits are 0-7
-    const value = (i === 0 && m !== '8' && m !== '9') ?
-      parseInt(m, 8) :
-      m.codePointAt(0);
-    tokens.push(createToken(TokenTypes.Character, (i === 0 ? '\\' : '') + m, {
-      value,
-    }));
-  }
-  return tokens;
 }
 
-function getValidatedUnicodeCharCode(raw) {
-  if (/^(?:\\x$|\\u(?!\p{AHex}{4}|\{\s*\p{AHex}{1,6}\s*\}))/u.test(raw)) {
-    throw new Error(`Incomplete or invalid escape "${raw}"`);
+function assertSingleChar(raw) {
+  if (raw.length !== 1) {
+    throw new Error(`Expected match "${raw}" to be a single char`);
   }
-  // Might include leading 0s
-  const hex = raw[2] === '{' ?
-    /^\\u\{\s*(?<hex>\p{AHex}+)/u.exec(raw).groups.hex :
-    raw.slice(2);
-  return parseInt(hex, 16);
 }
 
-// TODO: Simplify by always passing in `data`
 function createToken(type, raw, data = {}) {
-  const base = {
+  return {
     type,
     raw,
+    ...data,
   };
-  switch (type) {
-    case TokenTypes.Alternator:
-    case TokenTypes.Backreference:
-    case TokenTypes.CharacterClassClose:
-    case TokenTypes.CharacterClassHyphen:
-    case TokenTypes.CharacterClassIntersector:
-    case TokenTypes.GroupClose:
-      return base;
-    case TokenTypes.Assertion:
-    case TokenTypes.VariableLengthCharacterSet:
-      return {
-        ...base,
-        kind: raw,
-      };
-    case TokenTypes.Character:
-    case TokenTypes.CharacterSet:
-    case TokenTypes.Directive:
-    case TokenTypes.EscapedNumber:
-    case TokenTypes.GroupOpen:
-    case TokenTypes.Quantifier:
-    case TokenTypes.Subroutine:
-      return {
-        ...base,
-        ...data,
-      };
-    case TokenTypes.CharacterClassOpen:
-      return {
-        ...base,
-        negate: raw[1] === '^',
-      };
-    default:
-      throw new Error(`Unexpected token type "${type}"`);
-  }
 }
 
 // Expects `\cx` or `\C-x`
@@ -554,7 +499,7 @@ function createTokenForControlChar(raw) {
 function createTokenForFlagGroup(raw, context) {
   let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[imx\-]*))?/.exec(raw).groups;
   off ??= '';
-  // Flag `x` is used directly by the tokenizer; other flag modifiers are included in tokens
+  // Flag x is used directly by the tokenizer; other flag modifiers are included in tokens
   const isXOn = (context.isXOn() || on.includes('x')) && !off.includes('x');
   const enabledFlags = getFlagPropsForToken(on);
   const disabledFlags = getFlagPropsForToken(off);
@@ -628,6 +573,17 @@ function createTokenForUnicodeProperty(raw) {
   });
 }
 
+function getValidatedUnicodeCharCode(raw) {
+  if (/^(?:\\x$|\\u(?!\p{AHex}{4}|\{\s*\p{AHex}{1,6}\s*\}))/u.test(raw)) {
+    throw new Error(`Incomplete or invalid escape "${raw}"`);
+  }
+  // Might include leading 0s
+  const hex = raw[2] === '{' ?
+    /^\\u\{\s*(?<hex>\p{AHex}+)/u.exec(raw).groups.hex :
+    raw.slice(2);
+  return parseInt(hex, 16);
+}
+
 function getFlagPropsForToken(flags) {
   // Don't include flag x (`extended`) since it's handled by the tokenizer
   // Don't include `false` for flags that aren't included
@@ -642,16 +598,37 @@ function getFlagPropsForToken(flags) {
   return Object.keys(obj).length ? obj : null;
 }
 
-function assertNonEmptyCharClass(raw) {
-  if (raw.endsWith(']')) {
-    throw new Error(`Empty char class "${raw}" not allowed by Oniguruma`);
+// Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,
+// possibly followed by 1-2 literal digits
+function splitEscapedNumToken(token, numCaptures) {
+  const {raw, inCharClass} = token;
+  // Keep any leading 0s since they indicate octal
+  const value = raw.slice(1);
+  // Backref (possibly invalid)
+  if (
+    !inCharClass &&
+    ( // Single digit 1-9 outside a char class is always treated as a backref
+      (value !== '0' && value.length === 1) ||
+      // Leading 0 makes it octal; backrefs can't include following literal digits
+      (value[0] !== '0' && +value <= numCaptures)
+    )
+  ) {
+    return [createToken(TokenTypes.Backreference, raw)];
   }
-}
-
-function assertSingleChar(raw) {
-  if (raw.length !== 1) {
-    throw new Error(`Expected match "${raw}" to be a single char`);
+  const tokens = [];
+  // Returns 1-3 matches; the first (only) might be octal
+  const matches = value.match(/^[0-7]+|\d/g);
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
+    // Octal digits are 0-7
+    const value = (i === 0 && m !== '8' && m !== '9') ?
+      parseInt(m, 8) :
+      m.codePointAt(0);
+    tokens.push(createToken(TokenTypes.Character, (i === 0 ? '\\' : '') + m, {
+      value,
+    }));
   }
+  return tokens;
 }
 
 export {
