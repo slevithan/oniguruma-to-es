@@ -1,7 +1,7 @@
 import {AstTypes} from './parser.js';
 import {traverse} from './traverser.js';
 
-// Nodes to transform:
+// TODO: Remaining nodes to transform:
 // - Assertion (line_end, line_start, search_start, string_end, string_end_newline, string_start, word_boundary)
 // - Backreference (multiplexing)
 // - CharacterSet (hex, posix, property, space)
@@ -9,7 +9,6 @@ import {traverse} from './traverser.js';
 //   - Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, and FF
 // - CapturingGroup (duplicate names)
 // - Directive (flags, keep)
-// - Flags (drop `extended`)
 // - Subroutine
 // - VariableLengthCharacterSet (newline, grapheme)
 // The `regex` AST should assume a target of ESNext (so e.g. Group flags with target ES2024 should be handled by the generator)
@@ -31,11 +30,37 @@ import {traverse} from './traverser.js';
 // Transform an Oniguruma AST to a `regex` AST (in-place)
 function transform(ast) {
   traverse(ast, {
+
     [AstTypes.Flags]: {
       enter(node) {
+        // JS flags that don't have an Onig equivalent
+        node.hasIndices = false; // JS flag d
+        node.global = false; // JS flag g
+        node.sticky = false; // JS flag y
+        // Onig doesn't have a flag for this but its behavior is always on
+        node.multiline = true; // JS flag m
+        // Onig's flag x (`extended`) isn't available in JS
+        // Note: Flag x is fully handled during tokenization (and flag x modifiers are stripped)
         delete node.extended;
+        node.disable = {
+          // Onig uses different rules for flag x than `regex`, so disable the implicit flag
+          x: true,
+          // Onig has no flag to control "named capture only" mode but contextually applies its
+          // behavior whenever named capturing is used, so disable `regex`'s implicit flag for it
+          n: true,
+        };
+        node.force = {
+          // Always add flag v because that gives us JS support for various Onig features (nested
+          // classes, set intersection, Unicode properties, `\u{}`) and allows the code generator
+          // to rely on one set of JS regex syntax
+          v: true,
+        };
+        // Note: `regex` doesn't allow explicitly adding flags it handles inplicitly, so leave out
+        // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v)
+        // Values unchanged for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
       },
     },
+
   });
   return ast;
 }

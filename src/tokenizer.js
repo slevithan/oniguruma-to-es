@@ -154,8 +154,7 @@ function tokenize(expression, flags = '') {
       ignoreCase: flags.includes('i'),
       // Onig flag m is equivalent to JS flag s
       dotAll: flags.includes('m'),
-      // Flag x already fully accounted for during tokenization (and flag x modifiers stripped)
-      // Note: Flag x unsupported by JS, and Onig uses different rules for it than `regex`
+      // Note: Flag x is fully handled during tokenization (and flag x modifiers are stripped)
       extended: flags.includes('x'),
     },
   };
