@@ -16,7 +16,7 @@ const AstTypes = {
   Group: 'Group',
   Pattern: 'Pattern',
   Quantifier: 'Quantifier',
-  RegExp: 'RegExp',
+  Regex: 'Regex',
   Subroutine: 'Subroutine',
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
 };
@@ -85,7 +85,7 @@ function parse({tokens, flags}, {optimize} = {}) {
     },
   };
 
-  const ast = createRegExp(null, flags);
+  const ast = createRegex(null, flags);
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
     const node = context.walk(top);
@@ -511,8 +511,8 @@ function createQuantifier(parent, element, min, max, greedy, possessive) {
   return node;
 }
 
-function createRegExp(parent, flags) {
-  const node = getNodeBase(parent, AstTypes.RegExp);
+function createRegex(parent, flags) {
+  const node = getNodeBase(parent, AstTypes.Regex);
   node.pattern = createPattern(node);
   node.flags = createFlags(node, flags)
   return node;

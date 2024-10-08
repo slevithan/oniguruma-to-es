@@ -1,6 +1,6 @@
 import {AstAssertionKinds, AstTypes} from './parser.js';
 
-function traverse(ast, visitor) {
+function traverse(ast, visitors) {
   function traverseArray(array) {
     for (const node of array) {
       traverseNode(node);
@@ -8,7 +8,7 @@ function traverse(ast, visitor) {
   }
   function traverseNode(node) {
     const {type, kind} = node;
-    const methods = visitor[type];
+    const methods = visitors[type];
     methods?.enter?.(node);
     switch (type) {
       case AstTypes.Alternative:
@@ -43,7 +43,7 @@ function traverse(ast, visitor) {
       case AstTypes.Quantifier:
         traverseNode(node.element);
         break;
-      case AstTypes.RegExp:
+      case AstTypes.Regex:
         traverseNode(node.pattern);
         traverseNode(node.flags);
         break;

@@ -27,41 +27,45 @@ import {traverse} from './traverser.js';
 //   - If there is a subroutine for the same group to the left, only use the most recent capturing group or subroutine's generated group number
 //   - Else, multiplex all the preceding groups of that name
 
-// Transform an Oniguruma AST to a `regex` AST (in-place)
-function transform(ast) {
-  traverse(ast, {
+const visitors = {
 
-    [AstTypes.Flags]: {
-      enter(node) {
-        // JS flags that don't have an Onig equivalent
-        node.hasIndices = false; // JS flag d
-        node.global = false; // JS flag g
-        node.sticky = false; // JS flag y
-        // Onig doesn't have a flag for this but its behavior is always on
-        node.multiline = true; // JS flag m
-        // Onig's flag x (`extended`) isn't available in JS
-        // Note: Flag x is fully handled during tokenization (and flag x modifiers are stripped)
-        delete node.extended;
-        node.disable = {
+  [AstTypes.Flags]: {
+    enter(node) {
+      // Onig's flag x (`extended`) isn't available in JS
+      // Note: Flag x is fully handled during tokenization (and flag x modifiers are stripped)
+      delete node.extended;
+      Object.assign(node, {
+        global: false, // JS flag g; no Onig equiv
+        hasIndices: false, // JS flag d; no Onig equiv
+        multiline: true, // JS flag m; no Onig equiv but its behavior is always on
+        sticky: false, // JS flag y; no Onig equiv
+        // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
+        // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
+        // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
+      });
+      node.parent.options = {
+        disable: {
           // Onig uses different rules for flag x than `regex`, so disable the implicit flag
           x: true,
           // Onig has no flag to control "named capture only" mode but contextually applies its
-          // behavior whenever named capturing is used, so disable `regex`'s implicit flag for it
+          // behavior when named capturing is used, so disable `regex`'s implicit flag for it
           n: true,
-        };
-        node.force = {
-          // Always add flag v because that gives us JS support for various Onig features (nested
+        },
+        force: {
+          // Always add flag v because that enables JS support for various Onig features (nested
           // classes, set intersection, Unicode properties, `\u{}`) and allows the code generator
           // to rely on one set of JS regex syntax
           v: true,
-        };
-        // Note: `regex` doesn't allow explicitly adding flags it handles inplicitly, so leave out
-        // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v)
-        // Values unchanged for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
-      },
+        },
+      };
     },
+  },
 
-  });
+};
+
+// Transform in-place an Oniguruma AST to a `regex` AST
+function transform(ast) {
+  traverse(ast, visitors);
   return ast;
 }
 
