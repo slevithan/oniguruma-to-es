@@ -1,5 +1,7 @@
 // TODO
 
+// The `regex` AST assumes a target of ESNext, so e.g. `Group` flags with target ES2024 should be handled by the generator
+
 // const keyless = JsUnicodePropertiesMap.has(property);
 // // If not identified as a JS binary property or general category, assume it's a script
 // const key = keyless ? property : 'sc';

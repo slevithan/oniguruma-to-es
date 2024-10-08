@@ -1,30 +1,9 @@
-import {AstCharacterSetKinds, AstTypes, createGroup, parse} from './parser.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, createGroup, parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 import {traverse} from './traverser.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
 
-// TODO: Remaining nodes to transform:
-// - Assertion (line_end, line_start, search_start, string_end, string_end_newline, string_start, word_boundary)
-// - Backreference (multiplexing)
-// - CapturingGroup (duplicate names)
-// - Directive (flags, keep)
-// - Subroutine
-// - VariableLengthCharacterSet (newline, grapheme)
-// The `regex` AST should assume a target of ESNext (so e.g. Group flags with target ES2024 should be handled by the generator)
-
-// Transform the interaction of subroutines and backref multiplexing when you encounter a backref:
-// - Get all groups of that name/number to the left, and all subroutines to the left, combined together in the order they appear
-// - Create a array for multiplex capture numbers
-// - Iterate over the combined array of capturing groups and subroutines
-// - If a group, add a new number for it to the multiplex array
-// - If a subroutine that references the backreffed capture, replace the multiple number for it
-// - If any other subroutine, traverse its contents to see if it contains a nested copy of the backreffed capture
-//   - If so, replace the multiplex number for the group whose (multi-level) parent the subroutine references
-// But since this is complicated and only important for extreme edge cases (the intersection of backref multiplexing, subroutines, duplicate group names, and those duplicate group names not being directly referenced by subroutines), start by having the transformer do something simpler:
-// - Track the subroutines and capturing groups encountered to the left
-// - When you encounter a backref:
-//   - If there is a subroutine for the same group to the left, only use the most recent capturing group or subroutine's generated group number
-//   - Else, multiplex all the preceding groups of that name
+const r = String.raw;
 
 // Transform in-place an Oniguruma AST to a `regex` AST
 function transform(ast) {
@@ -34,17 +13,69 @@ function transform(ast) {
 
 const visitors = {
 
+  [AstTypes.Assertion]: {
+    enter(node) {
+      switch (node.kind) {
+        case AstAssertionKinds.search_start:
+          // TODO
+          break;
+        case AstAssertionKinds.string_end:
+          replaceSelfWithParsed(node, r`(?!\p{Any})`);
+          break;
+        case AstAssertionKinds.string_end_newline:
+          replaceSelfWithParsed(node, r`(?=\n?(?!\p{Any}))`);
+          break;
+        case AstAssertionKinds.string_start:
+          replaceSelfWithParsed(node, r`(?<!\p{Any})`);
+          break;
+        case AstAssertionKinds.word_boundary: {
+          const w = r`[\p{L}\p{N}\p{Pc}]`;
+          const b = r`(?:(?<=${w})(?!${w})|(?<!${w})(?=${w}))`;
+          const B = r`(?:(?<=${w})(?=${w})|(?<!${w})(?!${w}))`;
+          replaceSelfWithParsed(node, node.negate ? B : b);
+          break;
+        }
+        // Note: Don't need to transform `line_end` and `line_start` because the `Flags` visitor
+        // always turns on `multiline` to match Onig's behavior for `^` and `$`
+      }
+    },
+  },
+
+  [AstTypes.Backreference]: {
+    enter(node) {
+      // TODO: multiplexing
+      // Transform the interaction of subroutines and backref multiplexing when you encounter a backref:
+      // - Get all groups of that name/number to the left, and all subroutines to the left, combined together in the order they appear
+      // - Create a array for multiplex capture numbers
+      // - Iterate over the combined array of capturing groups and subroutines
+      // - If a group, add a new number for it to the multiplex array
+      // - If a subroutine that references the backreffed capture, replace the multiple number for it
+      // - If any other subroutine, traverse its contents to see if it contains a nested copy of the backreffed capture
+      //   - If so, replace the multiplex number for the group whose (multi-level) parent the subroutine references
+      // But since this is complicated and only important for extreme edge cases (the intersection of backref multiplexing, subroutines, duplicate group names, and those duplicate group names not being directly referenced by subroutines), start by having the transformer do something simpler:
+      // - Track the subroutines and capturing groups encountered to the left
+      // - When you encounter a backref:
+      //   - If there is a subroutine for the same group to the left, only use the most recent capturing group or subroutine's generated group number
+      //   - Else, multiplex all the preceding groups of that name
+    },
+  },
+
+  [AstTypes.CapturingGroup]: {
+    enter(node) {
+      // TODO: duplicate names
+    },
+  },
+
   [AstTypes.CharacterSet]: {
     enter(node) {
-      const {kind, negate, parent, value} = node;
+      const {kind, negate, value} = node;
       switch (kind) {
         case AstCharacterSetKinds.hex:
-          replaceSelf(node, parseFragment(parent, negate ? '\\P{AHex}' : '\\p{AHex}'));
+          replaceSelfWithParsed(node, negate ? r`\P{AHex}` : r`\p{AHex}`);
           break;
         case AstCharacterSetKinds.posix: {
-          const negateableNode = parseFragment(parent, PosixClasses[value]);
-          negateableNode.negate = negate;
-          replaceSelf(node, negateableNode);
+          replaceSelfWithParsed(node, PosixClasses[value]);
+          node.negate = negate;
           break;
         }
         case AstCharacterSetKinds.property:
@@ -55,9 +86,15 @@ const visitors = {
           break;
         case AstCharacterSetKinds.space:
           // Unlike JS, Onig's `\s` matches only ASCII space, tab, LF, VT, FF, and CR
-          replaceSelf(node, parseFragment(parent, `[${negate ? '^' : ''} \t\n\v\f\r]`));
+          replaceSelfWithParsed(node, `[${negate ? '^' : ''} \t\n\v\f\r]`);
           break;
       }
+    },
+  },
+
+  [AstTypes.Directive]: {
+    enter(node) {
+      // TODO: flags, keep
     },
   },
 
@@ -69,7 +106,7 @@ const visitors = {
       Object.assign(node, {
         global: false, // JS flag g; no Onig equiv
         hasIndices: false, // JS flag d; no Onig equiv
-        multiline: true, // JS flag m; no Onig equiv but its behavior is always on
+        multiline: true, // JS flag m; no Onig equiv but its behavior is always on in Onig
         sticky: false, // JS flag y; no Onig equiv
         // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
         // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
@@ -93,6 +130,18 @@ const visitors = {
     },
   },
 
+  [AstTypes.Subroutine]: {
+    enter(node) {
+      // TODO
+    },
+  },
+
+  [AstTypes.VariableLengthCharacterSet]: {
+    enter(node) {
+      // TODO: newline, grapheme
+    },
+  },
+
 };
 
 function parseFragment(parent, pattern) {
@@ -109,13 +158,17 @@ function parseFragment(parent, pattern) {
   return node;
 }
 
-// Replace all properties on an existing object, thereby preserving references to it. This is
-// relatively hacky and slow but avoids introducing more complex abstractions for now
+// Replace all properties on an existing object, thereby preserving references to it. This is hacky
+// and slower than it needs to be but avoids introducing more complex abstractions for now
 function replaceSelf(node, newNode) {
   Object.keys(node).forEach(key => delete node[key]);
   Object.assign(node, newNode);
   const kids = node.elements || node.alternatives || node.classes;
   kids?.forEach(kid => kid.parent = node);
+}
+
+function replaceSelfWithParsed(node, pattern) {
+  replaceSelf(node, parseFragment(node.parent, pattern));
 }
 
 export {

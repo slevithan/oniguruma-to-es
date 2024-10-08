@@ -459,7 +459,7 @@ function createDirectiveFromToken(parent, token) {
   };
   // Can't simply create a `Group` with a `flags` prop and wrap the remainder of the open group or
   // pattern in it, because the flag modifier might extend across alternation; i.e. `a(?i)b|c` is
-  // equivalent to `a(?i:b)|(?i:c)`, not `a(?i:b|c)`
+  // equivalent to `a(?i:b)|(?i:c)`, not `a(?i:b|c)`. Note: This change is made in the transformer
   if (node.kind === AstDirectiveKinds.flags) {
     node.flags = flags;
   }

@@ -15,6 +15,7 @@ const TokenTypes = {
   GroupOpen: 'GroupOpen',
   Subroutine: 'Subroutine',
   Quantifier: 'Quantifier',
+  // These aren't supported in character classes, so they aren't equivalent to JS's `[\q{}]`
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
   // Intermediate representation not included in results
   EscapedNumber: 'EscapedNumber',

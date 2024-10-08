@@ -1,3 +1,5 @@
+const r = String.raw;
+
 // Unicode properties must be mapped to property names supported by JS, and must also apply JS's
 // stricter rules for casing, whitespace, and underscores in Unicode property names. In order to
 // remain lightweight, this library assumes properties not in this list are Unicode script names
@@ -116,23 +118,23 @@ function normalize(name) {
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
 // don't allow inserting whitespace and underscores. Definitions at
 // <https://github.com/kkos/oniguruma/blob/master/doc/RE> (see POSIX bracket: Unicode Case)
-// Note: Handling in the transformer assumes the values are all a single, negateable node that is
+// Note: Handling in the transformer assumes that all values are a single, negateable node that is
 // not pre-negated at the top level
 const PosixClasses = {
-  alnum: '[\\p{Alpha}\\p{Nd}]',
-  alpha: '\\p{Alpha}',
-  ascii: '\\p{ASCII}',
-  blank: '[\\p{Zs}\\t]',
-  cntrl: '\\p{cntrl}',
-  digit: '\\p{Nd}',
-  graph: '[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]',
-  lower: '\\p{Lower}',
-  print: '[[\\P{space}&&\\P{cntrl}&&\\P{Cn}&&\\P{Cs}]\\p{Zs}]',
-  punct: '[\\p{P}\\p{S}]',
-  space: '\\p{space}',
-  upper: '\\p{Upper}',
-  word: '[\\p{Alpha}\\p{M}\\p{Nd}\\p{Pc}]',
-  xdigit: '\\p{AHex}',
+  alnum: r`[\p{Alpha}\p{Nd}]`,
+  alpha: r`\p{Alpha}`,
+  ascii: r`\p{ASCII}`,
+  blank: r`[\p{Zs}\t]`,
+  cntrl: r`\p{cntrl}`,
+  digit: r`\p{Nd}`,
+  graph: r`[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]`,
+  lower: r`\p{Lower}`,
+  print: r`[[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]\p{Zs}]`,
+  punct: r`[\p{P}\p{S}]`,
+  space: r`\p{space}`,
+  upper: r`\p{Upper}`,
+  word:  r`[\p{Alpha}\p{M}\p{Nd}\p{Pc}]`,
+  xdigit: r`\p{AHex}`,
 };
 
 // Apart from the property names provided by Unicode, Oniguruma explicitly adds (see
