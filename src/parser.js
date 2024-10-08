@@ -421,12 +421,12 @@ function createCharacterClassRange(parent, min, max) {
 }
 
 function createCharacterSetFromToken(parent, token) {
-  let {kind, negate, property} = token;
+  let {kind, negate, value} = token;
   if (kind === TokenCharacterSetKinds.property) {
-    const normalized = normalize(property);
+    const normalized = normalize(value);
     if (PosixProperties.has(normalized)) {
       kind = TokenCharacterSetKinds.posix;
-      property = normalized;
+      value = normalized;
     }
   }
   const node = {
@@ -443,9 +443,9 @@ function createCharacterSetFromToken(parent, token) {
   ) {
     node.negate = negate;
     if (kind === TokenCharacterSetKinds.posix) {
-      node.property = property;
+      node.value = value;
     } else if (kind === TokenCharacterSetKinds.property) {
-      node.property = getJsUnicodePropertyName(property);
+      node.value = getJsUnicodePropertyName(value);
     }
   }
   return node;
@@ -537,14 +537,14 @@ function createVariableLengthCharacterSet(parent, kind) {
 
 // Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
 // underscores, and require underscores in specific positions
-function getJsUnicodePropertyName(property) {
-  const jsName = JsUnicodePropertiesMap.get(normalize(property));
+function getJsUnicodePropertyName(value) {
+  const jsName = JsUnicodePropertiesMap.get(normalize(value));
   if (jsName) {
     return jsName;
   }
   // Assume it's a script name; JS requires formatting 'Like_This', so use a best effort to
   // reformat the name (doesn't find a mapping for all possible formatting differences)
-  return property.
+  return value.
     trim().
     replace(/\s+/g, '_').
     // Change `PropertyName` to `Property_Name`
@@ -640,6 +640,8 @@ function withInitialIntersection(node) {
 
 export {
   AstAssertionKinds,
+  AstCharacterSetKinds,
   AstTypes,
+  createGroup,
   parse,
 };

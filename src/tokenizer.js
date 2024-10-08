@@ -99,7 +99,7 @@ const charClassTokenRe = new RegExp(String.raw`
   | .
 `.replace(/\s+/g, ''), 'gsu');
 
-function tokenize(expression, flags = '') {
+function tokenize(pattern, flags = '') {
   if (!/^[imx]*$/.test(flags)) {
     throw new Error(`Unsupported Oniguruma flag "${flags}"; only imx supported`);
   }
@@ -111,8 +111,8 @@ function tokenize(expression, flags = '') {
   let tokens = [];
   let match;
   tokenRe.lastIndex = 0;
-  while (match = tokenRe.exec(expression)) {
-    const result = getTokenWithDetails(context, expression, match[0], tokenRe.lastIndex) ?? {};
+  while (match = tokenRe.exec(pattern)) {
+    const result = getTokenWithDetails(context, pattern, match[0], tokenRe.lastIndex) ?? {};
     if (result.tokens) {
       tokens.push(...result.tokens);
     } else if (result.token) {
@@ -160,10 +160,10 @@ function tokenize(expression, flags = '') {
   };
 }
 
-function getTokenWithDetails(context, expression, m, lastIndex) {
+function getTokenWithDetails(context, pattern, m, lastIndex) {
   const [m0, m1, m2] = m;
   if (m0 === '[') {
-    const result = getAllTokensForCharClass(expression, m, lastIndex);
+    const result = getAllTokensForCharClass(pattern, m, lastIndex);
     return {
       // Array of all of the char class's tokens
       tokens: result.tokens,
@@ -289,10 +289,10 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   }
   if (m === '#' && context.isXOn()) {
     // Onig's only line break char is line feed
-    const end = expression.indexOf('\n', lastIndex);
+    const end = pattern.indexOf('\n', lastIndex);
     return {
       // Jump forward to the end of the comment
-      lastIndex: end === -1 ? expression.length : end,
+      lastIndex: end === -1 ? pattern.length : end,
     };
   }
   if (/^\s$/.test(m) && context.isXOn()) {
@@ -330,7 +330,7 @@ function getTokenWithDetails(context, expression, m, lastIndex) {
   };
 }
 
-function getAllTokensForCharClass(expression, opener, lastIndex) {
+function getAllTokensForCharClass(pattern, opener, lastIndex) {
   assertNonEmptyCharClass(opener);
   const tokens = [createToken(TokenTypes.CharacterClassOpen, opener, {
     negate: opener[1] === '^',
@@ -338,7 +338,7 @@ function getAllTokensForCharClass(expression, opener, lastIndex) {
   let numCharClassesOpen = 1;
   let match;
   charClassTokenRe.lastIndex = lastIndex;
-  while (match = charClassTokenRe.exec(expression)) {
+  while (match = charClassTokenRe.exec(pattern)) {
     const m = match[0];
     // Start of nested char class
     // POSIX classes are handled as a single token; not as a nested char class
@@ -360,7 +360,7 @@ function getAllTokensForCharClass(expression, opener, lastIndex) {
   }
   return {
     tokens,
-    lastIndex: charClassTokenRe.lastIndex || expression.length,
+    lastIndex: charClassTokenRe.lastIndex || pattern.length,
   }
 }
 
@@ -378,7 +378,7 @@ function createTokenForAnyTokenWithinCharClass(raw) {
     return createToken(TokenTypes.CharacterSet, raw, {
       kind: TokenCharacterSetKinds.posix,
       negate: !!posix.groups.negate,
-      property: posix.groups.name,
+      value: posix.groups.name,
     });
   }
   // Range (possibly invalid) or literal hyphen
@@ -405,7 +405,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   if (/^\\[pP]\{/.test(raw)) {
     if (raw.length === 3) {
-      throw new Error('Invalid Oniguruma Unicode property');
+      throw new Error('Incomplete or invalid Unicode property');
     }
     return createTokenForUnicodeProperty(raw);
   }
@@ -531,12 +531,12 @@ function createTokenForShorthandCharClass(raw) {
 }
 
 function createTokenForUnicodeProperty(raw) {
-  const {p, neg, property} = /^\\(?<p>[pP])\{(?<neg>\^?)(?<property>[ \w]+)/.exec(raw).groups;
+  const {p, neg, value} = /^\\(?<p>[pP])\{(?<neg>\^?)(?<value>[ \w]+)/.exec(raw).groups;
   const negate = (p === 'P' && !neg) || (p === 'p' && !!neg);
   return createToken(TokenTypes.CharacterSet, raw, {
     kind: TokenCharacterSetKinds.property,
     negate,
-    property,
+    value,
   });
 }
 

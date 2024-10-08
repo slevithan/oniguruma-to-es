@@ -1,12 +1,11 @@
-import {AstTypes} from './parser.js';
+import {AstCharacterSetKinds, AstTypes, createGroup, parse} from './parser.js';
+import {tokenize} from './tokenizer.js';
 import {traverse} from './traverser.js';
+import {JsUnicodeProperties, PosixClasses} from './unicode.js';
 
 // TODO: Remaining nodes to transform:
 // - Assertion (line_end, line_start, search_start, string_end, string_end_newline, string_start, word_boundary)
 // - Backreference (multiplexing)
-// - CharacterSet (hex, posix, property, space)
-//   - For property, add key
-//   - Unlike JS, Onig `\s` matches only ASCII space, tab, LF, CR, VT, and FF
 // - CapturingGroup (duplicate names)
 // - Directive (flags, keep)
 // - Subroutine
@@ -27,7 +26,40 @@ import {traverse} from './traverser.js';
 //   - If there is a subroutine for the same group to the left, only use the most recent capturing group or subroutine's generated group number
 //   - Else, multiplex all the preceding groups of that name
 
+// Transform in-place an Oniguruma AST to a `regex` AST
+function transform(ast) {
+  traverse(ast, visitors);
+  return ast;
+}
+
 const visitors = {
+
+  [AstTypes.CharacterSet]: {
+    enter(node) {
+      const {kind, negate, parent, value} = node;
+      switch (kind) {
+        case AstCharacterSetKinds.hex:
+          replaceSelf(node, parseFragment(parent, negate ? '\\P{AHex}' : '\\p{AHex}'));
+          break;
+        case AstCharacterSetKinds.posix: {
+          const negateableNode = parseFragment(parent, PosixClasses[value]);
+          negateableNode.negate = negate;
+          replaceSelf(node, negateableNode);
+          break;
+        }
+        case AstCharacterSetKinds.property:
+          if (!JsUnicodeProperties.has(value)) {
+            // Assume it's a script
+            node.key = 'sc';
+          }
+          break;
+        case AstCharacterSetKinds.space:
+          // Unlike JS, Onig's `\s` matches only ASCII space, tab, LF, VT, FF, and CR
+          replaceSelf(node, parseFragment(parent, `[${negate ? '^' : ''} \t\n\v\f\r]`));
+          break;
+      }
+    },
+  },
 
   [AstTypes.Flags]: {
     enter(node) {
@@ -63,10 +95,27 @@ const visitors = {
 
 };
 
-// Transform in-place an Oniguruma AST to a `regex` AST
-function transform(ast) {
-  traverse(ast, visitors);
-  return ast;
+function parseFragment(parent, pattern) {
+  const ast = parse(tokenize(pattern, ''), {optimize: true});
+  const alts = ast.pattern.alternatives;
+  if (alts.length > 1 || alts[0].elements.length > 1) {
+    const group = createGroup(parent);
+    group.alternatives = alts;
+    alts.parent = group;
+    return group;
+  }
+  const node = alts[0].elements[0];
+  node.parent = parent;
+  return node;
+}
+
+// Replace all properties on an existing object, thereby preserving references to it. This is
+// relatively hacky and slow but avoids introducing more complex abstractions for now
+function replaceSelf(node, newNode) {
+  Object.keys(node).forEach(key => delete node[key]);
+  Object.assign(node, newNode);
+  const kids = node.elements || node.alternatives || node.classes;
+  kids?.forEach(kid => kid.parent = node);
 }
 
 export {

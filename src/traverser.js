@@ -7,16 +7,15 @@ function traverse(ast, visitors) {
     }
   }
   function traverseNode(node) {
-    const {type, kind} = node;
-    const methods = visitors[type];
+    const methods = visitors[node.type];
     methods?.enter?.(node);
-    switch (type) {
+    switch (node.type) {
       case AstTypes.Alternative:
       case AstTypes.CharacterClass:
         traverseArray(node.elements);
         break;
       case AstTypes.Assertion:
-        if (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind) {
+        if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
           traverseArray(node.alternatives);
         }
         break;
@@ -48,7 +47,7 @@ function traverse(ast, visitors) {
         traverseNode(node.flags);
         break;
       default:
-        throw new Error(`Unexpected node type "${type}"`);
+        throw new Error(`Unexpected node type "${node.type}"`);
     }
     methods?.exit?.(node);
   }

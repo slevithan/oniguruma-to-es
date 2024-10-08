@@ -4,7 +4,7 @@
 // (which require a `Script=` or `sc=` prefix in JS). Unlike JS, Oniguruma doesn't support script
 // extensions, and it supports some properties that aren't supported in JS (including blocks with
 // an `In_` prefix). See <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
-const JsUnicodeProperties = [
+const JsUnicodeProperties = new Set([
   // ES2024 general categories and their aliases; all are supported by Oniguruma
   // See <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
   'C', 'Other',
@@ -101,7 +101,7 @@ const JsUnicodeProperties = [
   'White_Space', 'space',
   'XID_Continue', 'XIDC',
   'XID_Start', 'XIDS',
-];
+]);
 
 const JsUnicodePropertiesMap = new Map();
 for (const p of JsUnicodeProperties) {
@@ -115,7 +115,9 @@ function normalize(name) {
 
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
 // don't allow inserting whitespace and underscores. Definitions at
-// <https://github.com/kkos/oniguruma/blob/master/doc/RE> (POSIX bracket: Unicode Case)
+// <https://github.com/kkos/oniguruma/blob/master/doc/RE> (see POSIX bracket: Unicode Case)
+// Note: Handling in the transformer assumes the values are all a single, negateable node that is
+// not pre-negated at the top level
 const PosixClasses = {
   alnum: '[\\p{Alpha}\\p{Nd}]',
   alpha: '\\p{Alpha}',
@@ -156,6 +158,7 @@ const PosixProperties = new Set([
 ]);
 
 export {
+  JsUnicodeProperties,
   JsUnicodePropertiesMap,
   normalize,
   PosixClasses,
