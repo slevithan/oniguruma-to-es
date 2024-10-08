@@ -5,34 +5,38 @@ import {JsUnicodeProperties, PosixClasses} from './unicode.js';
 
 const r = String.raw;
 
-// Transform in-place an Oniguruma AST to a `regex` AST
+// Transform (in-place) from an Oniguruma to a `regex` AST
 function transform(ast) {
   traverse(ast, visitors);
   return ast;
 }
 
 const visitors = {
-
   [AstTypes.Assertion]: {
-    enter(node) {
+    enter(node, context) {
       switch (node.kind) {
         case AstAssertionKinds.search_start:
-          // TODO
+          // Additional `\G` error checking in the `Pattern` visitor
+          if (node.parent.parent !== context.ast.pattern || context.index !== 0) {
+            throw new Error(r`Uses "\G" in an unsupported way`);
+          }
+          context.ast.flags.sticky = true;
+          removeNode(node, context); // Will throw if `\G` is quantified
           break;
         case AstAssertionKinds.string_end:
-          replaceSelfWithParsed(node, r`(?!\p{Any})`);
+          replaceNodeWithParsed(node, r`(?!\p{Any})`, context);
           break;
         case AstAssertionKinds.string_end_newline:
-          replaceSelfWithParsed(node, r`(?=\n?(?!\p{Any}))`);
+          replaceNodeWithParsed(node, r`(?=\n?(?!\p{Any}))`, context);
           break;
         case AstAssertionKinds.string_start:
-          replaceSelfWithParsed(node, r`(?<!\p{Any})`);
+          replaceNodeWithParsed(node, r`(?<!\p{Any})`, context);
           break;
         case AstAssertionKinds.word_boundary: {
           const w = r`[\p{L}\p{N}\p{Pc}]`;
-          const b = r`(?:(?<=${w})(?!${w})|(?<!${w})(?=${w}))`;
-          const B = r`(?:(?<=${w})(?=${w})|(?<!${w})(?!${w}))`;
-          replaceSelfWithParsed(node, node.negate ? B : b);
+          const b = `(?:(?<=${w})(?!${w})|(?<!${w})(?=${w}))`;
+          const B = `(?:(?<=${w})(?=${w})|(?<!${w})(?!${w}))`;
+          replaceNodeWithParsed(node, node.negate ? B : b, context);
           break;
         }
         // Note: Don't need to transform `line_end` and `line_start` because the `Flags` visitor
@@ -67,17 +71,16 @@ const visitors = {
   },
 
   [AstTypes.CharacterSet]: {
-    enter(node) {
+    enter(node, context) {
       const {kind, negate, value} = node;
       switch (kind) {
         case AstCharacterSetKinds.hex:
-          replaceSelfWithParsed(node, negate ? r`\P{AHex}` : r`\p{AHex}`);
+          replaceNodeWithParsed(node, negate ? r`\P{AHex}` : r`\p{AHex}`, context);
           break;
-        case AstCharacterSetKinds.posix: {
-          replaceSelfWithParsed(node, PosixClasses[value]);
+        case AstCharacterSetKinds.posix:
+          node = replaceNodeWithParsed(node, PosixClasses[value], context);
           node.negate = negate;
           break;
-        }
         case AstCharacterSetKinds.property:
           if (!JsUnicodeProperties.has(value)) {
             // Assume it's a script
@@ -86,7 +89,7 @@ const visitors = {
           break;
         case AstCharacterSetKinds.space:
           // Unlike JS, Onig's `\s` matches only ASCII space, tab, LF, VT, FF, and CR
-          replaceSelfWithParsed(node, `[${negate ? '^' : ''} \t\n\v\f\r]`);
+          replaceNodeWithParsed(node, `[${negate ? '^' : ''} \t\n\v\f\r]`, context);
           break;
       }
     },
@@ -107,7 +110,7 @@ const visitors = {
         global: false, // JS flag g; no Onig equiv
         hasIndices: false, // JS flag d; no Onig equiv
         multiline: true, // JS flag m; no Onig equiv but its behavior is always on in Onig
-        sticky: false, // JS flag y; no Onig equiv
+        sticky: node.sticky ?? false, // JS flag y; no Onig equiv
         // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
         // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
         // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
@@ -130,6 +133,25 @@ const visitors = {
     },
   },
 
+  [AstTypes.Pattern]: {
+    enter(node) {
+      let hasWithLeadG = false;
+      let hasWithoutLeadG = false;
+      // For `\G` to be accurately convertable to JS flag y, it must be at the start of every
+      // top-level alternative and nowhere else
+      for (const alt of node.alternatives) {
+        if (alt.elements[0]?.kind === AstAssertionKinds.search_start) {
+          hasWithLeadG = true;
+        } else {
+          hasWithoutLeadG = true;
+        }
+        if (hasWithLeadG && hasWithoutLeadG) {
+          throw new Error(r`Uses "\G" in an unsupported way`);
+        }
+      }
+    },
+  },
+
   [AstTypes.Subroutine]: {
     enter(node) {
       // TODO
@@ -141,7 +163,6 @@ const visitors = {
       // TODO: newline, grapheme
     },
   },
-
 };
 
 function parseFragment(parent, pattern) {
@@ -158,17 +179,26 @@ function parseFragment(parent, pattern) {
   return node;
 }
 
-// Replace all properties on an existing object, thereby preserving references to it. This is hacky
-// and slower than it needs to be but avoids introducing more complex abstractions for now
-function replaceSelf(node, newNode) {
-  Object.keys(node).forEach(key => delete node[key]);
-  Object.assign(node, newNode);
-  const kids = node.elements || node.alternatives || node.classes;
-  kids?.forEach(kid => kid.parent = node);
+function removeNode(node, {accessor, index}) {
+  const container = node.parent[accessor];
+  if (!Array.isArray(container)) {
+    throw new Error('Array expected as accessor');
+  }
+  container.splice(index, 1);
 }
 
-function replaceSelfWithParsed(node, pattern) {
-  replaceSelf(node, parseFragment(node.parent, pattern));
+function replaceNode(node, newNode, {accessor, index}) {
+  const container = node.parent[accessor];
+  if (Array.isArray(container)) {
+    container.splice(index, 1, newNode);
+  } else {
+    node.parent[accessor] = newNode;
+  }
+  return newNode;
+}
+
+function replaceNodeWithParsed(node, pattern, context) {
+  return replaceNode(node, parseFragment(node.parent, pattern), context);
 }
 
 export {
