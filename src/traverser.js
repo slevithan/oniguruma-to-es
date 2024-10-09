@@ -13,14 +13,17 @@ const Accessors = {
 
 function traverse(ast, visitors) {
   function traverseArray(array, accessor) {
-    array.forEach((node, index) => {
-      traverseNode(node, accessor, index);
-    });
+    for (let i = 0; i < array.length; i++) {
+      const results = traverseNode(array[i], accessor, i);
+      const numRemoved = (results.enter?.numRemoved ?? 0) + (results.exit?.numRemoved ?? 0);
+      i -= numRemoved;
+    }
   }
   function traverseNode(node, accessor, index) {
     const context = {ast, accessor, index};
+    const results = {};
     const methods = visitors[node.type];
-    methods?.enter?.(node, context);
+    results.enter = methods?.enter?.(node, context);
     switch (node.type) {
       case AstTypes.Alternative:
       case AstTypes.CharacterClass:
@@ -61,7 +64,8 @@ function traverse(ast, visitors) {
       default:
         throw new Error(`Unexpected node type "${node.type}"`);
     }
-    methods?.exit?.(node, context);
+    results.exit = methods?.exit?.(node, context);
+    return results;
   }
   traverseNode(ast);
 }

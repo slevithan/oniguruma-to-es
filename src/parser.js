@@ -641,6 +641,7 @@ function withInitialIntersection(node) {
 export {
   AstAssertionKinds,
   AstCharacterSetKinds,
+  AstDirectiveKinds,
   AstTypes,
   createGroup,
   parse,

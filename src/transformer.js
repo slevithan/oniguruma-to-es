@@ -1,4 +1,4 @@
-import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, createGroup, parse} from './parser.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, createGroup, parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 import {traverse} from './traverser.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
@@ -16,13 +16,14 @@ const visitors = {
     enter(node, context) {
       switch (node.kind) {
         case AstAssertionKinds.search_start:
-          // Additional `\G` error checking in the `Pattern` visitor
+          // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
+          // checking in the `Pattern` visitor
           if (node.parent.parent !== context.ast.pattern || context.index !== 0) {
             throw new Error(r`Uses "\G" in an unsupported way`);
           }
           context.ast.flags.sticky = true;
-          removeNode(node, context); // Will throw if `\G` is quantified
-          break;
+          removeNode(node, context);
+          return {numRemoved: 1};
         case AstAssertionKinds.string_end:
           replaceNodeWithParsed(node, r`(?!\p{Any})`, context);
           break;
@@ -33,9 +34,10 @@ const visitors = {
           replaceNodeWithParsed(node, r`(?<!\p{Any})`, context);
           break;
         case AstAssertionKinds.word_boundary: {
-          const w = r`[\p{L}\p{N}\p{Pc}]`;
-          const b = `(?:(?<=${w})(?!${w})|(?<!${w})(?=${w}))`;
-          const B = `(?:(?<=${w})(?=${w})|(?<!${w})(?!${w}))`;
+          // Not the same definition as Onig's `\w`
+          const wordChar = r`[\p{L}\p{N}\p{Pc}]`;
+          const b = `(?:(?<=${wordChar})(?!${wordChar})|(?<!${wordChar})(?=${wordChar}))`;
+          const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
           replaceNodeWithParsed(node, node.negate ? B : b, context);
           break;
         }
@@ -97,7 +99,13 @@ const visitors = {
 
   [AstTypes.Directive]: {
     enter(node) {
-      // TODO: flags, keep
+      // TODO: Support `flags` directive
+      // TODO: Support `\K` if used at the top level and there is no top-level alternation
+      // `\K` is emulatable at least within top-level alternation, but it's tricky.
+      // Ex: `ab\Kc|a` is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
+      if (node.kind === AstDirectiveKinds.keep) {
+        throw new Error(r`Uses "\K" in an unsupported way`);
+      }
     },
   },
 
@@ -135,17 +143,18 @@ const visitors = {
 
   [AstTypes.Pattern]: {
     enter(node) {
-      let hasWithLeadG = false;
-      let hasWithoutLeadG = false;
+      let hasAltWithLeadG = false;
+      let hasAltWithoutLeadG = false;
       // For `\G` to be accurately convertable to JS flag y, it must be at the start of every
-      // top-level alternative and nowhere else
+      // top-level alternative and nowhere else. Additional `\G` error checking in the `Assertion`
+      // visitor
       for (const alt of node.alternatives) {
         if (alt.elements[0]?.kind === AstAssertionKinds.search_start) {
-          hasWithLeadG = true;
+          hasAltWithLeadG = true;
         } else {
-          hasWithoutLeadG = true;
+          hasAltWithoutLeadG = true;
         }
-        if (hasWithLeadG && hasWithoutLeadG) {
+        if (hasAltWithLeadG && hasAltWithoutLeadG) {
           throw new Error(r`Uses "\G" in an unsupported way`);
         }
       }
@@ -165,6 +174,7 @@ const visitors = {
   },
 };
 
+// Returns a single node, either the node given or all nodes wrapped in a noncapturing group
 function parseFragment(parent, pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});
   const alts = ast.pattern.alternatives;
@@ -182,6 +192,7 @@ function parseFragment(parent, pattern) {
 function removeNode(node, {accessor, index}) {
   const container = node.parent[accessor];
   if (!Array.isArray(container)) {
+    // E.g. if parent is a quantifier
     throw new Error('Array expected as accessor');
   }
   container.splice(index, 1);
