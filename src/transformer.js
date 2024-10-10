@@ -1,54 +1,46 @@
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, createGroup, parse} from './parser.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, createGroup, createLookaround, createUnicodeProperty, parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 import {traverse} from './traverser.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
+import {r} from './utils.js';
 
-const r = String.raw;
-
-// Transform (in-place) from an Oniguruma to a `regex` AST
+// Transform an Oniguruma AST in-place to a `regex` AST
 function transform(ast) {
-  traverse(ast, visitors);
-  return ast;
-}
-
-const visitors = {
-  [AstTypes.Assertion]: {
-    enter(node, context) {
+  traverse(ast, {
+    Assertion({node, parent, ast, key, remove, replaceWith}) {
       switch (node.kind) {
         case AstAssertionKinds.search_start:
           // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
           // checking in the `Pattern` visitor
-          if (node.parent.parent !== context.ast.pattern || context.index !== 0) {
+          if (parent.parent !== ast.pattern || key !== 0) {
             throw new Error(r`Uses "\G" in an unsupported way`);
           }
-          context.ast.flags.sticky = true;
-          removeNode(node, context);
-          return {numRemoved: 1};
+          ast.flags.sticky = true;
+          remove();
+          break;
         case AstAssertionKinds.string_end:
-          replaceNodeWithParsed(node, r`(?!\p{Any})`, context);
+          replaceWith(parseFragment(r`(?!\p{Any})`));
           break;
         case AstAssertionKinds.string_end_newline:
-          replaceNodeWithParsed(node, r`(?=\n?(?!\p{Any}))`, context);
+          replaceWith(parseFragment(r`(?=\n?(?!\p{Any}))`));
           break;
         case AstAssertionKinds.string_start:
-          replaceNodeWithParsed(node, r`(?<!\p{Any})`, context);
+          replaceWith(parseFragment(r`(?<!\p{Any})`));
           break;
         case AstAssertionKinds.word_boundary: {
           // Not the same definition as Onig's `\w`
           const wordChar = r`[\p{L}\p{N}\p{Pc}]`;
           const b = `(?:(?<=${wordChar})(?!${wordChar})|(?<!${wordChar})(?=${wordChar}))`;
           const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
-          replaceNodeWithParsed(node, node.negate ? B : b, context);
+          replaceWith(parseFragment(node.negate ? B : b));
           break;
         }
         // Note: Don't need to transform `line_end` and `line_start` because the `Flags` visitor
         // always turns on `multiline` to match Onig's behavior for `^` and `$`
       }
     },
-  },
 
-  [AstTypes.Backreference]: {
-    enter(node) {
+    Backreference(path) {
       // TODO: multiplexing
       // Transform the interaction of subroutines and backref multiplexing when you encounter a backref:
       // - Get all groups of that name/number to the left, and all subroutines to the left, combined together in the order they appear
@@ -64,53 +56,61 @@ const visitors = {
       //   - If there is a subroutine for the same group to the left, only use the most recent capturing group or subroutine's generated group number
       //   - Else, multiplex all the preceding groups of that name
     },
-  },
 
-  [AstTypes.CapturingGroup]: {
-    enter(node) {
+    CapturingGroup(path) {
       // TODO: duplicate names
     },
-  },
 
-  [AstTypes.CharacterSet]: {
-    enter(node, context) {
+    CharacterSet({node, replaceWith}) {
       const {kind, negate, value} = node;
       switch (kind) {
         case AstCharacterSetKinds.hex:
-          replaceNodeWithParsed(node, negate ? r`\P{AHex}` : r`\p{AHex}`, context);
+          replaceWith(createUnicodeProperty('AHex', {negate}));
           break;
-        case AstCharacterSetKinds.posix:
-          node = replaceNodeWithParsed(node, PosixClasses[value], context);
-          node.negate = negate;
+        case AstCharacterSetKinds.posix: {
+          const negateableNode = parseFragment(PosixClasses[value]);
+          negateableNode.negate = negate;
+          replaceWith(negateableNode);
           break;
+        }
         case AstCharacterSetKinds.property:
           if (!JsUnicodeProperties.has(value)) {
             // Assume it's a script
             node.key = 'sc';
           }
           break;
-        case AstCharacterSetKinds.space:
+        case AstCharacterSetKinds.space: {
           // Unlike JS, Onig's `\s` matches only ASCII space, tab, LF, VT, FF, and CR
-          replaceNodeWithParsed(node, `[${negate ? '^' : ''} \t\n\v\f\r]`, context);
+          const s = parseFragment('[ \t\n\v\f\r]');
+          s.negate = negate;
+          replaceWith(s);
           break;
+        }
       }
     },
-  },
 
-  [AstTypes.Directive]: {
-    enter(node) {
+    Directive({node, parent, ast, key, container, remove, removePrevSiblings, insertBefore}) {
       // TODO: Support `flags` directive
-      // TODO: Support `\K` if used at the top level and there is no top-level alternation
-      // `\K` is emulatable at least within top-level alternation, but it's tricky.
-      // Ex: `ab\Kc|a` is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
+
       if (node.kind === AstDirectiveKinds.keep) {
-        throw new Error(r`Uses "\K" in an unsupported way`);
+        // Allows multiple `\K`s since the the node is removed
+        if (parent.parent !== ast.pattern || ast.pattern.alternatives.length > 1) {
+          // `\K` is emulatable at least within top-level alternation, but it's tricky.
+          // Ex: `ab\Kc|a` is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
+          throw new Error(r`Uses "\K" in an unsupported way`);
+        }
+        const lb = createLookaround({behind: true});
+        const lbAlt = lb.alternatives[0];
+        const kept = container.slice(0, key);
+        lbAlt.elements = kept;
+        adopt(lbAlt, kept);
+        removePrevSiblings();
+        insertBefore(lb);
+        remove();
       }
     },
-  },
 
-  [AstTypes.Flags]: {
-    enter(node) {
+    Flags({node, parent}) {
       // Onig's flag x (`extended`) isn't available in JS
       // Note: Flag x is fully handled during tokenization (and flag x modifiers are stripped)
       delete node.extended;
@@ -123,7 +123,7 @@ const visitors = {
         // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
         // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
       });
-      node.parent.options = {
+      parent.options = {
         disable: {
           // Onig uses different rules for flag x than `regex`, so disable the implicit flag
           x: true,
@@ -139,10 +139,8 @@ const visitors = {
         },
       };
     },
-  },
 
-  [AstTypes.Pattern]: {
-    enter(node) {
+    Pattern({node}) {
       let hasAltWithLeadG = false;
       let hasAltWithoutLeadG = false;
       // For `\G` to be accurately convertable to JS flag y, it must be at the start of every
@@ -154,62 +152,39 @@ const visitors = {
         } else {
           hasAltWithoutLeadG = true;
         }
-        if (hasAltWithLeadG && hasAltWithoutLeadG) {
-          throw new Error(r`Uses "\G" in an unsupported way`);
-        }
+      }
+      if (hasAltWithLeadG && hasAltWithoutLeadG) {
+        throw new Error(r`Uses "\G" in an unsupported way`);
       }
     },
-  },
 
-  [AstTypes.Subroutine]: {
-    enter(node) {
+    Subroutine(path) {
       // TODO
     },
-  },
 
-  [AstTypes.VariableLengthCharacterSet]: {
-    enter(node) {
+    VariableLengthCharacterSet(path) {
       // TODO: newline, grapheme
     },
-  },
-};
+  });
+  return ast;
+}
 
-// Returns a single node, either the node given or all nodes wrapped in a noncapturing group
-function parseFragment(parent, pattern) {
+// Returns a single node, either the given node or all nodes wrapped in a noncapturing group
+function parseFragment(pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
-    const group = createGroup(parent);
+    const group = createGroup();
     group.alternatives = alts;
-    alts.parent = group;
+    adopt(group, alts);
     return group;
   }
   const node = alts[0].elements[0];
-  node.parent = parent;
   return node;
 }
 
-function removeNode(node, {accessor, index}) {
-  const container = node.parent[accessor];
-  if (!Array.isArray(container)) {
-    // E.g. if parent is a quantifier
-    throw new Error('Array expected as accessor');
-  }
-  container.splice(index, 1);
-}
-
-function replaceNode(node, newNode, {accessor, index}) {
-  const container = node.parent[accessor];
-  if (Array.isArray(container)) {
-    container.splice(index, 1, newNode);
-  } else {
-    node.parent[accessor] = newNode;
-  }
-  return newNode;
-}
-
-function replaceNodeWithParsed(node, pattern, context) {
-  return replaceNode(node, parseFragment(node.parent, pattern), context);
+function adopt(parent, kids) {
+  kids.forEach(kid => kid.parent = parent);
 }
 
 export {

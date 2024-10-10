@@ -1,4 +1,4 @@
-const r = String.raw;
+import {r} from './utils.js';
 
 // Unicode properties must be mapped to property names supported by JS, and must also apply JS's
 // stricter rules for casing, whitespace, and underscores in Unicode property names. In order to

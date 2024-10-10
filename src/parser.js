@@ -1,7 +1,7 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
+import {traverse} from './traverser.js';
 import {JsUnicodePropertiesMap, PosixProperties, slug} from './unicode.js';
-
-const r = String.raw;
+import {r, throwIfNot} from './utils.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -45,6 +45,42 @@ const AstVariableLengthCharacterSetKinds = {
 };
 
 function parse({tokens, flags}, {optimize} = {}) {
+  function walk(parent, state) {
+    const token = tokens[context.current];
+    context.token = token;
+    context.parent = parent;
+    // Advance for the next iteration
+    context.current++;
+    switch (token.type) {
+      case TokenTypes.Alternator:
+        // Top-level only; groups handle their own alternators
+        return createAlternative();
+      case TokenTypes.Assertion:
+        return createAssertionFromToken(token);
+      case TokenTypes.Backreference:
+        return parseBackreference(context);
+      case TokenTypes.Character:
+        return createCharacter(token.value);
+      case TokenTypes.CharacterClassHyphen:
+        return parseCharacterClassHyphen(context, state);
+      case TokenTypes.CharacterClassOpen:
+        return parseCharacterClassOpen(context, state);
+      case TokenTypes.CharacterSet:
+        return createCharacterSetFromToken(token);
+      case TokenTypes.Directive:
+        return createDirectiveFromToken(token);
+      case TokenTypes.GroupOpen:
+        return parseGroupOpen(context, state);
+      case TokenTypes.Quantifier:
+        return parseQuantifier(context);
+      case TokenTypes.Subroutine:
+        return parseSubroutine(context);
+      case TokenTypes.VariableLengthCharacterSet:
+        return createVariableLengthCharacterSet(token.kind);
+      default:
+        throw new Error(`Unexpected token type "${token.type}"`);
+    }
+  }
   const context = {
     current: 0,
     parent: null,
@@ -53,46 +89,11 @@ function parse({tokens, flags}, {optimize} = {}) {
     capturingGroups: [],
     namedGroups: new Map(),
     subroutines: [],
-    hasNumberedGroupRef: false,
+    hasNumberedRef: false,
     optimize,
-    walk: (parent, state) => {
-      const token = tokens[context.current];
-      context.token = token;
-      context.parent = parent;
-      // Advance for the next iteration
-      context.current++;
-      switch (token.type) {
-        case TokenTypes.Alternator:
-          // Top-level only; groups handle their own alternators
-          return createAlternative();
-        case TokenTypes.Assertion:
-          return createAssertionFromToken(token);
-        case TokenTypes.Backreference:
-          return parseBackreference(context);
-        case TokenTypes.Character:
-          return createCharacter(token.value);
-        case TokenTypes.CharacterClassHyphen:
-          return parseCharacterClassHyphen(context, state);
-        case TokenTypes.CharacterClassOpen:
-          return parseCharacterClassOpen(context, state);
-        case TokenTypes.CharacterSet:
-          return createCharacterSetFromToken(token);
-        case TokenTypes.Directive:
-          return createDirectiveFromToken(token);
-        case TokenTypes.GroupOpen:
-          return parseGroupOpen(context, state);
-        case TokenTypes.Quantifier:
-          return parseQuantifier(context);
-        case TokenTypes.Subroutine:
-          return parseSubroutine(context);
-        case TokenTypes.VariableLengthCharacterSet:
-          return createVariableLengthCharacterSet(token.kind);
-        default:
-          throw new Error(`Unexpected token type "${token.type}"`);
-      }
-    },
+    walk,
   };
-  const {capturingGroups, namedGroups, subroutines, walk} = context;
+  const {capturingGroups, hasNumberedRef, namedGroups, subroutines} = context;
   const ast = createRegex(createPattern(), createFlags(flags));
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
@@ -104,8 +105,8 @@ function parse({tokens, flags}, {optimize} = {}) {
       top.elements.push(node);
     }
   }
-  // Second-pass validation that requires knowledge about the complete pattern
-  if (context.hasNumberedGroupRef && namedGroups.size) {
+  // Second pass for validation that requires knowledge about the complete pattern
+  if (hasNumberedRef && namedGroups.size) {
     throw new Error('Numbered backref/subroutine not allowed when using named capture');
   }
   for (const {ref} of subroutines) {
@@ -120,6 +121,12 @@ function parse({tokens, flags}, {optimize} = {}) {
       throw new Error(r`Subroutine uses a non-unique group name "\g<${ref}>"`);
     }
   }
+  // Third pass to add `parent` properties now that we have a final AST
+  traverse(ast, {
+    '*Else'({node, parent}) {
+      node.parent = parent;
+    },
+  });
   return ast;
 }
 
@@ -146,7 +153,7 @@ function parseBackreference(context) {
     if (num > numCapsToLeft) {
       throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
     }
-    context.hasNumberedGroupRef = true;
+    context.hasNumberedRef = true;
     return createBackreference(isRelative ? numCapsToLeft + 1 - num : num);
   };
   if (hasKWrapper) {
@@ -308,7 +315,7 @@ function parseSubroutine(context) {
   if (numberedRef) {
     const num = +numberedRef.groups.num;
     const numCapsToLeft = capturingGroups.length;
-    context.hasNumberedGroupRef = true;
+    context.hasNumberedRef = true;
     ref = {
       '': num,
       '+': numCapsToLeft + num,
@@ -330,14 +337,10 @@ function createAlternative() {
 function createAssertionFromToken(token) {
   const {type, kind, negate} = token;
   if (type === TokenTypes.GroupOpen) {
-    return {
-      type: AstTypes.Assertion,
-      kind: kind === TokenGroupKinds.lookbehind ?
-        AstAssertionKinds.lookbehind :
-        AstAssertionKinds.lookahead,
+    return createLookaround({
+      behind: kind === TokenGroupKinds.lookbehind,
       negate,
-      alternatives: [createAlternative()],
-    };
+    });
   }
   const nodeKind = throwIfNot({
     '^': AstAssertionKinds.line_start,
@@ -403,10 +406,10 @@ function createCharacter(charCode) {
   };
 }
 
-function createCharacterClass({negate, baseOnly} = {negate: false, baseOnly: false}) {
+function createCharacterClass({negate, baseOnly} = {}) {
   return {
     type: AstTypes.CharacterClass,
-    negate,
+    negate: negate ?? false,
     elements: baseOnly ? [] : [createCharacterClassIntersection()],
   };
 }
@@ -438,6 +441,9 @@ function createCharacterSetFromToken(token) {
       value = normalized;
     }
   }
+  if (kind === TokenCharacterSetKinds.property) {
+    return createUnicodeProperty(value, {negate});
+  }
   const node = {
     type: AstTypes.CharacterSet,
     kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
@@ -446,15 +452,12 @@ function createCharacterSetFromToken(token) {
     kind === TokenCharacterSetKinds.digit ||
     kind === TokenCharacterSetKinds.hex ||
     kind === TokenCharacterSetKinds.posix ||
-    kind === TokenCharacterSetKinds.property ||
     kind === TokenCharacterSetKinds.space ||
     kind === TokenCharacterSetKinds.word
   ) {
     node.negate = negate;
     if (kind === TokenCharacterSetKinds.posix) {
       node.value = value;
-    } else if (kind === TokenCharacterSetKinds.property) {
-      node.value = getJsUnicodePropertyName(value);
     }
   }
   return node;
@@ -489,6 +492,15 @@ function createGroup({atomic, flags} = {}) {
     type: AstTypes.Group,
     ...(atomic && {atomic}),
     ...(flags && {flags}),
+    alternatives: [createAlternative()],
+  };
+}
+
+function createLookaround({behind, negate} = {}) {
+  return {
+    type: AstTypes.Assertion,
+    kind: behind ? AstAssertionKinds.lookbehind : AstAssertionKinds.lookahead,
+    negate: negate ?? false,
     alternatives: [createAlternative()],
   };
 }
@@ -528,6 +540,15 @@ function createSubroutine(ref) {
     type: AstTypes.Subroutine,
     ref,
   };
+}
+
+function createUnicodeProperty(value, {negate} = {}) {
+  return {
+    type: AstTypes.CharacterSet,
+    kind: AstCharacterSetKinds.property,
+    value: getJsUnicodePropertyName(value),
+    negate: negate ?? false,
+  }
 }
 
 function createVariableLengthCharacterSet(kind) {
@@ -598,13 +619,6 @@ function optimizeCharacterClassIntersection(intersection) {
   }
 }
 
-function throwIfNot(value, msg) {
-  if (!value) {
-    throw new Error(msg ?? 'Value expected');
-  }
-  return value;
-}
-
 function throwIfUnclosedCharacterClass(token) {
   return throwIfNot(token, 'Unclosed character class');
 }
@@ -619,5 +633,7 @@ export {
   AstDirectiveKinds,
   AstTypes,
   createGroup,
+  createLookaround,
+  createUnicodeProperty,
   parse,
 };

@@ -1,4 +1,5 @@
 import {PosixClasses} from './unicode.js';
+import {r} from './utils.js';
 
 const TokenTypes = {
   Alternator: 'Alternator',
@@ -57,14 +58,14 @@ const EscapeCharCodes = new Map([
 
 const controlCharPattern = 'c.? | C(?:-.?)?';
 // Onig considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and `\p{gc=L}` are invalid
-const unicodePropertyPattern = String.raw`[pP]\{(?:\^?[\x20\w]+\})?`;
-const hexCharPattern = String.raw`u\{[^\}]*\}? | u\p{AHex}{0,4} | x\p{AHex}{0,2}`;
-const escapedNumPattern = '\\d{1,3}';
-const charClassOpenPattern = String.raw`\[\^?\]?`;
+const unicodePropertyPattern = r`[pP]\{(?:\^?[\x20\w]+\})?`;
+const hexCharPattern = r`u\{[^\}]*\}? | u\p{AHex}{0,4} | x\p{AHex}{0,2}`;
+const escapedNumPattern = r`\d{1,3}`;
+const charClassOpenPattern = r`\[\^?\]?`;
 // Even with flag x, Onig doesn't allow whitespace to separate a quantifier from the `?` or `+`
 // that makes it lazy or possessive
 const quantifierRe = /[?*+][?+]?|\{\d+(?:,\d*)?\}\??/;
-const tokenRe = new RegExp(String.raw`
+const tokenRe = new RegExp(r`
   \\ (?:
     ${controlCharPattern}
     | ${unicodePropertyPattern}
@@ -86,7 +87,7 @@ const tokenRe = new RegExp(String.raw`
   | ${charClassOpenPattern}
   | .
 `.replace(/\s+/g, ''), 'gsu');
-const charClassTokenRe = new RegExp(String.raw`
+const charClassTokenRe = new RegExp(r`
   \\ (?:
     ${controlCharPattern}
     | ${unicodePropertyPattern}
@@ -428,7 +429,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
     });
   }
   if (raw === '\\') {
-    throw new Error('Incomplete escape "\\"');
+    throw new Error(r`Incomplete escape "\"`);
   }
   // Meta char `\M-x` and `\M-\C-x` are unsupported for now; avoid treating as an identity escape
   if (char1 === 'M') {
