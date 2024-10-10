@@ -25,6 +25,7 @@ function traverse(ast, visitor) {
         throwIfNot(container, 'Container expected').splice(0, Math.max(0, key + keyShift));
         keyShift -= key;
       },
+      // TODO: Remove if unused
       insertBefore(newNode) {
         throwIfNot(container, 'Container expected').splice(Math.max(0, key - 1 + keyShift), 0, newNode);
         setParent(newNode, parent);
@@ -33,7 +34,7 @@ function traverse(ast, visitor) {
       replaceWith(newNode) {
         setParent(newNode, parent);
         if (container) {
-          container.splice(key, 1, newNode);
+          container[Math.max(0, key + keyShift)] = newNode;
         } else {
           parent[key] = newNode;
         }

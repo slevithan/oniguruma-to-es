@@ -1,4 +1,4 @@
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, createGroup, createLookaround, createUnicodeProperty, parse} from './parser.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstVariableLengthCharacterSetKinds, createGroup, createLookaround, createUnicodeProperty, parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 import {traverse} from './traverser.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
@@ -28,7 +28,7 @@ function transform(ast) {
           replaceWith(parseFragment(r`(?<!\p{Any})`));
           break;
         case AstAssertionKinds.word_boundary: {
-          // Not the same definition as Onig's `\w`
+          // Onig's word char definition for `\b` isn't the same as for `\w`
           const wordChar = r`[\p{L}\p{N}\p{Pc}]`;
           const b = `(?:(?<=${wordChar})(?!${wordChar})|(?<!${wordChar})(?=${wordChar}))`;
           const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
@@ -89,7 +89,7 @@ function transform(ast) {
       }
     },
 
-    Directive({node, parent, ast, key, container, remove, removePrevSiblings, insertBefore}) {
+    Directive({node, parent, ast, key, container, replaceWith, removePrevSiblings}) {
       // TODO: Support `flags` directive
 
       if (node.kind === AstDirectiveKinds.keep) {
@@ -104,9 +104,8 @@ function transform(ast) {
         const kept = container.slice(0, key);
         lbAlt.elements = kept;
         adopt(lbAlt, kept);
+        replaceWith(lb);
         removePrevSiblings();
-        insertBefore(lb);
-        remove();
       }
     },
 
@@ -162,8 +161,14 @@ function transform(ast) {
       // TODO
     },
 
-    VariableLengthCharacterSet(path) {
-      // TODO: newline, grapheme
+    VariableLengthCharacterSet({node, replaceWith}) {
+      if (node.kind === AstVariableLengthCharacterSetKinds.grapheme) {
+        // Reasonably close approximation of an extended grapheme cluster. Full details of what
+        // should be matched are in Unicode Standard Annex #29 <https://unicode.org/reports/tr29/>
+        replaceWith(parseFragment(r`(?>\P{M}\p{M}*)`));
+      } else if (node.kind === AstVariableLengthCharacterSetKinds.newline) {
+        replaceWith(parseFragment(r`(?>\r\n?|[\n\v\f\x85\u2028\u2029])`));
+      }
     },
   });
   return ast;

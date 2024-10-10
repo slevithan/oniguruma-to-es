@@ -632,6 +632,7 @@ export {
   AstCharacterSetKinds,
   AstDirectiveKinds,
   AstTypes,
+  AstVariableLengthCharacterSetKinds,
   createGroup,
   createLookaround,
   createUnicodeProperty,
