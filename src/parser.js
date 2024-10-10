@@ -1,5 +1,7 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {JsUnicodePropertiesMap, normalize, PosixProperties} from './unicode.js';
+import {JsUnicodePropertiesMap, PosixProperties, slug} from './unicode.js';
+
+const r = String.raw;
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -45,50 +47,56 @@ const AstVariableLengthCharacterSetKinds = {
 function parse({tokens, flags}, {optimize} = {}) {
   const context = {
     current: 0,
-    namedGroups: new Map(),
+    parent: null,
+    token: null,
+    tokens,
     capturingGroups: [],
+    namedGroups: new Map(),
     subroutines: [],
     hasNumberedGroupRef: false,
-    walk: parent => {
-      let token = tokens[context.current];
+    optimize,
+    walk: (parent, state) => {
+      const token = tokens[context.current];
+      context.token = token;
+      context.parent = parent;
       // Advance for the next iteration
       context.current++;
       switch (token.type) {
         case TokenTypes.Alternator:
-          // Only handles top-level alternation; groups handle their own alternators
-          return createAlternative(parent.parent);
+          // Top-level only; groups handle their own alternators
+          return createAlternative();
         case TokenTypes.Assertion:
-          return createAssertionFromToken(parent, token);
+          return createAssertionFromToken(token);
         case TokenTypes.Backreference:
-          return parseBackreference(context, parent, token);
+          return parseBackreference(context);
         case TokenTypes.Character:
-          return createCharacter(parent, token.value);
+          return createCharacter(token.value);
         case TokenTypes.CharacterClassHyphen:
-          return parseCharacterClassHyphen(context, parent, tokens[context.current]);
+          return parseCharacterClassHyphen(context, state);
         case TokenTypes.CharacterClassOpen:
-          return parseCharacterClassOpen(context, parent, token.negate, tokens, optimize);
+          return parseCharacterClassOpen(context, state);
         case TokenTypes.CharacterSet:
-          return createCharacterSetFromToken(parent, token);
+          return createCharacterSetFromToken(token);
         case TokenTypes.Directive:
-          return createDirectiveFromToken(parent, token);
+          return createDirectiveFromToken(token);
         case TokenTypes.GroupOpen:
-          return parseGroupOpen(context, parent, token, tokens, optimize);
+          return parseGroupOpen(context, state);
         case TokenTypes.Quantifier:
-          return parseQuantifier(parent, token);
+          return parseQuantifier(context);
         case TokenTypes.Subroutine:
-          return parseSubroutine(context, parent, token);
+          return parseSubroutine(context);
         case TokenTypes.VariableLengthCharacterSet:
-          return createVariableLengthCharacterSet(parent, token.kind);
+          return createVariableLengthCharacterSet(token.kind);
         default:
           throw new Error(`Unexpected token type "${token.type}"`);
       }
     },
   };
-
-  const ast = createRegex(null, flags);
+  const {capturingGroups, namedGroups, subroutines, walk} = context;
+  const ast = createRegex(createPattern(), createFlags(flags));
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
-    const node = context.walk(top);
+    const node = walk(top, {});
     if (node.type === AstTypes.Alternative) {
       ast.pattern.alternatives.push(node);
       top = node;
@@ -96,20 +104,20 @@ function parse({tokens, flags}, {optimize} = {}) {
       top.elements.push(node);
     }
   }
-
-  if (context.hasNumberedGroupRef && context.namedGroups.size) {
+  // Second-pass validation that requires knowledge about the complete pattern
+  if (context.hasNumberedGroupRef && namedGroups.size) {
     throw new Error('Numbered backref/subroutine not allowed when using named capture');
   }
-  for (const {ref} of context.subroutines) {
+  for (const {ref} of subroutines) {
     if (typeof ref === 'number') {
       // Relative nums are already resolved
-      if (ref < 1 || ref > context.capturingGroups.length) {
+      if (ref < 1 || ref > capturingGroups.length) {
         throw new Error('Subroutine uses a group number that is not defined');
       }
-    } else if (!context.namedGroups.has(ref)) {
-      throw new Error(`Subroutine uses a group name that is not defined "\\g<${ref}>"`);
-    } else if (context.namedGroups.get(ref).length > 1) {
-      throw new Error(`Subroutine uses a non-unique group name "\\g<${ref}>"`);
+    } else if (!namedGroups.has(ref)) {
+      throw new Error(r`Subroutine uses a group name that is not defined "\g<${ref}>"`);
+    } else if (namedGroups.get(ref).length > 1) {
+      throw new Error(r`Subroutine uses a non-unique group name "\g<${ref}>"`);
     }
   }
   return ast;
@@ -128,9 +136,9 @@ function parse({tokens, flags}, {optimize} = {}) {
 //   (Onigmo also supports `\k<-n+level>`, `\k<-n-level>`, etc.)
 // Backrefs in Onig use multiplexing for duplicate group names (the rules can be complicated when
 // overlapping with subroutines), but a `Backreference`'s simple `ref` prop doesn't capture these
-// details so multiplexed ref pointers need to derived when working with the AST
-function parseBackreference(context, parent, token) {
-  const {raw} = token;
+// details so multiplexed ref pointers need to be derived when working with the AST
+function parseBackreference(context) {
+  const {raw} = context.token;
   const hasKWrapper = /^\\k[<']/.test(raw);
   const ref = hasKWrapper ? raw.slice(3, -1) : raw.slice(1);
   const fromNum = (num, isRelative = false) => {
@@ -139,7 +147,7 @@ function parseBackreference(context, parent, token) {
       throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
     }
     context.hasNumberedGroupRef = true;
-    return createBackreference(parent, isRelative ? numCapsToLeft + 1 - num : num);
+    return createBackreference(isRelative ? numCapsToLeft + 1 - num : num);
   };
   if (hasKWrapper) {
     const numberedRef = /^(?<sign>-?)0*(?<num>[1-9]\d*)$/.exec(ref);
@@ -153,47 +161,47 @@ function parseBackreference(context, parent, token) {
     if (!context.namedGroups.has(ref)) {
       throw new Error(`Group name not defined to the left "${raw}"`);
     }
-    return createBackreference(parent, ref);
+    return createBackreference(ref);
   }
   return fromNum(+ref);
 }
 
-function parseCharacterClassHyphen(context, parent, nextToken) {
-  const prevNode = parent.elements.at(-1);
+function parseCharacterClassHyphen(context, state) {
+  const {parent, tokens, walk} = context;
+  const prevSiblingNode = parent.elements.at(-1);
+  const nextToken = tokens[context.current];
   if (
-    prevNode &&
-    prevNode.type !== AstTypes.CharacterClass &&
+    prevSiblingNode &&
+    prevSiblingNode.type !== AstTypes.CharacterClass &&
     nextToken &&
     nextToken.type !== TokenTypes.CharacterClassOpen &&
     nextToken.type !== TokenTypes.CharacterClassClose &&
     nextToken.type !== TokenTypes.CharacterClassIntersector
   ) {
-    const nextNode = context.walk(parent);
-    if (prevNode.type === AstTypes.Character && nextNode.type === AstTypes.Character) {
+    const nextNode = walk(parent, state);
+    if (prevSiblingNode.type === AstTypes.Character && nextNode.type === AstTypes.Character) {
       parent.elements.pop();
-      const node = createCharacterClassRange(parent, prevNode, nextNode);
-      prevNode.parent = node;
-      nextNode.parent = node;
-      return node;
+      return createCharacterClassRange(prevSiblingNode, nextNode);
     }
     throw new Error('Invalid character class range');
   }
   // Literal hyphen
-  return createCharacter(parent, 45);
+  return createCharacter(45);
 }
 
-function parseCharacterClassOpen(context, parent, negate, tokens, optimize) {
-  let node = createCharacterClass(parent, negate);
+function parseCharacterClassOpen(context, state) {
+  const {token, tokens, optimize, walk} = context;
+  let node = createCharacterClass({negate: token.negate});
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   while (nextToken.type !== TokenTypes.CharacterClassClose) {
     if (nextToken.type === TokenTypes.CharacterClassIntersector) {
-      intersection.classes.push(createCharacterClassBase(intersection));
+      intersection.classes.push(createCharacterClass({negate: false, baseOnly: true}));
       // Skip the intersector
       context.current++;
     } else {
       const cc = intersection.classes.at(-1);
-      cc.elements.push(context.walk(cc));
+      cc.elements.push(walk(cc, state));
     }
     nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   }
@@ -203,7 +211,6 @@ function parseCharacterClassOpen(context, parent, negate, tokens, optimize) {
   // Simplify tree if we don't need the intersection wrapper
   if (intersection.classes.length === 1) {
     const cc = intersection.classes[0];
-    cc.parent = parent;
     // Only needed if `optimize` is on; otherwise an intersection's direct kids are never negated
     cc.negate = node.negate !== cc.negate;
     node = cc;
@@ -213,28 +220,38 @@ function parseCharacterClassOpen(context, parent, negate, tokens, optimize) {
   return node;
 }
 
-function parseGroupOpen(context, parent, token, tokens, optimize) {
-  let node = createByGroupKind(parent, token);
-  // Track capturing group details for backrefs and subroutines. Track before parsing the group's
-  // contents so that nested groups with the same name are tracked in order
+function parseGroupOpen(context, state) {
+  const {token, tokens, optimize, capturingGroups, namedGroups, walk} = context;
+  let node = createByGroupKind(token);
+  // Track capturing group details for backrefs and subroutines (before parsing the group's
+  // contents so nested groups with the same name are tracked in order)
   if (node.type === AstTypes.CapturingGroup) {
-    context.capturingGroups.push(node);
+    capturingGroups.push(node);
     if (node.name) {
-      if (!context.namedGroups.has(node.name)) {
-        context.namedGroups.set(node.name, []);
+      if (!namedGroups.has(node.name)) {
+        namedGroups.set(node.name, []);
       }
-      context.namedGroups.get(node.name).push(node);
+      namedGroups.get(node.name).push(node);
     }
   }
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
   while (nextToken.type !== TokenTypes.GroupClose) {
     if (nextToken.type === TokenTypes.Alternator) {
-      node.alternatives.push(createAlternative(node));
+      node.alternatives.push(createAlternative());
       // Skip the alternator
       context.current++;
     } else {
       const alt = node.alternatives.at(-1);
-      alt.elements.push(context.walk(alt));
+      state.isInLookbehind ||= node.kind === AstAssertionKinds.lookbehind;
+      const child = walk(alt, state);
+      alt.elements.push(child);
+      if (state.isInLookbehind && child.type === AstTypes.Quantifier && child.min !== child.max) {
+        // JS supports variable-length quantifiers in lookbehind but Onig doesn't
+        throw new Error('Unsupported variable repetition within lookbehind');
+        // Additionally, Onig only supports variable-length alternation at the top level of
+        // lookbehind, but this isn't currently enforced. Ex: `(?<=a|bc)` and `(?<=a|b(c|d))` are
+        // valid, but not `(?<=a(b|cd))`
+      }
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }
@@ -246,20 +263,14 @@ function parseGroupOpen(context, parent, token, tokens, optimize) {
   return node;
 }
 
-function parseQuantifier(parent, token) {
+function parseQuantifier(context) {
+  const {parent, token} = context;
+  const {min, max, greedy, possessive} = token;
   if (!parent.elements.length) {
     // First child in `Alternative`
     throw new Error('Nothing to repeat');
   }
-  const node = createQuantifier(
-    parent,
-    parent.elements.at(-1),
-    token.min,
-    token.max,
-    token.greedy,
-    token.possessive
-  );
-  node.element.parent = node;
+  const node = createQuantifier(parent.elements.at(-1), min, max, greedy, possessive);
   parent.elements.pop();
   return node;
 }
@@ -290,12 +301,13 @@ function parseQuantifier(parent, token) {
 //   - Ex: With `(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`, the backref `\k<b>` can only match `0`
 //     or whatever was matched by the most recently matched subroutine. If you took out `(?<b>0)`,
 //     no multiplexing would occur.
-function parseSubroutine(context, parent, token) {
+function parseSubroutine(context) {
+  const {token, capturingGroups, subroutines} = context;
   let ref = token.raw.slice(3, -1);
   const numberedRef = /^(?<sign>[-+]?)0*(?<num>[1-9]\d*)$/.exec(ref);
   if (numberedRef) {
     const num = +numberedRef.groups.num;
-    const numCapsToLeft = context.capturingGroups.length;
+    const numCapsToLeft = capturingGroups.length;
     context.hasNumberedGroupRef = true;
     ref = {
       '': num,
@@ -303,30 +315,31 @@ function parseSubroutine(context, parent, token) {
       '-': numCapsToLeft + 1 - num,
     }[numberedRef.groups.sign];
   }
-  const node = createSubroutine(parent, ref);
-  context.subroutines.push(node);
+  const node = createSubroutine(ref);
+  subroutines.push(node);
   return node;
 }
 
-function createAlternative(parent) {
+function createAlternative() {
   return {
-    ...getNodeBase(parent, AstTypes.Alternative),
+    type: AstTypes.Alternative,
     elements: [],
   };
 }
 
-function createAssertionFromToken(parent, token) {
-  const base = getNodeBase(parent, AstTypes.Assertion);
-  if (token.type === TokenTypes.GroupOpen) {
-    return withInitialAlternative({
-      ...base,
-      kind: token.kind === TokenGroupKinds.lookbehind ?
+function createAssertionFromToken(token) {
+  const {type, kind, negate} = token;
+  if (type === TokenTypes.GroupOpen) {
+    return {
+      type: AstTypes.Assertion,
+      kind: kind === TokenGroupKinds.lookbehind ?
         AstAssertionKinds.lookbehind :
         AstAssertionKinds.lookahead,
-      negate: token.negate,
-    });
+      negate,
+      alternatives: [createAlternative()],
+    };
   }
-  const kind = throwIfNot({
+  const nodeKind = throwIfNot({
     '^': AstAssertionKinds.line_start,
     '$': AstAssertionKinds.line_end,
     '\\A': AstAssertionKinds.string_start,
@@ -335,102 +348,98 @@ function createAssertionFromToken(parent, token) {
     '\\G': AstAssertionKinds.search_start,
     '\\z': AstAssertionKinds.string_end,
     '\\Z': AstAssertionKinds.string_end_newline,
-  }[token.kind], `Unexpected assertion kind "${token.kind}"`);
+  }[kind], `Unexpected assertion kind "${kind}"`);
   const node = {
-    ...base,
-    kind,
+    type: AstTypes.Assertion,
+    kind: nodeKind,
   };
-  if (kind === AstAssertionKinds.word_boundary) {
-    node.negate = token.kind === '\\B';
+  if (nodeKind === AstAssertionKinds.word_boundary) {
+    node.negate = kind === r`\B`;
   }
   return node;
 }
 
-function createBackreference(parent, ref) {
+function createBackreference(ref) {
   return {
-    ...getNodeBase(parent, AstTypes.Backreference),
+    type: AstTypes.Backreference,
     ref,
   };
 }
 
-function createByGroupKind(parent, token) {
+function createByGroupKind(token) {
   const {kind, number, name, flags} = token;
   switch (kind) {
     case TokenGroupKinds.atomic:
-      return createGroup(parent, {atomic: true});
+      return createGroup({atomic: true});
     case TokenGroupKinds.capturing:
-      return createCapturingGroup(parent, number, name);
+      return createCapturingGroup(number, name);
     case TokenGroupKinds.group:
-      return createGroup(parent, {flags});
+      return createGroup({flags});
     case TokenGroupKinds.lookahead:
     case TokenGroupKinds.lookbehind:
-      return createAssertionFromToken(parent, token);
+      return createAssertionFromToken(token);
     default:
       throw new Error(`Unexpected group kind "${kind}"`);
   }
 }
 
-function createCapturingGroup(parent, number, name) {
-  const node = {
-    ...getNodeBase(parent, AstTypes.CapturingGroup),
-    number,
-  };
-  if (name !== undefined) {
-    if (!isValidJsGroupName(name)) {
-      throw new Error(`Invalid group name "${name}"`);
-    }
-    node.name = name;
+function createCapturingGroup(number, name) {
+  const hasName = name !== undefined;
+  if (hasName && !isValidJsGroupName(name)) {
+    throw new Error(`Invalid group name "${name}"`);
   }
-  return withInitialAlternative(node);
+  return {
+    type: AstTypes.CapturingGroup,
+    number,
+    ...(hasName && {name}),
+    alternatives: [createAlternative()],
+  };
 }
 
-function createCharacter(parent, charCode) {
+function createCharacter(charCode) {
   return {
-    ...getNodeBase(parent, AstTypes.Character),
+    type: AstTypes.Character,
     value: charCode,
   };
 }
 
-function createCharacterClass(parent, negate) {
-  return withInitialIntersection(createCharacterClassBase(parent, negate));
-}
-
-function createCharacterClassBase(parent, negate = false) {
+function createCharacterClass({negate, baseOnly} = {negate: false, baseOnly: false}) {
   return {
-    ...getNodeBase(parent, AstTypes.CharacterClass),
+    type: AstTypes.CharacterClass,
     negate,
-    elements: [],
+    elements: baseOnly ? [] : [createCharacterClassIntersection()],
   };
 }
 
-function createCharacterClassIntersection(parent) {
-  const node = getNodeBase(parent, AstTypes.CharacterClassIntersection);
-  node.classes = [createCharacterClassBase(node)];
-  return node;
+function createCharacterClassIntersection() {
+  return {
+    type: AstTypes.CharacterClassIntersection,
+    classes: [createCharacterClass({negate: false, baseOnly: true})],
+  };
 }
 
-function createCharacterClassRange(parent, min, max) {
+function createCharacterClassRange(min, max) {
   if (max.value < min.value) {
     throw new Error('Character class range out of order');
   }
   return {
-    ...getNodeBase(parent, AstTypes.CharacterClassRange),
+    type: AstTypes.CharacterClassRange,
     min,
     max,
   };
 }
 
-function createCharacterSetFromToken(parent, token) {
+function createCharacterSetFromToken(token) {
   let {kind, negate, value} = token;
   if (kind === TokenCharacterSetKinds.property) {
-    const normalized = normalize(value);
+    const normalized = slug(value);
     if (PosixProperties.has(normalized)) {
       kind = TokenCharacterSetKinds.posix;
       value = normalized;
     }
   }
   const node = {
-    ...getNodeBase(parent, AstTypes.CharacterSet),
+    type: AstTypes.CharacterSet,
     kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
   };
   if (
@@ -451,83 +460,79 @@ function createCharacterSetFromToken(parent, token) {
   return node;
 }
 
-function createDirectiveFromToken(parent, token) {
+function createDirectiveFromToken(token) {
   const {kind, flags} = token;
   const node = {
-    ...getNodeBase(parent, AstTypes.Directive),
+    type: AstTypes.Directive,
     kind: throwIfNot(AstDirectiveKinds[kind], `Unexpected directive kind "${kind}"`),
   };
   // Can't simply create a `Group` with a `flags` prop and wrap the remainder of the open group or
-  // pattern in it, because the flag modifier might extend across alternation; i.e. `a(?i)b|c` is
+  // pattern in it, because the flag modifier might extend across alternation. Ex: `a(?i)b|c` is
   // equivalent to `a(?i:b)|(?i:c)`, not `a(?i:b|c)`. Note: This change is made in the transformer
-  if (node.kind === AstDirectiveKinds.flags) {
+  if (kind === TokenDirectiveKinds.flags) {
     node.flags = flags;
   }
   return node;
 }
 
-function createFlags(parent, {ignoreCase, dotAll, extended}) {
+function createFlags({ignoreCase, dotAll, extended}) {
   return {
-    ...getNodeBase(parent, AstTypes.Flags),
+    type: AstTypes.Flags,
     ignoreCase,
     dotAll,
     extended,
   };
 }
 
-function createGroup(parent, {atomic, flags} = {}) {
-  const node = getNodeBase(parent, AstTypes.Group);
-  if (atomic) {
-    node.atomic = true;
-  } else if (flags) {
-    node.flags = flags;
-  }
-  return withInitialAlternative(node);
+function createGroup({atomic, flags} = {}) {
+  return {
+    type: AstTypes.Group,
+    ...(atomic && {atomic}),
+    ...(flags && {flags}),
+    alternatives: [createAlternative()],
+  };
 }
 
-function createPattern(parent) {
-  return withInitialAlternative(getNodeBase(parent, AstTypes.Pattern));
+function createPattern() {
+  return {
+    type: AstTypes.Pattern,
+    alternatives: [createAlternative()],
+  };
 }
 
-function createQuantifier(parent, element, min, max, greedy, possessive) {
+function createQuantifier(element, min, max, greedy, possessive) {
   if (max < min) {
     throw new Error('Quantifier range out of order');
   }
   const node = {
-    ...getNodeBase(parent, AstTypes.Quantifier),
+    type: AstTypes.Quantifier,
     min,
     max,
     greedy,
     possessive,
     element,
   };
-  if (min !== max && isWithin(node, AstTypes.Assertion, AstAssertionKinds.lookbehind)) {
-    // JS supports this but Onig doesn't
-    throw new Error('Unsupported variable repetition within lookbehind');
-    // Additionally, Onig only supports variable-length alternation at the top level of lookbehind,
-    // but this isn't currently enforced. Ex: `(?<=a|bc)` and `(?<=a|b(c|d))` are valid, but not
-    // `(?<=a(b|cd))`
-  }
   return node;
 }
 
-function createRegex(parent, flags) {
-  const node = getNodeBase(parent, AstTypes.Regex);
-  node.pattern = createPattern(node);
-  node.flags = createFlags(node, flags)
-  return node;
-}
-
-function createSubroutine(parent, ref) {
+function createRegex(pattern, flags) {
   return {
-    ...getNodeBase(parent, AstTypes.Subroutine),
+    type: AstTypes.Regex,
+    pattern,
+    flags,
+  };
+}
+
+function createSubroutine(ref) {
+  return {
+    type: AstTypes.Subroutine,
     ref,
   };
 }
 
-function createVariableLengthCharacterSet(parent, kind) {
+function createVariableLengthCharacterSet(kind) {
   return {
-    ...getNodeBase(parent, AstTypes.VariableLengthCharacterSet),
+    type: AstTypes.VariableLengthCharacterSet,
     kind: throwIfNot({
       '\\R': AstVariableLengthCharacterSetKinds.newline,
       '\\X': AstVariableLengthCharacterSetKinds.grapheme,
@@ -538,7 +543,7 @@ function createVariableLengthCharacterSet(parent, kind) {
 // Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
 // underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(value) {
-  const jsName = JsUnicodePropertiesMap.get(normalize(value));
+  const jsName = JsUnicodePropertiesMap.get(slug(value));
   if (jsName) {
     return jsName;
   }
@@ -550,13 +555,6 @@ function getJsUnicodePropertyName(value) {
     // Change `PropertyName` to `Property_Name`
     replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_').
     replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase());
-}
-
-function getNodeBase(parent, type) {
-  return {
-    type,
-    parent,
-  };
 }
 
 // If a direct child group is needlessly nested, return it instead (after modifying it)
@@ -571,7 +569,6 @@ function getOptimizedGroup(node) {
     !(node.atomic && firstAltFirstEl.flags) &&
     !(node.flags && (firstAltFirstEl.atomic || firstAltFirstEl.flags))
   ) {
-    firstAltFirstEl.parent = node.parent;
     if (node.atomic) {
       firstAltFirstEl.atomic = true;
     } else if (node.flags) {
@@ -589,15 +586,6 @@ function isValidJsGroupName(name) {
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
 }
 
-function isWithin(node, type, kind) {
-  while (node = node.parent) {
-    if (node.type === type && (!kind || node.kind === kind)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 // For any intersection classes that contain only a class, swap the parent with its (modded) child
 function optimizeCharacterClassIntersection(intersection) {
   for (let i = 0; i < intersection.classes.length; i++) {
@@ -605,7 +593,6 @@ function optimizeCharacterClassIntersection(intersection) {
     const firstChild = cc.elements[0];
     if (cc.elements.length === 1 && firstChild.type === AstTypes.CharacterClass) {
       intersection.classes[i] = firstChild;
-      firstChild.parent = intersection;
       firstChild.negate = cc.negate !== firstChild.negate;
     }
   }
@@ -624,18 +611,6 @@ function throwIfUnclosedCharacterClass(token) {
 
 function throwIfUnclosedGroup(token) {
   return throwIfNot(token, 'Unclosed group');
-}
-
-function withInitialAlternative(node) {
-  const alt = createAlternative(node);
-  node.alternatives = [alt];
-  return node;
-}
-
-function withInitialIntersection(node) {
-  const intersection = createCharacterClassIntersection(node);
-  node.elements = [intersection];
-  return node;
 }
 
 export {

@@ -107,12 +107,7 @@ const JsUnicodeProperties = new Set([
 
 const JsUnicodePropertiesMap = new Map();
 for (const p of JsUnicodeProperties) {
-  JsUnicodePropertiesMap.set(normalize(p), p);
-}
-
-// Generates a Unicode property lookup name: lowercase, with hyphens, spaces, and underscores removed
-function normalize(name) {
-  return name.replace(/[- _]+/g, '').toLowerCase();
+  JsUnicodePropertiesMap.set(slug(p), p);
 }
 
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
@@ -159,10 +154,15 @@ const PosixProperties = new Set([
   // - upper (JS: Upper)
 ]);
 
+// Generates a Unicode property lookup name: lowercase, with hyphens, spaces, and underscores removed
+function slug(name) {
+  return name.replace(/[- _]+/g, '').toLowerCase();
+}
+
 export {
   JsUnicodeProperties,
   JsUnicodePropertiesMap,
-  normalize,
   PosixClasses,
   PosixProperties,
+  slug,
 };
