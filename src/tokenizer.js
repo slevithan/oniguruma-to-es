@@ -16,7 +16,7 @@ const TokenTypes = {
   GroupOpen: 'GroupOpen',
   Subroutine: 'Subroutine',
   Quantifier: 'Quantifier',
-  // These aren't supported in character classes, so they aren't equivalent to JS's `[\q{}]`
+  // These aren't supported in char classes, so they aren't equivalent to JS's `[\q{}]`
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
   // Intermediate representation not included in results
   EscapedNumber: 'EscapedNumber',
@@ -47,7 +47,7 @@ const TokenGroupKinds = {
 
 const EscapeCharCodes = new Map([
   ['a', 7], // alert/bell (Not available in JS)
-  ['b', 8], // backspace (only in character classes)
+  ['b', 8], // backspace (only in char classes)
   ['e', 27], // escape (Not available in JS)
   ['f', 12], // form feed
   ['n', 10], // line feed

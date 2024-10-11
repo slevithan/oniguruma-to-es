@@ -122,7 +122,7 @@ function parse({tokens, flags}, {optimize} = {}) {
     }
   }
   // Third pass to add `parent` properties now that we have a final AST
-  traverse(ast, {
+  traverse({node: ast}, null, {
     '*Else'({node, parent}) {
       node.parent = parent;
     },

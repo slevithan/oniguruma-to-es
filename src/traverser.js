@@ -1,7 +1,12 @@
 import {AstAssertionKinds, AstTypes} from './parser.js';
 import {throwIfNot} from './utils.js';
 
-function traverse(ast, visitor) {
+function traverse(path, state = {}, visitor) {
+  let top = path.node;
+  while (top.parent) {
+    top = top.parent;
+  }
+  const ast = top;
   function traverseArray(array, parent) {
     for (let i = 0; i < array.length; i++) {
       const keyShift = traverseNode(array[i], parent, i, array);
@@ -20,16 +25,13 @@ function traverse(ast, visitor) {
         throwIfNot(container, 'Container expected').splice(Math.max(0, key + keyShift), 1);
         keyShift -= 1;
       },
-      // Run before `remove` due to `keyShift`
-      removePrevSiblings() {
-        throwIfNot(container, 'Container expected').splice(0, Math.max(0, key + keyShift));
-        keyShift -= key;
+      removeAllNextSiblings() {
+        return throwIfNot(container, 'Container expected').splice(key + 1);
       },
-      // TODO: Remove if unused
-      insertBefore(newNode) {
-        throwIfNot(container, 'Container expected').splice(Math.max(0, key - 1 + keyShift), 0, newNode);
-        setParent(newNode, parent);
-        keyShift += 1;
+      removeAllPrevSiblings() {
+        const shifted = key + keyShift;
+        keyShift -= shifted;
+        return throwIfNot(container, 'Container expected').splice(0, Math.max(0, shifted));
       },
       replaceWith(newNode) {
         setParent(newNode, parent);
@@ -43,7 +45,7 @@ function traverse(ast, visitor) {
     const methods = visitor[node.type] ?? visitor['*Else'];
     const enterFn = typeof methods === 'function' ? methods : methods?.enter;
     const exitFn = methods?.exit;
-    enterFn?.(path);
+    enterFn?.(path, state);
     switch (node.type) {
       case AstTypes.Alternative:
       case AstTypes.CharacterClass:
@@ -84,16 +86,16 @@ function traverse(ast, visitor) {
       default:
         throw new Error(`Unexpected node type "${node.type}"`);
     }
-    exitFn?.(path);
+    exitFn?.(path, state);
     return keyShift;
   }
-  traverseNode(ast);
+  traverseNode(path.node, path.parent, path.key, path.container);
 }
 
 function setParent(node, parent) {
   // The traverser can work with ASTs whose nodes include or don't include `parent` props, so only
   // update the parent if a prop for it exists
-  if ('parent' in node) {
+  if ('parent' in parent) {
     node.parent = parent;
   }
 }
