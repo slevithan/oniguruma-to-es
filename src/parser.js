@@ -45,6 +45,18 @@ const AstVariableLengthCharacterSetKinds = {
 };
 
 function parse({tokens, flags}, {optimize} = {}) {
+  const context = {
+    current: 0,
+    parent: null,
+    token: null,
+    tokens,
+    capturingGroups: [],
+    namedGroupsByName: new Map(),
+    subroutines: [],
+    hasNumberedRef: false,
+    optimize,
+    walk,
+  };
   function walk(parent, state) {
     const token = tokens[context.current];
     context.token = token;
@@ -81,19 +93,7 @@ function parse({tokens, flags}, {optimize} = {}) {
         throw new Error(`Unexpected token type "${token.type}"`);
     }
   }
-  const context = {
-    current: 0,
-    parent: null,
-    token: null,
-    tokens,
-    capturingGroups: [],
-    namedGroups: new Map(),
-    subroutines: [],
-    hasNumberedRef: false,
-    optimize,
-    walk,
-  };
-  const {capturingGroups, hasNumberedRef, namedGroups, subroutines} = context;
+  const {capturingGroups, hasNumberedRef, namedGroupsByName, subroutines} = context;
   const ast = createRegex(createPattern(), createFlags(flags));
   let top = ast.pattern.alternatives[0];
   while (context.current < tokens.length) {
@@ -105,8 +105,8 @@ function parse({tokens, flags}, {optimize} = {}) {
       top.elements.push(node);
     }
   }
-  // Second pass for validation that requires knowledge about the complete pattern
-  if (hasNumberedRef && namedGroups.size) {
+  // Validation that requires knowledge about the complete pattern
+  if (hasNumberedRef && namedGroupsByName.size) {
     throw new Error('Numbered backref/subroutine not allowed when using named capture');
   }
   for (const {ref} of subroutines) {
@@ -115,13 +115,13 @@ function parse({tokens, flags}, {optimize} = {}) {
       if (ref < 1 || ref > capturingGroups.length) {
         throw new Error('Subroutine uses a group number that is not defined');
       }
-    } else if (!namedGroups.has(ref)) {
+    } else if (!namedGroupsByName.has(ref)) {
       throw new Error(r`Subroutine uses a group name that is not defined "\g<${ref}>"`);
-    } else if (namedGroups.get(ref).length > 1) {
+    } else if (namedGroupsByName.get(ref).length > 1) {
       throw new Error(r`Subroutine uses a non-unique group name "\g<${ref}>"`);
     }
   }
-  // Third pass to add `parent` properties now that we have a final AST
+  // Add `parent` properties now that we have a final AST
   traverse({node: ast}, null, {
     '*Else'({node, parent}) {
       node.parent = parent;
@@ -165,7 +165,7 @@ function parseBackreference(context) {
     if (/[-+]/.test(ref)) {
       throw new Error(`Invalid backref name "${raw}"`);
     }
-    if (!context.namedGroups.has(ref)) {
+    if (!context.namedGroupsByName.has(ref)) {
       throw new Error(`Group name not defined to the left "${raw}"`);
     }
     return createBackreference(ref);
@@ -228,17 +228,17 @@ function parseCharacterClassOpen(context, state) {
 }
 
 function parseGroupOpen(context, state) {
-  const {token, tokens, optimize, capturingGroups, namedGroups, walk} = context;
+  const {token, tokens, optimize, capturingGroups, namedGroupsByName, walk} = context;
   let node = createByGroupKind(token);
   // Track capturing group details for backrefs and subroutines (before parsing the group's
   // contents so nested groups with the same name are tracked in order)
   if (node.type === AstTypes.CapturingGroup) {
     capturingGroups.push(node);
     if (node.name) {
-      if (!namedGroups.has(node.name)) {
-        namedGroups.set(node.name, []);
+      if (!namedGroupsByName.has(node.name)) {
+        namedGroupsByName.set(node.name, []);
       }
-      namedGroups.get(node.name).push(node);
+      namedGroupsByName.get(node.name).push(node);
     }
   }
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);

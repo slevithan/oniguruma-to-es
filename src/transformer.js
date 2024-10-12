@@ -5,45 +5,56 @@ import {JsUnicodeProperties, PosixClasses} from './unicode.js';
 import {r} from './utils.js';
 
 // Transform an Oniguruma AST in-place to a `regex` AST
-function transform(ast, {allowBestEffort} = {}) {
-  traverse({node: ast}, {allowBestEffort}, Visitor);
+function transform(ast, options = {}) {
+  const state = {
+    allowBestEffort: !!options.allowBestEffort,
+    namedGroupsInScopeByAlt: new Map(),
+    flagDirectivesByAlt: new Map(),
+  };
+  traverse({node: ast}, state, Visitor);
   return ast;
 }
 
 const Visitor = {
   Alternative: {
-    enter: ({node, parent, key}) => {
-      // Look for top level flag directives when entering an alternative because after traversing
+    enter: ({node, parent, key}, {flagDirectivesByAlt, namedGroupsInScopeByAlt}) => {
+      // Look for own-level flag directives when entering an alternative because after traversing
       // the directive itself, any subsequent flag directives will no longer be at the same level
       const flagDirectives = [];
       for (let i = 0; i < node.elements.length; i++) {
-        const el = node.elements[i];
-        if (el.type === AstTypes.Directive && el.kind === AstDirectiveKinds.flags) {
-          flagDirectives.push(el);
+        const child = node.elements[i];
+        if (child.kind === AstDirectiveKinds.flags) {
+          flagDirectives.push(child);
         }
       }
       for (let i = key + 1; i < parent.alternatives.length; i++) {
         const forwardSiblingAlt = parent.alternatives[i];
-        forwardSiblingAlt.$flagDirectives ??= [];
-        forwardSiblingAlt.$flagDirectives.push(...flagDirectives);
+        setExistingOr(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
+      }
+      // JS requires group names to be unique per alternation (which includes alternations in
+      // nested groups), so pass down the current names used within this alternation to nested
+      // alternations for handling within the `CapturingGroup` visitor
+      const parentAlt = getParentAlternative(node);
+      if (parentAlt) {
+        namedGroupsInScopeByAlt.set(node, namedGroupsInScopeByAlt.get(parentAlt));
       }
     },
-    // Wait until exiting to wrap the alternative's nodes with flag directives from prior sibling
-    // alternatives because doing this at the end allows inner nodes to accurately check whether
-    // they're at the top level
-    exit: ({node, parent}) => {
-      if (node.$flagDirectives?.length) {
-        const flags = getFlagsFromFlagDirectives(node.$flagDirectives);
+    exit: ({node, parent}, {flagDirectivesByAlt}) => {
+      // Wait until exiting to wrap an alternative's nodes with flag groups that emulate flag
+      // directives from prior sibling alternatives because doing this at the end allows inner
+      // nodes to accurately check their level in the tree
+      if (flagDirectivesByAlt.get(node)?.length) {
+        const flags = getFlagsFromFlagDirectives(flagDirectivesByAlt.get(node));
         const flagGroup = createGroup({flags});
         flagGroup.parent = parent;
         adoptAndReplaceKids(flagGroup.alternatives[0], node.elements);
         node.elements = [flagGroup];
       }
-      delete node.$flagDirectives;
+      flagDirectivesByAlt.delete(node); // Might as well clean up
     }
   },
 
-  Assertion({node, parent, ast, key, remove, replaceWith}) {
+  Assertion({node, parent, key, ast, remove, replaceWith}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.search_start) {
       // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
@@ -66,8 +77,8 @@ const Visitor = {
       const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
       replaceWith(parseFragment(negate ? B : b));
     }
-    // Note: Don't need to transform `line_end` and `line_start` because the `Flags` visitor
-    // always turns on `multiline` to match Onig's behavior for `^` and `$`
+    // Don't need to transform `line_end` and `line_start` because the `Flags` visitor always turns
+    // on `multiline` to match Onig's behavior for `^` and `$`
   },
 
   Backreference(path) {
@@ -87,8 +98,19 @@ const Visitor = {
     //   - Else, multiplex all the preceding groups of that name
   },
 
-  CapturingGroup(path) {
-    // TODO: duplicate names
+  CapturingGroup({node}, {namedGroupsInScopeByAlt}) {
+    const {name} = node;
+    let parentAlt = getParentAlternative(node);
+    const namedGroupsInScope = setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map());
+    if (namedGroupsInScope.has(name)) {
+      // Convert the earlier instance of this group name to an unnamed capturing group
+      delete namedGroupsInScope.get(name).name;
+    }
+    // Track the latest instance of this group name, and pass it up through parent alternatives
+    namedGroupsInScope.set(name, node);
+    while (parentAlt = getParentAlternative(parentAlt)) {
+      setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
+    }
   },
 
   CharacterSet({node, replaceWith}) {
@@ -112,7 +134,7 @@ const Visitor = {
     }
   },
 
-  Directive({node, parent, ast, key, container, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}, state) {
+  Directive({node, parent, key, container, ast, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}, state) {
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
       const flagGroup = createGroup({flags});
@@ -168,19 +190,19 @@ const Visitor = {
   },
 
   Pattern({node}) {
-    // For `\G` to be accurately convertable to JS flag y, it must be at the start of every
-    // top-level alternative and nowhere else. Additional `\G` error checking in the `Assertion`
-    // visitor
+    // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
+    // of every top-level alternative. Additional `\G` error checking in the `Assertion` visitor
     let hasAltWithLeadG = false;
     let hasAltWithoutLeadG = false;
     for (const alt of node.alternatives) {
-      // Move neighboring `\G` nodes in front of flag directives since flag directives nest all
-      // their following siblings into a flag group
+      // Move neighboring `\G` assertions in front of flag directives since `Assertion` only allows
+      // top-level `\G` but flag directives nest their following siblings into a flag group
       alt.elements.sort((a, b) => {
+        if (a.kind === AstAssertionKinds.search_start && b.kind === AstDirectiveKinds.flags) {
+          return -1;
+        }
         if (a.kind === AstDirectiveKinds.flags && b.kind === AstAssertionKinds.search_start) {
           return 1;
-        } else if (a.kind === AstAssertionKinds.search_start && b.kind === AstDirectiveKinds.flags) {
-          return -1;
         }
         return 0;
       });
@@ -224,7 +246,7 @@ function adoptAndReplaceKids(parent, kids) {
   } else if (parent.classes) {
     parent.classes = kids;
   } else {
-    throw new Error('Accessor unknown for child container');
+    throw new Error('Accessor for child container unknown');
   }
 }
 
@@ -252,6 +274,16 @@ function getFlagsFromFlagDirectives(flagDirectiveNodes) {
   return combinedFlags;
 }
 
+function getParentAlternative(node) {
+  // Skip past quantifiers, etc.
+  while (node = node.parent) {
+    if (node.type === AstTypes.Alternative) {
+      return node;
+    }
+  }
+  return null;
+}
+
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 function parseFragment(pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});
@@ -261,8 +293,12 @@ function parseFragment(pattern) {
     adoptAndReplaceKids(group, alts);
     return group;
   }
-  const node = alts[0].elements[0];
-  return node;
+  return alts[0].elements[0];
+}
+
+function setExistingOr(map, key, defaultValue) {
+  map.set(key, map.get(key) ?? defaultValue);
+  return map.get(key);
 }
 
 export {

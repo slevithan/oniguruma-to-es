@@ -18,9 +18,9 @@ function traverse(path, state = {}, visitor) {
     const path = {
       node,
       parent,
-      ast,
       key,
       container,
+      ast,
       remove() {
         throwIfNot(container, 'Container expected').splice(Math.max(0, key + keyShift), 1);
         keyShift -= 1;
