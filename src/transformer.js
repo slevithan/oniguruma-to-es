@@ -17,7 +17,7 @@ function transform(ast, options = {}) {
 
 const Visitor = {
   Alternative: {
-    enter: ({node, parent, key}, {flagDirectivesByAlt, namedGroupsInScopeByAlt}) => {
+    enter({node, parent, key}, {flagDirectivesByAlt, namedGroupsInScopeByAlt}) {
       // Look for own-level flag directives when entering an alternative because after traversing
       // the directive itself, any subsequent flag directives will no longer be at the same level
       const flagDirectives = [];
@@ -39,7 +39,7 @@ const Visitor = {
         namedGroupsInScopeByAlt.set(node, namedGroupsInScopeByAlt.get(parentAlt));
       }
     },
-    exit: ({node, parent}, {flagDirectivesByAlt}) => {
+    exit({node, parent}, {flagDirectivesByAlt}) {
       // Wait until exiting to wrap an alternative's nodes with flag groups that emulate flag
       // directives from prior sibling alternatives because doing this at the end allows inner
       // nodes to accurately check their level in the tree
@@ -51,7 +51,7 @@ const Visitor = {
         node.elements = [flagGroup];
       }
       flagDirectivesByAlt.delete(node); // Might as well clean up
-    }
+    },
   },
 
   Assertion({node, parent, key, ast, remove, replaceWith}) {
@@ -108,8 +108,13 @@ const Visitor = {
     }
     // Track the latest instance of this group name, and pass it up through parent alternatives
     namedGroupsInScope.set(name, node);
-    while (parentAlt = getParentAlternative(parentAlt)) {
-      setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
+    // Skip the immediate parent alt because we don't want subsequent sibling alts to consider
+    // named groups from their preceding siblings
+    parentAlt = getParentAlternative(parentAlt);
+    if (parentAlt) {
+      while (parentAlt = getParentAlternative(parentAlt)) {
+        setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
+      }
     }
   },
 
