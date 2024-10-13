@@ -6,18 +6,27 @@ import {r} from './utils.js';
 
 // Transform an Oniguruma AST in-place to a `regex` AST
 function transform(ast, options = {}) {
-  const state = {
+  const firstPassState = {
     allowBestEffort: !!options.allowBestEffort,
-    namedGroupsInScopeByAlt: new Map(),
     flagDirectivesByAlt: new Map(),
+    subroutineRefMap: new Map(),
   };
-  traverse({node: ast}, state, Visitor);
+  traverse({node: ast}, firstPassState, FirstPassVisitor);
+  // The interplay of subroutines (with Onig's unique rules and behavior for them) with duplicate
+  // group names (which might be indirectly referenced by subroutines), backref multiplexing (a
+  // unique Onig feature), flag modifiers, and nested subroutine refs is extremely complicated to
+  // emulate in JS in a way that perfectly handles all edge cases, so we need a second and third
+  // pass to do it. See comments in the parser for details of Onig's subroutine behavior
+  const secondPassState = {
+    namedGroupsInScopeByAlt: new Map(),
+  };
+  traverse({node: ast}, secondPassState, SecondPassVisitor);
   return ast;
 }
 
-const Visitor = {
+const FirstPassVisitor = {
   Alternative: {
-    enter({node, parent, key}, {flagDirectivesByAlt, namedGroupsInScopeByAlt}) {
+    enter({node, parent, key}, {flagDirectivesByAlt}) {
       // Look for own-level flag directives when entering an alternative because after traversing
       // the directive itself, any subsequent flag directives will no longer be at the same level
       const flagDirectives = [];
@@ -30,13 +39,6 @@ const Visitor = {
       for (let i = key + 1; i < parent.alternatives.length; i++) {
         const forwardSiblingAlt = parent.alternatives[i];
         setExistingOr(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
-      }
-      // JS requires group names to be unique per alternation (which includes alternations in
-      // nested groups), so pass down the current names used within this alternation to nested
-      // alternations for handling within the `CapturingGroup` visitor
-      const parentAlt = getParentAlternative(node);
-      if (parentAlt) {
-        namedGroupsInScopeByAlt.set(node, namedGroupsInScopeByAlt.get(parentAlt));
       }
     },
     exit({node, parent}, {flagDirectivesByAlt}) {
@@ -83,39 +85,11 @@ const Visitor = {
 
   Backreference(path) {
     // TODO: multiplexing
-    // Transform the interaction of subroutines and backref multiplexing when you encounter a backref:
-    // - Get all groups of that name/number to the left, and all subroutines to the left, combined together in the order they appear
-    // - Create a array for multiplex capture numbers
-    // - Iterate over the combined array of capturing groups and subroutines
-    // - If a group, add a new number for it to the multiplex array
-    // - If a subroutine that references the backreffed capture, replace the multiple number for it
-    // - If any other subroutine, traverse its contents to see if it contains a nested copy of the backreffed capture
-    //   - If so, replace the multiplex number for the group whose (multi-level) parent the subroutine references
-    // But since this is complicated and only important for extreme edge cases (the intersection of backref multiplexing, subroutines, duplicate group names, and those duplicate group names not being directly referenced by subroutines), start by having the transformer do something simpler:
-    // - Track the subroutines and capturing groups encountered to the left
-    // - When you encounter a backref:
-    //   - If there is a subroutine for the same group to the left, only use the most recent capturing group or subroutine's generated group number
-    //   - Else, multiplex all the preceding groups of that name
   },
 
-  CapturingGroup({node}, {namedGroupsInScopeByAlt}) {
-    const {name} = node;
-    let parentAlt = getParentAlternative(node);
-    const namedGroupsInScope = setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map());
-    if (namedGroupsInScope.has(name)) {
-      // Convert the earlier instance of this group name to an unnamed capturing group
-      delete namedGroupsInScope.get(name).name;
-    }
-    // Track the latest instance of this group name, and pass it up through parent alternatives
-    namedGroupsInScope.set(name, node);
-    // Skip the immediate parent alt because we don't want subsequent sibling alts to consider
-    // named groups from their preceding siblings
-    parentAlt = getParentAlternative(parentAlt);
-    if (parentAlt) {
-      while (parentAlt = getParentAlternative(parentAlt)) {
-        setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
-      }
-    }
+  CapturingGroup({node}, {subroutineRefMap}) {
+    const {name, number} = node;
+    subroutineRefMap.set(name ?? number, node);
   },
 
   CharacterSet({node, replaceWith}) {
@@ -150,7 +124,7 @@ const Visitor = {
         parent,
         key,
         container,
-      }, state, Visitor);
+      }, state, FirstPassVisitor);
     } else if (kind === AstDirectiveKinds.keep) {
       // Allows multiple `\K`s since the the node is removed
       if (parent.parent !== ast.pattern || ast.pattern.alternatives.length > 1) {
@@ -194,7 +168,9 @@ const Visitor = {
     };
   },
 
-  Pattern({node}) {
+  Pattern({node}, {subroutineRefMap}) {
+    // Used for `\g<0>` recursion of the entire pattern
+    subroutineRefMap.set(0, node);
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative. Additional `\G` error checking in the `Assertion` visitor
     let hasAltWithLeadG = false;
@@ -237,6 +213,41 @@ const Visitor = {
       replaceWith(parseFragment(r`(?>\P{M}\p{M}*)`));
     } else if (kind === AstVariableLengthCharacterSetKinds.newline) {
       replaceWith(parseFragment(r`(?>\r\n?|[\n\v\f\x85\u2028\u2029])`));
+    }
+  },
+};
+
+const SecondPassVisitor = {
+  Alternative({node}, {namedGroupsInScopeByAlt}) {
+    // JS requires group names to be unique per alternation (which includes alternations in
+    // nested groups), so pass down the current names used within this alternation to nested
+    // alternations for handling within the `CapturingGroup` visitor
+    const parentAlt = getParentAlternative(node);
+    if (parentAlt) {
+      namedGroupsInScopeByAlt.set(node, namedGroupsInScopeByAlt.get(parentAlt));
+    }
+  },
+
+  CapturingGroup({node}, {namedGroupsInScopeByAlt}) {
+    const {name} = node;
+    // JS requires group names to be unique per alternation (which includes alternations in
+    // nested groups), so if using a duplicate name for this alternation path, keep the name only
+    // on the last instance
+    let parentAlt = getParentAlternative(node);
+    const namedGroupsInScope = setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map());
+    if (namedGroupsInScope.has(name)) {
+      // Change the earlier instance of this group name to an unnamed capturing group
+      delete namedGroupsInScope.get(name).name;
+    }
+    // Track the latest instance of this group name, and pass it up through parent alternatives
+    namedGroupsInScope.set(name, node);
+    // Skip the immediate parent alt because we don't want subsequent sibling alts to consider
+    // named groups from their preceding siblings
+    parentAlt = getParentAlternative(parentAlt);
+    if (parentAlt) {
+      while (parentAlt = getParentAlternative(parentAlt)) {
+        setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
+      }
     }
   },
 };
