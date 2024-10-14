@@ -17,7 +17,7 @@ function transform(ast, options = {}) {
   // parser for details) with backref multiplexing (a unique Onig feature), flag modifiers, and
   // duplicate group names (which might be indirectly referenced by subroutines even though
   // subroutines can't directly reference duplicate names) is extremely complicated to emulate in
-  // JS in a way that perfectly handles all edge cases, so we need multiple passes to do it
+  // JS in a way that handles all edge cases, so we need multiple passes to do it
   const secondPassState = {
     groupsWithDuplicateNamesToRemove: new Set(),
     multiplexCapturesToLeftByRef: new Map(),
@@ -42,31 +42,23 @@ const FirstPassVisitor = {
     enter({node, parent, key}, {flagDirectivesByAlt}) {
       // Look for own-level flag directives when entering an alternative because after traversing
       // the directive itself, any subsequent flag directives will no longer be at the same level
-      const flagDirectives = [];
-      for (let i = 0; i < node.elements.length; i++) {
-        const child = node.elements[i];
-        if (child.kind === AstDirectiveKinds.flags) {
-          flagDirectives.push(child);
-        }
-      }
+      const flagDirectives = node.elements.filter(el => el.kind === AstDirectiveKinds.flags);
       for (let i = key + 1; i < parent.alternatives.length; i++) {
         const forwardSiblingAlt = parent.alternatives[i];
         getOrCreate(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
       }
     },
-    exit({node, parent}, {flagDirectivesByAlt}) {
-      // Wait until exiting to wrap an alternative's nodes with flag groups that emulate flag
+    exit({node}, {flagDirectivesByAlt}) {
+      // Wait until exiting to wrap an alternative's nodes with flag groups that extend flag
       // directives from prior sibling alternatives because doing this at the end allows inner
       // nodes to accurately check their level in the tree
       if (flagDirectivesByAlt.get(node)?.length) {
         const flags = getCombinedFlagsFromFlagNodes(flagDirectivesByAlt.get(node));
-        const flagGroup = createGroup({flags});
+        const flagGroup = prepContainer(createGroup({flags}), node.elements);
         // Manually set the parent since we're not using `replaceWith`
-        flagGroup.parent = parent;
-        adoptAndReplaceKids(flagGroup.alternatives[0], node.elements);
+        flagGroup.parent = node;
         node.elements = [flagGroup];
       }
-      flagDirectivesByAlt.delete(node); // Might as well clean up
     },
   },
 
@@ -126,9 +118,8 @@ const FirstPassVisitor = {
   Directive({node, parent, key, container, ast, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}, state) {
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
-      const flagGroup = createGroup({flags});
+      const flagGroup = prepContainer(createGroup({flags}), removeAllNextSiblings());
       replaceWith(flagGroup);
-      adoptAndReplaceKids(flagGroup.alternatives[0], removeAllNextSiblings());
       traverse({
         node: flagGroup,
         parent,
@@ -142,9 +133,7 @@ const FirstPassVisitor = {
         // Ex: `ab\Kc|a` is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
         throw new Error(r`Uses "\K" in an unsupported way`);
       }
-      const lookbehind = createLookaround({behind: true});
-      replaceWith(lookbehind);
-      adoptAndReplaceKids(lookbehind.alternatives[0], removeAllPrevSiblings());
+      replaceWith(prepContainer(createLookaround({behind: true}), removeAllPrevSiblings()));
     }
   },
 
@@ -247,7 +236,8 @@ const SecondPassVisitor = {
     // [Part 1]: Track data for backref multiplexing
     const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, name ?? number, []);
     let originNode = node;
-    if (topLevelSubroutineReffedNode) { // In subroutine
+    // Within a subroutine expansion
+    if (topLevelSubroutineReffedNode) {
       for (let i = 0; i < multiplexNodes.length; i++) {
         // Captures added via subroutine expansion (possibly indirectly because they were child
         // captures of the reffed group, or added via a nested subroutine expansion) form a set
@@ -256,7 +246,7 @@ const SecondPassVisitor = {
         // already-tracked multiplexed nodes for this name or number, if there is a node being
         // replaced by this capture, remove it
         if (isSelfOrDescendantOf(multiplexNodes[i].originNode, topLevelSubroutineReffedNode)) {
-          // Preserve the origin node in case this gets replaced multiple times by subroutines
+          // Preserve the origin node in case this gets replaced again via a subroutine
           originNode = multiplexNodes[i].originNode;
           multiplexNodes.splice(i, 1);
           break;
@@ -303,9 +293,12 @@ const SecondPassVisitor = {
         const flags = getCombinedFlagsFromFlagNodes(getAllParents(reffedGroupNode, node => {
           return node.type === AstTypes.Group && !!node.flags;
         }));
+        // TODO: Avoid if flags are the same as the currently active flag groups
+        // TODO: When there aren't mods affecting the reffed group and need to disable currently active flags to match
         if (flags) {
-          const flagGroup = createGroup({flags});
-          adoptAndReplaceKids(flagGroup.alternatives[0], [expandedSubroutine]);
+          const flagGroup = prepContainer(createGroup({flags}), [expandedSubroutine]);
+          // Start traversal at the flag group wrapper so the logic for stripping duplicate names
+          // propagates through its alternative
           expandedSubroutine = flagGroup;
         }
       }
@@ -333,8 +326,8 @@ const ThirdPassVisitor = {
   CapturingGroup({node}, state) {
     // Recalculate the number since the current value might be wrong due to subroutine expansion
     node.number = ++state.numCapturesToLeft;
-    // Doing this here rather than in a previous pass avoids added complexity when handling
-    // subroutine expansion and backref multiplexing
+    // Removing duplicate names here rather than in an earlier pass avoids extra complexity when
+    // handling subroutine expansion and backref multiplexing
     if (state.groupsWithDuplicateNamesToRemove.has(node)) {
       delete node.name;
     }
@@ -347,29 +340,20 @@ const ThirdPassVisitor = {
     // by the generator (depending on options) if they're duplicates within the overall pattern.
     // Backrefs must come after groups they ref, so reffed node `number`s are already recalculated
     if (refNodes.length > 1) {
-      const alts = refNodes.map(reffedGroupNode => adoptAndReplaceKids(
+      const alts = refNodes.map(reffedGroupNode => adoptAndSwapKids(
         createAlternative(),
         [createBackreference(reffedGroupNode.number)]
       ));
-      replaceWith(adoptAndReplaceKids(createGroup(), alts));
+      replaceWith(adoptAndSwapKids(createGroup(), alts));
     } else {
       node.ref = refNodes[0].number;
     }
   },
 };
 
-// Abandon current children if any; adopt new
-function adoptAndReplaceKids(parent, kids) {
+function adoptAndSwapKids(parent, kids) {
   kids.forEach(kid => kid.parent = parent);
-  if (parent.alternatives) {
-    parent.alternatives = kids;
-  } else if (parent.elements) {
-    parent.elements = kids;
-  } else if (parent.classes) {
-    parent.classes = kids;
-  } else {
-    throw new Error('Accessor for child container unknown');
-  }
+  parent[getChildContainerAccessor(parent)] = kids;
   return parent;
 }
 
@@ -388,6 +372,19 @@ function getAllParents(node, filterFn) {
     };
   }
   return results;
+}
+
+function getChildContainerAccessor(node) {
+  if (node.alternatives) {
+    return 'alternatives';
+  }
+  if (node.elements) {
+    return 'elements';
+  }
+  if (node.classes) {
+    return 'classes';
+  }
+  throw new Error('Accessor for child container unknown');
 }
 
 function getCombinedFlagsFromFlagNodes(flagNodes) {
@@ -441,9 +438,19 @@ function parseFragment(pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
-    return adoptAndReplaceKids(createGroup(), alts);;
+    return adoptAndSwapKids(createGroup(), alts);;
   }
   return alts[0].elements[0];
+}
+
+function prepContainer(node, kids) {
+  const accessor = getChildContainerAccessor(node);
+  // Set the parent for the default container of a new node
+  node[accessor][0].parent = node;
+  if (kids) {
+    adoptAndSwapKids(node[accessor][0], kids);
+  }
+  return node;
 }
 
 export {
