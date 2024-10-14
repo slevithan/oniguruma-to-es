@@ -1,26 +1,39 @@
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createGroup, createLookaround, createUnicodeProperty, parse} from './parser.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 import {traverse} from './traverser.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
-import {r} from './utils.js';
+import {getOrCreate, r} from './utils.js';
 
 // Transform an Oniguruma AST in-place to a `regex` AST
 function transform(ast, options = {}) {
   const firstPassState = {
     allowBestEffort: !!options.allowBestEffort,
     flagDirectivesByAlt: new Map(),
+    // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
   };
   traverse({node: ast}, firstPassState, FirstPassVisitor);
-  // The interplay of subroutines (with Onig's unique rules and behavior for them) with duplicate
-  // group names (which might be indirectly referenced by subroutines), backref multiplexing (a
-  // unique Onig feature), flag modifiers, and nested subroutine refs is extremely complicated to
-  // emulate in JS in a way that perfectly handles all edge cases, so we need a second and third
-  // pass to do it. See comments in the parser for details of Onig's subroutine behavior
+  // The interplay of subroutines (with Onig's unique rules/behavior for them; see comments in the
+  // parser for details) with backref multiplexing (a unique Onig feature), flag modifiers, and
+  // duplicate group names (which might be indirectly referenced by subroutines even though
+  // subroutines can't directly reference duplicate names) is extremely complicated to emulate in
+  // JS in a way that perfectly handles all edge cases, so we need multiple passes to do it
   const secondPassState = {
+    groupsWithDuplicateNamesToRemove: new Set(),
+    multiplexCapturesToLeftByRef: new Map(),
     namedGroupsInScopeByAlt: new Map(),
+    openSubroutineRefs: new Set([0]),
+    reffedNodesByBackreference: new Map(),
+    subroutineRefMap: firstPassState.subroutineRefMap,
+    topLevelSubroutineReffedNode: null,
   };
   traverse({node: ast}, secondPassState, SecondPassVisitor);
+  const thirdPassState = {
+    groupsWithDuplicateNamesToRemove: secondPassState.groupsWithDuplicateNamesToRemove,
+    numCapturesToLeft: 0,
+    reffedNodesByBackreference: secondPassState.reffedNodesByBackreference,
+  };
+  traverse({node: ast}, thirdPassState, ThirdPassVisitor);
   return ast;
 }
 
@@ -38,7 +51,7 @@ const FirstPassVisitor = {
       }
       for (let i = key + 1; i < parent.alternatives.length; i++) {
         const forwardSiblingAlt = parent.alternatives[i];
-        setExistingOr(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
+        getOrCreate(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
       }
     },
     exit({node, parent}, {flagDirectivesByAlt}) {
@@ -46,8 +59,9 @@ const FirstPassVisitor = {
       // directives from prior sibling alternatives because doing this at the end allows inner
       // nodes to accurately check their level in the tree
       if (flagDirectivesByAlt.get(node)?.length) {
-        const flags = getFlagsFromFlagDirectives(flagDirectivesByAlt.get(node));
+        const flags = getCombinedFlagsFromFlagNodes(flagDirectivesByAlt.get(node));
         const flagGroup = createGroup({flags});
+        // Manually set the parent since we're not using `replaceWith`
         flagGroup.parent = parent;
         adoptAndReplaceKids(flagGroup.alternatives[0], node.elements);
         node.elements = [flagGroup];
@@ -83,10 +97,6 @@ const FirstPassVisitor = {
     // on `multiline` to match Onig's behavior for `^` and `$`
   },
 
-  Backreference(path) {
-    // TODO: multiplexing
-  },
-
   CapturingGroup({node}, {subroutineRefMap}) {
     const {name, number} = node;
     subroutineRefMap.set(name ?? number, node);
@@ -117,8 +127,8 @@ const FirstPassVisitor = {
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
       const flagGroup = createGroup({flags});
-      adoptAndReplaceKids(flagGroup.alternatives[0], removeAllNextSiblings());
       replaceWith(flagGroup);
+      adoptAndReplaceKids(flagGroup.alternatives[0], removeAllNextSiblings());
       traverse({
         node: flagGroup,
         parent,
@@ -168,9 +178,7 @@ const FirstPassVisitor = {
     };
   },
 
-  Pattern({node}, {subroutineRefMap}) {
-    // Used for `\g<0>` recursion of the entire pattern
-    subroutineRefMap.set(0, node);
+  Pattern({node}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative. Additional `\G` error checking in the `Assertion` visitor
     let hasAltWithLeadG = false;
@@ -198,10 +206,6 @@ const FirstPassVisitor = {
     }
   },
 
-  Subroutine(path) {
-    // TODO
-  },
-
   VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort}) {
     const {kind} = node;
     if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
@@ -219,35 +223,137 @@ const FirstPassVisitor = {
 
 const SecondPassVisitor = {
   Alternative({node}, {namedGroupsInScopeByAlt}) {
-    // JS requires group names to be unique per alternation (which includes alternations in
-    // nested groups), so pass down the current names used within this alternation to nested
-    // alternations for handling within the `CapturingGroup` visitor
     const parentAlt = getParentAlternative(node);
     if (parentAlt) {
-      namedGroupsInScopeByAlt.set(node, namedGroupsInScopeByAlt.get(parentAlt));
+      // JS requires group names to be unique per alternation path (which includes alternations in
+      // nested groups), so pull down the names already used within this alternation path to this
+      // nested alternative for handling within the `CapturingGroup` visitor
+      const groups = namedGroupsInScopeByAlt.get(parentAlt);
+      if (groups) {
+        namedGroupsInScopeByAlt.set(node, groups);
+      }
     }
   },
 
-  CapturingGroup({node}, {namedGroupsInScopeByAlt}) {
-    const {name} = node;
-    // JS requires group names to be unique per alternation (which includes alternations in
-    // nested groups), so if using a duplicate name for this alternation path, keep the name only
-    // on the last instance
-    let parentAlt = getParentAlternative(node);
-    const namedGroupsInScope = setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map());
-    if (namedGroupsInScope.has(name)) {
-      // Change the earlier instance of this group name to an unnamed capturing group
-      delete namedGroupsInScope.get(name).name;
-    }
-    // Track the latest instance of this group name, and pass it up through parent alternatives
-    namedGroupsInScope.set(name, node);
-    // Skip the immediate parent alt because we don't want subsequent sibling alts to consider
-    // named groups from their preceding siblings
-    parentAlt = getParentAlternative(parentAlt);
-    if (parentAlt) {
-      while (parentAlt = getParentAlternative(parentAlt)) {
-        setExistingOr(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
+  Backreference({node}, {multiplexCapturesToLeftByRef, reffedNodesByBackreference}) {
+    const {ref} = node;
+    // Copy the current state for later multiplexing expansion. It's done in a subsequent pass
+    // because backref numbers need to be recalculated after subroutine expansion
+    reffedNodesByBackreference.set(node, [...multiplexCapturesToLeftByRef.get(ref).map(({node}) => node)]);
+  },
+
+  CapturingGroup({node}, {groupsWithDuplicateNamesToRemove, multiplexCapturesToLeftByRef, namedGroupsInScopeByAlt, topLevelSubroutineReffedNode}) {
+    const {name, number} = node;
+    // [Part 1]: Track data for backref multiplexing
+    const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, name ?? number, []);
+    let originNode = node;
+    if (topLevelSubroutineReffedNode) { // In subroutine
+      for (let i = 0; i < multiplexNodes.length; i++) {
+        // Captures added via subroutine expansion (possibly indirectly because they were child
+        // captures of the reffed group, or added via a nested subroutine expansion) form a set
+        // with the original group reffed and any copies of it added via subroutines. Only the most
+        // recently matched within this set is added to backref multiplexing. So in the list of
+        // already-tracked multiplexed nodes for this name or number, if there is a node being
+        // replaced by this capture, remove it
+        if (isSelfOrDescendantOf(multiplexNodes[i].originNode, topLevelSubroutineReffedNode)) {
+          // Preserve the origin node in case this gets replaced multiple times by subroutines
+          originNode = multiplexNodes[i].originNode;
+          multiplexNodes.splice(i, 1);
+          break;
+        }
       }
+    }
+    // Could be an original group node or a copy added via subroutine expansion
+    multiplexNodes.push({node, originNode});
+    // [Part 2]: Track data for duplicate names within an alternation path
+    // JS requires group names to be unique per alternation path (which includes alternations in
+    // nested groups), so if using a duplicate name for this alternation path, remove the name from
+    // all but the latest instance (also applies to groups added via subroutine expansion)
+    if (name) {
+      let parentAlt = getParentAlternative(node);
+      const namedGroupsInScope = getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map());
+      if (namedGroupsInScope.has(name)) {
+        // Change the earlier instance of this group name to an unnamed capturing group
+        groupsWithDuplicateNamesToRemove.add(namedGroupsInScope.get(name));
+      }
+      // Track the latest instance of this group name, and pass it up through parent alternatives
+      namedGroupsInScope.set(name, node);
+      // Skip the immediate parent alt because we don't want subsequent sibling alts to consider
+      // named groups from their preceding siblings
+      parentAlt = getParentAlternative(parentAlt);
+      if (parentAlt) {
+        while (parentAlt = getParentAlternative(parentAlt)) {
+          getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
+        }
+      }
+    }
+  },
+
+  Subroutine: {
+    enter({node, parent, key, container, replaceWith}, state) {
+      const {openSubroutineRefs, subroutineRefMap} = state;
+      const {ref} = node;
+      const reffedGroupNode = subroutineRefMap.get(ref);
+      let expandedSubroutine = openSubroutineRefs.has(ref) ?
+        createRecursion(ref) :
+        // The reffed group might itself contain subroutines, which aren't expanded here (yet)
+        structuredClone(reffedGroupNode);
+      if (ref !== 0) {
+        // Subroutines take their flags from the reffed group, not the flags surrounding themselves
+        const flags = getCombinedFlagsFromFlagNodes(getAllParents(reffedGroupNode, node => {
+          return node.type === AstTypes.Group && !!node.flags;
+        }));
+        if (flags) {
+          const flagGroup = createGroup({flags});
+          adoptAndReplaceKids(flagGroup.alternatives[0], [expandedSubroutine]);
+          expandedSubroutine = flagGroup;
+        }
+      }
+      replaceWith(expandedSubroutine);
+      openSubroutineRefs.add(ref);
+      traverse(
+        { node: expandedSubroutine,
+          parent,
+          key,
+          container,
+        },
+        { ...state,
+          topLevelSubroutineReffedNode: state.topLevelSubroutineReffedNode ?? reffedGroupNode,
+        },
+        SecondPassVisitor
+      );
+    },
+    exit({node}, {openSubroutineRefs}) {
+      openSubroutineRefs.delete(node.ref);
+    },
+  },
+};
+
+const ThirdPassVisitor = {
+  CapturingGroup({node}, state) {
+    // Recalculate the number since the current value might be wrong due to subroutine expansion
+    node.number = ++state.numCapturesToLeft;
+    // Doing this here rather than in a previous pass avoids added complexity when handling
+    // subroutine expansion and backref multiplexing
+    if (state.groupsWithDuplicateNamesToRemove.has(node)) {
+      delete node.name;
+    }
+  },
+
+  Backreference({node, replaceWith}, {reffedNodesByBackreference}) {
+    const refNodes = reffedNodesByBackreference.get(node);
+    // For the backref's `ref`, use `number` rather than `name` because group names might have been
+    // removed if they're duplicates within their alternation path, or they might be removed later
+    // by the generator (depending on options) if they're duplicates within the overall pattern.
+    // Backrefs must come after groups they ref, so reffed node `number`s are already recalculated
+    if (refNodes.length > 1) {
+      const alts = refNodes.map(reffedGroupNode => adoptAndReplaceKids(
+        createAlternative(),
+        [createBackreference(reffedGroupNode.number)]
+      ));
+      replaceWith(adoptAndReplaceKids(createGroup(), alts));
+    } else {
+      node.ref = refNodes[0].number;
     }
   },
 };
@@ -264,19 +370,37 @@ function adoptAndReplaceKids(parent, kids) {
   } else {
     throw new Error('Accessor for child container unknown');
   }
+  return parent;
 }
 
-function getFlagsFromFlagDirectives(flagDirectiveNodes) {
+function createRecursion(ref) {
+  return {
+    type: AstTypes.Recursion,
+    ref,
+  };
+}
+
+function getAllParents(node, filterFn) {
+  const results = [];
+  while (node = node.parent) {
+    if (!filterFn || filterFn(node)) {
+      results.push(node);
+    };
+  }
+  return results;
+}
+
+function getCombinedFlagsFromFlagNodes(flagNodes) {
   const flagProps = ['dotAll', 'ignoreCase'];
   const combinedFlags = {enable: {}, disable: {}};
-  flagDirectiveNodes.forEach(({flags}) => {
+  flagNodes.forEach(({flags}) => {
     flagProps.forEach(prop => {
-      if (flags?.enable?.[prop]) {
-        // Disabled flags take precedence
+      if (flags.enable?.[prop]) {
+        // Need to remove `disable` since disabled flags take precedence
         delete combinedFlags.disable[prop];
         combinedFlags.enable[prop] = true;
       }
-      if (flags?.disable?.[prop]) {
+      if (flags.disable?.[prop]) {
         combinedFlags.disable[prop] = true;
       }
     });
@@ -287,7 +411,10 @@ function getFlagsFromFlagDirectives(flagDirectiveNodes) {
   if (!Object.keys(combinedFlags.disable).length) {
     delete combinedFlags.disable;
   }
-  return combinedFlags;
+  if (combinedFlags.enable || combinedFlags.disable) {
+    return combinedFlags;
+  }
+  return null;
 }
 
 function getParentAlternative(node) {
@@ -300,21 +427,23 @@ function getParentAlternative(node) {
   return null;
 }
 
+function isSelfOrDescendantOf(node, potentialAncestor) {
+  do {
+    if (node === potentialAncestor) {
+      return true;
+    }
+  } while (node = node.parent);
+  return false;
+}
+
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 function parseFragment(pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
-    const group = createGroup();
-    adoptAndReplaceKids(group, alts);
-    return group;
+    return adoptAndReplaceKids(createGroup(), alts);;
   }
   return alts[0].elements[0];
-}
-
-function setExistingOr(map, key, defaultValue) {
-  map.set(key, map.get(key) ?? defaultValue);
-  return map.get(key);
 }
 
 export {

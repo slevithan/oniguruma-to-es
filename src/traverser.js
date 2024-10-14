@@ -2,11 +2,8 @@ import {AstAssertionKinds, AstTypes} from './parser.js';
 import {throwIfNot} from './utils.js';
 
 function traverse(path, state = {}, visitor) {
-  let top = path.node;
-  while (top.parent) {
-    top = top.parent;
-  }
-  const ast = top;
+  let ast = path.node;
+  while (ast = ast.parent) {}
   function traverseArray(array, parent) {
     for (let i = 0; i < array.length; i++) {
       const keyShift = traverseNode(array[i], parent, i, array);
@@ -61,6 +58,7 @@ function traverse(path, state = {}, visitor) {
       case AstTypes.CharacterSet:
       case AstTypes.Directive:
       case AstTypes.Flags:
+      case AstTypes.Recursion:
       case AstTypes.Subroutine:
       case AstTypes.VariableLengthCharacterSet:
         break;

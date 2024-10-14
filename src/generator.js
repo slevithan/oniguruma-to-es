@@ -16,3 +16,6 @@
 // function charHasCase(char) {
 //   return /^\p{Cased}$/u.test(char);
 // }
+
+// Special case for `\p{Any}` to `[^]` since the former is used when parsing fragments in the
+// transformer (since the parser follows Onig rules and doesn't allow empty char classes)

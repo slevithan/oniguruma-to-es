@@ -1,3 +1,10 @@
+function getOrCreate(map, key, defaultValue) {
+  if (!map.has(key)) {
+    map.set(key, defaultValue);
+  }
+  return map.get(key);
+}
+
 const r = String.raw;
 
 function throwIfNot(value, msg) {
@@ -8,6 +15,7 @@ function throwIfNot(value, msg) {
 }
 
 export {
+  getOrCreate,
   r,
   throwIfNot,
 };

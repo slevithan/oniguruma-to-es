@@ -1,7 +1,7 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
 import {traverse} from './traverser.js';
 import {JsUnicodePropertiesMap, PosixProperties, slug} from './unicode.js';
-import {r, throwIfNot} from './utils.js';
+import {getOrCreate, r, throwIfNot} from './utils.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -21,6 +21,8 @@ const AstTypes = {
   Regex: 'Regex',
   Subroutine: 'Subroutine',
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
+  // Used only by the transformer for `regex` ASTs
+  Recursion: 'Recursion',
 };
 
 const AstAssertionKinds = {
@@ -112,7 +114,7 @@ function parse({tokens, flags}, {optimize} = {}) {
   for (const {ref} of subroutines) {
     if (typeof ref === 'number') {
       // Relative nums are already resolved
-      if (ref < 1 || ref > capturingGroups.length) {
+      if (ref < 0 || ref > capturingGroups.length) {
         throw new Error('Subroutine uses a group number that is not defined');
       }
     } else if (!namedGroupsByName.has(ref)) {
@@ -149,12 +151,12 @@ function parseBackreference(context) {
   const hasKWrapper = /^\\k[<']/.test(raw);
   const ref = hasKWrapper ? raw.slice(3, -1) : raw.slice(1);
   const fromNum = (num, isRelative = false) => {
-    const numCapsToLeft = context.capturingGroups.length;
-    if (num > numCapsToLeft) {
+    const numCapturesToLeft = context.capturingGroups.length;
+    if (num > numCapturesToLeft) {
       throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
     }
     context.hasNumberedRef = true;
-    return createBackreference(isRelative ? numCapsToLeft + 1 - num : num);
+    return createBackreference(isRelative ? numCapturesToLeft + 1 - num : num);
   };
   if (hasKWrapper) {
     const numberedRef = /^(?<sign>-?)0*(?<num>[1-9]\d*)$/.exec(ref);
@@ -235,10 +237,7 @@ function parseGroupOpen(context, state) {
   if (node.type === AstTypes.CapturingGroup) {
     capturingGroups.push(node);
     if (node.name) {
-      if (!namedGroupsByName.has(node.name)) {
-        namedGroupsByName.set(node.name, []);
-      }
-      namedGroupsByName.get(node.name).push(node);
+      getOrCreate(namedGroupsByName, node.name, []).push(node);
     }
   }
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
@@ -285,11 +284,13 @@ function parseQuantifier(context) {
 // Onig subroutine behavior:
 // - Subroutines can appear before the groups they reference; ex: `\g<1>(a)` is valid.
 // - Multiple subroutines can reference the same group.
+// - Subroutines can reference groups that themselves contain subroutines, followed to any depth.
+// - Subroutines can be used recursively, and `\g<0>` recursively references the whole pattern.
 // - Subroutines can use relative references (backward or forward); ex: `\g<+1>(.)\g<-1>`.
 // - Subroutines don't get their own capturing group numbers; ex: `(.)\g<1>\2` is invalid.
 // - Subroutines use the flags that apply to their referenced group, so e.g.
 //   `(?-i)(?<a>a)(?i)\g<a>` is fully case sensitive.
-// - Differences from PCRE/Perl/regex subroutines:
+// - Differences from PCRE/Perl/`regex` subroutines:
 //   - Subroutines can't reference duplicate group names (though duplicate names are valid if no
 //     subroutines reference them).
 //   - Subroutines can't use absolute or relative numbers if named capture is used anywhere.
@@ -314,13 +315,16 @@ function parseSubroutine(context) {
   const numberedRef = /^(?<sign>[-+]?)0*(?<num>[1-9]\d*)$/.exec(ref);
   if (numberedRef) {
     const num = +numberedRef.groups.num;
-    const numCapsToLeft = capturingGroups.length;
+    const numCapturesToLeft = capturingGroups.length;
     context.hasNumberedRef = true;
     ref = {
       '': num,
-      '+': numCapsToLeft + num,
-      '-': numCapsToLeft + 1 - num,
+      '+': numCapturesToLeft + num,
+      '-': numCapturesToLeft + 1 - num,
     }[numberedRef.groups.sign];
+  // Special case for full-pattern recursion; can't be `+0`, `-0`, `00`, etc.
+  } else if (ref === '0') {
+    ref = 0;
   }
   const node = createSubroutine(ref);
   subroutines.push(node);
@@ -633,6 +637,8 @@ export {
   AstDirectiveKinds,
   AstTypes,
   AstVariableLengthCharacterSetKinds,
+  createAlternative,
+  createBackreference,
   createGroup,
   createLookaround,
   createUnicodeProperty,
