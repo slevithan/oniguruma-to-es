@@ -431,10 +431,10 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   if (raw === '\\') {
     throw new Error(r`Incomplete escape "\"`);
   }
-  // Meta char `\M-x` and `\M-\C-x` are unsupported for now; avoid treating as an identity escape
+  // Meta `\M-x` and meta control char `\M-\C-x` are unsupported; avoid treating as an identity escape
   if (char1 === 'M') {
-    // TODO: This can be supported relatively easily
-    throw new Error(`Unsupported escape "${raw}"`);
+    // TODO: This can be supported fairly easily
+    throw new Error(`Unsupported meta escape "${raw}"`);
   }
   // Identity escape
   if (raw.length === 2) {
@@ -458,8 +458,8 @@ function createTokenForControlChar(raw) {
   const char = raw[1] === 'c' ? raw[2] : raw[3];
   if (!char || !/[a-zA-Z]/.test(char)) {
     // Unlike JS, Onig allows any char to follow `\c` (with special conversion rules), but this is
-    // an extreme edge case so it's unsupported for now
-    // TODO: This can be supported relatively easily
+    // an extreme edge case
+    // TODO: This can be supported fairly easily
     throw new Error(`Unsupported control character "${raw}"`);
   }
   return createToken(TokenTypes.Character, raw, {
