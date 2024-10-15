@@ -6,8 +6,11 @@ This is an in-development [Oniguruma](https://github.com/kkos/oniguruma) to nati
 
 ## Compatibility
 
-oniguruma-to-es relies on JavaScript's regex `v` (`unicodeSets`) flag, which is supported by Node.js 20 and all major 2023-era browsers ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
+oniguruma-to-es allows a transpilation target of ES2018, ES2024, or ESNext.
+
+- Using ES2024 or later as the target relies on JavaScript's regex `v` flag (`unicodeSets`), which is supported by Node.js 20 and all major 2023-era browsers ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
+- ESNext allows the output to use flag modifier groups and duplicate capturing group names that are unique per alternation path. These features are not yet supported in Node.js as of 22.9, but are supported in the latest versions of most browsers (the exception being that Safari doesn't yet support flag modifier groups).
 
 ## Similar projects
 
-[jaynetics/js_regex](https://github.com/jaynetics/js_regex) transpiles Onigmo regexes to JavaScript, but it is written in Ruby and relies on Ruby's built-in Onigmo syntax parser. Thus it can only pre-transpile regexes. (Onigmo is a fork of Oniguruma that's used by Ruby.) In contrast, oniguruma-to-es's transpilation runs fully in JavaScript, so it can be used at runtime.
+[jaynetics/js_regex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). It's written in Ruby and relies on Ruby's Onigmo parser, which means it can only pre-transpile regexes for use in JavaScript. In contrast, oniguruma-to-es runs fully in JavaScript, so it can be used at runtime.

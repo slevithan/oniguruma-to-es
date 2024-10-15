@@ -5,7 +5,9 @@ import {r} from './utils.js';
 // remain lightweight, this library assumes properties not in this list are Unicode script names
 // (which require a `Script=` or `sc=` prefix in JS). Unlike JS, Oniguruma doesn't support script
 // extensions, and it supports some properties that aren't supported in JS (including blocks with
-// an `In_` prefix). See <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
+// an `In_` prefix). See also:
+// - Properties supported in Oniguruma: <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
+// - Properties supported in JS by spec version: <https://github.com/eslint-community/regexpp/blob/main/src/unicode/properties.ts>
 const JsUnicodeProperties = new Set([
   // ES2024 general categories and their aliases; all are supported by Oniguruma
   // See <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
@@ -110,6 +112,22 @@ for (const p of JsUnicodeProperties) {
   JsUnicodePropertiesMap.set(slug(p), p);
 }
 
+const JsUnicodePropertiesOfStrings = new Set([
+  // ES2024 properties of strings; none are supported by Oniguruma
+  'Basic_Emoji',
+  'Emoji_Keycap_Sequence',
+  'RGI_Emoji',
+  'RGI_Emoji_Flag_Sequence',
+  'RGI_Emoji_Modifier_Sequence',
+  'RGI_Emoji_Tag_Sequence',
+  'RGI_Emoji_ZWJ_Sequence',
+]);
+
+const JsUnicodePropertiesOfStringsMap = new Map();
+for (const p of JsUnicodePropertiesOfStrings) {
+  JsUnicodePropertiesOfStringsMap.set(slug(p), p);
+}
+
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
 // don't allow inserting whitespace and underscores. Definitions at
 // <https://github.com/kkos/oniguruma/blob/master/doc/RE> (see POSIX bracket: Unicode Case)
@@ -162,6 +180,8 @@ function slug(name) {
 export {
   JsUnicodeProperties,
   JsUnicodePropertiesMap,
+  JsUnicodePropertiesOfStrings,
+  JsUnicodePropertiesOfStringsMap,
   PosixClasses,
   PosixProperties,
   slug,

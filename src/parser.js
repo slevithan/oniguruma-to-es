@@ -1,6 +1,6 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
 import {traverse} from './traverser.js';
-import {JsUnicodePropertiesMap, PosixProperties, slug} from './unicode.js';
+import {JsUnicodePropertiesMap, JsUnicodePropertiesOfStringsMap, PosixProperties, slug} from './unicode.js';
 import {getOrCreate, r, throwIfNot} from './utils.js';
 
 const AstTypes = {
@@ -568,7 +568,9 @@ function createVariableLengthCharacterSet(kind) {
 // Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
 // underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(value) {
-  const jsName = JsUnicodePropertiesMap.get(slug(value));
+  const slugged = slug(value);
+  // Unicode properties of strings aren't supported by Onig, but that's handled in the transformer
+  const jsName = JsUnicodePropertiesMap.get(slugged) || JsUnicodePropertiesOfStringsMap.get(slugged);
   if (jsName) {
     return jsName;
   }
@@ -577,8 +579,7 @@ function getJsUnicodePropertyName(value) {
   return value.
     trim().
     replace(/\s+/g, '_').
-    // Change `PropertyName` to `Property_Name`
-    replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_').
+    replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_'). // `PropertyName` to `Property_Name`
     replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase());
 }
 
