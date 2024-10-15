@@ -115,10 +115,10 @@ function parse({tokens, flags}, {optimize} = {}) {
     if (typeof ref === 'number') {
       // Relative nums are already resolved
       if (ref < 0 || ref > capturingGroups.length) {
-        throw new Error('Subroutine uses a group number that is not defined');
+        throw new Error(`Subroutine uses a group number that's not defined`);
       }
     } else if (!namedGroupsByName.has(ref)) {
-      throw new Error(r`Subroutine uses a group name that is not defined "\g<${ref}>"`);
+      throw new Error(r`Subroutine uses a group name that's not defined "\g<${ref}>"`);
     } else if (namedGroupsByName.get(ref).length > 1) {
       throw new Error(r`Subroutine uses a non-unique group name "\g<${ref}>"`);
     }
@@ -253,7 +253,7 @@ function parseGroupOpen(context, state) {
       alt.elements.push(child);
       if (state.isInLookbehind && child.type === AstTypes.Quantifier && child.min !== child.max) {
         // JS supports variable-length quantifiers in lookbehind but Onig doesn't
-        throw new Error('Unsupported variable repetition within lookbehind');
+        throw new Error('Variable repetition within lookbehind unsupported in Oniguruma');
         // Additionally, Onig only supports variable-length alternation at the top level of
         // lookbehind, but this isn't currently enforced. Ex: `(?<=a|bc)` and `(?<=a|b(c|d))` are
         // valid, but not `(?<=a(b|cd))`
@@ -300,12 +300,12 @@ function parseQuantifier(context) {
 //     `(?<a>(?<b>[ab]))\g<a>\k<b>` matches `abb` but not `aba`; same for numbered.
 // The interaction of backref multiplexing (an Onig-specific feature) and subroutines is complex:
 // - Only the most recent value matched by a capturing group and its subroutines is considered for
-//   backref multiplexing, and this also applies to capturing groups nested within a group that is
+//   backref multiplexing, and this also applies to capturing groups nested within a group that's
 //   referenced by a subroutine.
 // - Although a subroutine can't reference a group with a duplicate name, it can reference a group
 //   with a nested capture whose name is duplicated (e.g. outside of the referenced group).
 //   - These duplicate names can then multiplex; but only the most recent value matched from within
-//     the outer group and the subroutines that reference it is available for multiplexing.
+//     the outer group (or the subroutines that reference it) is available for multiplexing.
 //   - Ex: With `(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`, the backref `\k<b>` can only match `0`
 //     or whatever was matched by the most recently matched subroutine. If you took out `(?<b>0)`,
 //     no multiplexing would occur.
@@ -561,7 +561,7 @@ function createVariableLengthCharacterSet(kind) {
     kind: throwIfNot({
       '\\R': AstVariableLengthCharacterSetKinds.newline,
       '\\X': AstVariableLengthCharacterSetKinds.grapheme,
-    }[kind], `Unexpected varchar set kind "${kind}"`),
+    }[kind], `Unexpected varcharset kind "${kind}"`),
   };
 }
 
@@ -569,13 +569,16 @@ function createVariableLengthCharacterSet(kind) {
 // underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(value) {
   const slugged = slug(value);
-  // Unicode properties of strings aren't supported by Onig, but that's handled in the transformer
-  const jsName = JsUnicodePropertiesMap.get(slugged) || JsUnicodePropertiesOfStringsMap.get(slugged);
+  if (JsUnicodePropertiesOfStringsMap.has(slugged)) {
+    // Variable-length properties of strings aren't supported by Onig
+    throw new Error(r`Unicode property "\p{${value}}" unsupported in Oniguruma`);
+  }
+  const jsName = JsUnicodePropertiesMap.get(slugged);
   if (jsName) {
     return jsName;
   }
   // Assume it's a script name; JS requires formatting 'Like_This', so use a best effort to
-  // reformat the name (doesn't find a mapping for all possible formatting differences)
+  // reformat the name (not able to map for all possible formatting differences)
   return value.
     trim().
     replace(/\s+/g, '_').

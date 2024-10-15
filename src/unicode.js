@@ -131,7 +131,7 @@ for (const p of JsUnicodePropertiesOfStrings) {
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
 // don't allow inserting whitespace and underscores. Definitions at
 // <https://github.com/kkos/oniguruma/blob/master/doc/RE> (see POSIX bracket: Unicode Case)
-// Note: Handling in the transformer assumes that all values are a single, negateable node that is
+// Note: Handling in the transformer assumes that all values are a single, negateable node that's
 // not pre-negated at the top level
 const PosixClasses = {
   alnum: r`[\p{Alpha}\p{Nd}]`,
@@ -180,7 +180,6 @@ function slug(name) {
 export {
   JsUnicodeProperties,
   JsUnicodePropertiesMap,
-  JsUnicodePropertiesOfStrings,
   JsUnicodePropertiesOfStringsMap,
   PosixClasses,
   PosixProperties,

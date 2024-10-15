@@ -3,18 +3,20 @@ import {tokenize} from './tokenizer.js';
 import {transform} from './transformer.js';
 import {Target} from './utils.js';
 
+// TODO: Remove; temp for testing during dev
 function onigurumaAst(pattern, flags, {optimize} = {}) {
   return parse(tokenize(pattern, flags), {optimize});
 }
 
-function regexAst(pattern, flags, {optimize, allowBestEffort, target} = {}) {
-  return transform(parse(tokenize(pattern, flags), {optimize}), {allowBestEffort, target});
+// TODO: Remove; temp for testing during dev
+function regexAst(pattern, flags, {optimize} = {}) {
+  return transform(parse(tokenize(pattern, flags), {optimize}));
 }
 
 export {
-  onigurumaAst, // TODO: Remove
-  regexAst, // TODO: Remove
+  onigurumaAst,
   parse,
+  regexAst,
   Target,
   tokenize,
 };

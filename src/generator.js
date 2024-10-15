@@ -19,3 +19,17 @@
 
 // Special case for `\p{Any}` to `[^]` since the former is used when parsing fragments in the
 // transformer (since the parser follows Onig rules and doesn't allow empty char classes)
+
+// VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, target}) {
+//   const {kind} = node;
+//   if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
+//     if (!allowBestEffort) {
+//       throw new Error(r`"\X" unsupported when allowBestEffort disabled`);
+//     }
+//     // Close approximation of an extended grapheme cluster. Full details of what should be
+//     // matched are in Unicode Standard Annex #29 <https://unicode.org/reports/tr29/>
+//     // TODO: Consider using <https://github.com/slevithan/emoji-regex-xs> for pre-ES2024
+//     const emojiAlt = hasMinTarget(target, Target.ES2024) ? r`\p{RGI_Emoji}|` : '';
+//     replaceWith(parseFragment(r`(?>${emojiAlt}\r\n|\P{M}\p{M}*)`));
+//   }
+// }

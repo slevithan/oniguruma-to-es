@@ -103,7 +103,7 @@ const charClassTokenRe = new RegExp(r`
 
 function tokenize(pattern, flags = '') {
   if (!/^[imx]*$/.test(flags)) {
-    throw new Error(`Unsupported Oniguruma flag "${flags}"; only imx supported`);
+    throw new Error(`Flags "${flags}" unsupported in Oniguruma`);
   }
   const context = {
     xStack: [flags.includes('x')],
@@ -433,6 +433,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   // Meta char `\M-x` and `\M-\C-x` are unsupported for now; avoid treating as an identity escape
   if (char1 === 'M') {
+    // TODO: This can be supported relatively easily
     throw new Error(`Unsupported escape "${raw}"`);
   }
   // Identity escape
@@ -458,6 +459,7 @@ function createTokenForControlChar(raw) {
   if (!char || !/[a-zA-Z]/.test(char)) {
     // Unlike JS, Onig allows any char to follow `\c` (with special conversion rules), but this is
     // an extreme edge case so it's unsupported for now
+    // TODO: This can be supported relatively easily
     throw new Error(`Unsupported control character "${raw}"`);
   }
   return createToken(TokenTypes.Character, raw, {

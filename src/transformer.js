@@ -1,21 +1,16 @@
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 import {traverse} from './traverser.js';
-import {JsUnicodeProperties, JsUnicodePropertiesOfStrings, PosixClasses} from './unicode.js';
-import {getOrCreate, hasMinTarget, r, Target} from './utils.js';
+import {JsUnicodeProperties, PosixClasses} from './unicode.js';
+import {getOrCreate, r} from './utils.js';
 
-// Transform an Oniguruma AST in-place to a `regex` AST
-function transform(ast, options = {}) {
-  // Note: The result always targets `ESNext`, expecting the generator to then convert it based on
-  // any supported JS target version. Thus, options `allowBestEffort` and `target` are only
-  // relevant here for features that are imperfectly transformed even for `regex` with ESNext
-  // (currently applies only to `\X`)
+// Transform an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator
+// to then convert to the desired JS target version
+function transform(ast) {
   const firstPassState = {
-    allowBestEffort: !!options.allowBestEffort,
     flagDirectivesByAlt: new Map(),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
-    target: options.target,
   };
   traverse({node: ast}, firstPassState, FirstPassVisitor);
   // The interplay of subroutines (with Onig's unique rules/behavior for them; see comments in the
@@ -74,7 +69,7 @@ const FirstPassVisitor = {
       // checking in the `Pattern` visitor
       // TODO: Allow `\G` if it's the first node in a top-level group that doesn't use alternation; ex: `(?i:\G.)` or `\Ga|(?i:\Gb)`; maybe allow further nesting like `(((\Ga)))b|\Gb`; probably stop the sort with directives and instead check the key after subtracting preceding directives
       if (parent.parent !== ast.pattern || key !== 0) {
-        throw new Error(r`Uses "\G" in an unsupported way`);
+        throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
       }
       ast.flags.sticky = true;
       remove();
@@ -109,11 +104,6 @@ const FirstPassVisitor = {
       negateableNode.negate = negate;
       replaceWith(negateableNode);
     } else if (kind === AstCharacterSetKinds.property) {
-      if (JsUnicodePropertiesOfStrings.has(value)) {
-        // Error checking for Unicode properties not supported by Onig is done here rather than in
-        // the parser because the transformer relies on parsing `\p{RGI_Emoji}` when handling `\X`
-        throw new Error(r`Unsupported Unicode property "\p{${value}}"`);
-      }
       if (!JsUnicodeProperties.has(value)) {
         // Assume it's a script
         node.key = 'sc';
@@ -142,7 +132,7 @@ const FirstPassVisitor = {
       if (parent.parent !== ast.pattern || ast.pattern.alternatives.length > 1) {
         // `\K` is emulatable at least within top-level alternation, but it's tricky.
         // Ex: `ab\Kc|a` is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
-        throw new Error(r`Uses "\K" in an unsupported way`);
+        throw new Error(r`Uses "\K" in a way that's unsupported for conversion to JS`);
       }
       replaceWith(prepContainer(createLookaround({behind: true}), removeAllPrevSiblings()));
     }
@@ -202,24 +192,16 @@ const FirstPassVisitor = {
       }
     }
     if (hasAltWithLeadG && hasAltWithoutLeadG) {
-      throw new Error(r`Uses "\G" in an unsupported way`);
+      throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
     }
   },
 
-  VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, target}) {
-    const {kind} = node;
-    if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
-      if (!allowBestEffort) {
-        throw new Error(r`\X unsupported when allowBestEffort disabled`);
-      }
-      // Close approximation of an extended grapheme cluster. Full details of what should be
-      // matched are in Unicode Standard Annex #29 <https://unicode.org/reports/tr29/>
-      // TODO: Consider using <https://github.com/slevithan/emoji-regex-xs> for pre-ES2024
-      const emojiAlt = hasMinTarget(target, Target.ES2024) ? r`\p{RGI_Emoji}|` : '';
-      replaceWith(parseFragment(r`(?>${emojiAlt}\r\n|\P{M}\p{M}*)`));
-    } else if (kind === AstVariableLengthCharacterSetKinds.newline) {
+  VariableLengthCharacterSet({node, replaceWith}) {
+    if (node.kind === AstVariableLengthCharacterSetKinds.newline) {
       replaceWith(parseFragment(r`(?>\r\n?|[\n\v\f\x85\u2028\u2029])`));
     }
+    // `AstVariableLengthCharacterSetKinds.grapheme` is handled in the generator since its
+    // transformation relies on options `allowBestEffort` and `target`
   },
 };
 
