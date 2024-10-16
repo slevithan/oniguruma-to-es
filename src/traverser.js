@@ -12,6 +12,7 @@ function traverse(path, state = {}, visitor) {
   }
   function traverseNode(node, parent = null, key = null, container = null) {
     let keyShift = 0;
+    let skipTraversingKidsOfPath = false;
     const path = {
       node,
       parent,
@@ -38,51 +39,56 @@ function traverse(path, state = {}, visitor) {
           parent[key] = newNode;
         }
       },
+      skip() {
+        skipTraversingKidsOfPath = true;
+      },
     };
     const methods = visitor[node.type] ?? visitor['*Else'];
     const enterFn = typeof methods === 'function' ? methods : methods?.enter;
     const exitFn = methods?.exit;
     enterFn?.(path, state);
-    switch (node.type) {
-      case AstTypes.Alternative:
-      case AstTypes.CharacterClass:
-        traverseArray(node.elements, node);
-        break;
-      case AstTypes.Assertion:
-        if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
+    if (!skipTraversingKidsOfPath) {
+      switch (node.type) {
+        case AstTypes.Alternative:
+        case AstTypes.CharacterClass:
+          traverseArray(node.elements, node);
+          break;
+        case AstTypes.Assertion:
+          if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
+            traverseArray(node.alternatives, node);
+          }
+          break;
+        case AstTypes.Backreference:
+        case AstTypes.Character:
+        case AstTypes.CharacterSet:
+        case AstTypes.Directive:
+        case AstTypes.Flags:
+        case AstTypes.Recursion:
+        case AstTypes.Subroutine:
+        case AstTypes.VariableLengthCharacterSet:
+          break;
+        case AstTypes.CapturingGroup:
+        case AstTypes.Group:
+        case AstTypes.Pattern:
           traverseArray(node.alternatives, node);
-        }
-        break;
-      case AstTypes.Backreference:
-      case AstTypes.Character:
-      case AstTypes.CharacterSet:
-      case AstTypes.Directive:
-      case AstTypes.Flags:
-      case AstTypes.Recursion:
-      case AstTypes.Subroutine:
-      case AstTypes.VariableLengthCharacterSet:
-        break;
-      case AstTypes.CapturingGroup:
-      case AstTypes.Group:
-      case AstTypes.Pattern:
-        traverseArray(node.alternatives, node);
-        break;
-      case AstTypes.CharacterClassIntersection:
-        traverseArray(node.classes, node);
-        break;
-      case AstTypes.CharacterClassRange:
-        traverseNode(node.min, node, 'min');
-        traverseNode(node.max, node, 'max');
-        break;
-      case AstTypes.Quantifier:
-        traverseNode(node.element, node, 'element');
-        break;
-      case AstTypes.Regex:
-        traverseNode(node.pattern, node, 'pattern');
-        traverseNode(node.flags, node, 'flags');
-        break;
-      default:
-        throw new Error(`Unexpected node type "${node.type}"`);
+          break;
+        case AstTypes.CharacterClassIntersection:
+          traverseArray(node.classes, node);
+          break;
+        case AstTypes.CharacterClassRange:
+          traverseNode(node.min, node, 'min');
+          traverseNode(node.max, node, 'max');
+          break;
+        case AstTypes.Quantifier:
+          traverseNode(node.element, node, 'element');
+          break;
+        case AstTypes.Regex:
+          traverseNode(node.pattern, node, 'pattern');
+          traverseNode(node.flags, node, 'flags');
+          break;
+        default:
+          throw new Error(`Unexpected node type "${node.type}"`);
+      }
     }
     exitFn?.(path, state);
     return keyShift;

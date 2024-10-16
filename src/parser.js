@@ -115,7 +115,7 @@ function parse({tokens, flags}, {optimize} = {}) {
   for (const {ref} of subroutines) {
     if (typeof ref === 'number') {
       // Relative nums are already resolved
-      if (ref < 0 || ref > capturingGroups.length) {
+      if (ref > capturingGroups.length) {
         throw new Error(`Subroutine uses a group number that's not defined`);
       }
     } else if (!namedGroupsByName.has(ref)) {
@@ -323,6 +323,9 @@ function parseSubroutine(context) {
       '+': numCapturesToLeft + num,
       '-': numCapturesToLeft + 1 - num,
     }[numberedRef.groups.sign];
+    if (ref < 1) {
+      throw new Error('Invalid subroutine number');
+    }
   // Special case for full-pattern recursion; can't be `+0`, `-0`, `00`, etc.
   } else if (ref === '0') {
     ref = 0;

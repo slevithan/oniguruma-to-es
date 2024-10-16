@@ -23,7 +23,7 @@ function transform(ast) {
     groupsWithDuplicateNamesToRemove: new Set(),
     multiplexCapturesToLeftByRef: new Map(),
     namedGroupsInScopeByAlt: new Map(),
-    openCaptures: new Set(),
+    openDirectCaptures: new Set(),
     openSubroutineRefs: new Set(),
     reffedNodesByBackreference: new Map(),
     subroutineRefMap: firstPassState.subroutineRefMap,
@@ -228,21 +228,48 @@ const SecondPassVisitor = {
   },
 
   CapturingGroup: {
-    enter({node}, {
-      groupOriginByCopy,
-      groupsWithDuplicateNamesToRemove,
-      multiplexCapturesToLeftByRef,
-      namedGroupsInScopeByAlt,
-      openCaptures,
-    }) {
+    enter(
+      { node,
+        replaceWith,
+        skip,
+      },
+      { groupOriginByCopy,
+        groupsWithDuplicateNamesToRemove,
+        multiplexCapturesToLeftByRef,
+        namedGroupsInScopeByAlt,
+        openDirectCaptures,
+        openSubroutineRefs,
+      }
+    ) {
       const {name, number} = node;
-      // For determining subroutine recursion
-      openCaptures.add(node);
-
-      // ## Track data for backref multiplexing
-      const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, name ?? number, []);
+      const ref = name ?? number;
       // Has value if we're within a subroutine expansion
       const origin = groupOriginByCopy.get(node);
+
+      // ## Handle recursion; runs after subroutine expansion
+      // TODO: Can this be refactored into conditions for `isDirectRecursion` and `isIndirectRecursion`?
+      const isRecursion = openSubroutineRefs.has(ref) || openDirectCaptures.has(origin);
+      const isDirectRecursion = isRecursion && !openSubroutineRefs.size;
+      if (isRecursion && !isDirectRecursion) {
+        // Indirect recursion is supportable at the AST level but would require `regex-recursion`
+        // to allow multiple recursions in a pattern, along with code changes here (after which
+        // `openDirectCaptures` and `openSubroutineRefs` could be combined)
+        throw new Error('Unsupported indirect recursion');
+      }
+      if (origin) {
+        openSubroutineRefs.add(ref);
+      } else {
+        openDirectCaptures.add(node);
+      }
+      if (isDirectRecursion) {
+        // TODO: For accurate backrefs, wrap with capture for own ref and traverse it (for duplicate name/multiplexing)
+        replaceWith(createRecursion(ref));
+        skip();
+        return;
+      }
+
+      // ## Track data for backref multiplexing
+      const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, ref, []);
       for (let i = 0; i < multiplexNodes.length; i++) {
         // Captures added via subroutine expansion (possibly indirectly because they were child
         // captures of the reffed group or in a nested subroutine expansion) form a set with their
@@ -288,41 +315,40 @@ const SecondPassVisitor = {
         }
       }
     },
-    exit({node}, {openCaptures}) {
-      openCaptures.delete(node);
+    exit({node}, {groupOriginByCopy, openDirectCaptures, openSubroutineRefs}) {
+      const {name, number} = node;
+      if (groupOriginByCopy.get(node)) {
+        openSubroutineRefs.delete(name ?? number);
+      } else {
+        openDirectCaptures.delete(node);
+      }
     },
   },
 
   Subroutine({node, parent, key, container, replaceWith}, state) {
-    const {groupOriginByCopy, openCaptures, openSubroutineRefs, subroutineRefMap} = state;
+    const {groupOriginByCopy, subroutineRefMap} = state;
     const {ref} = node;
     const reffedGroupNode = subroutineRefMap.get(ref);
-    if (openSubroutineRefs.has(ref)) {
-      // Indirect recursion is likely supportable but it would require `regex-recursion` to allow
-      // multiple recursions in a pattern, along with changes here that enable each recursion to
-      // point to the correct node. `openCaptures` and `openSubroutineRefs` could then be combined
-      throw new Error('Unsupported indirect recursion');
-    }
-    const isDirectRecursion = ref === 0 || openCaptures.has(reffedGroupNode);
-    const expandedSubroutine = isDirectRecursion ?
+    // Other forms of recursion are handled by the `CapturingGroup` visitor
+    const isGlobalRecursion = ref === 0;
+    const expandedSubroutine = isGlobalRecursion ?
       createRecursion(ref) :
       // The reffed group might itself contain subroutines, which are expanded during sub-traversal
-      cloneCapturingGroup(reffedGroupNode, groupOriginByCopy);
+      cloneCapturingGroup(reffedGroupNode, groupOriginByCopy, null);
     let replacement = expandedSubroutine;
-    if (ref !== 0) {
+    if (!isGlobalRecursion) {
       // Subroutines take their flags from the reffed group, not the flags surrounding themselves
       const flags = getCombinedFlagsFromFlagNodes(getAllParents(reffedGroupNode, node => {
         return node.type === AstTypes.Group && !!node.flags;
       }));
       // TODO: Avoid if flags are the same as the currently active flag groups
-      // TODO: When there aren't mods affecting the reffed group and need to disable currently active flags to match
+      // TODO: When there aren't mods affecting the reffed group, need to disable currently active flags to match
       if (flags) {
         replacement = prepContainer(createGroup({flags}), [expandedSubroutine]);
       }
     }
     replaceWith(replacement);
-    if (!isDirectRecursion) {
-      openSubroutineRefs.add(ref);
+    if (!isGlobalRecursion) {
       traverse({
         // Start traversal at the flag group wrapper so the logic for stripping duplicate names
         // propagates through its alternative
@@ -331,7 +357,6 @@ const SecondPassVisitor = {
         key,
         container,
       }, state, SecondPassVisitor);
-      openSubroutineRefs.delete(ref);
     }
   },
 };
@@ -371,6 +396,9 @@ function adoptAndSwapKids(parent, kids) {
   return parent;
 }
 
+// Creates a deep copy of the provided node, with special handling:
+// - Make `parent` props point to their parent in the copy
+// - Update the provided `originMap` for each cloned capturing group (outer and nested)
 function cloneCapturingGroup(obj, originMap, up, up2) {
   const target = Array.isArray(obj) ? [] : {};
   for (const [key, value] of Object.entries(obj)) {
@@ -381,6 +409,7 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
       target[key] = cloneCapturingGroup(value, originMap, target, up);
     } else {
       if (key === 'type' && value === AstTypes.CapturingGroup) {
+        // Key is copied node, value is origin node
         originMap.set(target, obj);
       }
       target[key] = value;
