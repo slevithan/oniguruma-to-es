@@ -19,6 +19,7 @@ function transform(ast) {
   // subroutines can't directly reference duplicate names) is extremely complicated to emulate in
   // JS in a way that handles all edge cases, so we need multiple passes to do it
   const secondPassState = {
+    groupOriginByCopy: new Map(),
     groupsWithDuplicateNamesToRemove: new Set(),
     multiplexCapturesToLeftByRef: new Map(),
     namedGroupsInScopeByAlt: new Map(),
@@ -26,7 +27,6 @@ function transform(ast) {
     openSubroutineRefs: new Set(),
     reffedNodesByBackreference: new Map(),
     subroutineRefMap: firstPassState.subroutineRefMap,
-    topSubroutineReffedNode: null,
   };
   traverse({node: ast}, secondPassState, SecondPassVisitor);
   const thirdPassState = {
@@ -229,11 +229,11 @@ const SecondPassVisitor = {
 
   CapturingGroup: {
     enter({node}, {
+      groupOriginByCopy,
       groupsWithDuplicateNamesToRemove,
       multiplexCapturesToLeftByRef,
       namedGroupsInScopeByAlt,
       openCaptures,
-      topSubroutineReffedNode,
     }) {
       const {name, number} = node;
       // For determining subroutine recursion
@@ -241,26 +241,29 @@ const SecondPassVisitor = {
 
       // ## Track data for backref multiplexing
       const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, name ?? number, []);
-      let originNode = node;
-      // Within a subroutine expansion
-      if (topSubroutineReffedNode) {
-        for (let i = 0; i < multiplexNodes.length; i++) {
-          // Captures added via subroutine expansion (possibly indirectly because they were child
-          // captures of the reffed group, or added via a nested subroutine expansion) form a set
-          // with the original group reffed and any copies of it added via subroutines. Only the most
-          // recently matched within this set is added to backref multiplexing. So in the list of
-          // already-tracked multiplexed nodes for this name or number, if there is a node being
-          // replaced by this capture, remove it
-          if (isSelfOrDescendantOf(multiplexNodes[i].originNode, topSubroutineReffedNode)) {
-            // Preserve the origin node in case this gets replaced again via a subroutine
-            originNode = multiplexNodes[i].originNode;
-            multiplexNodes.splice(i, 1);
-            break;
-          }
+      // Has value if we're within a subroutine expansion
+      const origin = groupOriginByCopy.get(node);
+      for (let i = 0; i < multiplexNodes.length; i++) {
+        // Captures added via subroutine expansion (possibly indirectly because they were child
+        // captures of the reffed group or in a nested subroutine expansion) form a set with their
+        // origin group and any other copies of it added via subroutines. Only the most recently
+        // matched within this set is added to backref multiplexing. So search the list of already-
+        // tracked multiplexed nodes for this group name or number to see if there's a node being
+        // replaced by this capture
+        const multiplex = multiplexNodes[i];
+        if (
+          // This group is from subroutine expansion, and there's a multiplex value from either the
+          // origin node or a prior subroutine expansion group with the same origin
+          (origin === multiplex.node || (origin && origin === multiplex.origin)) ||
+          // This group is not from subroutine expansion, and it comes after a subroutine expansion
+          // group that refers to itself
+          node === multiplex.origin
+        ) {
+          multiplexNodes.splice(i, 1);
+          break;
         }
       }
-      // Could be an original group node or a copy added via subroutine expansion
-      multiplexNodes.push({node, originNode});
+      multiplexNodes.push({node, origin});
 
       // ## Track data for duplicate names within an alternation path
       // JS requires group names to be unique per alternation path (which includes alternations in
@@ -291,7 +294,7 @@ const SecondPassVisitor = {
   },
 
   Subroutine({node, parent, key, container, replaceWith}, state) {
-    const {openCaptures, openSubroutineRefs, subroutineRefMap} = state;
+    const {groupOriginByCopy, openCaptures, openSubroutineRefs, subroutineRefMap} = state;
     const {ref} = node;
     const reffedGroupNode = subroutineRefMap.get(ref);
     if (openSubroutineRefs.has(ref)) {
@@ -301,10 +304,11 @@ const SecondPassVisitor = {
       throw new Error('Unsupported indirect recursion');
     }
     const isDirectRecursion = ref === 0 || openCaptures.has(reffedGroupNode);
-    let expandedSubroutine = isDirectRecursion ?
+    const expandedSubroutine = isDirectRecursion ?
       createRecursion(ref) :
       // The reffed group might itself contain subroutines, which are expanded during sub-traversal
-      structuredClone(reffedGroupNode);
+      cloneCapturingGroup(reffedGroupNode, groupOriginByCopy);
+    let replacement = expandedSubroutine;
     if (ref !== 0) {
       // Subroutines take their flags from the reffed group, not the flags surrounding themselves
       const flags = getCombinedFlagsFromFlagNodes(getAllParents(reffedGroupNode, node => {
@@ -313,27 +317,20 @@ const SecondPassVisitor = {
       // TODO: Avoid if flags are the same as the currently active flag groups
       // TODO: When there aren't mods affecting the reffed group and need to disable currently active flags to match
       if (flags) {
-        const flagGroup = prepContainer(createGroup({flags}), [expandedSubroutine]);
-        // Start traversal at the flag group wrapper so the logic for stripping duplicate names
-        // propagates through its alternative
-        expandedSubroutine = flagGroup;
+        replacement = prepContainer(createGroup({flags}), [expandedSubroutine]);
       }
     }
-    replaceWith(expandedSubroutine);
+    replaceWith(replacement);
     if (!isDirectRecursion) {
       openSubroutineRefs.add(ref);
-      traverse(
-        { node: expandedSubroutine,
-          parent,
-          key,
-          container,
-        },
-        { ...state,
-          // Only change this in state for the sub-traversal
-          topSubroutineReffedNode: state.topSubroutineReffedNode ?? reffedGroupNode,
-        },
-        SecondPassVisitor
-      );
+      traverse({
+        // Start traversal at the flag group wrapper so the logic for stripping duplicate names
+        // propagates through its alternative
+        node: replacement,
+        parent,
+        key,
+        container,
+      }, state, SecondPassVisitor);
       openSubroutineRefs.delete(ref);
     }
   },
@@ -374,6 +371,24 @@ function adoptAndSwapKids(parent, kids) {
   return parent;
 }
 
+function cloneCapturingGroup(obj, originMap, up, up2) {
+  const target = Array.isArray(obj) ? [] : {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'parent') {
+      // If the last cloned item was a child container array, use the object above it
+      target.parent = Array.isArray(up) ? up2 : up;
+    } else if (value && typeof value === 'object') {
+      target[key] = cloneCapturingGroup(value, originMap, target, up);
+    } else {
+      if (key === 'type' && value === AstTypes.CapturingGroup) {
+        originMap.set(target, obj);
+      }
+      target[key] = value;
+    }
+  }
+  return target;
+}
+
 function createRecursion(ref) {
   return {
     type: AstTypes.Recursion,
@@ -386,7 +401,7 @@ function getAllParents(node, filterFn) {
   while (node = node.parent) {
     if (!filterFn || filterFn(node)) {
       results.push(node);
-    };
+    }
   }
   return results;
 }
@@ -439,15 +454,6 @@ function getParentAlternative(node) {
     }
   }
   return null;
-}
-
-function isSelfOrDescendantOf(node, potentialAncestor) {
-  do {
-    if (node === potentialAncestor) {
-      return true;
-    }
-  } while (node = node.parent);
-  return false;
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
