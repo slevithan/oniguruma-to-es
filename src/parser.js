@@ -46,7 +46,8 @@ const AstVariableLengthCharacterSetKinds = {
   grapheme: 'grapheme',
 };
 
-function parse({tokens, flags}, {optimize} = {}) {
+function parse({tokens, flags}, options = {}) {
+  const optimize = options.optimize ?? true;
   const context = {
     current: 0,
     parent: null,
@@ -647,8 +648,19 @@ export {
   AstVariableLengthCharacterSetKinds,
   createAlternative,
   createBackreference,
+  createCapturingGroup,
+  createCharacter,
+  createCharacterClass,
+  createCharacterClassIntersection,
+  createCharacterClassRange,
+  createFlags,
   createGroup,
   createLookaround,
+  createPattern,
+  createQuantifier,
+  createRegex,
+  createSubroutine,
   createUnicodeProperty,
+  createVariableLengthCharacterSet,
   parse,
 };

@@ -1,6 +1,71 @@
-// TODO
+import {AstTypes} from './parser.js';
+import {Target} from './utils.js';
 
-// The `regex` AST assumes a target of ESNext, so e.g. `Group` flags with target ES2024 should be handled by the generator
+// Generate a `regex` pattern, flags, and options from a `regex` AST
+function generate(node, options = {}) {
+  let {allowBestEffort, maxRecursionDepth, target} = options;
+  allowBestEffort ??= true;
+  target ??= Target.ES2024;
+  switch (node.type) {
+    case AstTypes.Regex:
+      return {
+        pattern: generate(node.pattern),
+        flags: generate(node.flags),
+        options: node.options,
+      };
+    case AstTypes.Alternative:
+      return node.elements.map(generate).join('');
+    case AstTypes.Assertion:
+      return ''; // TODO
+    case AstTypes.Backreference:
+      // Transformed backrefs always use digits. Following literal digits need to be escaped or
+      // delimited to avoid changing the meaning of the backref
+      return '\\' + node.ref;
+    case AstTypes.CapturingGroup:
+      return ''; // TODO
+    case AstTypes.Character:
+      // TODO
+      return String.fromCodePoint(node.value);
+    case AstTypes.CharacterClass:
+      return ''; // TODO
+    case AstTypes.CharacterClassIntersection:
+      return ''; // TODO
+    case AstTypes.CharacterClassRange:
+      return ''; // TODO
+    case AstTypes.CharacterSet:
+      // TODO: Special case for `\p{Any}` to `[^]` since the former is used when parsing fragments
+      // in the transformer since the parser follows Onig rules and doesn't allow empty char classes
+      return ''; // TODO
+    case AstTypes.Flags:
+      // `regex` doesn't accept implicit flags nuvx, but allows control via other options
+      return flagIf(node.hasIndices, 'd') +
+        flagIf(node.global, 'g') +
+        flagIf(node.ignoreCase, 'i') +
+        flagIf(node.multiline, 'm') +
+        flagIf(node.dotAll, 's') +
+        flagIf(node.sticky, 'y');
+    case AstTypes.Group:
+      // TODO: Use target ESNext to enable flag groups
+      return ''; // TODO
+    case AstTypes.Pattern:
+      return node.alternatives.map(generate).join('|');
+    case AstTypes.Quantifier:
+      return ''; // TODO
+    case AstTypes.Recursion:
+      return ''; // TODO
+    case AstTypes.VariableLengthCharacterSet:
+      return ''; // TODO
+    default:
+      throw new Error(`Unexpected node type "${node.type}"`);
+    // Node types `Directive` and `Subroutine` are never included in output from the transformer.
+    // Technically, `VariableLengthCharacterSet` shouldn't be either, but its `kind: 'grapheme'` is
+    // transformed here to enable use of the `allowBestEffort` and `target` options
+  }
+}
+
+function flagIf(isOn, flag) {
+  return isOn ? flag : '';
+}
 
 // const keyless = JsUnicodePropertiesMap.has(property);
 // // If not identified as a JS binary property or general category, assume it's a script
@@ -17,8 +82,7 @@
 //   return /^\p{Cased}$/u.test(char);
 // }
 
-// Special case for `\p{Any}` to `[^]` since the former is used when parsing fragments in the
-// transformer (since the parser follows Onig rules and doesn't allow empty char classes)
+
 
 // VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, target}) {
 //   const {kind} = node;
@@ -33,3 +97,7 @@
 //     replaceWith(parseFragment(r`(?>${emojiAlt}\r\n|\P{M}\p{M}*)`));
 //   }
 // }
+
+export {
+  generate,
+};

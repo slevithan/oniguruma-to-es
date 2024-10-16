@@ -1,12 +1,5 @@
 const r = String.raw;
 
-function getOrCreate(map, key, defaultValue) {
-  if (!map.has(key)) {
-    map.set(key, defaultValue);
-  }
-  return map.get(key);
-}
-
 const Target = {
   ES2018: 'ES2018',
   ES2024: 'ES2024',
@@ -20,6 +13,13 @@ function hasMinTarget(target, minTarget) {
     ESNext: 2025,
   };
   return value[target] >= value[minTarget];
+}
+
+function getOrCreate(map, key, defaultValue) {
+  if (!map.has(key)) {
+    map.set(key, defaultValue);
+  }
+  return map.get(key);
 }
 
 function throwIfNot(value, msg) {

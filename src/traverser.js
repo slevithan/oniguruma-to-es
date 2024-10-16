@@ -49,6 +49,10 @@ function traverse(path, state = {}, visitor) {
     enterFn?.(path, state);
     if (!skipTraversingKidsOfPath) {
       switch (node.type) {
+        case AstTypes.Regex:
+          traverseNode(node.pattern, node, 'pattern');
+          traverseNode(node.flags, node, 'flags');
+          break;
         case AstTypes.Alternative:
         case AstTypes.CharacterClass:
           traverseArray(node.elements, node);
@@ -81,10 +85,6 @@ function traverse(path, state = {}, visitor) {
           break;
         case AstTypes.Quantifier:
           traverseNode(node.element, node, 'element');
-          break;
-        case AstTypes.Regex:
-          traverseNode(node.pattern, node, 'pattern');
-          traverseNode(node.flags, node, 'flags');
           break;
         default:
           throw new Error(`Unexpected node type "${node.type}"`);
