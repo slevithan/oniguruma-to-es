@@ -1,11 +1,27 @@
 import {AstTypes} from './parser.js';
 import {Target} from './utils.js';
 
+/**
+@typedef {import('./compiler.js').Options} Options
+*/
+
+/**
+Returns a complete set of options, with default values set for options that weren't provided.
+@param {Options} options
+@returns {Required<Options>}
+*/
+function getOptions(options) {
+  return {
+    allowBestEffort: true,
+    maxRecursionDepth: null,
+    target: Target.ESNext,
+    ...options,
+  };
+}
+
 // Generate a `regex` pattern, flags, and options from a `regex` AST
-function generate(node, options = {}) {
-  let {allowBestEffort, maxRecursionDepth, target} = options;
-  allowBestEffort ??= true;
-  target ??= Target.ES2024;
+function generate(node, options) {
+  const opts = getOptions(options);
   switch (node.type) {
     case AstTypes.Regex:
       return {
@@ -100,4 +116,5 @@ function flagIf(isOn, flag) {
 
 export {
   generate,
+  getOptions,
 };

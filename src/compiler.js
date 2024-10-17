@@ -1,54 +1,57 @@
-import {generate} from './generator.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createCharacter, createCharacterClass, createCharacterClassIntersection, createCharacterClassRange, createFlags, createGroup, createLookaround, createPattern, createQuantifier, createRegex, createSubroutine, createUnicodeProperty, createVariableLengthCharacterSet, parse} from './parser.js';
-import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, tokenize, TokenTypes} from './tokenizer.js';
+import {generate, getOptions} from './generator.js';
+import {parse} from './parser.js';
+import {tokenize} from './tokenizer.js';
 import {transform} from './transformer.js';
-import {traverse} from './traverser.js';
 import {Target} from './utils.js';
+import {rewrite} from 'regex';
+import {recursion} from 'regex-recursion';
 
-function compile(pattern, flags, options = {}) {
-  const {allowBestEffort, maxRecursionDepth, target} = options;
+/**
+@typedef {{
+  allowBestEffort?: boolean;
+  maxRecursionDepth?: number | null;
+  target?: 'ES2018' | 'ES2024' | 'ESNext';
+}} Options
+*/
+
+/**
+Transpiles a regex pattern and flags from Oniguruma to native JS.
+@param {string} pattern
+@param {string} [flags]
+@param {Options} [options]
+@returns {{pattern: string; flags: string;}}
+*/
+function compile(pattern, flags, options) {
+  const opts = getOptions(options);
   const tokens = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokens);
+  const onigurumaAst = parse(tokens, {optimize: true});
   const regexAst = transform(onigurumaAst);
-  const output = generate(regexAst, {
-    allowBestEffort,
-    maxRecursionDepth,
-    target,
+  const generated = generate(regexAst, opts);
+  const result = rewrite(generated.pattern, {
+    ...generated.options,
+    flags: generated.flags,
+    plugins: [recursion],
   });
-  return output;
+  return {
+    pattern: result.expression,
+    flags: result.flags,
+  };
+}
+
+/**
+Transpiles a regex pattern and flags from Oniguruma to a native JS RegExp.
+@param {string} pattern
+@param {string} [flags]
+@param {Options} [options]
+@returns {RegExp}
+*/
+function getRegExp(pattern, flags, options) {
+  const result = compile(pattern, flags, options);
+  return new RegExp(result.pattern, result.flags);
 }
 
 export {
-  AstAssertionKinds,
-  AstCharacterSetKinds,
-  AstDirectiveKinds,
-  AstTypes,
-  AstVariableLengthCharacterSetKinds,
   compile,
-  createAlternative,
-  createBackreference,
-  createCapturingGroup,
-  createCharacter,
-  createCharacterClass,
-  createCharacterClassIntersection,
-  createCharacterClassRange,
-  createFlags,
-  createGroup,
-  createLookaround,
-  createPattern,
-  createQuantifier,
-  createRegex,
-  createSubroutine,
-  createUnicodeProperty,
-  createVariableLengthCharacterSet,
-  generate,
-  parse,
+  getRegExp,
   Target,
-  TokenCharacterSetKinds,
-  TokenDirectiveKinds,
-  TokenGroupKinds,
-  tokenize,
-  TokenTypes,
-  transform,
-  traverse,
 };

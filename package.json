@@ -30,6 +30,10 @@
     "textmate-grammar",
     "transpiler"
   ],
+  "dependencies": {
+    "regex": "^4.3.3",
+    "regex-recursion": "^4.0.0"
+  },
   "devDependencies": {
     "esbuild": "^0.24.0"
   }

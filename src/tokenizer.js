@@ -445,7 +445,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   throw new Error(`Unexpected escape "${raw}"`);
 }
 
-function createToken(type, raw, data = {}) {
+function createToken(type, raw, data) {
   return {
     type,
     raw,

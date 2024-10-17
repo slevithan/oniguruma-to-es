@@ -46,8 +46,7 @@ const AstVariableLengthCharacterSetKinds = {
   grapheme: 'grapheme',
 };
 
-function parse({tokens, flags}, options = {}) {
-  const optimize = options.optimize ?? true;
+function parse({tokens, flags}, options) {
   const context = {
     current: 0,
     parent: null,
@@ -57,7 +56,7 @@ function parse({tokens, flags}, options = {}) {
     namedGroupsByName: new Map(),
     subroutines: [],
     hasNumberedRef: false,
-    optimize,
+    optimize: !!options?.optimize,
     walk,
   };
   function walk(parent, state) {
@@ -415,10 +414,10 @@ function createCharacter(charCode) {
   };
 }
 
-function createCharacterClass({negate, baseOnly} = {}) {
+function createCharacterClass({negate = false, baseOnly = false} = {}) {
   return {
     type: AstTypes.CharacterClass,
-    negate: negate ?? false,
+    negate,
     elements: baseOnly ? [] : [createCharacterClassIntersection()],
   };
 }
@@ -505,11 +504,11 @@ function createGroup({atomic, flags} = {}) {
   };
 }
 
-function createLookaround({behind, negate} = {}) {
+function createLookaround({behind = false, negate = false} = {}) {
   return {
     type: AstTypes.Assertion,
     kind: behind ? AstAssertionKinds.lookbehind : AstAssertionKinds.lookahead,
-    negate: negate ?? false,
+    negate,
     alternatives: [createAlternative()],
   };
 }
@@ -551,12 +550,12 @@ function createSubroutine(ref) {
   };
 }
 
-function createUnicodeProperty(value, {negate} = {}) {
+function createUnicodeProperty(value, {negate = false} = {}) {
   return {
     type: AstTypes.CharacterSet,
     kind: AstCharacterSetKinds.property,
     value: getJsUnicodePropertyName(value),
-    negate: negate ?? false,
+    negate,
   }
 }
 
