@@ -2,7 +2,6 @@ import {generate, getOptions} from './generator.js';
 import {parse} from './parser.js';
 import {tokenize} from './tokenizer.js';
 import {transform} from './transformer.js';
-import {Target} from './utils.js';
 import {rewrite} from 'regex';
 import {recursion} from 'regex-recursion';
 
@@ -23,8 +22,8 @@ Transpiles a regex pattern and flags from Oniguruma to native JS.
 */
 function compile(pattern, flags, options) {
   const opts = getOptions(options);
-  const tokens = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokens, {optimize: true});
+  const tokenized = tokenize(pattern, flags);
+  const onigurumaAst = parse(tokenized, {optimize: true});
   const regexAst = transform(onigurumaAst);
   const generated = generate(regexAst, opts);
   const result = rewrite(generated.pattern, {
@@ -45,13 +44,15 @@ Transpiles a regex pattern and flags from Oniguruma to a native JS RegExp.
 @param {Options} [options]
 @returns {RegExp}
 */
-function getRegExp(pattern, flags, options) {
+function toRegExp(pattern, flags, options) {
   const result = compile(pattern, flags, options);
   return new RegExp(result.pattern, result.flags);
 }
 
 export {
   compile,
-  getRegExp,
-  Target,
+  parse,
+  tokenize,
+  toRegExp,
+  transform,
 };

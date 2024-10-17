@@ -152,6 +152,7 @@ const FirstPassVisitor = {
       // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
       // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
     });
+    // Options accepted by `regex`
     parent.options = {
       disable: {
         // Onig uses different rules for flag x than `regex`, so disable the implicit flag
@@ -161,9 +162,9 @@ const FirstPassVisitor = {
         n: true,
       },
       force: {
-        // Always add flag v because that enables JS support for various Onig features (nested
-        // classes, set intersection, Unicode properties, `\u{}`) and allows the code generator
-        // to rely on one set of JS regex syntax
+        // Always add flag v because we're generating an AST that relies on it (it enables JS
+        // support for Onig features nested classes, set intersection, Unicode properties, `\u{}`).
+        // However, the generator might disable flag v based on its `target` option
         v: true,
       },
     };
@@ -485,6 +486,7 @@ function getParentAlternative(node) {
   return null;
 }
 
+// TODO: Consider moving to `parser.js` and dropping assumptions about `parent` props
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 function parseFragment(pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});

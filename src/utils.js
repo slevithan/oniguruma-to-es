@@ -6,14 +6,11 @@ const Target = {
   ESNext: 'ESNext',
 };
 
-function hasMinTarget(target, minTarget) {
-  const value = {
-    ES2018: 2018,
-    ES2024: 2024,
-    ESNext: 2025,
-  };
-  return value[target] >= value[minTarget];
-}
+const TargetNum = {
+  ES2018: 2018,
+  ES2024: 2024,
+  ESNext: 2025,
+};
 
 function getOrCreate(map, key, defaultValue) {
   if (!map.has(key)) {
@@ -31,8 +28,8 @@ function throwIfNot(value, msg) {
 
 export {
   getOrCreate,
-  hasMinTarget,
   r,
   Target,
+  TargetNum,
   throwIfNot,
 };

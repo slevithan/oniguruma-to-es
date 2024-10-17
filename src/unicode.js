@@ -6,11 +6,11 @@ import {r} from './utils.js';
 // (which require a `Script=` or `sc=` prefix in JS). Unlike JS, Oniguruma doesn't support script
 // extensions, and it supports some properties that aren't supported in JS (including blocks with
 // an `In_` prefix). See also:
-// - Properties supported in Oniguruma: <https://github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
-// - Properties supported in JS by spec version: <https://github.com/eslint-community/regexpp/blob/main/src/unicode/properties.ts>
+// - Properties supported in Oniguruma: <github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
+// - Properties supported in JS by spec version: <github.com/eslint-community/regexpp/blob/main/src/unicode/properties.ts>
 const JsUnicodeProperties = new Set([
   // ES2024 general categories and their aliases; all are supported by Oniguruma
-  // See <https://github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
+  // See <github.com/mathiasbynens/unicode-match-property-value-ecmascript/blob/main/data/mappings.js>
   'C', 'Other',
   'Cc', 'Control', 'cntrl',
   'Cf', 'Format',
@@ -51,7 +51,7 @@ const JsUnicodeProperties = new Set([
   'Zs', 'Space_Separator',
 
   // ES2024 binary properties and their aliases; all are supported by Oniguruma
-  // See <https://tc39.es/ecma262/multipage/text-processing.html#table-binary-unicode-properties>
+  // See <tc39.es/ecma262/multipage/text-processing.html#table-binary-unicode-properties>
   'ASCII',
   'ASCII_Hex_Digit', 'AHex',
   'Alphabetic', 'Alpha',
@@ -130,9 +130,9 @@ for (const p of JsUnicodePropertiesOfStrings) {
 
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
 // don't allow inserting whitespace and underscores. Definitions at
-// <https://github.com/kkos/oniguruma/blob/master/doc/RE> (see POSIX bracket: Unicode Case)
-// Note: Handling in the transformer assumes that all values are a single, negateable node that's
-// not pre-negated at the top level
+// <github.com/kkos/oniguruma/blob/master/doc/RE> (see: POSIX bracket: Unicode Case)
+// Note: Handling in the transformer assumes that all values here are a single, negateable node
+// that's not pre-negated at the top level
 const PosixClasses = {
   alnum: r`[\p{Alpha}\p{Nd}]`,
   alpha: r`\p{Alpha}`,
@@ -150,10 +150,9 @@ const PosixClasses = {
   xdigit: r`\p{AHex}`,
 };
 
-// Apart from the property names provided by Unicode, Oniguruma explicitly adds (see
-// <https://github.com/kkos/oniguruma/blob/master/doc/RE>) several names that can be used within
-// `\p{}` and `\P{}` (those below). These should be listed here in lowercase, though they aren't
-// case sensitive when used
+// Apart from the property names provided by Unicode, Oniguruma explicitly adds several names (see
+// <github.com/kkos/oniguruma/blob/master/doc/RE>) that can be used within `\p{}` and `\P{}` (those
+// below). These should be listed here in lowercase, though they aren't case sensitive when used
 const PosixProperties = new Set([
   'alnum',
   'blank',

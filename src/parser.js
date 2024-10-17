@@ -447,10 +447,9 @@ function createCharacterSetFromToken(token) {
     if (PosixProperties.has(normalized)) {
       kind = TokenCharacterSetKinds.posix;
       value = normalized;
+    } else {
+      return createUnicodeProperty(value, {negate});
     }
-  }
-  if (kind === TokenCharacterSetKinds.property) {
-    return createUnicodeProperty(value, {negate});
   }
   const node = {
     type: AstTypes.CharacterSet,
@@ -615,7 +614,7 @@ function getOptimizedGroup(node) {
 function isValidJsGroupName(name) {
   // Oniguruma group name rules are much more permissive than JS, with invalid names seemingly only
   // being those matched by `/^(?:[-\d]|$)/`. All of these are also invalid by JS rules
-  // See <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
+  // See <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
 }
 
