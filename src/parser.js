@@ -25,6 +25,24 @@ const AstTypes = {
   Recursion: 'Recursion',
 };
 
+const AstTypeAliases = {
+  AnyGroup: 'AnyGroup',
+  AnyNode: 'AnyNode',
+};
+
+function getAstTypeAliases({type, kind}) {
+  const types = [AstTypeAliases.AnyNode];
+  if (
+    (type === AstTypes.Assertion && (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind)) ||
+    type === AstTypes.CapturingGroup ||
+    type === AstTypes.Group
+  ) {
+    types.push(AstTypeAliases.AnyGroup);
+  }
+  types.push(type);
+  return types;
+}
+
 const AstAssertionKinds = {
   line_end: 'line_end',
   line_start: 'line_start',
@@ -46,6 +64,22 @@ const AstVariableLengthCharacterSetKinds = {
   grapheme: 'grapheme',
 };
 
+/**
+@typedef {import('./tokenizer.js').OnigurumaFlagsObject} OnigurumaFlagsObject
+@typedef {import('./tokenizer.js').Token} Token
+@typedef {import('./tokenizer.js').TokenizerResult} TokenizerResult
+@typedef {{
+  type: 'Regex';
+  parent: null;
+  pattern: Object;
+  flags: Object;
+}} OnigurumaAst
+*/
+/**
+@param {TokenizerResult} tokenizerResult
+@param {{optimize: boolean;}} [options]
+@returns {OnigurumaAst}
+*/
 function parse({tokens, flags}, options) {
   const context = {
     current: 0,
@@ -126,7 +160,7 @@ function parse({tokens, flags}, options) {
   }
   // Add `parent` properties now that we have a final AST
   traverse({node: ast}, null, {
-    '*Else'({node, parent}) {
+    AnyNode({node, parent}) {
       node.parent = parent;
     },
   });
@@ -660,5 +694,6 @@ export {
   createSubroutine,
   createUnicodeProperty,
   createVariableLengthCharacterSet,
+  getAstTypeAliases,
   parse,
 };

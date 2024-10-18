@@ -1,52 +1,30 @@
+import {getOptions} from './compiler.js';
+import emojiRegex from 'emoji-regex-xs';
 import {AstTypes, AstVariableLengthCharacterSetKinds} from './parser.js';
 import {traverse} from './traverser.js';
 import {r, Target, TargetNum} from './utils.js';
-import emojiRegex from 'emoji-regex-xs';
 
 /**
-@typedef {import('./compiler.js').Options} Options
+@typedef {import('./compiler.js').CompilerOptions} CompilerOptions
+@typedef {import('./transformer.js').RegexAst} RegexAst
+@typedef {{
+  pattern: string;
+  flags: string;
+  options?: Object;
+}} RegexArgumentsObject
 */
-
 /**
-Returns a complete set of options, with default values set for options that weren't provided.
-@param {Options} options
-@returns {Required<Options>}
+Generates a `regex`-compatible pattern, flags, and options from a `regex` AST.
+@param {RegexAst} ast
+@param {CompilerOptions} [options]
+@returns {RegexArgumentsObject}
 */
-function getOptions(options) {
-  if (options.target !== undefined && !TargetNum[options.target]) {
-    throw new Error(`Unexpected target "${options.target}"`)
-  }
-  return {
-    // Allows results that differ from Oniguruma in extreme edge cases. If `false`, throws if the
-    // pattern can't be converted with identical behavior. Ex: Enables the use of `\X`, which uses
-    // a close approximation of a Unicode extended grapheme cluster.
-    allowBestEffort: true,
-    // If `null`, any use of recursion (ex: `a\g<0>?b` or `(?<r>a\g<r>?b)`) throws. If an integer
-    // from 2-100 is provided, common forms of recursive patterns are supported and recurse up to
-    // the specified max depth.
-    maxRecursionDepth: 5,
-    // JS version for the generated regex pattern and flags. Patterns that can't be emulated using
-    // the given target throw.
-    // - 'ES2018': Broadest compatibility (uses JS flag u). Unsupported features: nested character
-    //             classes and character class intersection.
-    // - 'ES2024': Uses JS flag v, supported by Node.js 20 and 2023-era browsers.
-    // - 'ESNext': Allows use of ES2025+ regex features in generated patterns (flag groups and
-    //             duplicate group names). This preserves duplicate group names across separate
-    //             alternation paths and allows disabling option `allowBestEffort` with patterns
-    //             that include cased, non-ASCII chars with different states of case sensitivity.
-    target: Target.ES2024,
-    // Override default values with provided options
-    ...options,
-  };
-}
-
-// Generate a `regex`-compatible pattern, flags, and options from a `regex` AST
 function generate(ast, options) {
   options = getOptions(options);
   const manualFlagMods = TargetNum[options.target] <= TargetNum[Target.ES2024];
 
   // If we can't use flag groups for flags i and s, we need a pre-pass to get metadata
-  // TODO: Consider gathering this data in the transformer to avoid the extra work here
+  // TODO: Consider gathering this data in the transformer's 3rd pass to avoid the extra work here
   let meta;
   if (manualFlagMods) {
     meta = {
@@ -60,6 +38,7 @@ function generate(ast, options) {
       }],
       isIgnoreCaseOn: () => meta.flagStack.at(-1).ignoreCase,
       isDotAllOn: () => meta.flagStack.at(-1).dotAll,
+      reuseLastOnFlagStack: () => meta.flagStack.push({...meta.flagStack.at(-1)}),
     };
     traverse({node: ast}, meta, FlagModifierVisitor);
   }
@@ -142,6 +121,14 @@ function generate(ast, options) {
 }
 
 const FlagModifierVisitor = {
+  AnyGroup: {
+    enter(_, state) {
+      state.reuseLastOnFlagStack();
+    },
+    exit(_, state) {
+      state.flagStack.pop();
+    },
+  },
   Backreference(path, state) {
     // TODO
   },
@@ -151,14 +138,6 @@ const FlagModifierVisitor = {
   CharacterSet(path, state) {
     // TODO: Kinds: `any` (for `dotAll`), `property`, `posix`
   },
-  Group: {
-    enter(path, state) {
-      // TODO
-    },
-    exit(path, state) {
-      // TODO
-    },
-  }
 };
 
 const CharCodeEscapes = new Map([
@@ -247,5 +226,4 @@ function generateVariableLengthCharacterSet({kind}, state) {
 
 export {
   generate,
-  getOptions,
 };

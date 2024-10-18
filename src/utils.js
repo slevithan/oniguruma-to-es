@@ -1,10 +1,10 @@
 const r = String.raw;
 
-const Target = {
+const Target = /** @type {const} */ ({
   ES2018: 'ES2018',
   ES2024: 'ES2024',
   ESNext: 'ESNext',
-};
+});
 
 const TargetNum = {
   ES2018: 2018,

@@ -4,8 +4,22 @@ import {traverse} from './traverser.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
 import {getOrCreate, r} from './utils.js';
 
-// Transform an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator
-// to then convert to the desired JS target version
+/**
+@typedef {import('./parser.js').OnigurumaAst} OnigurumaAst
+@typedef {{
+  type: 'Regex';
+  parent: null;
+  pattern: Object;
+  flags: Object;
+  options?: Object;
+}} RegexAst
+*/
+/**
+Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator to
+then convert to the desired JS target version.
+@param {OnigurumaAst} ast
+@returns {RegexAst}
+*/
 function transform(ast) {
   const firstPassState = {
     flagDirectivesByAlt: new Map(),

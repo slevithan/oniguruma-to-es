@@ -1,4 +1,4 @@
-import {AstAssertionKinds, AstTypes} from './parser.js';
+import {AstAssertionKinds, AstTypes, getAstTypeAliases} from './parser.js';
 import {throwIfNot} from './utils.js';
 
 function traverse(path, state = {}, visitor) {
@@ -43,7 +43,8 @@ function traverse(path, state = {}, visitor) {
         skipTraversingKidsOfPath = true;
       },
     };
-    const methods = visitor[node.type] ?? visitor['*Else'];
+    const visitorKey = getAstTypeAliases(node).find(key => !!visitor[key]);
+    const methods = visitorKey && visitor[visitorKey];
     const enterFn = typeof methods === 'function' ? methods : methods?.enter;
     const exitFn = methods?.exit;
     enterFn?.(path, state);

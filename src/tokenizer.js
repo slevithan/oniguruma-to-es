@@ -1,7 +1,7 @@
 import {PosixClasses} from './unicode.js';
 import {r} from './utils.js';
 
-const TokenTypes = {
+const TokenTypes = /** @type {const} */ ({
   Alternator: 'Alternator',
   Assertion: 'Assertion',
   Backreference: 'Backreference',
@@ -20,7 +20,7 @@ const TokenTypes = {
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
   // Intermediate representation not included in results
   EscapedNumber: 'EscapedNumber',
-};
+});
 
 const TokenCharacterSetKinds = {
   any: 'any',
@@ -101,6 +101,23 @@ const charClassTokenRe = new RegExp(r`
   | .
 `.replace(/\s+/g, ''), 'gsu');
 
+/**
+@typedef {import('./compiler.js').OnigurumaFlags} OnigurumaFlags
+@typedef {{
+  dotAll: boolean;
+  extended: boolean;
+  ignoreCase: boolean;
+}} OnigurumaFlagsObject
+@typedef {{
+  tokens: Array<Token>;
+  flags: OnigurumaFlagsObject;
+}} TokenizerResult
+*/
+/**
+@param {string} pattern
+@param {OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@returns {TokenizerResult}
+*/
 function tokenize(pattern, flags = '') {
   if (!/^[imx]*$/.test(flags)) {
     throw new Error(`Flags "${flags}" unsupported in Oniguruma`);
@@ -445,6 +462,19 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   throw new Error(`Unexpected escape "${raw}"`);
 }
 
+/**
+@typedef {{
+  type: keyof TokenTypes;
+  raw: string;
+  [key: string]: string | number | boolean;
+}} Token
+*/
+/**
+@param {keyof TokenTypes} type
+@param {string} raw
+@param {{[key: string]: string | number | boolean;}} [data]
+@returns {Token}
+*/
 function createToken(type, raw, data) {
   return {
     type,
