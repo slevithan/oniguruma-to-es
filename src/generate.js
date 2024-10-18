@@ -1,23 +1,18 @@
-import {getOptions} from './compiler.js';
+import {getOptions} from './compile.js';
 import emojiRegex from 'emoji-regex-xs';
-import {AstTypes, AstVariableLengthCharacterSetKinds} from './parser.js';
-import {traverse} from './traverser.js';
+import {AstTypes, AstVariableLengthCharacterSetKinds} from './parse.js';
+import {traverse} from './traverse.js';
 import {r, Target, TargetNum} from './utils.js';
 
 /**
-@typedef {import('./compiler.js').CompilerOptions} CompilerOptions
-@typedef {import('./transformer.js').RegexAst} RegexAst
-@typedef {{
+Generates a `regex`-compatible pattern, flags, and options from a `regex` AST.
+@param {import('./transform.js').RegexAst} ast
+@param {import('./compile.js').CompileOptions} [options]
+@returns {{
   pattern: string;
   flags: string;
   options?: Object;
-}} RegexArgumentsObject
-*/
-/**
-Generates a `regex`-compatible pattern, flags, and options from a `regex` AST.
-@param {RegexAst} ast
-@param {CompilerOptions} [options]
-@returns {RegexArgumentsObject}
+}}
 */
 function generate(ast, options) {
   options = getOptions(options);

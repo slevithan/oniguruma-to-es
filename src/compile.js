@@ -1,22 +1,53 @@
-import {generate} from './generator.js';
-import {parse} from './parser.js';
+import {generate} from './generate.js';
+import {parse} from './parse.js';
 import {rewrite} from 'regex';
 import {recursion} from 'regex-recursion';
-import {tokenize} from './tokenizer.js';
-import {transform} from './transformer.js';
+import {tokenize} from './tokenize.js';
+import {transform} from './transform.js';
 import {Target, TargetNum} from './utils.js';
 
 /**
+@typedef {'i' | ''} FlagI
+@typedef {'m' | ''} FlagM
+@typedef {'x' | ''} FlagX
+@typedef {`${FlagI}${FlagM}${FlagX}` | `${FlagI}${FlagX}${FlagM}` | `${FlagM}${FlagI}${FlagX}` | `${FlagM}${FlagX}${FlagI}` | `${FlagX}${FlagI}${FlagM}` | `${FlagX}${FlagM}${FlagI}`} OnigurumaFlags
 @typedef {{
   allowBestEffort?: boolean;
   maxRecursionDepth?: number | null;
   target?: keyof Target;
-}} CompilerOptions
+}} CompileOptions
 */
 /**
+Transpiles a regex pattern and flags from Oniguruma to native JS.
+@param {string} pattern Oniguruma regex pattern.
+@param {OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@param {CompileOptions} [options]
+@returns {{
+  pattern: string;
+  flags: string;
+}}
+*/
+function compile(pattern, flags, options) {
+  const opts = getOptions(options);
+  const tokenized = tokenize(pattern, flags);
+  const onigurumaAst = parse(tokenized, {optimize: true});
+  const regexAst = transform(onigurumaAst);
+  const generated = generate(regexAst, opts);
+  const result = rewrite(generated.pattern, {
+    ...generated.options,
+    flags: generated.flags,
+    plugins: [recursion],
+  });
+  return {
+    pattern: result.expression,
+    flags: result.flags,
+  };
+}
+
+/**
 Returns a complete set of options, with default values set for options that weren't provided.
-@param {CompilerOptions} [options]
-@returns {Required<CompilerOptions>}
+@param {CompileOptions} [options]
+@returns {Required<CompileOptions>}
 */
 function getOptions(options) {
   if (options?.target !== undefined && !TargetNum[options.target]) {
@@ -47,45 +78,10 @@ function getOptions(options) {
 }
 
 /**
-@typedef {'i' | ''} FlagI
-@typedef {'m' | ''} FlagM
-@typedef {'x' | ''} FlagX
-@typedef {`${FlagI}${FlagM}${FlagX}` | `${FlagI}${FlagX}${FlagM}` | `${FlagM}${FlagI}${FlagX}` | `${FlagM}${FlagX}${FlagI}` | `${FlagX}${FlagI}${FlagM}` | `${FlagX}${FlagM}${FlagI}`} OnigurumaFlags
-@typedef {{
-  pattern: string;
-  flags: string;
-}} RegExpArgumentsObject
-*/
-
-/**
-Transpiles a regex pattern and flags from Oniguruma to native JS.
-@param {string} pattern Oniguruma regex pattern.
-@param {OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
-@param {CompilerOptions} [options]
-@returns {RegExpArgumentsObject}
-*/
-function compile(pattern, flags, options) {
-  const opts = getOptions(options);
-  const tokenized = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokenized, {optimize: true});
-  const regexAst = transform(onigurumaAst);
-  const generated = generate(regexAst, opts);
-  const result = rewrite(generated.pattern, {
-    ...generated.options,
-    flags: generated.flags,
-    plugins: [recursion],
-  });
-  return {
-    pattern: result.expression,
-    flags: result.flags,
-  };
-}
-
-/**
 Transpiles a regex pattern and flags from Oniguruma to a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
 @param {OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
-@param {CompilerOptions} [options]
+@param {CompileOptions} [options]
 @returns {RegExp}
 */
 function toRegExp(pattern, flags, options) {

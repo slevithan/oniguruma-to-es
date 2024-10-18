@@ -1,4 +1,4 @@
-import {AstAssertionKinds, AstTypes, getAstTypeAliases} from './parser.js';
+import {AstAssertionKinds, AstTypes, getAstTypeAliases} from './parse.js';
 import {throwIfNot} from './utils.js';
 
 function traverse(path, state = {}, visitor) {

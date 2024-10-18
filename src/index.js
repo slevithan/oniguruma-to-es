@@ -1,7 +1,7 @@
-import {transform} from './transformer.js';
-import {compile, toRegExp} from './compiler.js';
-import {parse} from './parser.js';
-import {tokenize} from './tokenizer.js';
+import {transform} from './transform.js';
+import {compile, toRegExp} from './compile.js';
+import {parse} from './parse.js';
+import {tokenize} from './tokenize.js';
 
 // Handling and error checking for Oniguruma's unique syntax and behavior differences is layered
 // into all steps of the compilation process:
@@ -15,10 +15,22 @@ import {tokenize} from './tokenizer.js';
 //    allows this library to benefit from not reinventing the wheel for advanced features that
 //    `regex` already knows how to transpile to JS.
 
+/**
+Generates an Oniguruma AST from an Oniguruma pattern and flags.
+@param {string} pattern Oniguruma regex pattern.
+@param {import('./compile.js').OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@returns {import('./parse.js').OnigurumaAst}
+*/
 function toOnigurumaAst(pattern, flags) {
   return parse(tokenize(pattern, flags), {optimize: true});
 }
 
+/**
+Generates a `regex` AST from an Oniguruma pattern and flags.
+@param {string} pattern Oniguruma regex pattern.
+@param {import('./compile.js').OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@returns {import('./transform.js').RegexAst}
+*/
 function toRegexAst(pattern, flags) {
   return transform(parse(tokenize(pattern, flags), {optimize: true}));
 }

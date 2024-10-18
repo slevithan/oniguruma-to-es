@@ -1,11 +1,10 @@
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parser.js';
-import {tokenize} from './tokenizer.js';
-import {traverse} from './traverser.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
+import {tokenize} from './tokenize.js';
+import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
 import {getOrCreate, r} from './utils.js';
 
 /**
-@typedef {import('./parser.js').OnigurumaAst} OnigurumaAst
 @typedef {{
   type: 'Regex';
   parent: null;
@@ -17,7 +16,7 @@ import {getOrCreate, r} from './utils.js';
 /**
 Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator to
 then convert to the desired JS target version.
-@param {OnigurumaAst} ast
+@param {import('./parse.js').OnigurumaAst} ast
 @returns {RegexAst}
 */
 function transform(ast) {
@@ -500,7 +499,7 @@ function getParentAlternative(node) {
   return null;
 }
 
-// TODO: Consider moving to `parser.js` and dropping assumptions about `parent` props
+// TODO: Consider moving to parser module and dropping assumptions about `parent` props
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 function parseFragment(pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});

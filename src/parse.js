@@ -1,5 +1,5 @@
-import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenizer.js';
-import {traverse} from './traverser.js';
+import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenize.js';
+import {traverse} from './traverse.js';
 import {JsUnicodePropertiesMap, JsUnicodePropertiesOfStringsMap, PosixProperties, slug} from './unicode.js';
 import {getOrCreate, r, throwIfNot} from './utils.js';
 
@@ -65,9 +65,6 @@ const AstVariableLengthCharacterSetKinds = {
 };
 
 /**
-@typedef {import('./tokenizer.js').OnigurumaFlagsObject} OnigurumaFlagsObject
-@typedef {import('./tokenizer.js').Token} Token
-@typedef {import('./tokenizer.js').TokenizerResult} TokenizerResult
 @typedef {{
   type: 'Regex';
   parent: null;
@@ -76,7 +73,7 @@ const AstVariableLengthCharacterSetKinds = {
 }} OnigurumaAst
 */
 /**
-@param {TokenizerResult} tokenizerResult
+@param {import('./tokenize.js').TokenizerResult} tokenizerResult
 @param {{optimize: boolean;}} [options]
 @returns {OnigurumaAst}
 */

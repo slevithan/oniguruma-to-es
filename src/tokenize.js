@@ -102,20 +102,23 @@ const charClassTokenRe = new RegExp(r`
 `.replace(/\s+/g, ''), 'gsu');
 
 /**
-@typedef {import('./compiler.js').OnigurumaFlags} OnigurumaFlags
 @typedef {{
-  dotAll: boolean;
-  extended: boolean;
-  ignoreCase: boolean;
-}} OnigurumaFlagsObject
+  type: keyof TokenTypes;
+  raw: string;
+  [key: string]: string | number | boolean;
+}} Token
 @typedef {{
   tokens: Array<Token>;
-  flags: OnigurumaFlagsObject;
+  flags: {
+    dotAll: boolean;
+    extended: boolean;
+    ignoreCase: boolean;
+  };
 }} TokenizerResult
 */
 /**
 @param {string} pattern
-@param {OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@param {import('./compile.js').OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
 @returns {TokenizerResult}
 */
 function tokenize(pattern, flags = '') {
@@ -457,13 +460,6 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   throw new Error(`Unexpected escape "${raw}"`);
 }
 
-/**
-@typedef {{
-  type: keyof TokenTypes;
-  raw: string;
-  [key: string]: string | number | boolean;
-}} Token
-*/
 /**
 @param {keyof TokenTypes} type
 @param {string} raw
