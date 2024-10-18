@@ -13,25 +13,28 @@ Returns a complete set of options, with default values set for options that were
 @returns {Required<Options>}
 */
 function getOptions(options) {
+  if (options.target !== undefined && !TargetNum[options.target]) {
+    throw new Error(`Unexpected target "${options.target}"`)
+  }
   return {
-    // Allow results that differ from Oniguruma in extreme edge cases. If `false`, throw if the
+    // Allows results that differ from Oniguruma in extreme edge cases. If `false`, throws if the
     // pattern can't be converted with identical behavior. Ex: Enables the use of `\X`, which uses
-    // a close approximation of a Unicode extended grapheme cluster. Recommended: `true`.
-    allowBestEffort: false,
-    // If not provided, any use of recursion (ex: `a\g<0>?b` or `(?<r>a\g<r>?b)`) throws. If an
-    // integer from 2-100 is provided, common forms of recursive patterns are supported and recurse
-    // up to the specified max depth. Recommended: `6`.
-    maxRecursionDepth: null,
+    // a close approximation of a Unicode extended grapheme cluster.
+    allowBestEffort: true,
+    // If `null`, any use of recursion (ex: `a\g<0>?b` or `(?<r>a\g<r>?b)`) throws. If an integer
+    // from 2-100 is provided, common forms of recursive patterns are supported and recurse up to
+    // the specified max depth.
+    maxRecursionDepth: 5,
     // JS version for the generated regex pattern and flags. Patterns that can't be emulated using
     // the given target throw.
-    // - 'ES2018': Broadest compatibility (uses JS flag u). Unsupported features: nested char
-    //             classes and char class intersection.
-    // - 'ES2024': Recommended. Uses JS flag v, supported by Node.js 20 and 2023-era browsers.
-    // - 'ESNext': Default. Allows use of ES2025+ regex features in generated patterns (flag groups
-    //             and duplicate group names). This preserves duplicate group names across separate
+    // - 'ES2018': Broadest compatibility (uses JS flag u). Unsupported features: nested character
+    //             classes and character class intersection.
+    // - 'ES2024': Uses JS flag v, supported by Node.js 20 and 2023-era browsers.
+    // - 'ESNext': Allows use of ES2025+ regex features in generated patterns (flag groups and
+    //             duplicate group names). This preserves duplicate group names across separate
     //             alternation paths and allows disabling option `allowBestEffort` with patterns
-    //             that used mixed states of case sensitivity for non-ASCII chars with case.
-    target: Target.ESNext,
+    //             that include cased, non-ASCII chars with different states of case sensitivity.
+    target: Target.ES2024,
     // Override default values with provided options
     ...options,
   };
@@ -40,12 +43,12 @@ function getOptions(options) {
 // Generate a `regex`-compatible pattern, flags, and options from a `regex` AST
 function generate(ast, options) {
   options = getOptions(options);
-  const applyLocalFlags = TargetNum[options.target] <= TargetNum[Target.ES2024];
+  const manualFlagMods = TargetNum[options.target] <= TargetNum[Target.ES2024];
 
   // If we can't use flag groups for flags i and s, we need a pre-pass to get metadata
   // TODO: Consider gathering this data in the transformer to avoid the extra work here
   let meta;
-  if (applyLocalFlags) {
+  if (manualFlagMods) {
     meta = {
       hasCaseInsensitiveNode: false,
       hasCaseSensitiveNode: false,
@@ -63,8 +66,8 @@ function generate(ast, options) {
 
   const state = {
     ...options,
-    applyDotAll: applyLocalFlags && meta.hasDotAllDot && meta.hasNonDotAllDot,
-    applyIgnoreCase: applyLocalFlags && meta.hasCaseInsensitiveNode && meta.hasCaseSensitiveNode,
+    applyDotAll: manualFlagMods && meta.hasDotAllDot && meta.hasNonDotAllDot,
+    applyIgnoreCase: manualFlagMods && meta.hasCaseInsensitiveNode && meta.hasCaseSensitiveNode,
     currentFlags: {
       dotAll: false,
       ignoreCase: false,
@@ -128,7 +131,7 @@ function generate(ast, options) {
   }
   const result = gen(ast);
 
-  if (applyLocalFlags) {
+  if (manualFlagMods) {
     // Include JS flag i if a case insensitive node was used and no case sensitive nodes were used
     const flagI = (ast.flags.ignoreCase || meta.hasCaseInsensitiveNode) && !meta.hasCaseSensitiveNode;
     // Include JS flag s (Onig flag m) if a dotAll dot was used and no non-dotAll dots were used
@@ -177,7 +180,7 @@ function generateCharacter({value}, state) {
   // TODO: Escape chars that need escaping, including reserved double punctuators if in a char class
   // Unicode case folding is complicated, and this doesn't support all edge cases.
   // - Doesn't add titlecase-specific versions of chars like Serbo-Croatian 'ǅ' (U+01C5) (lcase 'ǆ', ucase 'Ǆ').
-  //   - More titlecase chars: <compart.com/en/unicode/category/Lt>
+  //   - All titlecase chars: <compart.com/en/unicode/category/Lt>
   // - Some known language-specific and Unicode legacy edge cases are handled, but additional edge cases likely exist.
   // - Language-specific edge cases:
   //   - The lcase of 'İ' (capital I with dot above, U+0130) is small 'i', which ucases as capital 'I'.
@@ -232,14 +235,14 @@ function generateVariableLengthCharacterSet({kind}, state) {
   if (!state.allowBestEffort) {
     throw new Error(r`Use of "\X" requires option allowBestEffort`);
   }
-  const emoji = TargetNum[state.target] >= TargetNum[Target.ES2024] ?
+  const emojiGrapheme = TargetNum[state.target] >= TargetNum[Target.ES2024] ?
     r`\p{RGI_Emoji}` :
     // `emoji-regex-xs` is more permissive than `\p{RGI_Emoji}` since it allows overqualified and
     // underqualified emoji using a general pattern that matches all Unicode sequences that follow
     // the structure of valid emoji. That actually makes it more accurate for matching any grapheme
     emojiRegex().source;
   // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>
-  return r`(?>\r\n|${emoji}|\P{M}\p{M}*)`;
+  return r`(?>\r\n|${emojiGrapheme}|\P{M}\p{M}*)`;
 }
 
 export {
