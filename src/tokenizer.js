@@ -122,10 +122,13 @@ function tokenize(pattern, flags = '') {
   if (!/^[imx]*$/.test(flags)) {
     throw new Error(`Flags "${flags}" unsupported in Oniguruma`);
   }
+  const xStack = [flags.includes('x')];
   const context = {
-    xStack: [flags.includes('x')],
-    isXOn: () => context.xStack.at(-1),
-    reuseLastOnXStack: () => context.xStack.push(context.xStack.at(-1)),
+    addXMod(x) {xStack.push(x)},
+    isXOn: () => xStack.at(-1),
+    popXMod() {xStack.pop()},
+    replaceCurrentXMod(x) {xStack[xStack.length - 1] = x},
+    reuseParentXMod() {xStack.push(xStack.at(-1))},
   };
   let tokens = [];
   let match;
@@ -228,56 +231,6 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     };
   }
   if (m0 === '(') {
-    // Unnamed capture if no named captures, else noncapturing group
-    if (m === '(') {
-      context.reuseLastOnXStack();
-      const token = createToken(TokenTypes.GroupOpen, m, {
-        // Will change to `capturing` and add `number` in a second pass if no named captures
-        kind: TokenGroupKinds.group,
-      });
-      return {
-        token,
-      };
-    }
-    // Noncapturing group
-    if (m === '(?:') {
-      context.reuseLastOnXStack();
-      return {
-        token: createToken(TokenTypes.GroupOpen, m, {
-          kind: TokenGroupKinds.group,
-        }),
-      };
-    }
-    // Atomic group
-    if (m === '(?>') {
-      context.reuseLastOnXStack();
-      return {
-        token: createToken(TokenTypes.GroupOpen, m, {
-          kind: TokenGroupKinds.atomic,
-        }),
-      };
-    }
-    // Lookaround
-    if (m === '(?=' || m === '(?!' || m === '(?<=' || m === '(?<!') {
-      context.reuseLastOnXStack();
-      return {
-        token: createToken(TokenTypes.GroupOpen, m, {
-          kind: m2 === '<' ? TokenGroupKinds.lookbehind : TokenGroupKinds.lookahead,
-          negate: m.endsWith('!'),
-        }),
-      };
-    }
-    // Named capture (checked after lookbehind due to similar syntax)
-    if (m2 === '<' || m2 === "'") {
-      context.reuseLastOnXStack();
-      return {
-        token: createToken(TokenTypes.GroupOpen, m, {
-          kind: TokenGroupKinds.capturing,
-          name: m.slice(3, -1),
-          // Will add `number` in a second pass
-        }),
-      }
-    }
     // Comment group
     if (m2 === '#') {
       if (!m.endsWith(')')) {
@@ -295,13 +248,55 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         token,
       };
     }
+    // Remaining group types all reuse flag x status; it can be altered by flag directives
+    context.reuseParentXMod();
+    if (
+      // Unnamed capture if no named captures, else noncapturing group
+      m === '(' ||
+      // Noncapturing group
+      m === '(?:'
+    ) {
+      return {
+        token: createToken(TokenTypes.GroupOpen, m, {
+          // For `(`, will later change to `capturing` and add `number` prop if no named captures
+          kind: TokenGroupKinds.group,
+        }),
+      };
+    }
+    // Atomic group
+    if (m === '(?>') {
+      return {
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: TokenGroupKinds.atomic,
+        }),
+      };
+    }
+    // Lookaround
+    if (m === '(?=' || m === '(?!' || m === '(?<=' || m === '(?<!') {
+      return {
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: m2 === '<' ? TokenGroupKinds.lookbehind : TokenGroupKinds.lookahead,
+          negate: m.endsWith('!'),
+        }),
+      };
+    }
+    // Named capture (checked after lookbehind due to similar syntax)
+    if (m2 === '<' || m2 === "'") {
+      return {
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: TokenGroupKinds.capturing,
+          name: m.slice(3, -1),
+          // Will add `number` in a second pass
+        }),
+      }
+    }
     if (m === '(?') {
       throw new Error('Invalid group');
     }
     throw new Error(`Unexpected group "${m}"`);
   }
   if (m === ')') {
-    context.xStack.pop();
+    context.popXMod();
     return {
       token: createToken(TokenTypes.GroupClose, m),
     };
@@ -510,7 +505,7 @@ function createTokenForFlagGroup(raw, context) {
   // Standalone flags modifier; ex: `(?im-x)`
   if (raw.endsWith(')')) {
     // Replace value until the end of the current group
-    context.xStack[context.xStack.length - 1] = isXOn;
+    context.replaceCurrentXMod(isXOn);
     if (enabledFlags || disabledFlags) {
       return createToken(TokenTypes.Directive, raw, {
         kind: TokenDirectiveKinds.flags,
@@ -521,7 +516,7 @@ function createTokenForFlagGroup(raw, context) {
   }
   // Modifier/flag group opener; ex: `(?im-x:`
   if (raw.endsWith(':')) {
-    context.xStack.push(isXOn);
+    context.addXMod(isXOn);
     const token = createToken(TokenTypes.GroupOpen, raw, {
       kind: TokenGroupKinds.group,
     });

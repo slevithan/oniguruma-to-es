@@ -21,38 +21,49 @@ Generates a `regex`-compatible pattern, flags, and options from a `regex` AST.
 */
 function generate(ast, options) {
   options = getOptions(options);
-  const manualFlagMods = TargetNum[options.target] <= TargetNum[Target.ES2024];
+  const manuallyApplyFlagMods = TargetNum[options.target] <= TargetNum[Target.ES2024];
 
-  // If we can't use flag groups for flags i and s, we need a pre-pass to get metadata
+  // If the output can't use flag groups with flags i and s, we need a pre-pass to get metadata
   // TODO: Consider gathering this data in the transformer's 3rd pass to avoid the extra work here
-  let meta;
-  if (manualFlagMods) {
-    meta = {
-      hasCaseInsensitiveNode: false,
-      hasCaseSensitiveNode: false,
-      hasDotAllDot: false,
-      hasNonDotAllDot: false,
-      flagStack: [{
-        ignoreCase: ast.flags.ignoreCase,
-        dotAll: ast.flags.dotAll,
-      }],
-      isIgnoreCaseOn: () => meta.flagStack.at(-1).ignoreCase,
-      isDotAllOn: () => meta.flagStack.at(-1).dotAll,
-      reuseLastOnFlagStack: () => meta.flagStack.push({...meta.flagStack.at(-1)}),
-    };
-    traverse({node: ast}, meta, FlagModifierVisitor);
+  const flagStack = [{
+    ignoreCase: ast.flags.ignoreCase,
+    dotAll: ast.flags.dotAll,
+  }];
+  let hasCaseInsensitiveNode = false;
+  let hasCaseSensitiveNode = false;
+  let hasDotAllDot = false;
+  let hasNonDotAllDot = false;
+  if (manuallyApplyFlagMods) {
+    traverse({node: ast}, {
+      popFlagMods() {flagStack.pop()},
+      reuseParentFlagMods() {flagStack.push({...flagStack.at(-1)})},
+      setHasCased() {
+        if (flagStack.at(-1).ignoreCase) {
+          hasCaseInsensitiveNode = true;
+        } else {
+          hasCaseSensitiveNode = true;
+        }
+      },
+      setHasDot() {
+        if (flagStack.at(-1).dotAll) {
+          hasDotAllDot = true;
+        } else {
+          hasNonDotAllDot = true;
+        }
+      },
+    }, FlagModifierVisitor);
   }
 
   const state = {
     ...options,
-    applyDotAll: manualFlagMods && meta.hasDotAllDot && meta.hasNonDotAllDot,
-    applyIgnoreCase: manualFlagMods && meta.hasCaseInsensitiveNode && meta.hasCaseSensitiveNode,
     currentFlags: {
       dotAll: false,
       ignoreCase: false,
     },
     groupNames: new Set(),
     inCharacterClass: false,
+    manuallyApplyDotAll: manuallyApplyFlagMods && hasDotAllDot && hasNonDotAllDot,
+    manuallyApplyIgnoreCase: manuallyApplyFlagMods && hasCaseInsensitiveNode && hasCaseSensitiveNode,
   };
   function gen(node) {
     switch (node.type) {
@@ -110,11 +121,11 @@ function generate(ast, options) {
   }
   const result = gen(ast);
 
-  if (manualFlagMods) {
+  if (manuallyApplyFlagMods) {
     // Include JS flag i if a case insensitive node was used and no case sensitive nodes were used
-    const flagI = (ast.flags.ignoreCase || meta.hasCaseInsensitiveNode) && !meta.hasCaseSensitiveNode;
+    const flagI = (ast.flags.ignoreCase || hasCaseInsensitiveNode) && !hasCaseSensitiveNode;
     // Include JS flag s (Onig flag m) if a dotAll dot was used and no non-dotAll dots were used
-    const flagS = (ast.flags.dotAll || meta.hasDotAllDot) && !meta.hasNonDotAllDot;
+    const flagS = (ast.flags.dotAll || hasDotAllDot) && !hasNonDotAllDot;
     result.flags = (flagI ? 'i' : '') + (flagS ? 's' : '') + result.flags.replace(/[is]+/g, '');
   }
   return result;
@@ -123,19 +134,22 @@ function generate(ast, options) {
 const FlagModifierVisitor = {
   AnyGroup: {
     enter(_, state) {
-      state.reuseLastOnFlagStack();
+      state.reuseParentFlagMods();
     },
     exit(_, state) {
-      state.flagStack.pop();
+      state.popFlagMods();
     },
   },
-  Backreference(path, state) {
-    // TODO
+  Backreference(_, state) {
+    // Assume the backref will include chars with case
+    state.setHasCased();
   },
-  Character(path, state) {
-    // TODO
+  Character({node}, state) {
+    if (charHasCase(String.fromCodePoint(node.value))) {
+      state.setHasCased();
+    }
   },
-  CharacterSet(path, state) {
+  CharacterSet({node}, state) {
     // TODO: Kinds: `any` (for `dotAll`), `property`, `posix`
   },
 };
@@ -175,13 +189,6 @@ function generateCharacter({value}, state) {
   // const upper = char.toUpperCase();
 
   const char = String.fromCodePoint(value);
-  if (charHasCase(char)) {
-    if (state.currentFlags.ignoreCase) {
-      state.hasCaseInsensitiveNode = true;
-    } else {
-      state.hasCaseSensitiveNode = true;
-    }
-  }
   let result = char;
   if (CharCodeEscapes.has(value)) {
     result = CharCodeEscapes.get(value);

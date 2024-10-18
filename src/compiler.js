@@ -6,15 +6,6 @@ import {tokenize} from './tokenizer.js';
 import {transform} from './transformer.js';
 import {Target, TargetNum} from './utils.js';
 
-// Handling for Oniguruma's unique syntax and behavior differences comes from all layers in the
-// compilation process: the tokenizer (which understands Oniguruma syntax), parser (which builds an
-// Oniguruma AST), transformer (which converts the AST to a `regex` AST), generator (which converts
-// the transformed AST to a `regex` pattern), and finally, components of the `regex` libray are
-// used to transpile several remaining features (atomic groups, possessive quantifiers, recursion)
-// into a native JS RegExp pattern. `regex` uses a strict superset of native JS regex syntax, so
-// using it this way allows this library to benefit from not reinventing the wheel for advanced
-// features that `regex` already knows how to transpile to JS
-
 /**
 @typedef {{
   allowBestEffort?: boolean;
@@ -105,8 +96,5 @@ function toRegExp(pattern, flags, options) {
 export {
   compile,
   getOptions,
-  parse,
-  tokenize,
   toRegExp,
-  transform,
 };
