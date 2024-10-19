@@ -17,7 +17,9 @@ Generates a `regex`-compatible pattern, flags, and options from a `regex` AST.
 */
 function generate(ast, options) {
   options = getOptions(options);
-  const canUseFlagMods = TargetNum[options.target] > TargetNum[Target.ES2024];
+  const minTargetES2024 = TargetNum[options.target] >= TargetNum[Target.ES2024];
+  const minTargetESNext = options.target === Target.ESNext;
+  const canUseFlagMods = minTargetESNext;
   const globalModFlags = {
     dotAll: ast.flags.dotAll,
     ignoreCase: ast.flags.ignoreCase,
@@ -58,19 +60,22 @@ function generate(ast, options) {
     // Include JS flag i if a case insensitive node was used and no case sensitive nodes were used
     ignoreCase: (ast.flags.dotAll || hasDotAllDot) && !hasNonDotAllDot,
   };
+  let lastNode = null;
   const state = {
     ...options,
     appliedGlobalFlags,
     currentFlags: {...globalModFlags},
     groupNames: new Set(), // TODO: Use
-    inCharacterClass: false, // TODO: Set
+    inCharacterClass: false,
+    lastNode,
+    minTargetES2024,
+    minTargetESNext, // TODO: Remove if not used
     useAppliedDotAll: !canUseFlagMods && hasDotAllDot && hasNonDotAllDot, // TODO: Use
     useAppliedIgnoreCase: !canUseFlagMods && hasCaseInsensitiveNode && hasCaseSensitiveNode, // TODO: Use for Unicode props
   };
-  let lastNodeType = null;
   function gen(node) {
-    state.lastNodeType = lastNodeType; // TODO: Use for literal digits that follow backrefs
-    lastNodeType = node.type;
+    state.lastNode = lastNode;
+    lastNode = node;
     switch (node.type) {
       case AstTypes.Regex:
         // Final result is an object; other node types return strings
@@ -88,12 +93,16 @@ function generate(ast, options) {
         // [TODO] Following literal digits need to be escaped or delimited to avoid changing the meaning of the backref
         return '\\' + node.ref;
       case AstTypes.CapturingGroup:
-        // TODO: For target < ESNext, need to strip duplicate names
+        // TODO: If `!minTargetESNext` need to strip duplicate names
         return ''; // TODO
       case AstTypes.Character:
         return generateCharacter(node, state);
-      case AstTypes.CharacterClass:
-        return `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
+      case AstTypes.CharacterClass: {
+        state.inCharacterClass = true;
+        const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
+        state.inCharacterClass = false;
+        return result;
+      }
       case AstTypes.CharacterClassIntersection:
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
@@ -119,7 +128,7 @@ function generate(ast, options) {
       case AstTypes.VariableLengthCharacterSet:
         // Technically, `VariableLengthCharacterSet` nodes shouldn't be included in transformer
         // output since none of its kinds are directly supported by `regex`, but `kind: 'grapheme'`
-        // (only) is allowed through to enable use here of options `allowBestEffort` and `target`
+        // (only) is allowed through so we can check options `allowBestEffort` and `target` here
         return generateVariableLengthCharacterSet(node, state);
       default:
         // Note: Node types `Directive` and `Subroutine` are never included in transformer output
@@ -160,7 +169,19 @@ const FlagModifierVisitor = {
   },
 };
 
-const CharCodeEscapes = new Map([
+const BaseEscapeChars = new Set([
+  '$', '(', ')', '*', '+', '.', '?', '[', '\\', ']', '^', '{', '|', '}',
+]);
+const CharacterClassEscapeChars = new Set([
+  '-', '\\', ']', '^',
+]);
+const CharacterClassEscapeCharsV = new Set([
+  '(', ')', '-', '/', '[', '\\', ']', '^', '{', '|', '}',
+  // Double punctuators (also `-` and `^`)
+  '!', '#', '$', '%', '&', '*', '+', ',', '.', ':', ';', '<', '=', '>', '?', '@', '`', '~',
+]);
+
+const CharCodeEscapeMap = new Map([
   [ 9, r`\t`], // horizontal tab
   [10, r`\n`], // line feed
   [11, r`\v`], // vertical tab
@@ -173,28 +194,38 @@ function charHasCase(char) {
 }
 
 function generateCharacter({value}, state) {
-  // TODO: Add preceding delimiter or escape this char for things that can alter a preceding valid node
   const char = String.fromCodePoint(value);
-  const useAppliedIC = state.currentFlags.ignoreCase && state.useAppliedIgnoreCase && charHasCase(char);
-  // ASCII A-Za-z can be converted without worrying about Unicode edge cases
-  if (useAppliedIC && !state.allowBestEffort && !/[a-z]/iu.test(char)) {
+  const needsAppliedIgnoreCase = state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && charHasCase(char);
+  // ASCII [A-Za-z] can be converted without worrying about Unicode edge cases
+  if (needsAppliedIgnoreCase && !state.allowBestEffort && !/[a-z]/iu.test(char)) {
     throw new Error('Uses mixed case sensitivity in a way that requires option allowBestEffort or target ESNext');
   }
-  if (CharCodeEscapes.has(value)) {
-    return CharCodeEscapes.get(value);
+  if (CharCodeEscapeMap.has(value)) {
+    return CharCodeEscapeMap.get(value);
   }
-  // Condition modeled on the Chrome developer console's display for strings
-  if (value < 32 || (value > 126 && value < 160)) {
+  if (
+    // Control chars, etc.; condition modeled on the Chrome developer console's display for strings
+    value < 32 || (value > 126 && value < 160) ||
+    // Avoid corrupting a preceding backref by immediately following it with a literal digit
+    (state.lastNode.type === AstTypes.Backreference && isIntCharCode(value))
+  ) {
     // Don't convert value `0` to `\0` since that's corruptible by following literal digits
     return r`\x${value.toString(16).padStart(2, '0')}`;
   }
-  if (false /* is metachar to escape */) {
-    if (state.inCharacterClass) {
-      return char; // TODO, including reserved double punctuators
+  if (state.inCharacterClass) {
+    const set = state.minTargetES2024 ? CharacterClassEscapeCharsV : CharacterClassEscapeChars;
+    if (set.has(char)) {
+      return '\\' + char;
     }
-    return char; // TODO
+    if (needsAppliedIgnoreCase) {
+      return char; // TODO
+    }
+    return char;
   }
-  if (useAppliedIC) {
+  if (BaseEscapeChars.has(char)) {
+    return '\\' + char;
+  }
+  if (needsAppliedIgnoreCase) {
     // Unicode case folding is complicated, and this doesn't support all edge cases.
     // - Doesn't add titlecase-specific versions of chars like Serbo-Croatian 'ǅ' (U+01C5) (lcase 'ǆ', ucase 'Ǆ').
     //   - All titlecase chars: <compart.com/en/unicode/category/Lt>
@@ -236,12 +267,10 @@ function generateVariableLengthCharacterSet({kind}, state) {
   if (!state.allowBestEffort) {
     throw new Error(r`Use of "\X" requires option allowBestEffort`);
   }
-  const emojiGrapheme = TargetNum[state.target] >= TargetNum[Target.ES2024] ?
-    r`\p{RGI_Emoji}` :
-    // `emoji-regex-xs` is more permissive than `\p{RGI_Emoji}` since it allows overqualified and
-    // underqualified emoji using a general pattern that matches all Unicode sequences that follow
-    // the structure of valid emoji. That actually makes it more accurate for matching any grapheme
-    emojiRegex().source;
+  // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows overqualified and
+  // underqualified emoji using a general pattern that matches all Unicode sequences that follow
+  // the structure of valid emoji. That actually makes it more accurate for matching any grapheme
+  const emojiGrapheme = state.minTargetES2024 ? r`\p{RGI_Emoji}` : emojiRegex().source;
   // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>
   return r`(?>\r\n|${emojiGrapheme}|\P{M}\p{M}*)`;
 }
@@ -268,6 +297,10 @@ function getNewCurrentFlags(current, {enable, disable}) {
     dotAll: !disable?.dotAll && (!!enable?.dotAll || current.dotAll),
     ignoreCase: !disable?.ignoreCase && (!!enable?.ignoreCase || current.ignoreCase),
   };
+}
+
+function isIntCharCode(value) {
+  return value > 47 && value < 58;
 }
 
 export {

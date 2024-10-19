@@ -628,7 +628,7 @@ function splitEscapedNumToken(token, numCaptures) {
 
 function assertNonEmptyCharClass(raw) {
   if (raw.endsWith(']')) {
-    throw new Error(`Empty char class "${raw}" not allowed by Oniguruma`);
+    throw new Error(`Empty char class "${raw}" unsupported in Oniguruma`);
   }
 }
 
