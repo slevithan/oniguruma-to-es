@@ -171,6 +171,13 @@ const PosixProperties = new Set([
   // - upper (JS: Upper)
 ]);
 
+const PropertiesWithCase = new Set([
+  'Lower', 'Lowercase',
+  'Upper', 'Uppercase',
+  'Ll', 'Lowercase_Letter',
+  'Lu', 'Uppercase_Letter',
+]);
+
 // Generates a Unicode property lookup name: lowercase, with hyphens, spaces, and underscores removed
 function slug(name) {
   return name.replace(/[- _]+/g, '').toLowerCase();
@@ -182,5 +189,6 @@ export {
   JsUnicodePropertiesOfStringsMap,
   PosixClasses,
   PosixProperties,
+  PropertiesWithCase,
   slug,
 };

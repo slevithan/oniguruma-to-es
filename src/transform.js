@@ -183,6 +183,23 @@ const FirstPassVisitor = {
     };
   },
 
+  Group({node}) {
+    if (!node.flags) {
+      return;
+    }
+    // JS doesn't support flag groups that enable and disable the same flag; ex: `(?i-i:)`
+    const {enable, disable} = node.flags;
+    if (enable?.dotAll && disable?.dotAll) {
+      delete enable.dotAll;
+    }
+    if (enable?.ignoreCase && disable?.ignoreCase) {
+      delete enable.ignoreCase;
+    }
+    if (enable && !Object.keys(enable).length) {
+      delete node.flags.enable;
+    }
+  },
+
   Pattern({node}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative. Additional `\G` error checking in the `Assertion` visitor

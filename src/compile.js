@@ -7,10 +7,6 @@ import {transform} from './transform.js';
 import {Target, TargetNum} from './utils.js';
 
 /**
-@typedef {'i' | ''} FlagI
-@typedef {'m' | ''} FlagM
-@typedef {'x' | ''} FlagX
-@typedef {`${FlagI}${FlagM}${FlagX}` | `${FlagI}${FlagX}${FlagM}` | `${FlagM}${FlagI}${FlagX}` | `${FlagM}${FlagX}${FlagI}` | `${FlagX}${FlagI}${FlagM}` | `${FlagX}${FlagM}${FlagI}`} OnigurumaFlags
 @typedef {{
   allowBestEffort?: boolean;
   maxRecursionDepth?: number | null;
@@ -20,7 +16,7 @@ import {Target, TargetNum} from './utils.js';
 /**
 Transpiles a regex pattern and flags from Oniguruma to native JS.
 @param {string} pattern Oniguruma regex pattern.
-@param {OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
 @param {CompileOptions} [options]
 @returns {{
   pattern: string;
@@ -64,13 +60,14 @@ function getOptions(options) {
     maxRecursionDepth: 5,
     // JS version for the generated regex pattern and flags. Patterns that can't be emulated using
     // the given target throw.
-    // - 'ES2018': Broadest compatibility (uses JS flag u). Unsupported features: nested character
-    //             classes and character class intersection.
+    // - 'ES2018': Broadest compatibility (uses JS flag u). Unsupported features: Nested character
+    //             classes, character class intersection, and some POSIX classes.
     // - 'ES2024': Uses JS flag v, supported by Node.js 20 and 2023-era browsers.
     // - 'ESNext': Allows use of ES2025+ regex features in generated patterns (flag groups and
     //             duplicate group names). This preserves duplicate group names across separate
     //             alternation paths and allows disabling option `allowBestEffort` with patterns
-    //             that include cased, non-ASCII chars with different states of case sensitivity.
+    //             that include different case-sensitivity states for different non-ASCII chars
+    //             with case.
     target: Target.ES2024,
     // Override default values with provided options
     ...options,
@@ -80,7 +77,7 @@ function getOptions(options) {
 /**
 Transpiles a regex pattern and flags from Oniguruma to a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
-@param {OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
 @param {CompileOptions} [options]
 @returns {RegExp}
 */

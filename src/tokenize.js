@@ -102,6 +102,10 @@ const charClassTokenRe = new RegExp(r`
 `.replace(/\s+/g, ''), 'gsu');
 
 /**
+@typedef {'i' | ''} FlagI
+@typedef {'m' | ''} FlagM
+@typedef {'x' | ''} FlagX
+@typedef {`${FlagI}${FlagM}${FlagX}` | `${FlagI}${FlagX}${FlagM}` | `${FlagM}${FlagI}${FlagX}` | `${FlagM}${FlagX}${FlagI}` | `${FlagX}${FlagI}${FlagM}` | `${FlagX}${FlagM}${FlagI}`} OnigurumaFlags
 @typedef {{
   type: keyof TokenTypes;
   raw: string;
@@ -118,7 +122,7 @@ const charClassTokenRe = new RegExp(r`
 */
 /**
 @param {string} pattern
-@param {import('./compile.js').OnigurumaFlags} [flags] Oniguruma flags i, m, x. Flag m is equivalent to JS's flag s.
+@param {OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
 @returns {TokenizerResult}
 */
 function tokenize(pattern, flags = '') {
@@ -127,11 +131,10 @@ function tokenize(pattern, flags = '') {
   }
   const xStack = [flags.includes('x')];
   const context = {
-    addXMod(x) {xStack.push(x)},
-    isXOn: () => xStack.at(-1),
-    popXMod() {xStack.pop()},
-    replaceCurrentXMod(x) {xStack[xStack.length - 1] = x},
-    reuseParentXMod() {xStack.push(xStack.at(-1))},
+    getCurrentModX: () => xStack.at(-1),
+    popModX() {xStack.pop()},
+    pushModX(isXOn) {xStack.push(isXOn)},
+    replaceCurrentModX(isXOn) {xStack[xStack.length - 1] = isXOn},
   };
   let tokens = [];
   let match;
@@ -251,8 +254,8 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         token,
       };
     }
-    // Remaining group types all reuse flag x status; it can be altered by flag directives
-    context.reuseParentXMod();
+    // Remaining group types all reuse current flag x status; it can be altered by flag directives
+    context.pushModX(context.getCurrentModX());
     if (
       // Unnamed capture if no named captures, else noncapturing group
       m === '(' ||
@@ -299,12 +302,12 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     throw new Error(`Unexpected group "${m}"`);
   }
   if (m === ')') {
-    context.popXMod();
+    context.popModX();
     return {
       token: createToken(TokenTypes.GroupClose, m),
     };
   }
-  if (m === '#' && context.isXOn()) {
+  if (m === '#' && context.getCurrentModX()) {
     // Onig's only line break char is line feed
     const end = pattern.indexOf('\n', lastIndex);
     return {
@@ -312,7 +315,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       lastIndex: end === -1 ? pattern.length : end,
     };
   }
-  if (/^\s$/.test(m) && context.isXOn()) {
+  if (/^\s$/.test(m) && context.getCurrentModX()) {
     return;
   }
   if (m === '.') {
@@ -492,7 +495,7 @@ function createTokenForFlagGroup(raw, context) {
   let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[imx\-]*))?/.exec(raw).groups;
   off ??= '';
   // Flag x is used directly by the tokenizer; other flag modifiers are included in tokens
-  const isXOn = (context.isXOn() || on.includes('x')) && !off.includes('x');
+  const isXOn = (context.getCurrentModX() || on.includes('x')) && !off.includes('x');
   const enabledFlags = getFlagPropsForToken(on);
   const disabledFlags = getFlagPropsForToken(off);
   const flagChanges = {};
@@ -501,7 +504,7 @@ function createTokenForFlagGroup(raw, context) {
   // Standalone flags modifier; ex: `(?im-x)`
   if (raw.endsWith(')')) {
     // Replace value until the end of the current group
-    context.replaceCurrentXMod(isXOn);
+    context.replaceCurrentModX(isXOn);
     if (enabledFlags || disabledFlags) {
       return createToken(TokenTypes.Directive, raw, {
         kind: TokenDirectiveKinds.flags,
@@ -512,7 +515,7 @@ function createTokenForFlagGroup(raw, context) {
   }
   // Modifier/flag group opener; ex: `(?im-x:`
   if (raw.endsWith(':')) {
-    context.addXMod(isXOn);
+    context.pushModX(isXOn);
     const token = createToken(TokenTypes.GroupOpen, raw, {
       kind: TokenGroupKinds.group,
     });
