@@ -63,7 +63,7 @@ function getOptions(options) {
     // - 'ES2018': Broadest compatibility (uses JS flag u). Unsupported features: Nested character
     //             classes, character class intersection, and some POSIX classes.
     // - 'ES2024': Uses JS flag v, supported by Node.js 20 and 2023-era browsers.
-    // - 'ESNext': Allows use of ES2025+ regex features in generated patterns (flag groups and
+    // - 'ESNext': Allows use of ESNext regex features in generated patterns (flag groups and
     //             duplicate group names). This preserves duplicate group names across separate
     //             alternation paths and allows disabling option `allowBestEffort` with patterns
     //             that include different case-sensitivity states for different non-ASCII chars
