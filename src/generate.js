@@ -100,12 +100,14 @@ function generate(ast, options) {
       case AstTypes.Character:
         return generateCharacter(node, state);
       case AstTypes.CharacterClass: {
+        // TODO: Custom error for nested classes if `!minTargetES2024`
         state.inCharacterClass = true;
         const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
         state.inCharacterClass = false;
         return result;
       }
       case AstTypes.CharacterClassIntersection:
+        // TODO: Custom error if `!minTargetES2024`
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
         // Create the range without calling `gen` on the kids
@@ -234,6 +236,7 @@ function generateCharacterClassRange(node, state) {
   const maxStr = getEscapedChar(max, escOpts);
   let extraChars = '';
   if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
+    // [TODO] Avoid duplication by considering other chars in the parent char class when expanding
     const charsOutsideRange = getCasesOutsideCharacterClassRange(node);
     const ranges = getCodePointRangesFromChars(charsOutsideRange);
     ranges.forEach(value => {

@@ -65,9 +65,8 @@ function getOptions(options) {
     // - 'ES2024': Uses JS flag v, supported by Node.js 20 and 2023-era browsers.
     // - 'ESNext': Allows use of ESNext regex features in generated patterns (flag groups and
     //             duplicate group names). This preserves duplicate group names across separate
-    //             alternation paths and allows disabling option `allowBestEffort` with patterns
-    //             that include different case-sensitivity states for different non-ASCII chars
-    //             with case.
+    //             alternation paths, allows generating shorter regexes, and improves transpilation
+    //             performance in some cases.
     target: Target.ES2024,
     // Override default values with provided options
     ...options,

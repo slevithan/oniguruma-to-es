@@ -18,14 +18,14 @@ function getIgnoreCaseMatchChars(char) {
   const upper = lower.toUpperCase();
   const title = LowerToTitleCaseMap.get(lower);
   const special = LowerToAlternativeUpperCaseMap.get(lower);
-  // Lcase of 'İ' is multiple chars, but it's excluded by `CharsWithoutIgnoreCaseExpansion`
-  set.add(lower);
   // Exclude ucase if multiple chars; count code point length. Excludes ucase versions of German
   // es-zed 'ß', ligatures like 'ﬀ', and chars with no precomposed ucase like 'ŉ'. See
   // <unicode.org/Public/UNIDATA/SpecialCasing.txt>
   if ([...upper].length === 1) {
     set.add(upper);
   }
+  // Lcase of 'İ' is multiple chars, but it's excluded by `CharsWithoutIgnoreCaseExpansion`
+  set.add(lower);
   title && set.add(title);
   special && set.add(special);
   return [...set];
