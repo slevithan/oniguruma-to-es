@@ -577,7 +577,11 @@ function getValidatedUnicodeCharCode(raw) {
   const hex = raw[2] === '{' ?
     /^\\u\{\s*(?<hex>\p{AHex}+)/u.exec(raw).groups.hex :
     raw.slice(2);
-  return parseInt(hex, 16);
+  const dec = parseInt(hex, 16);
+  if (dec > 0x10FFFF) {
+    throw new Error(`Invalid escape out of range "${raw}"`);
+  }
+  return dec;
 }
 
 function getFlagPropsForToken(flags) {

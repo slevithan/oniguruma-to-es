@@ -23,7 +23,9 @@ function getIgnoreCaseMatchChars(char) {
   // Exclude ucase if multiple chars; count code point length. Excludes ucase versions of German
   // es-zed 'ß', ligatures like 'ﬀ', and chars with no precomposed ucase like 'ŉ'. See
   // <unicode.org/Public/UNIDATA/SpecialCasing.txt>
-  ([...upper].length === 1) && set.add(upper);
+  if ([...upper].length === 1) {
+    set.add(upper);
+  }
   title && set.add(title);
   special && set.add(special);
   return [...set];

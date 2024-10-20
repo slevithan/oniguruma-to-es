@@ -37,7 +37,7 @@ function generate(ast, options) {
       getCurrentModFlags: () => flagStack.at(-1),
       popModFlags() {flagStack.pop()},
       pushModFlags(obj) {flagStack.push(obj)},
-      setHasCased() {
+      setHasCasedChar() {
         if (flagStack.at(-1).ignoreCase) {
           hasCaseInsensitiveNode = true;
         } else {
@@ -108,8 +108,8 @@ function generate(ast, options) {
       case AstTypes.CharacterClassIntersection:
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
-        // TODO: Need special `ignoreCase` handling; maybe create the range directly without calling `gen` on the kids
-        return ''; // TODO
+        // Create the range without calling `gen` on the kids
+        return generateCharacterClassRange(node, state);
       case AstTypes.CharacterSet:
         // TODO: Special case for `\p{Any}` to `[^]` since the former is used when parsing fragments
         // in the transformer since the parser follows Onig rules and doesn't allow empty char classes
@@ -157,18 +157,24 @@ const FlagModifierVisitor = {
   },
   Backreference(_, state) {
     // Can't know for sure, so assume the backref will include chars with case
-    state.setHasCased();
+    state.setHasCasedChar();
   },
   Character({node}, state) {
     if (charHasCase(String.fromCodePoint(node.value))) {
-      state.setHasCased();
+      state.setHasCasedChar();
+    }
+  },
+  CharacterClassRange({node, skip}, state) {
+    skip();
+    if (getCasesOutsideCharacterClassRange(node, {firstOnly: true}).length) {
+      state.setHasCasedChar();
     }
   },
   CharacterSet({node}, state) {
     if (node.kind === AstCharacterSetKinds.any) {
       state.setHasDot();
     } else if (node.kind === AstCharacterSetKinds.property && UnicodePropertiesWithCase.has(node.value)) {
-      state.setHasCased();
+      state.setHasCasedChar();
     }
   },
 };
@@ -184,7 +190,6 @@ const CharacterClassEscapeCharsFlagV = new Set([
   // Double punctuators (also `-` and `^`)
   '!', '#', '$', '%', '&', '*', '+', ',', '.', ':', ';', '<', '=', '>', '?', '@', '`', '~',
 ]);
-
 const CharCodeEscapeMap = new Map([
   [ 9, r`\t`], // horizontal tab
   [10, r`\n`], // line feed
@@ -193,29 +198,20 @@ const CharCodeEscapeMap = new Map([
   [13, r`\r`], // carriage return
 ]);
 
+const casedRe = /^\p{Cased}$/u;
 function charHasCase(char) {
-  return /^\p{Cased}$/u.test(char);
+  return casedRe.test(char);
 }
 
 function generateCharacter({value}, state) {
   const char = String.fromCodePoint(value);
-  if (CharCodeEscapeMap.has(value)) {
-    return CharCodeEscapeMap.get(value);
-  }
-  if (
-    // Control chars, etc.; condition modeled on the Chrome developer console's display for strings
-    value < 32 || (value > 126 && value < 160) ||
-    // Avoid corrupting a preceding backref by immediately following it with a literal digit
-    (state.lastNode.type === AstTypes.Backreference && isIntCharCode(value))
-  ) {
-    // Don't convert value `0` to `\0` since that's corruptible by following literal digits
-    return r`\x${value.toString(16).padStart(2, '0')}`;
-  }
-  const escapeChars = state.inCharacterClass ?
-    (state.minTargetES2024 ? CharacterClassEscapeCharsFlagV : CharacterClassEscapeChars) :
-    BaseEscapeChars;
-  if (escapeChars.has(char)) {
-    return '\\' + char;
+  const escaped = getEscapedChar(value, {
+    isAfterBackref: state.lastNode.type === AstTypes.Backreference,
+    inCharacterClass: state.inCharacterClass,
+    useFlagV: state.minTargetES2024,
+  });
+  if (escaped !== char) {
+    return escaped;
   }
   if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && charHasCase(char)) {
     const cases = getIgnoreCaseMatchChars(char);
@@ -224,6 +220,30 @@ function generateCharacter({value}, state) {
       (cases.length > 1 ? `[${cases.join('')}]` : cases[0]);
   }
   return char;
+}
+
+function generateCharacterClassRange(node, state) {
+  const min = node.min.value;
+  const max = node.max.value;
+  const escOpts = {
+    isAfterBackref: false,
+    inCharacterClass: true,
+    useFlagV: state.minTargetES2024,
+  };
+  const minStr = getEscapedChar(min, escOpts);
+  const maxStr = getEscapedChar(max, escOpts);
+  let extraChars = '';
+  if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
+    const charsOutsideRange = getCasesOutsideCharacterClassRange(node);
+    const ranges = getCodePointRangesFromChars(charsOutsideRange);
+    ranges.forEach(value => {
+      extraChars += Array.isArray(value) ?
+        `${getEscapedChar(value[0], escOpts)}-${getEscapedChar(value[1], escOpts)}` :
+        getEscapedChar(value, escOpts);
+    });
+  }
+  // TODO: Is adding directly after the range OK when part of an intersection?
+  return `${minStr}-${maxStr}${extraChars}`;
 }
 
 function generateFlags(node, state) {
@@ -252,6 +272,76 @@ function generateVariableLengthCharacterSet({kind}, state) {
   const emojiGrapheme = state.minTargetES2024 ? r`\p{RGI_Emoji}` : emojiRegex().source;
   // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>
   return r`(?>\r\n|${emojiGrapheme}|\P{M}\p{M}*)`;
+}
+
+/**
+Given a `CharacterClassRange` node, returns an array of chars that are a case variant of a char in
+the range, and aren't already in the range.
+*/
+function getCasesOutsideCharacterClassRange(node, {firstOnly} = {}) {
+  const min = node.min.value;
+  const max = node.max.value;
+  // Avoid unneeded work. Assumptions (per Unicode 16):
+  // - No case variants cross the Basic Multilingual Plane boundary
+  // - No cased chars appear beyond the Supplementary Multilingual Plane
+  if ((min < 65 && (max === 0xFFFF || max >= 0x1FFFF)) || (min === 0x10000 && max >= 0x1FFFF)) {
+    return;
+  }
+  const found = [];
+  for (let i = min; i <= max; i++) {
+    const char = String.fromCodePoint(i);
+    if (!charHasCase(char)) {
+      continue;
+    }
+    const charsOutsideRange = getIgnoreCaseMatchChars(char).filter(caseOfChar => {
+      const num = caseOfChar.codePointAt(0);
+      return num < min || num > max;
+    });
+    if (charsOutsideRange.length) {
+      found.push(...charsOutsideRange);
+      if (firstOnly) {
+        break;
+      }
+    }
+  }
+  return found;
+}
+
+function getCodePointRangesFromChars(chars) {
+  const codePoints = chars.map(char => char.codePointAt(0)).sort((a, b) => a - b);
+  const values = [];
+  let start = null;
+  for (let i = 0; i < codePoints.length; i++) {
+    if (codePoints[i + 1] === codePoints[i] + 1) {
+      start ??= codePoints[i];
+    } else if (start === null) {
+      values.push(codePoints[i]);
+    } else {
+      values.push([start, codePoints[i]]);
+      start = null;
+    }
+  }
+  return values;
+}
+
+function getEscapedChar(codePoint, {isAfterBackref, inCharacterClass, useFlagV}) {
+  if (CharCodeEscapeMap.has(codePoint)) {
+    return CharCodeEscapeMap.get(codePoint);
+  }
+  if (
+    // Control chars, etc.; condition modeled on the Chrome developer console's display for strings
+    codePoint < 32 || (codePoint > 126 && codePoint < 160) ||
+    // Avoid corrupting a preceding backref by immediately following it with a literal digit
+    (isAfterBackref && isIntCharCode(codePoint))
+  ) {
+    // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
+    return r`\x${codePoint.toString(16).padStart(2, '0')}`;
+  }
+  const escapeChars = inCharacterClass ?
+    (useFlagV ? CharacterClassEscapeCharsFlagV : CharacterClassEscapeChars) :
+    BaseEscapeChars;
+  const char = String.fromCodePoint(codePoint);
+  return (escapeChars.has(char) ? '\\' : '') + char;
 }
 
 function getGroupPrefix(node, canUseFlagMods) {
