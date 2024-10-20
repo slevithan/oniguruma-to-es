@@ -2,7 +2,7 @@ import {getOptions} from './compile.js';
 import emojiRegex from 'emoji-regex-xs';
 import {AstCharacterSetKinds, AstTypes, AstVariableLengthCharacterSetKinds} from './parse.js';
 import {traverse} from './traverse.js';
-import {PropertiesWithCase} from './unicode.js';
+import {getIgnoreCaseMatchChars, UnicodePropertiesWithCase} from './unicode.js';
 import {r, Target, TargetNum} from './utils.js';
 
 /**
@@ -87,13 +87,15 @@ function generate(ast, options) {
       case AstTypes.Alternative:
         return node.elements.map(gen).join('');
       case AstTypes.Assertion:
+        // TODO: Set `currentFlags` if lookaround
         return ''; // TODO
       case AstTypes.Backreference:
-        // Transformed backrefs always use digits
-        // [TODO] Following literal digits need to be escaped or delimited to avoid changing the meaning of the backref
+        // TODO: Throw if `!canUseFlagMods`, `!allowBestEffort`, and within mixed local ignoreCase
+        // Transformed backrefs always use digits; no named backrefs
         return '\\' + node.ref;
       case AstTypes.CapturingGroup:
         // TODO: If `!minTargetESNext` need to strip duplicate names
+        // TODO: Set `currentFlags`
         return ''; // TODO
       case AstTypes.Character:
         return generateCharacter(node, state);
@@ -106,7 +108,7 @@ function generate(ast, options) {
       case AstTypes.CharacterClassIntersection:
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
-        // TODO: Maybe create the range directly (to deal with case insensitivity), without calling `gen` on the kids
+        // TODO: Need special `ignoreCase` handling; maybe create the range directly without calling `gen` on the kids
         return ''; // TODO
       case AstTypes.CharacterSet:
         // TODO: Special case for `\p{Any}` to `[^]` since the former is used when parsing fragments
@@ -114,11 +116,13 @@ function generate(ast, options) {
         return ''; // TODO
       case AstTypes.Flags:
         return generateFlags(node, state);
-      case AstTypes.Group:
-        if (node.flags) {
-          state.currentFlags = getNewCurrentFlags(state.currentFlags, node.flags);
-        }
-        return `(?${getGroupPrefix(node, canUseFlagMods)}${node.alternatives.map(gen).join('|')})`;
+      case AstTypes.Group: {
+        const currentFlags = state.currentFlags;
+        node.flags && (state.currentFlags = getNewCurrentFlags(currentFlags, node.flags));
+        const result = `(?${getGroupPrefix(node, canUseFlagMods)}${node.alternatives.map(gen).join('|')})`;
+        state.currentFlags = currentFlags;
+        return result;
+      }
       case AstTypes.Pattern:
         return node.alternatives.map(gen).join('|');
       case AstTypes.Quantifier:
@@ -163,7 +167,7 @@ const FlagModifierVisitor = {
   CharacterSet({node}, state) {
     if (node.kind === AstCharacterSetKinds.any) {
       state.setHasDot();
-    } else if (node.kind === AstCharacterSetKinds.property && PropertiesWithCase.has(node.value)) {
+    } else if (node.kind === AstCharacterSetKinds.property && UnicodePropertiesWithCase.has(node.value)) {
       state.setHasCased();
     }
   },
@@ -175,7 +179,7 @@ const BaseEscapeChars = new Set([
 const CharacterClassEscapeChars = new Set([
   '-', '\\', ']', '^',
 ]);
-const CharacterClassEscapeCharsV = new Set([
+const CharacterClassEscapeCharsFlagV = new Set([
   '(', ')', '-', '/', '[', '\\', ']', '^', '{', '|', '}',
   // Double punctuators (also `-` and `^`)
   '!', '#', '$', '%', '&', '*', '+', ',', '.', ':', ';', '<', '=', '>', '?', '@', '`', '~',
@@ -195,11 +199,6 @@ function charHasCase(char) {
 
 function generateCharacter({value}, state) {
   const char = String.fromCodePoint(value);
-  const needsAppliedIgnoreCase = state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && charHasCase(char);
-  // ASCII [A-Za-z] can be converted without worrying about Unicode edge cases
-  if (needsAppliedIgnoreCase && !state.allowBestEffort && !/[a-z]/iu.test(char)) {
-    throw new Error('Uses mixed case sensitivity in a way that requires option allowBestEffort or target ESNext');
-  }
   if (CharCodeEscapeMap.has(value)) {
     return CharCodeEscapeMap.get(value);
   }
@@ -212,37 +211,17 @@ function generateCharacter({value}, state) {
     // Don't convert value `0` to `\0` since that's corruptible by following literal digits
     return r`\x${value.toString(16).padStart(2, '0')}`;
   }
-  if (state.inCharacterClass) {
-    const set = state.minTargetES2024 ? CharacterClassEscapeCharsV : CharacterClassEscapeChars;
-    if (set.has(char)) {
-      return '\\' + char;
-    }
-    if (needsAppliedIgnoreCase) {
-      return char; // TODO
-    }
-    return char;
-  }
-  if (BaseEscapeChars.has(char)) {
+  const escapeChars = state.inCharacterClass ?
+    (state.minTargetES2024 ? CharacterClassEscapeCharsFlagV : CharacterClassEscapeChars) :
+    BaseEscapeChars;
+  if (escapeChars.has(char)) {
     return '\\' + char;
   }
-  if (needsAppliedIgnoreCase) {
-    // Unicode case folding is complicated, and this doesn't support all edge cases.
-    // - Doesn't add titlecase-specific versions of chars like Serbo-Croatian 'ǅ' (U+01C5) (lcase 'ǆ', ucase 'Ǆ').
-    //   - All titlecase chars: <compart.com/en/unicode/category/Lt>
-    // - Some known language-specific and Unicode legacy edge cases are handled, but additional edge cases likely exist.
-    // - Language-specific edge cases:
-    //   - The lcase of 'İ' (capital I with dot above, U+0130) is small 'i', which ucases as capital 'I'.
-    //     - Note: `/i/iv.test('İ')` and `/İ/iv.test('Iiı')` return `false`.
-    //   - The ucase of 'ı' (small dotless I, U+0131) is capital 'I', which lcases as small 'i'.
-    //     - Note: `/I/iv.test('ı')` and `/ı/iv.test('Iiİ')` return `false`.
-    //   - The lcase of 'ẞ' (capital sharp S, U+1E9E) is 'ß' (small sharp S, U+00DF), but the ucase of U+00DF is the two chars 'SS'.
-    // - Unicode legacy edge cases:
-    //   - The lcase of 'K' (Kelvin, U+212A) is small 'k', which ucases as capital 'K'.
-    //   - The lcase of 'Ω' (Ohm, U+2126) is small Omega 'ω', which ucases as capital Omega ('Ω', U+03A9).
-    //   - The lcase of 'Å' (Angstrom, U+212B) is small A with ring above 'å' (U+00E5), which ucases as capital A with ring above ('Å', U+00C5).
-    // const lower = char.toLowerCase();
-    // const upper = char.toUpperCase();
-    return char; // TODO
+  if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && charHasCase(char)) {
+    const cases = getIgnoreCaseMatchChars(char);
+    return state.inCharacterClass ?
+      cases.join('') :
+      (cases.length > 1 ? `[${cases.join('')}]` : cases[0]);
   }
   return char;
 }

@@ -1,5 +1,34 @@
 import {r} from './utils.js';
 
+const c = String.fromCodePoint;
+
+const CharsWithoutIgnoreCaseExpansion = new Set([
+  c(0x130), // İ
+  c(0x131), // ı
+]);
+
+function getIgnoreCaseMatchChars(char) {
+  // Some chars should not match the chars they case swap to
+  if (CharsWithoutIgnoreCaseExpansion.has(char)) {
+    return [char];
+  }
+  const set = new Set();
+  const lower = char.toLowerCase();
+  // Everything else is based on `lower`
+  const upper = lower.toUpperCase();
+  const title = LowerToTitleCaseMap.get(lower);
+  const special = LowerToAlternativeUpperCaseMap.get(lower);
+  // Lcase of 'İ' is multiple chars, but it's excluded by `CharsWithoutIgnoreCaseExpansion`
+  set.add(lower);
+  // Exclude ucase if multiple chars; count code point length. Excludes ucase versions of German
+  // es-zed 'ß', ligatures like 'ﬀ', and chars with no precomposed ucase like 'ŉ'. See
+  // <unicode.org/Public/UNIDATA/SpecialCasing.txt>
+  ([...upper].length === 1) && set.add(upper);
+  title && set.add(title);
+  special && set.add(special);
+  return [...set];
+}
+
 // Unicode properties must be mapped to property names supported by JS, and must also apply JS's
 // stricter rules for casing, whitespace, and underscores in Unicode property names. In order to
 // remain lightweight, this library assumes properties not in this list are Unicode script names
@@ -128,6 +157,27 @@ for (const p of JsUnicodePropertiesOfStrings) {
   JsUnicodePropertiesOfStringsMap.set(slug(p), p);
 }
 
+const LowerToAlternativeUpperCaseMap = new Map([
+  [c(0xDF), c(0x1E9E)], // ß, ẞ
+  [c(0x6B), c(0x212A)], // k, K (Kelvin)
+  [c(0xE5), c(0x212B)], // å, Å (Angstrom)
+  [c(0x3C9), c(0x2126)], // ω, Ω (Ohm)
+]);
+
+// See <github.com/node-unicode/unicode-16.0.0/tree/main/General_Category/Titlecase_Letter>
+const LowerToTitleCaseMap = new Map([
+  titleEntry(0x1C5),
+  titleEntry(0x1C8),
+  titleEntry(0x1CB),
+  titleEntry(0x1F2),
+  ...titleRange(0x1F88, 0x1F8F),
+  ...titleRange(0x1F98, 0x1F9F),
+  ...titleRange(0x1FA8, 0x1FAF),
+  titleEntry(0x1FBC),
+  titleEntry(0x1FCC),
+  titleEntry(0x1FFC),
+]);
+
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
 // don't allow inserting whitespace and underscores. Definitions at
 // <github.com/kkos/oniguruma/blob/master/doc/RE> (see: POSIX bracket: Unicode Case)
@@ -171,24 +221,44 @@ const PosixProperties = new Set([
   // - upper (JS: Upper)
 ]);
 
-const PropertiesWithCase = new Set([
-  'Lower', 'Lowercase',
-  'Upper', 'Uppercase',
-  'Ll', 'Lowercase_Letter',
-  'Lu', 'Uppercase_Letter',
-]);
+function range(start, end) {
+  // const range = Array.from(Array(end + 1 - start), (_, i) => i + start);
+  // const range = Array(end + 1 - start).fill(start).map((x, i) => x + i);
+  const range = [];
+  for (let i = start; i <= end; i++) {
+    range.push(i);
+  }
+  return range;
+}
 
 // Generates a Unicode property lookup name: lowercase, with hyphens, spaces, and underscores removed
 function slug(name) {
   return name.replace(/[- _]+/g, '').toLowerCase();
 }
 
+function titleEntry(codePoint) {
+  const char = c(codePoint);
+  return [char.toLowerCase(), char];
+}
+
+function titleRange(start, end) {
+  return range(start, end).map(codePoint => titleEntry(codePoint));
+}
+
+const UnicodePropertiesWithCase = new Set([
+  'Lower', 'Lowercase',
+  'Upper', 'Uppercase',
+  'Ll', 'Lowercase_Letter',
+  'Lu', 'Uppercase_Letter',
+]);
+
 export {
+  getIgnoreCaseMatchChars,
   JsUnicodeProperties,
   JsUnicodePropertiesMap,
   JsUnicodePropertiesOfStringsMap,
   PosixClasses,
   PosixProperties,
-  PropertiesWithCase,
   slug,
+  UnicodePropertiesWithCase,
 };

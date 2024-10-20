@@ -342,7 +342,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       token: createTokenForQuantifier(m),
     };
   }
-  assertSingleChar(m);
+  assertSingleCodePoint(m);
   return {
     token: createToken(TokenTypes.Character, m, {
       value: m.codePointAt(0),
@@ -408,7 +408,7 @@ function createTokenForAnyTokenWithinCharClass(raw) {
   if (raw === '&&') {
     return createToken(TokenTypes.CharacterClassIntersector, raw);
   }
-  assertSingleChar(raw);
+  assertSingleCodePoint(raw);
   return createToken(TokenTypes.Character, raw, {
     value: raw.codePointAt(0),
   });
@@ -451,10 +451,11 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   // Meta `\M-x` and meta control char `\M-\C-x` are unsupported; avoid treating as an identity escape
   if (char1 === 'M') {
-    // TODO: This can be supported fairly easily
+    // [TODO] This can be supported fairly easily
     throw new Error(`Unsupported meta escape "${raw}"`);
   }
   // Identity escape
+  // TODO: Should this count code point length instead?
   if (raw.length === 2) {
     return createToken(TokenTypes.Character, raw, {
       value: raw.codePointAt(1),
@@ -483,7 +484,7 @@ function createTokenForControlChar(raw) {
   if (!char || !/[a-zA-Z]/.test(char)) {
     // Unlike JS, Onig allows any char to follow `\c` (with special conversion rules), but this is
     // an extreme edge case
-    // TODO: This can be supported fairly easily
+    // [TODO] This can be supported fairly easily
     throw new Error(`Unsupported control character "${raw}"`);
   }
   return createToken(TokenTypes.Character, raw, {
@@ -632,9 +633,9 @@ function assertNonEmptyCharClass(raw) {
   }
 }
 
-function assertSingleChar(raw) {
-  if (raw.length !== 1) {
-    throw new Error(`Expected match "${raw}" to be a single char`);
+function assertSingleCodePoint(raw) {
+  if ([...raw].length !== 1) {
+    throw new Error(`Expected match "${raw}" to be a single code point`);
   }
 }
 
