@@ -6,25 +6,27 @@ import {getIgnoreCaseMatchChars, UnicodePropertiesWithCase} from './unicode.js';
 import {r, Target, TargetNum} from './utils.js';
 
 /**
-Generates a `regex`-compatible pattern, flags, and options from a `regex` AST.
+Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
 @param {import('./transform.js').RegexAst} ast
 @param {import('./compile.js').CompileOptions} [options]
 @returns {{
   pattern: string;
   flags: string;
-  options?: Object;
+  options: Object;
 }}
 */
 function generate(ast, options) {
-  options = getOptions(options);
-  const minTargetES2024 = TargetNum[options.target] >= TargetNum[Target.ES2024];
-  const minTargetESNext = options.target === Target.ESNext;
+  const opts = getOptions(options);
+  const minTargetES2024 = TargetNum[opts.target] >= TargetNum[Target.ES2024];
+  const minTargetESNext = opts.target === Target.ESNext;
 
-  // [TODO] Consider gathering this data in the transformer's final pass (avoid an extra traversal)
+  // If the output can't use flag groups, we need a pre-pass to check for the use of chars with
+  // case in case sensitive/insensitive states. This minimizes the need for case expansions (though
+  // expansions are lossless, even given Unicode case complexities) and allows supporting case
+  // insensitive backrefs in more cases
+  // [TODO] Consider gathering this data in the transformer's final traversal to avoid it here
   let hasCaseInsensitiveNode = null;
   let hasCaseSensitiveNode = null;
-  // If the output can't use flag groups with flag i, we need a pre-pass to check for use of case
-  // sensitive/insensitive nodes with case
   if (!minTargetESNext) {
     const iStack = [ast.flags.ignoreCase];
     traverse({node: ast}, {
@@ -51,16 +53,16 @@ function generate(ast, options) {
   };
   let lastNode = null;
   const state = {
-    allowBestEffort: options.allowBestEffort,
+    allowBestEffort: opts.allowBestEffort,
     appliedGlobalFlags,
     currentFlags: {
       dotAll: ast.flags.dotAll,
       ignoreCase: ast.flags.ignoreCase,
     },
     groupNames: new Set(), // TODO: Use
-    inCharacterClass: false,
+    inCharClass: false,
     lastNode,
-    maxRecursionDepth: options.maxRecursionDepth, // TODO: Use
+    maxRecursionDepth: opts.maxRecursionDepth, // TODO: Use
     useAppliedIgnoreCase: !!(!minTargetESNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useDuplicateNames: minTargetESNext,
     useFlagMods: minTargetESNext,
@@ -87,20 +89,25 @@ function generate(ast, options) {
         // Transformed backrefs always use digits; no named backrefs
         return '\\' + node.ref;
       case AstTypes.CapturingGroup:
-        // TODO: If `!state.useDuplicateNames`, need to strip duplicate names
+        // TODO: Strip duplicate names if `!state.useDuplicateNames`
         // TODO: Set `currentFlags`
         return ''; // TODO
       case AstTypes.Character:
         return generateCharacter(node, state);
       case AstTypes.CharacterClass: {
-        // TODO: Custom error for nested classes if `!state.useFlagV`
-        state.inCharacterClass = true;
+        if (opts.optimize && !node.negate && node.elements.length === 1 && !CharClassNodeTypes.has(node.elements[0].type)) {
+          return gen(node.elements[0]); // Unwrap
+        }
+        if (!state.useFlagV && CharClassNodeTypes.has(node.parent.type)) {
+          throw new Error('Use of nested classes requires target ES2024 or later');
+        }
+        state.inCharClass = true;
         const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
-        state.inCharacterClass = false;
+        state.inCharClass = false;
         return result;
       }
       case AstTypes.CharacterClassIntersection:
-        // TODO: Custom error if `!state.useFlagV`
+        // TODO: Throw if `!state.useFlagV`
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
         // Create the range without calling `gen` on the kids
@@ -114,7 +121,9 @@ function generate(ast, options) {
         if (node.flags) {
           state.currentFlags = getNewCurrentFlags(currentFlags, node.flags);
         }
-        const result = `(?${getGroupPrefix(node.atomic, node.flags, state.useFlagMods)}${node.alternatives.map(gen).join('|')})`;
+        const result = `(?${getGroupPrefix(node.atomic, node.flags, state.useFlagMods)}${
+          node.alternatives.map(gen).join('|')
+        })`;
         state.currentFlags = currentFlags;
         return result;
       }
@@ -134,7 +143,15 @@ function generate(ast, options) {
         throw new Error(`Unexpected node type "${node.type}"`);
     }
   }
-  return gen(ast);
+
+  const result = gen(ast);
+  // By default, `regex` implicitly chooses flag u or v; control it instead
+  if (!minTargetES2024) {
+    delete result.options.force.v;
+    result.options.disable.v = true;
+    result.options.unicodeSetsPlugin = null;
+  }
+  return result;
 }
 
 const FlagModifierVisitor = {
@@ -162,7 +179,7 @@ const FlagModifierVisitor = {
   },
   CharacterClassRange({node, skip}, state) {
     skip();
-    if (getCasesOutsideCharacterClassRange(node, {firstOnly: true}).length) {
+    if (getCasesOutsideCharClassRange(node, {firstOnly: true}).length) {
       state.setHasCasedChar();
     }
   },
@@ -176,12 +193,12 @@ const FlagModifierVisitor = {
 const BaseEscapeChars = new Set([
   '$', '(', ')', '*', '+', '.', '?', '[', '\\', ']', '^', '{', '|', '}',
 ]);
-const CharacterClassEscapeChars = new Set([
+const CharClassEscapeChars = new Set([
   '-', '\\', ']', '^',
 ]);
-const CharacterClassEscapeCharsFlagV = new Set([
+const CharClassEscapeCharsFlagV = new Set([
   '(', ')', '-', '/', '[', '\\', ']', '^', '{', '|', '}',
-  // Double punctuators (also `-` and `^`)
+  // Double punctuators; also includes already-listed `-` and `^`
   '!', '#', '$', '%', '&', '*', '+', ',', '.', ':', ';', '<', '=', '>', '?', '@', '`', '~',
 ]);
 const CharCodeEscapeMap = new Map([
@@ -190,6 +207,11 @@ const CharCodeEscapeMap = new Map([
   [11, r`\v`], // vertical tab
   [12, r`\f`], // form feed
   [13, r`\r`], // carriage return
+]);
+const CharClassNodeTypes = new Set([
+  AstTypes.CharacterClass,
+  AstTypes.CharacterClassIntersection,
+  AstTypes.CharacterClassRange,
 ]);
 
 const casedRe = /^\p{Cased}$/u;
@@ -201,7 +223,7 @@ function generateCharacter({value}, state) {
   const char = String.fromCodePoint(value);
   const escaped = getEscapedChar(value, {
     isAfterBackref: state.lastNode.type === AstTypes.Backreference,
-    inCharacterClass: state.inCharacterClass,
+    inCharClass: state.inCharClass,
     useFlagV: state.useFlagV,
   });
   if (escaped !== char) {
@@ -209,7 +231,7 @@ function generateCharacter({value}, state) {
   }
   if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && charHasCase(char)) {
     const cases = getIgnoreCaseMatchChars(char);
-    return state.inCharacterClass ?
+    return state.inCharClass ?
       cases.join('') :
       (cases.length > 1 ? `[${cases.join('')}]` : cases[0]);
   }
@@ -221,7 +243,7 @@ function generateCharacterClassRange(node, state) {
   const max = node.max.value;
   const escOpts = {
     isAfterBackref: false,
-    inCharacterClass: true,
+    inCharClass: true,
     useFlagV: state.useFlagV,
   };
   const minStr = getEscapedChar(min, escOpts);
@@ -229,7 +251,7 @@ function generateCharacterClassRange(node, state) {
   let extraChars = '';
   if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
     // [TODO] Avoid duplication by considering other chars in the parent char class when expanding
-    const charsOutsideRange = getCasesOutsideCharacterClassRange(node);
+    const charsOutsideRange = getCasesOutsideCharClassRange(node);
     const ranges = getCodePointRangesFromChars(charsOutsideRange);
     ranges.forEach(value => {
       extraChars += Array.isArray(value) ?
@@ -277,7 +299,7 @@ function generateFlags(node, state) {
     (node.dotAll ? 's' : '') +
     (node.sticky ? 'y' : '')
     // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so there are no
-    // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added later
+    // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added separately
   );
 }
 
@@ -300,7 +322,7 @@ function generateVariableLengthCharacterSet({kind}, state) {
 Given a `CharacterClassRange` node, returns an array of chars that are a case variant of a char in
 the range, and aren't already in the range.
 */
-function getCasesOutsideCharacterClassRange(node, {firstOnly} = {}) {
+function getCasesOutsideCharClassRange(node, {firstOnly} = {}) {
   const min = node.min.value;
   const max = node.max.value;
   const found = [];
@@ -346,7 +368,7 @@ function getCodePointRangesFromChars(chars) {
   return values;
 }
 
-function getEscapedChar(codePoint, {isAfterBackref, inCharacterClass, useFlagV}) {
+function getEscapedChar(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
   if (CharCodeEscapeMap.has(codePoint)) {
     return CharCodeEscapeMap.get(codePoint);
   }
@@ -359,8 +381,8 @@ function getEscapedChar(codePoint, {isAfterBackref, inCharacterClass, useFlagV})
     // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
     return r`\x${codePoint.toString(16).padStart(2, '0')}`;
   }
-  const escapeChars = inCharacterClass ?
-    (useFlagV ? CharacterClassEscapeCharsFlagV : CharacterClassEscapeChars) :
+  const escapeChars = inCharClass ?
+    (useFlagV ? CharClassEscapeCharsFlagV : CharClassEscapeChars) :
     BaseEscapeChars;
   const char = String.fromCodePoint(codePoint);
   return (escapeChars.has(char) ? '\\' : '') + char;

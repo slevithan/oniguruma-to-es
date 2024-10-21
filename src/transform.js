@@ -10,7 +10,7 @@ import {getOrCreate, r} from './utils.js';
   parent: null;
   pattern: Object;
   flags: Object;
-  options?: Object;
+  options: Object;
 }} RegexAst
 */
 /**

@@ -10,6 +10,7 @@ import {Target, TargetNum} from './utils.js';
 @typedef {{
   allowBestEffort?: boolean;
   maxRecursionDepth?: number | null;
+  optimize?: boolean;
   target?: keyof Target;
 }} CompileOptions
 */
@@ -26,9 +27,10 @@ Transpiles a regex pattern and flags from Oniguruma to native JS.
 function compile(pattern, flags, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokenized, {optimize: true});
+  const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
   const regexAst = transform(onigurumaAst);
   const generated = generate(regexAst, opts);
+  // TODO: When `rewrite` is removed, add flag u or v based on `generated.options`
   const result = rewrite(generated.pattern, {
     ...generated.options,
     flags: generated.flags,
@@ -58,6 +60,8 @@ function getOptions(options) {
     // from 2-100 is provided, common forms of recursive patterns are supported and recurse up to
     // the specified max depth.
     maxRecursionDepth: 5,
+    // Simplify the generated pattern when it doesn't change the meaning
+    optimize: true,
     // JS version for the generated regex pattern and flags. Patterns that can't be emulated using
     // the given target throw.
     // - 'ES2018': Broadest compatibility (uses JS flag u). Unsupported features: Nested character
