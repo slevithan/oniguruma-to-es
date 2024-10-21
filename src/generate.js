@@ -132,7 +132,7 @@ function generate(ast, options) {
       case AstTypes.Pattern:
         return node.alternatives.map(gen).join('|');
       case AstTypes.Quantifier:
-        return ''; // TODO
+        return gen(node.element) + getQuantifierStr(node);
       case AstTypes.Recursion:
         return ''; // TODO
       case AstTypes.VariableLengthCharacterSet:
@@ -412,6 +412,22 @@ function getNewCurrentFlags(current, {enable, disable}) {
     dotAll: !disable?.dotAll && !!(enable?.dotAll || current.dotAll),
     ignoreCase: !disable?.ignoreCase && !!(enable?.ignoreCase || current.ignoreCase),
   };
+}
+
+function getQuantifierStr({min, max, greedy, possessive}) {
+  let base;
+  if (!min && max === 1) {
+    base = '?';
+  } else if (!min && max === Infinity) {
+    base = '*';
+  } else if (min === 1 && max === Infinity) {
+    base = '+';
+  } else if (min === max) {
+    base = `{${min}}`;
+  } else {
+    base = `{${min},${max === Infinity ? '' : max}}`;
+  }
+  return base + (possessive ? '+' : (greedy ? '' : '?'));
 }
 
 function isIntCharCode(value) {

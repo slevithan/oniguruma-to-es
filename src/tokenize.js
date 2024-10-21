@@ -532,6 +532,10 @@ function createTokenForQuantifier(raw) {
   const data = {};
   if (raw[0] === '{') {
     const {min, max} = /^\{(?<min>\d+)(?:,(?<max>\d*))?/.exec(raw).groups;
+    const limit = 100_000;
+    if (+min > limit || +max > limit) {
+      throw new Error('Quantifier value unsupported in Oniguruma');
+    }
     data.min = +min;
     data.max = max === undefined ? +min : (max === '' ? Infinity : +max);
     data.greedy = !raw.endsWith('?');

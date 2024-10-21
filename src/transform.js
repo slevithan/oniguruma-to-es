@@ -228,6 +228,15 @@ const FirstPassVisitor = {
     }
   },
 
+  Quantifier({node}) {
+    if (node.element.type === AstTypes.Quantifier) {
+      const group = prepContainer(createGroup(), [node.element]);
+      // Manually set the parent since we're not using `replaceWith`
+      group.parent = node;
+      node.element = group;
+    }
+  },
+
   VariableLengthCharacterSet({node, replaceWith}) {
     if (node.kind === AstVariableLengthCharacterSetKinds.newline) {
       replaceWith(parseFragment(r`(?>\r\n?|[\n\v\f\x85\u2028\u2029])`));
