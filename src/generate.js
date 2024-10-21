@@ -107,7 +107,9 @@ function generate(ast, options) {
         return result;
       }
       case AstTypes.CharacterClassIntersection:
-        // TODO: Throw if `!state.useFlagV`
+        if (!state.useFlagV) {
+          throw new Error('Use of class intersection requires target ES2024 or later');
+        }
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
         // Create the range without calling `gen` on the kids
