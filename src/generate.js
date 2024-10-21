@@ -19,59 +19,52 @@ function generate(ast, options) {
   options = getOptions(options);
   const minTargetES2024 = TargetNum[options.target] >= TargetNum[Target.ES2024];
   const minTargetESNext = options.target === Target.ESNext;
-  const canUseFlagMods = minTargetESNext;
-  const globalModFlags = {
-    dotAll: ast.flags.dotAll,
-    ignoreCase: ast.flags.ignoreCase,
-  };
 
-  // If the output can't use flag groups with flags i and s, we need a pre-pass to get metadata
-  // [TODO] Consider gathering the data in the transformer's final pass to avoid an extra traversal
-  const flagStack = [{...globalModFlags}];
-  let hasCaseInsensitiveNode = false;
-  let hasCaseSensitiveNode = false;
-  let hasDotAllDot = false;
-  let hasNonDotAllDot = false;
-  if (!canUseFlagMods) {
+  // [TODO] Consider gathering this data in the transformer's final pass (avoid an extra traversal)
+  let hasCaseInsensitiveNode = null;
+  let hasCaseSensitiveNode = null;
+  // If the output can't use flag groups with flag i, we need a pre-pass to check for use of case
+  // sensitive/insensitive nodes with case
+  if (!minTargetESNext) {
+    const iStack = [ast.flags.ignoreCase];
     traverse({node: ast}, {
-      getCurrentModFlags: () => flagStack.at(-1),
-      popModFlags() {flagStack.pop()},
-      pushModFlags(obj) {flagStack.push(obj)},
+      getCurrentModI: () => iStack.at(-1),
+      popModI() {iStack.pop()},
+      pushModI(isIOn) {iStack.push(isIOn)},
       setHasCasedChar() {
-        if (flagStack.at(-1).ignoreCase) {
+        if (iStack.at(-1)) {
           hasCaseInsensitiveNode = true;
         } else {
           hasCaseSensitiveNode = true;
-        }
-      },
-      setHasDot() {
-        if (flagStack.at(-1).dotAll) {
-          hasDotAllDot = true;
-        } else {
-          hasNonDotAllDot = true;
         }
       },
     }, FlagModifierVisitor);
   }
 
   const appliedGlobalFlags = {
-    // Include JS flag s (Onig flag m) if a dotAll dot was used and no non-dotAll dots were used
-    dotAll: (ast.flags.ignoreCase || hasCaseInsensitiveNode) && !hasCaseSensitiveNode,
-    // Include JS flag i if a case insensitive node was used and no case sensitive nodes were used
-    ignoreCase: (ast.flags.dotAll || hasDotAllDot) && !hasNonDotAllDot,
+    dotAll: ast.flags.dotAll,
+    // - Turn global flag i on if a case insensitive node was used and no case sensitive nodes were
+    //   used (to avoid unnecessary node expansion).
+    // - Turn global flag i off if a case sensitive node was used (since case sensitivity can't be
+    //   forced without the use of ESNext flag groups)
+    ignoreCase: !!((ast.flags.ignoreCase || hasCaseInsensitiveNode) && !hasCaseSensitiveNode),
   };
   let lastNode = null;
   const state = {
-    ...options,
+    allowBestEffort: options.allowBestEffort,
     appliedGlobalFlags,
-    currentFlags: {...globalModFlags},
+    currentFlags: {
+      dotAll: ast.flags.dotAll,
+      ignoreCase: ast.flags.ignoreCase,
+    },
     groupNames: new Set(), // TODO: Use
     inCharacterClass: false,
     lastNode,
-    minTargetES2024,
-    minTargetESNext, // TODO: Remove if not used
-    useAppliedDotAll: !canUseFlagMods && hasDotAllDot && hasNonDotAllDot, // TODO: Use
-    useAppliedIgnoreCase: !canUseFlagMods && hasCaseInsensitiveNode && hasCaseSensitiveNode, // TODO: Use for Unicode props
+    maxRecursionDepth: options.maxRecursionDepth, // TODO: Use
+    useAppliedIgnoreCase: !!(!minTargetESNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
+    useDuplicateNames: minTargetESNext,
+    useFlagMods: minTargetESNext,
+    useFlagV: minTargetES2024,
   };
   function gen(node) {
     state.lastNode = lastNode;
@@ -90,38 +83,38 @@ function generate(ast, options) {
         // TODO: Set `currentFlags` if lookaround
         return ''; // TODO
       case AstTypes.Backreference:
-        // TODO: Throw if `!canUseFlagMods`, `!allowBestEffort`, and within mixed local ignoreCase
+        // TODO: Throw if `!state.useFlagMods`, `!state.allowBestEffort`, and within mixed local ignoreCase
         // Transformed backrefs always use digits; no named backrefs
         return '\\' + node.ref;
       case AstTypes.CapturingGroup:
-        // TODO: If `!minTargetESNext` need to strip duplicate names
+        // TODO: If `!state.useDuplicateNames`, need to strip duplicate names
         // TODO: Set `currentFlags`
         return ''; // TODO
       case AstTypes.Character:
         return generateCharacter(node, state);
       case AstTypes.CharacterClass: {
-        // TODO: Custom error for nested classes if `!minTargetES2024`
+        // TODO: Custom error for nested classes if `!state.useFlagV`
         state.inCharacterClass = true;
         const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
         state.inCharacterClass = false;
         return result;
       }
       case AstTypes.CharacterClassIntersection:
-        // TODO: Custom error if `!minTargetES2024`
+        // TODO: Custom error if `!state.useFlagV`
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
         // Create the range without calling `gen` on the kids
         return generateCharacterClassRange(node, state);
       case AstTypes.CharacterSet:
-        // TODO: Special case for `\p{Any}` to `[^]` since the former is used when parsing fragments
-        // in the transformer since the parser follows Onig rules and doesn't allow empty char classes
-        return ''; // TODO
+        return generateCharacterSet(node, state);
       case AstTypes.Flags:
         return generateFlags(node, state);
       case AstTypes.Group: {
         const currentFlags = state.currentFlags;
-        node.flags && (state.currentFlags = getNewCurrentFlags(currentFlags, node.flags));
-        const result = `(?${getGroupPrefix(node, canUseFlagMods)}${node.alternatives.map(gen).join('|')})`;
+        if (node.flags) {
+          state.currentFlags = getNewCurrentFlags(currentFlags, node.flags);
+        }
+        const result = `(?${getGroupPrefix(node.atomic, node.flags, state.useFlagMods)}${node.alternatives.map(gen).join('|')})`;
         state.currentFlags = currentFlags;
         return result;
       }
@@ -147,14 +140,15 @@ function generate(ast, options) {
 const FlagModifierVisitor = {
   AnyGroup: {
     enter({node}, state) {
-      state.pushModFlags(
+      const currentModI = state.getCurrentModI();
+      state.pushModI(
         node.flags ?
-          getNewCurrentFlags(state.getCurrentModFlags(), node.flags) :
-          {...state.getCurrentModFlags()}
+          getNewCurrentFlags({ignoreCase: currentModI}, node.flags).ignoreCase :
+          currentModI
       );
     },
     exit(_, state) {
-      state.popModFlags();
+      state.popModI();
     },
   },
   Backreference(_, state) {
@@ -173,9 +167,7 @@ const FlagModifierVisitor = {
     }
   },
   CharacterSet({node}, state) {
-    if (node.kind === AstCharacterSetKinds.any) {
-      state.setHasDot();
-    } else if (node.kind === AstCharacterSetKinds.property && UnicodePropertiesWithCase.has(node.value)) {
+    if (node.kind === AstCharacterSetKinds.property && UnicodePropertiesWithCase.has(node.value)) {
       state.setHasCasedChar();
     }
   },
@@ -210,7 +202,7 @@ function generateCharacter({value}, state) {
   const escaped = getEscapedChar(value, {
     isAfterBackref: state.lastNode.type === AstTypes.Backreference,
     inCharacterClass: state.inCharacterClass,
-    useFlagV: state.minTargetES2024,
+    useFlagV: state.useFlagV,
   });
   if (escaped !== char) {
     return escaped;
@@ -230,7 +222,7 @@ function generateCharacterClassRange(node, state) {
   const escOpts = {
     isAfterBackref: false,
     inCharacterClass: true,
-    useFlagV: state.minTargetES2024,
+    useFlagV: state.useFlagV,
   };
   const minStr = getEscapedChar(min, escOpts);
   const maxStr = getEscapedChar(max, escOpts);
@@ -249,13 +241,40 @@ function generateCharacterClassRange(node, state) {
   return `${minStr}-${maxStr}${extraChars}`;
 }
 
+function generateCharacterSet({kind, negate, value, key}, state) {
+  if (kind === AstCharacterSetKinds.any) {
+    return state.currentFlags.dotAll ?
+      ((state.appliedGlobalFlags.dotAll || state.useFlagMods) ? '.' : '[^]') :
+      // Onig's only line break char is line feed, unlike JS
+      r`[^\n]`;
+  }
+  if (kind === AstCharacterSetKinds.digit) {
+    return negate ? r`\D` : r`\d`;
+  }
+  if (kind === AstCharacterSetKinds.property) {
+    // TODO: Use `useAppliedIgnoreCase` for `UnicodePropertiesWithCase.has`
+    // Special case `\p{Any}` to `[^]` since it's shorter but also because `\p{Any}` is used when
+    // parsing fragments in the transformer (since the parser follows Onig rules and doesn't allow
+    // empty char classes)
+    if (value === 'Any') {
+      return '[^]';
+    }
+    return `${(negate ? r`\P` : r`\p`)}{${key ? `${key}=` : ''}${value}}`;
+  }
+  if (kind === AstCharacterSetKinds.word) {
+    return negate ? r`\W` : r`\w`;
+  }
+  // Kinds `hex`, `posix`, and `space` are never included in transformer output
+  throw new Error(`Unexpected character set kind "${kind}"`);
+}
+
 function generateFlags(node, state) {
   return (
     (node.hasIndices ? 'd' : '') +
     (node.global ? 'g' : '') +
     (state.appliedGlobalFlags.ignoreCase ? 'i' : '') +
     (node.multiline ? 'm' : '') +
-    (state.appliedGlobalFlags.dotAll ? 's' : '') +
+    (node.dotAll ? 's' : '') +
     (node.sticky ? 'y' : '')
     // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so there are no
     // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added later
@@ -272,7 +291,7 @@ function generateVariableLengthCharacterSet({kind}, state) {
   // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows overqualified and
   // underqualified emoji using a general pattern that matches all Unicode sequences that follow
   // the structure of valid emoji. That actually makes it more accurate for matching any grapheme
-  const emojiGrapheme = state.minTargetES2024 ? r`\p{RGI_Emoji}` : emojiRegex().source;
+  const emojiGrapheme = state.useFlagV ? r`\p{RGI_Emoji}` : emojiRegex().source;
   // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>
   return r`(?>\r\n|${emojiGrapheme}|\P{M}\p{M}*)`;
 }
@@ -284,13 +303,13 @@ the range, and aren't already in the range.
 function getCasesOutsideCharacterClassRange(node, {firstOnly} = {}) {
   const min = node.min.value;
   const max = node.max.value;
+  const found = [];
   // Avoid unneeded work. Assumptions (per Unicode 16):
   // - No case variants cross the Basic Multilingual Plane boundary
   // - No cased chars appear beyond the Supplementary Multilingual Plane
   if ((min < 65 && (max === 0xFFFF || max >= 0x1FFFF)) || (min === 0x10000 && max >= 0x1FFFF)) {
-    return;
+    return found;
   }
-  const found = [];
   for (let i = min; i <= max; i++) {
     const char = String.fromCodePoint(i);
     if (!charHasCase(char)) {
@@ -347,13 +366,13 @@ function getEscapedChar(codePoint, {isAfterBackref, inCharacterClass, useFlagV})
   return (escapeChars.has(char) ? '\\' : '') + char;
 }
 
-function getGroupPrefix(node, canUseFlagMods) {
-  if (node.atomic) {
+function getGroupPrefix(atomic, flagMods, useFlagMods) {
+  if (atomic) {
     return '>';
   }
   let mods = '';
-  if (node.flags && canUseFlagMods) {
-    const {enable, disable} = node.flags;
+  if (flagMods && useFlagMods) {
+    const {enable, disable} = flagMods;
     mods =
       (enable?.ignoreCase ? 'i' : '') +
       (enable?.dotAll ? 's' : '') +
@@ -366,8 +385,8 @@ function getGroupPrefix(node, canUseFlagMods) {
 
 function getNewCurrentFlags(current, {enable, disable}) {
   return {
-    dotAll: !disable?.dotAll && (!!enable?.dotAll || current.dotAll),
-    ignoreCase: !disable?.ignoreCase && (!!enable?.ignoreCase || current.ignoreCase),
+    dotAll: !disable?.dotAll && !!(enable?.dotAll || current.dotAll),
+    ignoreCase: !disable?.ignoreCase && !!(enable?.ignoreCase || current.ignoreCase),
   };
 }
 
