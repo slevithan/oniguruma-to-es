@@ -428,7 +428,8 @@ function createByGroupKind(token) {
 function createCapturingGroup(number, name) {
   const hasName = name !== undefined;
   if (hasName && !isValidJsGroupName(name)) {
-    throw new Error(`Invalid group name "${name}"`);
+    // TODO: Move error to the transformer?
+    throw new Error(`Group name "${name}" is invalid in JS`);
   }
   return {
     type: AstTypes.CapturingGroup,

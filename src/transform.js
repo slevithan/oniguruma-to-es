@@ -459,6 +459,10 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
 }
 
 function createRecursion(ref) {
+  if (typeof ref === 'number') {
+    // This is a limitation of `regex-recursion`
+    throw new Error('Unsupported recursion by number; use name instead');
+  }
   return {
     type: AstTypes.Recursion,
     ref,

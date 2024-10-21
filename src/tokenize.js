@@ -393,7 +393,7 @@ function createTokenForAnyTokenWithinCharClass(raw) {
   if (raw[0] === '[') {
     const posix = /\[:(?<negate>\^?)(?<name>[a-z]+):\]/.exec(raw);
     if (!posix || !PosixClasses[posix.groups.name]) {
-      throw new Error(`Invalid POSIX class type "${raw}"`);
+      throw new Error(`Invalid POSIX class "${raw}"`);
     }
     return createToken(TokenTypes.CharacterSet, raw, {
       kind: TokenCharacterSetKinds.posix,
@@ -637,13 +637,13 @@ function splitEscapedNumToken(token, numCaptures) {
 
 function assertNonEmptyCharClass(raw) {
   if (raw.endsWith(']')) {
-    throw new Error(`Empty char class "${raw}" unsupported in Oniguruma`);
+    throw new Error(`Empty character class "${raw}" unsupported in Oniguruma`);
   }
 }
 
 function assertSingleCodePoint(raw) {
   if ([...raw].length !== 1) {
-    throw new Error(`Expected match "${raw}" to be a single code point`);
+    throw new Error(`Expected "${raw}" to be a single code point`);
   }
 }
 

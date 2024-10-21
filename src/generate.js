@@ -19,6 +19,10 @@ function generate(ast, options) {
   const opts = getOptions(options);
   const minTargetES2024 = TargetNum[opts.target] >= TargetNum[Target.ES2024];
   const minTargetESNext = opts.target === Target.ESNext;
+  const rDepth = opts.maxRecursionDepth;
+  if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 100)) {
+    throw new Error('Invalid maxRecursionDepth; use null or 2-100');
+  }
 
   // If the output can't use flag groups, we need a pre-pass to check for the use of chars with
   // case in case sensitive/insensitive states. This minimizes the need for case expansions (though
@@ -62,7 +66,7 @@ function generate(ast, options) {
     groupNames: new Set(), // TODO: Use
     inCharClass: false,
     lastNode,
-    maxRecursionDepth: opts.maxRecursionDepth, // TODO: Use
+    maxRecursionDepth: rDepth,
     useAppliedIgnoreCase: !!(!minTargetESNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useDuplicateNames: minTargetESNext,
     useFlagMods: minTargetESNext,
@@ -134,7 +138,7 @@ function generate(ast, options) {
       case AstTypes.Quantifier:
         return gen(node.element) + getQuantifierStr(node);
       case AstTypes.Recursion:
-        return ''; // TODO
+        return genRecursion(node, state);
       case AstTypes.VariableLengthCharacterSet:
         // Technically, `VariableLengthCharacterSet` nodes shouldn't be included in transformer
         // output since none of its kinds are directly supported by `regex`, but `kind: 'grapheme'`
@@ -305,6 +309,17 @@ function genFlags(node, state) {
   );
 }
 
+function genRecursion({ref}, state) {
+  const rDepth = state.maxRecursionDepth;
+  if (!rDepth) {
+    throw new Error('Use of recursion disabled');
+  }
+  if (!state.allowBestEffort) {
+    throw new Error('Use of recursion requires option allowBestEffort');
+  }
+  return ref === 0 ? `(?R=${rDepth})` : r`\g<${ref}&R=${rDepth}>`;
+}
+
 function genVariableLengthCharacterSet({kind}, state) {
   if (kind !== AstVariableLengthCharacterSetKinds.grapheme) {
     throw new Error(`Unexpected varcharset kind "${kind}"`);
@@ -378,7 +393,7 @@ function getEscapedChar(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
     // Control chars, etc.; condition modeled on the Chrome developer console's display for strings
     codePoint < 32 || (codePoint > 126 && codePoint < 160) ||
     // Avoid corrupting a preceding backref by immediately following it with a literal digit
-    (isAfterBackref && isIntCharCode(codePoint))
+    (isAfterBackref && isDigitCharCode(codePoint))
   ) {
     // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
     return r`\x${codePoint.toString(16).padStart(2, '0')}`;
@@ -430,7 +445,7 @@ function getQuantifierStr({min, max, greedy, possessive}) {
   return base + (possessive ? '+' : (greedy ? '' : '?'));
 }
 
-function isIntCharCode(value) {
+function isDigitCharCode(value) {
   return value > 47 && value < 58;
 }
 

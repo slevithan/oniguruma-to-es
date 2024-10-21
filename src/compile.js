@@ -52,14 +52,14 @@ function getOptions(options) {
     throw new Error(`Unexpected target "${options.target}"`)
   }
   return {
-    // Allows results that differ from Oniguruma in extreme edge cases. If `false`, throws if the
-    // pattern can't be converted with identical behavior. Ex: Enables the use of `\X`, which uses
-    // a close approximation of a Unicode extended grapheme cluster.
+    // Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern
+    // can't be converted with identical behavior. Ex: Enables the use of `\X`, which uses a close
+    // approximation of a Unicode extended grapheme cluster.
     allowBestEffort: true,
     // If `null`, any use of recursion (ex: `a\g<0>?b` or `(?<r>a\g<r>?b)`) throws. If an integer
-    // from 2-100 is provided, common forms of recursive patterns are supported and recurse up to
-    // the specified max depth.
-    maxRecursionDepth: 5,
+    // from 2-100, common forms of recursive patterns are supported and recurse up to the specified
+    // max depth.
+    maxRecursionDepth: 6,
     // Simplify the generated pattern when it doesn't change the meaning
     optimize: true,
     // JS version for the generated regex pattern and flags. Patterns that can't be emulated using
@@ -68,9 +68,9 @@ function getOptions(options) {
     //             classes, character class intersection, and some POSIX classes.
     // - 'ES2024': Uses JS flag v, supported by Node.js 20 and 2023-era browsers.
     // - 'ESNext': Allows use of ESNext regex features in generated patterns (flag groups and
-    //             duplicate group names). This preserves duplicate group names across separate
-    //             alternation paths, allows generating shorter regexes, and improves transpilation
-    //             performance in some cases.
+    //             duplicate group names). This allows generating shorter regexes, improves
+    //             transpilation performance, and preserves duplicate group names across separate
+    //             alternation paths.
     target: Target.ES2024,
     // Override default values with provided options
     ...options,
