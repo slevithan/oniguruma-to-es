@@ -93,7 +93,7 @@ function generate(ast, options) {
         // TODO: Set `currentFlags`
         return ''; // TODO
       case AstTypes.Character:
-        return generateCharacter(node, state);
+        return genCharacter(node, state);
       case AstTypes.CharacterClass: {
         if (opts.optimize && !node.negate && node.elements.length === 1 && !CharClassNodeTypes.has(node.elements[0].type)) {
           return gen(node.elements[0]); // Unwrap
@@ -113,11 +113,11 @@ function generate(ast, options) {
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
         // Create the range without calling `gen` on the kids
-        return generateCharacterClassRange(node, state);
+        return genCharacterClassRange(node, state);
       case AstTypes.CharacterSet:
-        return generateCharacterSet(node, state);
+        return genCharacterSet(node, state);
       case AstTypes.Flags:
-        return generateFlags(node, state);
+        return genFlags(node, state);
       case AstTypes.Group: {
         const currentFlags = state.currentFlags;
         if (node.flags) {
@@ -139,7 +139,7 @@ function generate(ast, options) {
         // Technically, `VariableLengthCharacterSet` nodes shouldn't be included in transformer
         // output since none of its kinds are directly supported by `regex`, but `kind: 'grapheme'`
         // (only) is allowed through so we can check options `allowBestEffort` and `target` here
-        return generateVariableLengthCharacterSet(node, state);
+        return genVariableLengthCharacterSet(node, state);
       default:
         // Note: Node types `Directive` and `Subroutine` are never included in transformer output
         throw new Error(`Unexpected node type "${node.type}"`);
@@ -221,7 +221,7 @@ function charHasCase(char) {
   return casedRe.test(char);
 }
 
-function generateCharacter({value}, state) {
+function genCharacter({value}, state) {
   const char = String.fromCodePoint(value);
   const escaped = getEscapedChar(value, {
     isAfterBackref: state.lastNode.type === AstTypes.Backreference,
@@ -240,7 +240,7 @@ function generateCharacter({value}, state) {
   return char;
 }
 
-function generateCharacterClassRange(node, state) {
+function genCharacterClassRange(node, state) {
   const min = node.min.value;
   const max = node.max.value;
   const escOpts = {
@@ -265,7 +265,7 @@ function generateCharacterClassRange(node, state) {
   return `${minStr}-${maxStr}${extraChars}`;
 }
 
-function generateCharacterSet({kind, negate, value, key}, state) {
+function genCharacterSet({kind, negate, value, key}, state) {
   if (kind === AstCharacterSetKinds.any) {
     return state.currentFlags.dotAll ?
       ((state.appliedGlobalFlags.dotAll || state.useFlagMods) ? '.' : '[^]') :
@@ -292,7 +292,7 @@ function generateCharacterSet({kind, negate, value, key}, state) {
   throw new Error(`Unexpected character set kind "${kind}"`);
 }
 
-function generateFlags(node, state) {
+function genFlags(node, state) {
   return (
     (node.hasIndices ? 'd' : '') +
     (node.global ? 'g' : '') +
@@ -305,7 +305,7 @@ function generateFlags(node, state) {
   );
 }
 
-function generateVariableLengthCharacterSet({kind}, state) {
+function genVariableLengthCharacterSet({kind}, state) {
   if (kind !== AstVariableLengthCharacterSetKinds.grapheme) {
     throw new Error(`Unexpected varcharset kind "${kind}"`);
   }
