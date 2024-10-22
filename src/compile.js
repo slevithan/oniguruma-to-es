@@ -59,7 +59,7 @@ function getOptions(options) {
     // If `null`, any use of recursion (ex: `a\g<0>?b` or `(?<r>a\g<r>?b)`) throws. If an integer
     // from 2-100, common forms of recursive patterns are supported and recurse up to the specified
     // max depth.
-    maxRecursionDepth: 6,
+    maxRecursionDepth: 5,
     // Simplify the generated pattern when it doesn't change the meaning
     optimize: true,
     // JS version for the generated regex pattern and flags. Patterns that can't be emulated using

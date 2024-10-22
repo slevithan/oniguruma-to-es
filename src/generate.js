@@ -28,7 +28,7 @@ function generate(ast, options) {
   // case in case sensitive/insensitive states. This minimizes the need for case expansions (though
   // expansions are lossless, even given Unicode case complexities) and allows supporting case
   // insensitive backrefs in more cases
-  // [TODO] Consider gathering this data in the transformer's final traversal to avoid it here
+  // [TODO] Consider gathering this data in the transformer's final traversal to avoid work here
   let hasCaseInsensitiveNode = null;
   let hasCaseSensitiveNode = null;
   if (!minTargetESNext) {
@@ -89,9 +89,7 @@ function generate(ast, options) {
         // TODO: Set `currentFlags` if lookaround
         return ''; // TODO
       case AstTypes.Backreference:
-        // TODO: Throw if `!state.useFlagMods`, `!state.allowBestEffort`, and within mixed local ignoreCase
-        // Transformed backrefs always use digits; no named backrefs
-        return '\\' + node.ref;
+        return genBackreference(node, state);
       case AstTypes.CapturingGroup:
         // TODO: Strip duplicate names if `!state.useDuplicateNames`
         // TODO: Set `currentFlags`
@@ -223,6 +221,15 @@ const CharClassNodeTypes = new Set([
 const casedRe = /^\p{Cased}$/u;
 function charHasCase(char) {
   return casedRe.test(char);
+}
+
+function genBackreference({ref}, state) {
+  // TODO: Throw if `!state.useFlagMods`, `!state.allowBestEffort`, and within mixed local ignoreCase
+  if (typeof ref !== 'number') {
+    // The transformer always converts to numbered backrefs; no `ref` names
+    throw new Error('Unexpected named backref in AST');
+  }
+  return '\\' + ref;
 }
 
 function genCharacter({value}, state) {

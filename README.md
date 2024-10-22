@@ -4,11 +4,9 @@
 
 This is an in-development [Oniguruma](https://github.com/kkos/oniguruma) to native JavaScript RegExp transpiler that's lightweight and can run in any JavaScript environment. It gives you the ability to use most of Oniguruma's extended regex syntax/features in JavaScript, and to run regexes written for Oniguruma such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
 
-Compared to running the actual Oniguruma C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes typically **run much faster**.
+Compared to running the actual Oniguruma C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes **run much faster**.
 
-oniguruma-to-es is *obsessive* about ensuring the emulated features it supports have **exactly the same behavior** as Oniguruma, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns.<sup>[1]</sup>
-
-<small>[1]: Specifically, `allowBestEffort` enables the use of `\X` (which uses a close approximation of a Unicode extended grapheme cluster), recursion (with a depth limit, specified via option `maxRecursionDepth`), and case-insensitive backreferences to case-sensitive groups (supported without `allowBestEffort` if `target` is `ESNext`).</small>
+oniguruma-to-es is *obsessive* about ensuring the emulated features it supports have **exactly the same behavior** as Oniguruma, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns. Specifically, `allowBestEffort` enables the use of `\X` (which uses a close approximation of an extended grapheme cluster), recursion (with a depth limit, specified via option `maxRecursionDepth`), and case-insensitive backreferences to case-sensitive groups (supported without `allowBestEffort` if `target` is `ESNext`).
 
 ## Target
 

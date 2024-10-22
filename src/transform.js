@@ -165,7 +165,7 @@ const FirstPassVisitor = {
       // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
       // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
     });
-    // Options accepted by `regex`
+    // Options accepted by `regex`; see <github.com/slevithan/regex#-options>
     parent.options = {
       disable: {
         // Onig uses different rules for flag x than `regex`, so disable the implicit flag
@@ -302,8 +302,10 @@ const SecondPassVisitor = {
         openDirectCaptures.add(node);
       }
       if (isDirectRecursion) {
-        // TODO: For accurate backrefs, wrap with capture for own ref and traverse it (for duplicate name/multiplexing)
+        // Recursion doesn't change following backrefs to `ref` (unlike other subroutines), so
+        // don't wrap with a capture for this node's ref
         replaceWith(createRecursion(ref));
+        // This node's kids have been removed from the tree, so no need to traverse them
         skip();
         return;
       }
@@ -529,8 +531,8 @@ function getParentAlternative(node) {
   return null;
 }
 
-// TODO: Consider moving to parser module and dropping assumptions about `parent` props
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
+// TODO: Consider moving to `parse` module and dropping assumptions about `parent` props
 function parseFragment(pattern) {
   const ast = parse(tokenize(pattern, ''), {optimize: true});
   const alts = ast.pattern.alternatives;
