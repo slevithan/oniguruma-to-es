@@ -1,10 +1,10 @@
 import {r} from './utils.js';
 
-const c = String.fromCodePoint;
+const cp = String.fromCodePoint;
 
 const CharsWithoutIgnoreCaseExpansion = new Set([
-  c(0x130), // İ
-  c(0x131), // ı
+  cp(0x130), // İ
+  cp(0x131), // ı
 ]);
 
 function getIgnoreCaseMatchChars(char) {
@@ -160,10 +160,10 @@ for (const p of JsUnicodePropertiesOfStrings) {
 }
 
 const LowerToAlternativeUpperCaseMap = new Map([
-  [c(0xDF), c(0x1E9E)], // ß, ẞ
-  [c(0x6B), c(0x212A)], // k, K (Kelvin)
-  [c(0xE5), c(0x212B)], // å, Å (Angstrom)
-  [c(0x3C9), c(0x2126)], // ω, Ω (Ohm)
+  [cp(0xDF), cp(0x1E9E)], // ß, ẞ
+  [cp(0x6B), cp(0x212A)], // k, K (Kelvin)
+  [cp(0xE5), cp(0x212B)], // å, Å (Angstrom)
+  [cp(0x3C9), cp(0x2126)], // ω, Ω (Ohm)
 ]);
 
 // See <github.com/node-unicode/unicode-16.0.0/tree/main/General_Category/Titlecase_Letter>
@@ -186,6 +186,7 @@ const LowerToTitleCaseMap = new Map([
 // Note: Handling in the transformer assumes that all values here are a single, negateable node
 // that's not pre-negated at the top level
 // TODO: Change to map to avoid prototype property access
+// TODO: Add ES2018 intersection-free `allowBestEffort` versions of `graph` and `print`
 const PosixClasses = {
   alnum: r`[\p{Alpha}\p{Nd}]`,
   alpha: r`\p{Alpha}`,
@@ -240,7 +241,7 @@ function slug(name) {
 }
 
 function titleEntry(codePoint) {
-  const char = c(codePoint);
+  const char = cp(codePoint);
   return [char.toLowerCase(), char];
 }
 

@@ -97,11 +97,19 @@ function generate(ast, options) {
       case AstTypes.Character:
         return genCharacter(node, state);
       case AstTypes.CharacterClass: {
-        if (opts.optimize && !node.negate && node.elements.length === 1 && !CharClassNodeTypes.has(node.elements[0].type)) {
-          return gen(node.elements[0]); // Unwrap
+        if (
+          (!state.useFlagV || opts.optimize) &&
+          node.parent.type === AstTypes.CharacterClass &&
+          !node.negate &&
+          node.elements[0].type !== AstTypes.CharacterClassIntersection
+        ) {
+          // Remove unnecessary nesting; unwrap kids into the parent char class. The parser has
+          // already done some basic char class optimization; this is primarily about allowing many
+          // nested classes to work with `target` ES2018 (which doesn't support nesting)
+          return node.elements.map(gen).join('');
         }
-        if (!state.useFlagV && CharClassNodeTypes.has(node.parent.type)) {
-          throw new Error('Use of nested classes requires target ES2024 or later');
+        if (!state.useFlagV && node.parent.type === AstTypes.CharacterClass) {
+          throw new Error('Use of nested class requires target ES2024 or later');
         }
         state.inCharClass = true;
         const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
@@ -141,6 +149,7 @@ function generate(ast, options) {
         // Technically, `VariableLengthCharacterSet` nodes shouldn't be included in transformer
         // output since none of its kinds are directly supported by `regex`, but `kind: 'grapheme'`
         // (only) is allowed through so we can check options `allowBestEffort` and `target` here
+        // TODO: Handle in transformer and give it new `allowBestEffort`/`bestEffortTarget` options; will also need for ES2018 posix graph/print
         return genVariableLengthCharacterSet(node, state);
       default:
         // Note: Node types `Directive` and `Subroutine` are never included in transformer output
@@ -211,11 +220,6 @@ const CharCodeEscapeMap = new Map([
   [11, r`\v`], // vertical tab
   [12, r`\f`], // form feed
   [13, r`\r`], // carriage return
-]);
-const CharClassNodeTypes = new Set([
-  AstTypes.CharacterClass,
-  AstTypes.CharacterClassIntersection,
-  AstTypes.CharacterClassRange,
 ]);
 
 const casedRe = /^\p{Cased}$/u;
