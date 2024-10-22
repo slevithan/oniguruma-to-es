@@ -4,7 +4,7 @@ import {rewrite} from 'regex';
 import {recursion} from 'regex-recursion';
 import {tokenize} from './tokenize.js';
 import {transform} from './transform.js';
-import {Target, TargetNum} from './utils.js';
+import {EsVersion, Target} from './utils.js';
 
 /**
 @typedef {{
@@ -48,7 +48,7 @@ Returns a complete set of options, with default values set for options that were
 @returns {Required<CompileOptions>}
 */
 function getOptions(options) {
-  if (options?.target !== undefined && !TargetNum[options.target]) {
+  if (options?.target !== undefined && !EsVersion[options.target]) {
     throw new Error(`Unexpected target "${options.target}"`)
   }
   // Set default values

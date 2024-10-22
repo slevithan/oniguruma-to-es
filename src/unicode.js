@@ -159,6 +159,26 @@ for (const p of JsUnicodePropertiesOfStrings) {
   JsUnicodePropertiesOfStringsMap.set(slug(p), p);
 }
 
+// Unicode scripts and binary properties (and their aliases) added after ES2018
+// See <github.com/eslint-community/regexpp/blob/main/src/unicode/properties.ts>
+const JsUnicodePropertiesPostEs2018 = new Set((
+  // ES2019 scripts
+  'Dogr Dogra Gong Gunjala_Gondi Hanifi_Rohingya Maka Makasar Medefaidrin Medf Old_Sogdian Rohg Sogd Sogdian Sogo' +
+  // ES2019 binary properties
+  ' Extended_Pictographic' +
+  // ES2020 scripts
+  ' Elym Elymaic Hmnp Nand Nandinagari Nyiakeng_Puachue_Hmong Wancho Wcho' +
+  // ES2021 scripts
+  ' Chorasmian Chrs Diak Dives_Akuru Khitan_Small_Script Kits Yezi Yezidi' +
+  // ES2021 binary properties
+  ' EBase EComp EMod EPres ExtPict' +
+  // ES2022 scripts
+  ' Cpmn Cypro_Minoan Old_Uyghur Ougr Tangsa Tnsa Toto Vith Vithkuqi' +
+  // ES2023 scripts
+  ' Gara Garay Gukh Gurung_Khema Hrkt Katakana_Or_Hiragana Kawi Kirat_Rai Krai Nag_Mundari Nagm Ol_Onal Onao Sunu Sunuwar Todhri Todr Tulu_Tigalari Tutg Unknown Zzzz'
+  // ES2024: None added except `JsUnicodePropertiesOfStrings`
+).split(' '));
+
 const LowerToAlternativeUpperCaseMap = new Map([
   [cp(0xDF), cp(0x1E9E)], // ß, ẞ
   [cp(0x6B), cp(0x212A)], // k, K (Kelvin)
@@ -261,6 +281,7 @@ export {
   JsUnicodeProperties,
   JsUnicodePropertiesMap,
   JsUnicodePropertiesOfStringsMap,
+  JsUnicodePropertiesPostEs2018,
   PosixClasses,
   PosixProperties,
   slug,

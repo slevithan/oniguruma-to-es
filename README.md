@@ -11,7 +11,11 @@ Compared to running the actual Oniguruma C library in JavaScript via WASM bindin
 
 Oniguruma-To-ES is *obsessive* about ensuring the emulated features it supports have **exactly the same behavior** as Oniguruma, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (more details below).
 
+Additionally, since Oniguruma-To-ES is designed to be usable in browsers, it focuses on being lightweight. It's exceptionally so for a library that does Unicode case folding (for mixed case sensitivity) and contains a full compiler that deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript target versions.
+
 ## Options
+
+These options are shared by functions `compile` and `toRegExp`.
 
 ### `allowBestEffort`
 
@@ -25,7 +29,7 @@ Specifically, this option enables the following additional features, depending o
 - `ES2024` and earlier:
   - Case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
-  - POSIX classes `[[:graph:]]` and `[[:print:]]`: Use approximations.
+  - POSIX classes `[[:graph:]]` and `[[:print:]]`: Use approximations that don't rely on Unicode property intersection.
 
 *Default: `true`.*
 
@@ -40,7 +44,7 @@ If `null`, any use of recursion throws. If an integer between `2` and `100` (and
 Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
 
 - `ES2018`: Uses JS flag `u`.
-  - Emulation restrictions: Character class intersection and nested negated classes are unsupported. These restrictions avoid the need for heavyweight Unicode character data.
+  - Emulation restrictions: Character class intersection and nested negated classes are unsupported (avoiding the need for heavyweight Unicode character data), and Unicode properties added after ES2018 are not allowed.
   - Minimum requirement for any generated regex is Node.js 6 or a 2016-era browser, but regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case).
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.

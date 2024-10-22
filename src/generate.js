@@ -2,8 +2,8 @@ import {getOptions} from './compile.js';
 import emojiRegex from 'emoji-regex-xs';
 import {AstCharacterSetKinds, AstTypes, AstVariableLengthCharacterSetKinds} from './parse.js';
 import {traverse} from './traverse.js';
-import {getIgnoreCaseMatchChars, UnicodePropertiesWithCase} from './unicode.js';
-import {r, Target, TargetNum} from './utils.js';
+import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithCase} from './unicode.js';
+import {EsVersion, r, Target} from './utils.js';
 
 /**
 Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
@@ -17,7 +17,7 @@ Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` 
 */
 function generate(ast, options) {
   const opts = getOptions(options);
-  const minTargetES2024 = TargetNum[opts.target] >= TargetNum[Target.ES2024];
+  const minTargetES2024 = EsVersion[opts.target] >= EsVersion[Target.ES2024];
   const minTargetESNext = opts.target === Target.ESNext;
   const rDepth = opts.maxRecursionDepth;
   if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 100)) {
@@ -72,6 +72,7 @@ function generate(ast, options) {
     useDuplicateNames: minTargetESNext,
     useFlagMods: minTargetESNext,
     useFlagV: minTargetES2024,
+    usePostEs2018Properties: minTargetES2024,
   };
   function gen(node) {
     state.lastNode = lastNode;
@@ -111,7 +112,7 @@ function generate(ast, options) {
           return node.elements.map(gen).join('');
         }
         if (!state.useFlagV && node.parent.type === AstTypes.CharacterClass) {
-          throw new Error('Use of nested class requires target ES2024 or later');
+          throw new Error('Use of nested character class requires target ES2024 or later');
         }
         state.inCharClass = true;
         const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
@@ -151,7 +152,7 @@ function generate(ast, options) {
         // Technically, `VariableLengthCharacterSet` nodes shouldn't be included in transformer
         // output since none of its kinds are directly supported by `regex`, but `kind: 'grapheme'`
         // (only) is allowed through so we can check options `allowBestEffort` and `target` here
-        // TODO: Handle in transformer and give it new `allowBestEffort`/`bestEffortTarget` options; will also need for ES2018 posix graph/print
+        // TODO: Handle in transformer and give it new `allowBestEffort`/`bestEffortTarget` options; will also need for ES2018 approximation of posix graph/print
         return genVariableLengthCharacterSet(node, state);
       default:
         // Note: Node types `Directive` and `Subroutine` are never included in transformer output
@@ -239,7 +240,7 @@ function genBackreference({ref}, state) {
     !state.useFlagMods &&
     !state.allowBestEffort &&
     state.currentFlags.ignoreCase &&
-    state.captureFlagIMap.get(ref) === false
+    !state.captureFlagIMap.get(ref)
   ) {
     throw new Error('Use of case-insensitive backref to case-sensitive group requires option allowBestEffort or target ESNext');
   }
@@ -301,6 +302,9 @@ function genCharacterSet({kind, negate, value, key}, state) {
     return negate ? r`\D` : r`\d`;
   }
   if (kind === AstCharacterSetKinds.property) {
+    if (!state.usePostEs2018Properties && JsUnicodePropertiesPostEs2018.has(value)) {
+      throw new Error(`Unicode property name "${value}" unavailable in target ES2018`);
+    }
     // TODO: Use `useAppliedIgnoreCase` for `UnicodePropertiesWithCase.has`
     // Special case `\p{Any}` to `[^]` since it's shorter but also because `\p{Any}` is used when
     // parsing fragments in the transformer (since the parser follows Onig rules and doesn't allow
