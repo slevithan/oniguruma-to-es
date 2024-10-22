@@ -56,26 +56,14 @@ function getOptions(options) {
     // Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern
     // can't be emulated with identical behavior.
     allowBestEffort: true,
-    // If `null`, any use of recursion (ex: `a\g<0>?b` or `(?<r>a\g<r>?b)`) throws. If an integer
-    // from `2` to `100` and `allowBestEffort` is on, common recursion forms are supported and
-    // recurse up to the specified max depth.
+    // If `null`, any use of recursion throws. If an integer between `2` and `100` (and
+    // `allowBestEffort` is on), common recursion forms are supported and recurse up to the
+    // specified max depth.
     maxRecursionDepth: 6,
-    // Simplify the generated pattern when it doesn't change the meaning. Optimization also enables
-    // use of nested character classes with target ES2018.
+    // Simplify the generated pattern when it doesn't change the meaning.
     optimize: true,
-    // Sets the JavaScript language version for generated patterns and flags:
-    // ES2018: Uses JS flag u.
-    // - Emulation restrictions: Character class intersection and nested negated classes are
-    //   unsupported. These restrictions avoid the need for heavyweight Unicode character data.
-    // - Generated regexes potentially use features that require Node.js 10 or a browser released
-    //   during 2018 (Chrome) to 2023 (Safari). Minimum requirement for any regex is Node.js 6 or a
-    //   2016-era browser.
-    // ES2024: Uses JS flag v.
-    // - Generated regexes require Node.js 20 or a 2023-era browser (compat table).
-    // ESNext: Allows use of ESNext regex features (flag groups and duplicate group names).
-    // - Generated regexes might require Node.js 23 or a 2024-era browser (Safari unsupported).
-    // - Benefits: Better transpilation performance, shorter generated source, and duplicate group
-    //   names are preserved across separate alternation paths.
+    // Sets the JavaScript language version for generated patterns and flags. Later targets allow
+    // faster processing, simpler generated source, and support for additional features.
     target: Target.ES2024,
     ...options,
   };

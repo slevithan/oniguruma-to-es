@@ -59,6 +59,7 @@ function generate(ast, options) {
   const state = {
     allowBestEffort: opts.allowBestEffort,
     appliedGlobalFlags,
+    captureFlagIMap: new Map(),
     currentFlags: {
       dotAll: ast.flags.dotAll,
       ignoreCase: ast.flags.ignoreCase,
@@ -93,7 +94,8 @@ function generate(ast, options) {
       case AstTypes.CapturingGroup:
         // TODO: Strip duplicate names if `!state.useDuplicateNames`
         // TODO: Set `currentFlags`
-        return ''; // TODO
+        state.captureFlagIMap.set(node.number, state.currentFlags.ignoreCase);
+        return `(${node.name ? `?<${node.name}>` : ''}${node.alternatives.map(gen).join('|')})`;
       case AstTypes.Character:
         return genCharacter(node, state);
       case AstTypes.CharacterClass: {
@@ -182,7 +184,9 @@ const FlagModifierVisitor = {
     },
   },
   Backreference(_, state) {
-    // Can't know for sure, so assume the backref will include chars with case
+    // Can't know for sure, so assume the backref will include chars with case (best that could be
+    // done is not calling `setHasCasedChar` if the reffed group doesn't contain a char with case
+    // or most kinds of char sets)
     state.setHasCasedChar();
   },
   Character({node}, state) {
@@ -228,10 +232,16 @@ function charHasCase(char) {
 }
 
 function genBackreference({ref}, state) {
-  // TODO: Throw if `!state.useFlagMods`, `!state.allowBestEffort`, and within mixed local ignoreCase
   if (typeof ref !== 'number') {
-    // The transformer always converts to numbered backrefs; no `ref` names
-    throw new Error('Unexpected named backref in AST');
+    throw new Error('Unexpected named backref in transformed AST');
+  }
+  if (
+    !state.useFlagMods &&
+    !state.allowBestEffort &&
+    state.currentFlags.ignoreCase &&
+    state.captureFlagIMap.get(ref) === false
+  ) {
+    throw new Error('Use of case-insensitive backref to case-sensitive group requires option allowBestEffort or target ESNext');
   }
   return '\\' + ref;
 }
