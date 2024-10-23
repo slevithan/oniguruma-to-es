@@ -273,6 +273,7 @@ const UnicodePropertiesWithCase = new Set([
   'Lower', 'Lowercase',
   'Upper', 'Uppercase',
   'Ll', 'Lowercase_Letter',
+  'Lt', 'Titlecase_Letter',
   'Lu', 'Uppercase_Letter',
 ]);
 

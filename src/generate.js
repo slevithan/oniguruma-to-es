@@ -303,16 +303,19 @@ function genCharacterSet({kind, negate, value, key}, state) {
   }
   if (kind === AstCharacterSetKinds.property) {
     if (!state.usePostEs2018Properties && JsUnicodePropertiesPostEs2018.has(value)) {
-      throw new Error(`Unicode property name "${value}" unavailable in target ES2018`);
+      throw new Error(`Unicode property "${value}" unavailable in target ES2018`);
     }
-    // TODO: Use `useAppliedIgnoreCase` for `UnicodePropertiesWithCase.has`
+    if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && UnicodePropertiesWithCase.has(value)) {
+      // Accurate support requires large Unicode data; can't just change to `\p{LC}` or `\p{Cased}`
+      throw new Error(`Unicode property "${value}" can't be used case-insensitively when other chars have case`);
+    }
     // Special case `\p{Any}` to `[^]` since it's shorter but also because `\p{Any}` is used when
     // parsing fragments in the transformer (since the parser follows Onig rules and doesn't allow
     // empty char classes)
     if (value === 'Any') {
-      return '[^]';
+      return negate ? '[]' : '[^]';
     }
-    return `${(negate ? r`\P` : r`\p`)}{${key ? `${key}=` : ''}${value}}`;
+    return `${negate ? r`\P` : r`\p`}{${key ? `${key}=` : ''}${value}}`;
   }
   if (kind === AstCharacterSetKinds.word) {
     return negate ? r`\W` : r`\w`;
@@ -342,6 +345,7 @@ function genRecursion({ref}, state) {
   if (!state.allowBestEffort) {
     throw new Error('Use of recursion requires option allowBestEffort');
   }
+  // Use syntax supported by `regex-recursion`
   return ref === 0 ? `(?R=${rDepth})` : r`\g<${ref}&R=${rDepth}>`;
 }
 
