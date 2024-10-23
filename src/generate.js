@@ -2,7 +2,7 @@ import {getOptions} from './compile.js';
 import emojiRegex from 'emoji-regex-xs';
 import {AstCharacterSetKinds, AstTypes, AstVariableLengthCharacterSetKinds} from './parse.js';
 import {traverse} from './traverse.js';
-import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCases} from './unicode.js';
+import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {EsVersion, r, Target} from './utils.js';
 
 /**
@@ -204,7 +204,7 @@ const FlagModifierVisitor = {
   CharacterSet({node}, state) {
     if (
       node.kind === AstCharacterSetKinds.property &&
-      UnicodePropertiesWithSpecificCases.has(node.value)
+      UnicodePropertiesWithSpecificCase.has(node.value)
     ) {
       state.setHasCasedChar();
     }
@@ -311,9 +311,11 @@ function genCharacterSet({kind, negate, value, key}, state) {
     if (
       state.useAppliedIgnoreCase &&
       state.currentFlags.ignoreCase &&
-      UnicodePropertiesWithSpecificCases.has(value)
+      UnicodePropertiesWithSpecificCase.has(value)
     ) {
-      // Accurate support requires heavy Unicode data; can't just change e.g. `\p{Lu}` to `\p{LC}`
+      // Support for this would require heavy Unicode data. Could change e.g. `\p{Lu}` to `\p{LC}`
+      // if `allowBestEffort` (since it's close but not 100%), but this wouldn't work for e.g.
+      // `\p{Lt}` and in any case it's probably a mistake if using these props case-insensitively
       throw new Error(`Unicode property "${value}" can't be case-insensitive when other chars have specific case`);
     }
     // Special case `\p{Any}` to `[^]` since it's shorter but also because `\p{Any}` is used when

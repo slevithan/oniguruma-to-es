@@ -269,7 +269,7 @@ function titleRange(start, end) {
   return range(start, end).map(codePoint => titleEntry(codePoint));
 }
 
-const UnicodePropertiesWithSpecificCases = new Set([
+const UnicodePropertiesWithSpecificCase = new Set([
   'Lower', 'Lowercase',
   'Upper', 'Uppercase',
   'Ll', 'Lowercase_Letter',
@@ -290,5 +290,5 @@ export {
   PosixClasses,
   PosixProperties,
   slug,
-  UnicodePropertiesWithSpecificCases,
+  UnicodePropertiesWithSpecificCase,
 };
