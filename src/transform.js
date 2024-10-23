@@ -1,8 +1,9 @@
+import emojiRegex from 'emoji-regex-xs';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClasses} from './unicode.js';
-import {getOrCreate, r} from './utils.js';
+import {EsVersion, getOrCreate, r, Target} from './utils.js';
 
 /**
 @typedef {{
@@ -17,10 +18,16 @@ import {getOrCreate, r} from './utils.js';
 Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator to
 then convert to the desired JS target version.
 @param {import('./parse.js').OnigurumaAst} ast
+@param {{
+  allowBestEffort?: boolean;
+  bestEffortTarget?: keyof Target;
+}} [options]
 @returns {RegexAst}
 */
-function transform(ast) {
+function transform(ast, options) {
   const firstPassState = {
+    allowBestEffort: options?.allowBestEffort ?? true,
+    bestEffortTarget: options?.bestEffortTarget ?? Target.ESNext,
     flagDirectivesByAlt: new Map(),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
@@ -237,12 +244,25 @@ const FirstPassVisitor = {
     }
   },
 
-  VariableLengthCharacterSet({node, replaceWith}) {
-    if (node.kind === AstVariableLengthCharacterSetKinds.newline) {
+  VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, bestEffortTarget}) {
+    const {kind} = node;
+    if (kind === AstVariableLengthCharacterSetKinds.newline) {
       replaceWith(parseFragment(r`(?>\r\n?|[\n\v\f\x85\u2028\u2029])`));
+    } else if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
+      if (!allowBestEffort) {
+        throw new Error(r`Use of "\X" requires option allowBestEffort`);
+      }
+      const minTargetES2024 = EsVersion[bestEffortTarget] >= EsVersion[Target.ES2024];
+      // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
+      // emoji using a general pattern that matches any Unicode sequence following the structure of
+      // a valid emoji. That actually makes it more accurate for matching any grapheme
+      const emoji = minTargetES2024 ? r`\p{RGI_Emoji}` : emojiRegex().source;
+      // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
+      // Bypass name check to allow `RGI_Emoji` through, which Onig doesn't support
+      replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {bypassPropertyNameCheck: true}));
+    } else {
+      throw new Error(`Unexpected varcharset kind "${kind}"`);
     }
-    // `AstVariableLengthCharacterSetKinds.grapheme` is handled in the generator since its
-    // transformation relies on options `allowBestEffort` and `target`
   },
 };
 
@@ -533,8 +553,8 @@ function getParentAlternative(node) {
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 // TODO: Consider moving to `parse` module and dropping assumptions about `parent` props
-function parseFragment(pattern) {
-  const ast = parse(tokenize(pattern, ''), {optimize: true});
+function parseFragment(pattern, {bypassPropertyNameCheck}) {
+  const ast = parse(tokenize(pattern), {bypassPropertyNameCheck});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
     return adoptAndSwapKids(createGroup(), alts);;

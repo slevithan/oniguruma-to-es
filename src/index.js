@@ -24,7 +24,7 @@ Generates an Oniguruma AST from an Oniguruma pattern and flags.
 @returns {import('./parse.js').OnigurumaAst}
 */
 function toOnigurumaAst(pattern, flags) {
-  return parse(tokenize(pattern, flags), {optimize: true});
+  return parse(tokenize(pattern, flags));
 }
 
 /**

@@ -28,7 +28,10 @@ function compile(pattern, flags, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, flags);
   const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
-  const regexAst = transform(onigurumaAst);
+  const regexAst = transform(onigurumaAst, {
+    allowBestEffort: opts.allowBestEffort,
+    bestEffortTarget: opts.target,
+  });
   const generated = generate(regexAst, opts);
   // TODO: When `rewrite` is removed, add flag u or v based on `generated.options`
   const result = rewrite(generated.pattern, {
@@ -63,7 +66,7 @@ function getOptions(options) {
     // Simplify the generated pattern when it doesn't change the meaning.
     optimize: true,
     // Sets the JavaScript language version for generated patterns and flags. Later targets allow
-    // faster processing, simpler generated source, and support for additional features.
+    // faster processing, simpler generated source, and support for additional Oniguruma features.
     target: Target.ES2024,
     ...options,
   };

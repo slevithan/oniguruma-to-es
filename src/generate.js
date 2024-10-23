@@ -1,6 +1,5 @@
 import {getOptions} from './compile.js';
-import emojiRegex from 'emoji-regex-xs';
-import {AstCharacterSetKinds, AstTypes, AstVariableLengthCharacterSetKinds} from './parse.js';
+import {AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {EsVersion, r, Target} from './utils.js';
@@ -148,14 +147,9 @@ function generate(ast, options) {
         return gen(node.element) + getQuantifierStr(node);
       case AstTypes.Recursion:
         return genRecursion(node, state);
-      case AstTypes.VariableLengthCharacterSet:
-        // Technically, `VariableLengthCharacterSet` nodes shouldn't be included in transformer
-        // output since none of its kinds are directly supported by `regex`, but `kind: 'grapheme'`
-        // (only) is allowed through so we can check options `allowBestEffort` and `target` here
-        // TODO: Handle in transformer and give it new `allowBestEffort`/`bestEffortTarget` options; will also need for ES2018 approximation of posix graph/print
-        return genVariableLengthCharacterSet(node, state);
       default:
-        // Note: Node types `Directive` and `Subroutine` are never included in transformer output
+        // Node types `Directive`, `Subroutine`, and `VariableLengthCharacterSet` are never
+        // included in transformer output
         throw new Error(`Unexpected node type "${node.type}"`);
     }
   }
@@ -290,7 +284,6 @@ function genCharacterClassRange(node, state) {
         getEscapedChar(value, escOpts);
     });
   }
-  // TODO: Is adding directly after the range OK when part of an intersection?
   return `${minStr}-${maxStr}${extraChars}`;
 }
 
@@ -358,21 +351,6 @@ function genRecursion({ref}, state) {
   return ref === 0 ? `(?R=${rDepth})` : r`\g<${ref}&R=${rDepth}>`;
 }
 
-function genVariableLengthCharacterSet({kind}, state) {
-  if (kind !== AstVariableLengthCharacterSetKinds.grapheme) {
-    throw new Error(`Unexpected varcharset kind "${kind}"`);
-  }
-  if (!state.allowBestEffort) {
-    throw new Error(r`Use of "\X" requires option allowBestEffort`);
-  }
-  // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows overqualified and
-  // underqualified emoji using a general pattern that matches all Unicode sequences that follow
-  // the structure of valid emoji. That actually makes it more accurate for matching any grapheme
-  const emojiGrapheme = state.useFlagV ? r`\p{RGI_Emoji}` : emojiRegex().source;
-  // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>
-  return r`(?>\r\n|${emojiGrapheme}|\P{M}\p{M}*)`;
-}
-
 /**
 Given a `CharacterClassRange` node, returns an array of chars that are a case variant of a char in
 the range, and aren't already in the range.
@@ -423,6 +401,7 @@ function getCodePointRangesFromChars(chars) {
   return values;
 }
 
+// This shouldn't modifiy any char that has case
 function getEscapedChar(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
   if (CharCodeEscapeMap.has(codePoint)) {
     return CharCodeEscapeMap.get(codePoint);

@@ -74,26 +74,30 @@ const AstVariableLengthCharacterSetKinds = {
 */
 /**
 @param {import('./tokenize.js').TokenizerResult} tokenizerResult
-@param {{optimize: boolean;}} [options]
+@param {{
+  bypassPropertyNameCheck?: boolean;
+  optimize?: boolean;
+}} [options]
 @returns {OnigurumaAst}
 */
 function parse({tokens, flags}, options) {
   const context = {
+    bypassPropertyNameCheck: !!options?.bypassPropertyNameCheck,
+    capturingGroups: [],
     current: 0,
+    hasNumberedRef: false,
+    namedGroupsByName: new Map(),
+    optimize: options?.optimize ?? true,
     parent: null,
+    subroutines: [],
     token: null,
     tokens,
-    capturingGroups: [],
-    namedGroupsByName: new Map(),
-    subroutines: [],
-    hasNumberedRef: false,
-    optimize: !!options?.optimize,
     walk,
   };
   function walk(parent, state) {
     const token = tokens[context.current];
-    context.token = token;
     context.parent = parent;
+    context.token = token;
     // Advance for the next iteration
     context.current++;
     switch (token.type) {
@@ -111,7 +115,7 @@ function parse({tokens, flags}, options) {
       case TokenTypes.CharacterClassOpen:
         return parseCharacterClassOpen(context, state);
       case TokenTypes.CharacterSet:
-        return createCharacterSetFromToken(token);
+        return parseCharacterSet(context);
       case TokenTypes.Directive:
         return createDirectiveFromToken(token);
       case TokenTypes.GroupOpen:
@@ -261,6 +265,36 @@ function parseCharacterClassOpen(context, state) {
   return node;
 }
 
+function parseCharacterSet({token, bypassPropertyNameCheck}) {
+  let {kind, negate, value} = token;
+  if (kind === TokenCharacterSetKinds.property) {
+    const normalized = slug(value);
+    if (PosixProperties.has(normalized)) {
+      kind = TokenCharacterSetKinds.posix;
+      value = normalized;
+    } else {
+      return createUnicodeProperty(value, {negate, bypassPropertyNameCheck});
+    }
+  }
+  const node = {
+    type: AstTypes.CharacterSet,
+    kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
+  };
+  if (
+    kind === TokenCharacterSetKinds.digit ||
+    kind === TokenCharacterSetKinds.hex ||
+    kind === TokenCharacterSetKinds.posix ||
+    kind === TokenCharacterSetKinds.space ||
+    kind === TokenCharacterSetKinds.word
+  ) {
+    node.negate = negate;
+    if (kind === TokenCharacterSetKinds.posix) {
+      node.value = value;
+    }
+  }
+  return node;
+}
+
 function parseGroupOpen(context, state) {
   const {token, tokens, optimize, capturingGroups, namedGroupsByName, walk} = context;
   let node = createByGroupKind(token);
@@ -301,8 +335,7 @@ function parseGroupOpen(context, state) {
   return node;
 }
 
-function parseQuantifier(context) {
-  const {parent, token} = context;
+function parseQuantifier({token, parent}) {
   const {min, max, greedy, possessive} = token;
   if (!parent.elements.length) {
     // First child in `Alternative`
@@ -373,8 +406,7 @@ function createAlternative() {
   };
 }
 
-function createAssertionFromToken(token) {
-  const {type, kind, negate} = token;
+function createAssertionFromToken({type, kind, negate}) {
   if (type === TokenTypes.GroupOpen) {
     return createLookaround({
       behind: kind === TokenGroupKinds.lookbehind,
@@ -472,38 +504,7 @@ function createCharacterClassRange(min, max) {
   };
 }
 
-function createCharacterSetFromToken(token) {
-  let {kind, negate, value} = token;
-  if (kind === TokenCharacterSetKinds.property) {
-    const normalized = slug(value);
-    if (PosixProperties.has(normalized)) {
-      kind = TokenCharacterSetKinds.posix;
-      value = normalized;
-    } else {
-      return createUnicodeProperty(value, {negate});
-    }
-  }
-  const node = {
-    type: AstTypes.CharacterSet,
-    kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
-  };
-  if (
-    kind === TokenCharacterSetKinds.digit ||
-    kind === TokenCharacterSetKinds.hex ||
-    kind === TokenCharacterSetKinds.posix ||
-    kind === TokenCharacterSetKinds.space ||
-    kind === TokenCharacterSetKinds.word
-  ) {
-    node.negate = negate;
-    if (kind === TokenCharacterSetKinds.posix) {
-      node.value = value;
-    }
-  }
-  return node;
-}
-
-function createDirectiveFromToken(token) {
-  const {kind, flags} = token;
+function createDirectiveFromToken({kind, flags}) {
   const node = {
     type: AstTypes.Directive,
     kind: throwIfNot(AstDirectiveKinds[kind], `Unexpected directive kind "${kind}"`),
@@ -581,12 +582,12 @@ function createSubroutine(ref) {
   };
 }
 
-function createUnicodeProperty(value, {negate = false} = {}) {
+function createUnicodeProperty(value, options) {
   return {
     type: AstTypes.CharacterSet,
     kind: AstCharacterSetKinds.property,
-    value: getJsUnicodePropertyName(value),
-    negate,
+    value: options?.bypassPropertyNameCheck ? value : getJsUnicodePropertyName(value),
+    negate: options?.negate ?? false,
   }
 }
 

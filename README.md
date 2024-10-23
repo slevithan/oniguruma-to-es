@@ -39,17 +39,17 @@ If `null`, any use of recursion throws. If an integer between `2` and `100` (and
 
 ### `target`
 
-Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
+Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional Oniguruma features.
 
 - `ES2018`: Uses JS flag `u`.
   - Emulation restrictions: Character class intersection and nested negated classes are unsupported, and Unicode properties added after ES2018 are not allowed.
-  - Minimum requirement for any generated regex is Node.js 6 or a 2016-era browser, but regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case).
+  - Generated regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case). Minimum requirement for any regex is Node.js 6 or a 2016-era browser.
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
   - Generated regexes require Node.js 20 or a 2023-era browser ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
-- `ESNext`: Allows use of ESNext regex features (flag groups and duplicate group names).
+- `ESNext`: Uses JS flag `v` and allows use of flag groups and duplicate group names.
   - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
-  - Generated regexes might require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
+  - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
 
 *Default: `'ES2024'`.*
 
@@ -61,7 +61,7 @@ To make Oniguruma-To-ES better for use in browsers, it focuses on being lightwei
 
 - Character class intersection and nested negated classes are unsupported with target `ES2018`. Use target `ES2024` or later if you need support for these Oniguruma features.
 - A handful of Unicode properties that target a specific case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
-  - In other words, almost every usage is fine, inluding `\p{Lower}`, `(?i:\p{Lower})`, `(?i:a)\p{Lower}`, `(?i:a(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`. But not `a(?i:\p{Lower})`.
+  - In other words, almost every usage is fine, inluding `\p{Lower}`, `(?i:\p{Lower})`, `(?i:a)\p{Lower}`, `(?i:a(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `a(?i:\p{Lower})`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's actually catching a mistake.
 
 ## Similar projects
