@@ -22,12 +22,12 @@ Allows results that differ from Oniguruma in rare cases. If `false`, throws if t
 Specifically, this option enables the following additional features, depending on `target`:
 
 - All targets (`ESNext` and earlier):
-  - `\X`: Uses a close approximation of a Unicode extended grapheme cluster.
-  - Recursion via `\g<0>` and `\g<name>`: Uses a depth limit, specified via option `maxRecursionDepth`.
+  - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
+  - Enables recursion via `\g<0>` and `\g<name>` using a depth limit specified via option `maxRecursionDepth`.
 - `ES2024` and earlier:
-  - Case-insensitive backreferences to case-sensitive groups.
+  - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
-  - POSIX classes `[[:graph:]]` and `[[:print:]]`: Use approximations that don't rely on Unicode property intersection.
+  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes always use Unicode.
 
 *Default: `true`.*
 

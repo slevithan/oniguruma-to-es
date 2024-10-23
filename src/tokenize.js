@@ -392,7 +392,7 @@ function createTokenForAnyTokenWithinCharClass(raw) {
   // POSIX class: `[:name:]` or `[:^name:]`
   if (raw[0] === '[') {
     const posix = /\[:(?<negate>\^?)(?<name>[a-z]+):\]/.exec(raw);
-    if (!posix || !PosixClasses[posix.groups.name]) {
+    if (!posix || !PosixClasses.get(posix.groups.name)) {
       throw new Error(`Invalid POSIX class "${raw}"`);
     }
     return createToken(TokenTypes.CharacterSet, raw, {

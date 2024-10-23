@@ -203,26 +203,25 @@ const LowerToTitleCaseMap = new Map([
 // Unlike Oniguruma's Unicode properties via `\p` and `\P`, these names are case sensitive and
 // don't allow inserting whitespace and underscores. Definitions at
 // <github.com/kkos/oniguruma/blob/master/doc/RE> (see: POSIX bracket: Unicode Case)
-// Note: Handling in the transformer assumes that all values here are a single, negateable node
-// that's not pre-negated at the top level
-// TODO: Change to map to avoid prototype property access
-// TODO: Add ES2018 intersection-free `allowBestEffort` versions of `graph` and `print`
-const PosixClasses = {
-  alnum: r`[\p{Alpha}\p{Nd}]`,
-  alpha: r`\p{Alpha}`,
-  ascii: r`\p{ASCII}`,
-  blank: r`[\p{Zs}\t]`,
-  cntrl: r`\p{cntrl}`,
-  digit: r`\p{Nd}`,
-  graph: r`[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]`,
-  lower: r`\p{Lower}`,
-  print: r`[[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]\p{Zs}]`,
-  punct: r`[\p{P}\p{S}]`,
-  space: r`\p{space}`,
-  upper: r`\p{Upper}`,
-  word:  r`[\p{Alpha}\p{M}\p{Nd}\p{Pc}]`,
-  xdigit: r`\p{AHex}`,
-};
+// Note: Handling in the transformer assumes all values here are a single, negateable node that's
+// not pre-negated at the top level. It also uses ASCII versions of `graph` and `print` for target
+// `ES2018` (which doesn't allow intersection) if `allowBestEffort`
+const PosixClasses = new Map([
+  ['alnum', r`[\p{Alpha}\p{Nd}]`],
+  ['alpha', r`\p{Alpha}`],
+  ['ascii', r`\p{ASCII}`],
+  ['blank', r`[\p{Zs}\t]`],
+  ['cntrl', r`\p{cntrl}`],
+  ['digit', r`\p{Nd}`],
+  ['graph', r`[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]`],
+  ['lower', r`\p{Lower}`],
+  ['print', r`[[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]\p{Zs}]`],
+  ['punct', r`[\p{P}\p{S}]`],
+  ['space', r`\p{space}`],
+  ['upper', r`\p{Upper}`],
+  ['word', r`[\p{Alpha}\p{M}\p{Nd}\p{Pc}]`],
+  ['xdigit', r`\p{AHex}`],
+]);
 
 // Apart from the property names provided by Unicode, Oniguruma explicitly adds several names (see
 // <github.com/kkos/oniguruma/blob/master/doc/RE>) that can be used within `\p{}` and `\P{}` (those

@@ -278,7 +278,10 @@ function parseCharacterSet({token, bypassPropertyNameCheck}) {
       kind = TokenCharacterSetKinds.posix;
       value = normalized;
     } else {
-      return createUnicodeProperty(value, {negate, bypassPropertyNameCheck});
+      return createUnicodeProperty(value, {
+        negate,
+        allowAnyName: bypassPropertyNameCheck,
+      });
     }
   }
   const node = {
@@ -594,14 +597,14 @@ function createSubroutine(ref) {
 
 function createUnicodeProperty(value, options) {
   const opts = {
-    bypassPropertyNameCheck: false,
+    allowAnyName: false,
     negate: false,
     ...options,
   };
   return {
     type: AstTypes.CharacterSet,
     kind: AstCharacterSetKinds.property,
-    value: opts.bypassPropertyNameCheck ? value : getJsUnicodePropertyName(value),
+    value: opts.allowAnyName ? value : getJsUnicodePropertyName(value),
     negate: opts.negate,
   }
 }

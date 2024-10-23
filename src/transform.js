@@ -128,12 +128,24 @@ const FirstPassVisitor = {
     subroutineRefMap.set(name ?? number, node);
   },
 
-  CharacterSet({node, replaceWith}) {
+  CharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
     const {kind, negate, value} = node;
     if (kind === AstCharacterSetKinds.hex) {
       replaceWith(createUnicodeProperty('AHex', {negate}));
     } else if (kind === AstCharacterSetKinds.posix) {
-      const negateableNode = parseFragment(PosixClasses[value]);
+      if ((value === 'graph' || value === 'print') && !minTargetEs2024) {
+        if (!allowBestEffort) {
+          throw new Error(`POSIX class "${value}" requires option allowBestEffort or target ES2024`);
+        }
+        const ascii = new Map([
+          // Values are nested in a char class; avoid `[^...]` so it can be unwrapped
+          ['graph', {base: '[!-~]', negate: r`[\0- \x7F-\u{10FFFF}]`}],
+          ['print', {base: '[ -~]', negate: r`[\0-\x1F\x7F-\u{10FFFF}]`}],
+        ]);
+        replaceWith(parseFragment(ascii.get(value)[negate ? 'negate' : 'base']));
+        return;
+      }
+      const negateableNode = parseFragment(PosixClasses.get(value));
       negateableNode.negate = negate;
       replaceWith(negateableNode);
     } else if (kind === AstCharacterSetKinds.property) {
@@ -564,7 +576,7 @@ function getParentAlternative(node) {
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 // TODO: Consider moving to `parse` module and dropping assumptions about `parent` props
-function parseFragment(pattern, {bypassPropertyNameCheck}) {
+function parseFragment(pattern, {bypassPropertyNameCheck} = {}) {
   const ast = parse(tokenize(pattern), {bypassPropertyNameCheck});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
