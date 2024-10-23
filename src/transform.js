@@ -16,7 +16,14 @@ import {EsVersion, getOrCreate, r, Target} from './utils.js';
 */
 /**
 Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator to
-then convert to the desired JS target version.
+then down-convert to the desired JS target version.
+
+A couple edge cases exist where options `allowBestEffort` and `bestEffortTarget` are used:
+- `VariableLengthCharacterSet` kind `grapheme` (`\X`): An exact representation would require heavy
+  Unicode data; a best-effort approximation requires knowing the target.
+- `CharacterSet` kind `posix` with values `graph` and `print`: Their complex exact representations
+  are hard to change after the fact in the generator to a best-effort approximation based on
+  the target, so produce the appropriate structure here.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   allowBestEffort?: boolean;
@@ -25,10 +32,15 @@ then convert to the desired JS target version.
 @returns {RegexAst}
 */
 function transform(ast, options) {
+  const opts = {
+    allowBestEffort: true,
+    bestEffortTarget: Target.ESNext,
+    ...options,
+  };
   const firstPassState = {
-    allowBestEffort: options?.allowBestEffort ?? true,
-    bestEffortTarget: options?.bestEffortTarget ?? Target.ESNext,
+    allowBestEffort: opts.allowBestEffort,
     flagDirectivesByAlt: new Map(),
+    minTargetEs2024: EsVersion[opts.bestEffortTarget] >= EsVersion[Target.ES2024],
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
   };
@@ -244,7 +256,7 @@ const FirstPassVisitor = {
     }
   },
 
-  VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, bestEffortTarget}) {
+  VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
     const {kind} = node;
     if (kind === AstVariableLengthCharacterSetKinds.newline) {
       replaceWith(parseFragment(r`(?>\r\n?|[\n\v\f\x85\u2028\u2029])`));
@@ -252,11 +264,10 @@ const FirstPassVisitor = {
       if (!allowBestEffort) {
         throw new Error(r`Use of "\X" requires option allowBestEffort`);
       }
-      const minTargetES2024 = EsVersion[bestEffortTarget] >= EsVersion[Target.ES2024];
       // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
       // emoji using a general pattern that matches any Unicode sequence following the structure of
       // a valid emoji. That actually makes it more accurate for matching any grapheme
-      const emoji = minTargetES2024 ? r`\p{RGI_Emoji}` : emojiRegex().source;
+      const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source;
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
       // Bypass name check to allow `RGI_Emoji` through, which Onig doesn't support
       replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {bypassPropertyNameCheck: true}));
@@ -462,27 +473,27 @@ function adoptAndSwapKids(parent, kids) {
 // - Make `parent` props point to their parent in the copy
 // - Update the provided `originMap` for each cloned capturing group (outer and nested)
 function cloneCapturingGroup(obj, originMap, up, up2) {
-  const target = Array.isArray(obj) ? [] : {};
+  const store = Array.isArray(obj) ? [] : {};
   for (const [key, value] of Object.entries(obj)) {
     if (key === 'parent') {
       // If the last cloned item was a child container array, use the object above it
-      target.parent = Array.isArray(up) ? up2 : up;
+      store.parent = Array.isArray(up) ? up2 : up;
     } else if (value && typeof value === 'object') {
-      target[key] = cloneCapturingGroup(value, originMap, target, up);
+      store[key] = cloneCapturingGroup(value, originMap, store, up);
     } else {
       if (key === 'type' && value === AstTypes.CapturingGroup) {
-        // Key is copied node, value is origin node
-        originMap.set(target, obj);
+        // Key is the copied node, value is the origin node
+        originMap.set(store, obj);
       }
-      target[key] = value;
+      store[key] = value;
     }
   }
-  return target;
+  return store;
 }
 
 function createRecursion(ref) {
   if (typeof ref === 'number') {
-    // This is a limitation of `regex-recursion`
+    // Limitation of `regex-recursion`; remove if future versions support
     throw new Error('Unsupported recursion by number; use name instead');
   }
   return {

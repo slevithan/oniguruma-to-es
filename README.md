@@ -53,15 +53,15 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 *Default: `'ES2024'`.*
 
-## Unicode and mixed case sensitivity
+## Unicode, mixed case sensitivity
 
-Oniguruma-To-ES fully supports mixed case sensitivity (and handles Unicode edge cases) regardless of JavaScript [target](#target). It also limits Unicode properties to those supported by the target JavaScript version.
+Oniguruma-To-ES fully supports mixed case sensitivity (and handles Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
 
-To make Oniguruma-To-ES better for use in browsers, it focuses on being lightweight. Partly, this is achieved by not including heavyweight Unicode character data, which imposes a couple of minor/rare restrictions:
+Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a couple of minor/rare restrictions:
 
 - Character class intersection and nested negated classes are unsupported with target `ES2018`. Use target `ES2024` or later if you need support for these Oniguruma features.
-- A handful of Unicode properties that target a specific case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
-  - In other words, almost every usage is fine, inluding `\p{Lower}`, `(?i:\p{Lower})`, `(?i:a)\p{Lower}`, `(?i:a(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `a(?i:\p{Lower})`.
+- A handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
+  - In other words, almost every usage is fine, inluding `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's actually catching a mistake.
 
 ## Similar projects

@@ -81,13 +81,18 @@ const AstVariableLengthCharacterSetKinds = {
 @returns {OnigurumaAst}
 */
 function parse({tokens, flags}, options) {
+  const opts = {
+    bypassPropertyNameCheck: false,
+    optimize: true,
+    ...options,
+  };
   const context = {
-    bypassPropertyNameCheck: !!options?.bypassPropertyNameCheck,
+    bypassPropertyNameCheck: opts.bypassPropertyNameCheck,
     capturingGroups: [],
     current: 0,
     hasNumberedRef: false,
     namedGroupsByName: new Map(),
-    optimize: options?.optimize ?? true,
+    optimize: opts.optimize,
     parent: null,
     subroutines: [],
     token: null,
@@ -478,11 +483,16 @@ function createCharacter(charCode) {
   };
 }
 
-function createCharacterClass({negate = false, baseOnly = false} = {}) {
+function createCharacterClass(options) {
+  const opts = {
+    baseOnly: false,
+    negate: false,
+    ...options,
+  };
   return {
     type: AstTypes.CharacterClass,
-    negate,
-    elements: baseOnly ? [] : [createCharacterClassIntersection()],
+    negate: opts.negate,
+    elements: opts.baseOnly ? [] : [createCharacterClassIntersection()],
   };
 }
 
@@ -583,11 +593,16 @@ function createSubroutine(ref) {
 }
 
 function createUnicodeProperty(value, options) {
+  const opts = {
+    bypassPropertyNameCheck: false,
+    negate: false,
+    ...options,
+  };
   return {
     type: AstTypes.CharacterSet,
     kind: AstCharacterSetKinds.property,
-    value: options?.bypassPropertyNameCheck ? value : getJsUnicodePropertyName(value),
-    negate: options?.negate ?? false,
+    value: opts.bypassPropertyNameCheck ? value : getJsUnicodePropertyName(value),
+    negate: opts.negate,
   }
 }
 

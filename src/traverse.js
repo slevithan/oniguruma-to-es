@@ -1,7 +1,7 @@
 import {AstAssertionKinds, AstTypes, getAstTypeAliases} from './parse.js';
 import {throwIfNot} from './utils.js';
 
-function traverse(path, state = {}, visitor) {
+function traverse(path, state, visitor) {
   let ast = path.node;
   while (ast = ast.parent) {}
   function traverseArray(array, parent) {

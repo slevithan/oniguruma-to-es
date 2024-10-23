@@ -16,8 +16,8 @@ Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` 
 */
 function generate(ast, options) {
   const opts = getOptions(options);
-  const minTargetES2024 = EsVersion[opts.target] >= EsVersion[Target.ES2024];
-  const minTargetESNext = opts.target === Target.ESNext;
+  const minTargetEs2024 = EsVersion[opts.target] >= EsVersion[Target.ES2024];
+  const minTargetEsNext = opts.target === Target.ESNext;
   const rDepth = opts.maxRecursionDepth;
   if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 100)) {
     throw new Error('Invalid maxRecursionDepth; use null or 2-100');
@@ -30,7 +30,7 @@ function generate(ast, options) {
   // [TODO] Consider gathering this data in the transformer's final traversal to avoid work here
   let hasCaseInsensitiveNode = null;
   let hasCaseSensitiveNode = null;
-  if (!minTargetESNext) {
+  if (!minTargetEsNext) {
     const iStack = [ast.flags.ignoreCase];
     traverse({node: ast}, {
       getCurrentModI: () => iStack.at(-1),
@@ -67,11 +67,11 @@ function generate(ast, options) {
     inCharClass: false,
     lastNode,
     maxRecursionDepth: rDepth,
-    useAppliedIgnoreCase: !!(!minTargetESNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
-    useDuplicateNames: minTargetESNext,
-    useFlagMods: minTargetESNext,
-    useFlagV: minTargetES2024,
-    usePostEs2018Properties: minTargetES2024,
+    useAppliedIgnoreCase: !!(!minTargetEsNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
+    useDuplicateNames: minTargetEsNext,
+    useFlagMods: minTargetEsNext,
+    useFlagV: minTargetEs2024,
+    usePostEs2018Properties: minTargetEs2024,
   };
   function gen(node) {
     state.lastNode = lastNode;
@@ -156,7 +156,7 @@ function generate(ast, options) {
 
   const result = gen(ast);
   // By default, `regex` implicitly chooses flag u or v; control it instead
-  if (!minTargetES2024) {
+  if (!minTargetEs2024) {
     delete result.options.force.v;
     result.options.disable.v = true;
     result.options.unicodeSetsPlugin = null;
