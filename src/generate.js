@@ -2,7 +2,7 @@ import {getOptions} from './compile.js';
 import emojiRegex from 'emoji-regex-xs';
 import {AstCharacterSetKinds, AstTypes, AstVariableLengthCharacterSetKinds} from './parse.js';
 import {traverse} from './traverse.js';
-import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithCase} from './unicode.js';
+import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCases} from './unicode.js';
 import {EsVersion, r, Target} from './utils.js';
 
 /**
@@ -202,7 +202,10 @@ const FlagModifierVisitor = {
     }
   },
   CharacterSet({node}, state) {
-    if (node.kind === AstCharacterSetKinds.property && UnicodePropertiesWithCase.has(node.value)) {
+    if (
+      node.kind === AstCharacterSetKinds.property &&
+      UnicodePropertiesWithSpecificCases.has(node.value)
+    ) {
       state.setHasCasedChar();
     }
   },
@@ -305,9 +308,13 @@ function genCharacterSet({kind, negate, value, key}, state) {
     if (!state.usePostEs2018Properties && JsUnicodePropertiesPostEs2018.has(value)) {
       throw new Error(`Unicode property "${value}" unavailable in target ES2018`);
     }
-    if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && UnicodePropertiesWithCase.has(value)) {
-      // Accurate support requires large Unicode data; can't just change to `\p{LC}` or `\p{Cased}`
-      throw new Error(`Unicode property "${value}" can't be used case-insensitively when other chars have case`);
+    if (
+      state.useAppliedIgnoreCase &&
+      state.currentFlags.ignoreCase &&
+      UnicodePropertiesWithSpecificCases.has(value)
+    ) {
+      // Accurate support requires heavy Unicode data; can't just change e.g. `\p{Lu}` to `\p{LC}`
+      throw new Error(`Unicode property "${value}" can't be case-insensitive when other chars have specific case`);
     }
     // Special case `\p{Any}` to `[^]` since it's shorter but also because `\p{Any}` is used when
     // parsing fragments in the transformer (since the parser follows Onig rules and doesn't allow

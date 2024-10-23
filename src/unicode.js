@@ -269,12 +269,16 @@ function titleRange(start, end) {
   return range(start, end).map(codePoint => titleEntry(codePoint));
 }
 
-const UnicodePropertiesWithCase = new Set([
+const UnicodePropertiesWithSpecificCases = new Set([
   'Lower', 'Lowercase',
   'Upper', 'Uppercase',
   'Ll', 'Lowercase_Letter',
   'Lt', 'Titlecase_Letter',
   'Lu', 'Uppercase_Letter',
+  // The `Changes_When_*` properties (and their aliases) could be included, but they're very rare.
+  // Some other properties include a handful of chars with specific cases only, but these chars are
+  // generally extreme edge cases and using such properties case insensitively generally produces
+  // undesired behavior anyway
 ]);
 
 export {
@@ -286,5 +290,5 @@ export {
   PosixClasses,
   PosixProperties,
   slug,
-  UnicodePropertiesWithCase,
+  UnicodePropertiesWithSpecificCases,
 };

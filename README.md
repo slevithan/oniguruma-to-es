@@ -9,9 +9,7 @@ This is an in-development **[Oniguruma](https://github.com/kkos/oniguruma) to Ja
 
 Compared to running the actual Oniguruma C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes **run much faster**.
 
-Oniguruma-To-ES is *obsessive* about ensuring the emulated features it supports have **exactly the same behavior** as Oniguruma, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (more details below).
-
-Additionally, since Oniguruma-To-ES is designed to be usable in browsers, it focuses on being lightweight. It's exceptionally so for a library that does Unicode case folding (for mixed case sensitivity) and contains a full compiler that deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript target versions.
+Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about ensuring the emulated features it supports have **exactly the same behavior** as Oniguruma, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
 
 ## Options
 
@@ -44,7 +42,7 @@ If `null`, any use of recursion throws. If an integer between `2` and `100` (and
 Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
 
 - `ES2018`: Uses JS flag `u`.
-  - Emulation restrictions: Character class intersection and nested negated classes are unsupported (avoiding the need for heavyweight Unicode character data), and Unicode properties added after ES2018 are not allowed.
+  - Emulation restrictions: Character class intersection and nested negated classes are unsupported, and Unicode properties added after ES2018 are not allowed.
   - Minimum requirement for any generated regex is Node.js 6 or a 2016-era browser, but regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case).
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
@@ -54,6 +52,17 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
   - Generated regexes might require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
 
 *Default: `'ES2024'`.*
+
+## Unicode
+
+Oniguruma-To-ES supports mixed case sensitivity and follows Unicode rules. It also limits Unicode properties to those supported by the target JavaScript version.
+
+Since Oniguruma-To-ES is designed to be usable in browsers, it focuses on being lightweight. Partly, this is achieved is by not including heavyweight Unicode character data, and this imposes a couple of minor/rare restrictions:
+
+- Character class intersection and nested negated classes are unsupported with [`target`](#target) `ES2018`. Use target `ES2024` or later if you need support for these Oniguruma features.
+- A handful of Unicode properties that target a specific case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
+  - In other words, almost every usage is fine, inluding `\p{Lower}`, `(?i:\p{Lower})`, `(?i:a)\p{Lower}`, `(?i:a(?-i:\p{Lower}))`, and `\p{Letter}(?i:\p{Lower})`. But not `\p{Upper}(?i:\p{Lower})`.
+  - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's actually catching a mistake.
 
 ## Similar projects
 
