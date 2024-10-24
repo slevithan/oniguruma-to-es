@@ -1,4 +1,4 @@
-import {PosixClasses} from './unicode.js';
+import {PosixClassesMap} from './unicode.js';
 import {r} from './utils.js';
 
 const TokenTypes = /** @type {const} */ ({
@@ -392,7 +392,7 @@ function createTokenForAnyTokenWithinCharClass(raw) {
   // POSIX class: `[:name:]` or `[:^name:]`
   if (raw[0] === '[') {
     const posix = /\[:(?<negate>\^?)(?<name>[a-z]+):\]/.exec(raw);
-    if (!posix || !PosixClasses.get(posix.groups.name)) {
+    if (!posix || !PosixClassesMap.get(posix.groups.name)) {
       throw new Error(`Invalid POSIX class "${raw}"`);
     }
     return createToken(TokenTypes.CharacterSet, raw, {

@@ -1,6 +1,4 @@
-import {r} from './utils.js';
-
-const cp = String.fromCodePoint;
+import {cp, r} from './utils.js';
 
 const CharsWithoutIgnoreCaseExpansion = new Set([
   cp(0x130), // İ
@@ -206,7 +204,7 @@ const LowerToTitleCaseMap = new Map([
 // Note: Handling in the transformer assumes all values here are a single, negateable node that's
 // not pre-negated at the top level. It also uses ASCII versions of `graph` and `print` for target
 // `ES2018` (which doesn't allow intersection) if `allowBestEffort`
-const PosixClasses = new Map([
+const PosixClassesMap = new Map([
   ['alnum', r`[\p{Alpha}\p{Nd}]`],
   ['alpha', r`\p{Alpha}`],
   ['ascii', r`\p{ASCII}`],
@@ -286,7 +284,7 @@ export {
   JsUnicodePropertiesMap,
   JsUnicodePropertiesOfStringsMap,
   JsUnicodePropertiesPostEs2018,
-  PosixClasses,
+  PosixClassesMap,
   PosixProperties,
   slug,
   UnicodePropertiesWithSpecificCase,

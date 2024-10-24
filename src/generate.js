@@ -2,7 +2,7 @@ import {getOptions} from './compile.js';
 import {AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {EsVersion, r, Target} from './utils.js';
+import {cp, EsVersion, r, Target} from './utils.js';
 
 /**
 Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
@@ -185,7 +185,7 @@ const FlagModifierVisitor = {
     state.setHasCasedChar();
   },
   Character({node}, state) {
-    if (charHasCase(String.fromCodePoint(node.value))) {
+    if (charHasCase(cp(node.value))) {
       state.setHasCasedChar();
     }
   },
@@ -245,7 +245,7 @@ function genBackreference({ref}, state) {
 }
 
 function genCharacter({value}, state) {
-  const char = String.fromCodePoint(value);
+  const char = cp(value);
   const escaped = getEscapedChar(value, {
     isAfterBackref: state.lastNode.type === AstTypes.Backreference,
     inCharClass: state.inCharClass,
@@ -366,7 +366,7 @@ function getCasesOutsideCharClassRange(node, {firstOnly} = {}) {
     return found;
   }
   for (let i = min; i <= max; i++) {
-    const char = String.fromCodePoint(i);
+    const char = cp(i);
     if (!charHasCase(char)) {
       continue;
     }
@@ -418,7 +418,7 @@ function getEscapedChar(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
   const escapeChars = inCharClass ?
     (useFlagV ? CharClassEscapeCharsFlagV : CharClassEscapeChars) :
     BaseEscapeChars;
-  const char = String.fromCodePoint(codePoint);
+  const char = cp(codePoint);
   return (escapeChars.has(char) ? '\\' : '') + char;
 }
 

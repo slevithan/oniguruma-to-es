@@ -1,3 +1,4 @@
+const cp = String.fromCodePoint;
 const r = String.raw;
 
 const EsVersion = {
@@ -27,6 +28,7 @@ function throwIfNot(value, msg) {
 }
 
 export {
+  cp,
   EsVersion,
   getOrCreate,
   r,

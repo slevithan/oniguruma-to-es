@@ -2,8 +2,8 @@ import emojiRegex from 'emoji-regex-xs';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
-import {JsUnicodeProperties, PosixClasses} from './unicode.js';
-import {EsVersion, getOrCreate, r, Target} from './utils.js';
+import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
+import {cp, EsVersion, getOrCreate, r, Target} from './utils.js';
 
 /**
 @typedef {{
@@ -133,21 +133,25 @@ const FirstPassVisitor = {
     if (kind === AstCharacterSetKinds.hex) {
       replaceWith(createUnicodeProperty('AHex', {negate}));
     } else if (kind === AstCharacterSetKinds.posix) {
-      if ((value === 'graph' || value === 'print') && !minTargetEs2024) {
+      if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (!allowBestEffort) {
           throw new Error(`POSIX class "${value}" requires option allowBestEffort or target ES2024`);
         }
-        const ascii = new Map([
-          // Values are nested in a char class; avoid `[^...]` so it can be unwrapped
-          ['graph', {base: '[!-~]', negate: r`[\0- \x7F-\u{10FFFF}]`}],
-          ['print', {base: '[ -~]', negate: r`[\0-\x1F\x7F-\u{10FFFF}]`}],
-        ]);
-        replaceWith(parseFragment(ascii.get(value)[negate ? 'negate' : 'base']));
-        return;
+        let ascii = {
+          graph: '!-~',
+          print: ' -~',
+        }[value];
+        if (negate) {
+          // POSIX classes are always nested in a char class; manually invert the range rather than
+          // using `[^...]` so it can be unwrapped since ES2018 doesn't support nested classes
+          ascii = r`\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
+        }
+        replaceWith(parseFragment(`[${ascii}]`));
+      } else {
+        const negateableNode = parseFragment(PosixClassesMap.get(value));
+        negateableNode.negate = negate;
+        replaceWith(negateableNode);
       }
-      const negateableNode = parseFragment(PosixClasses.get(value));
-      negateableNode.negate = negate;
-      replaceWith(negateableNode);
     } else if (kind === AstCharacterSetKinds.property) {
       if (!JsUnicodeProperties.has(value)) {
         // Assume it's a script
