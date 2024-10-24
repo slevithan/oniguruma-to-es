@@ -9,7 +9,7 @@ This is an in-development **[Oniguruma](https://github.com/kkos/oniguruma) to Ja
 
 Compared to running the actual Oniguruma C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes **run much faster**.
 
-Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about ensuring the emulated features it supports have **exactly the same behavior** as Oniguruma, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
+Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about exactly following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
 
 ## Options
 
@@ -42,7 +42,7 @@ If `null`, any use of recursion throws. If an integer between `2` and `100` (and
 Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional Oniguruma features.
 
 - `ES2018`: Uses JS flag `u`.
-  - Emulation restrictions: Character class intersection and nested negated classes are unsupported, and Unicode properties added after ES2018 are not allowed.
+  - Emulation restrictions: Character class intersection, nested negated classes, and Unicode properties added after ES2018 are not allowed.
   - Generated regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case). Minimum requirement for any regex is Node.js 6 or a 2016-era browser.
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
@@ -55,7 +55,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ## Unicode, mixed case sensitivity
 
-Oniguruma-To-ES fully supports mixed case sensitivity (and handles Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
+Oniguruma-To-ES fully supports mixed case sensitivity (and handles its Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
 
 Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a couple of minor/rare restrictions:
 

@@ -97,7 +97,13 @@ const FirstPassVisitor = {
 
   Assertion({node, parent, key, ast, remove, replaceWith}) {
     const {kind, negate} = node;
-    if (kind === AstAssertionKinds.search_start) {
+    if (kind === AstAssertionKinds.line_end) {
+      // Onig's only line break char is line feed, unlike JS
+      replaceWith(parseFragment(r`(?=\z|\n)`));
+    } else if (kind === AstAssertionKinds.line_start) {
+      // Onig's only line break char is line feed, unlike JS
+      replaceWith(parseFragment(r`(?<=\A|\n)`));
+    } else if (kind === AstAssertionKinds.search_start) {
       // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
       // checking in the `Pattern` visitor
       // TODO: Allow `\G` if it's the first node in a top-level group that doesn't use alternation; ex: `(?i:\G.)` or `\Ga|(?i:\Gb)`; maybe allow further nesting like `(((\Ga)))b|\Gb`; probably stop the sort with directives and instead check the key after subtracting preceding directives
@@ -106,21 +112,17 @@ const FirstPassVisitor = {
       }
       ast.flags.sticky = true;
       remove();
-    } else if (kind === AstAssertionKinds.string_end) {
-      replaceWith(parseFragment(r`(?!\p{Any})`));
     } else if (kind === AstAssertionKinds.string_end_newline) {
-      replaceWith(parseFragment(r`(?=\n?(?!\p{Any}))`));
-    } else if (kind === AstAssertionKinds.string_start) {
-      replaceWith(parseFragment(r`(?<!\p{Any})`));
+      replaceWith(parseFragment(r`(?=\n?\z)`));
     } else if (kind === AstAssertionKinds.word_boundary) {
-      // Onig's word char definition for `\b` isn't the same as for `\w`
+      // Onig's word char definition for `\b` is different than for `\w`
       const wordChar = r`[\p{L}\p{N}\p{Pc}]`;
       const b = `(?:(?<=${wordChar})(?!${wordChar})|(?<!${wordChar})(?=${wordChar}))`;
       const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
       replaceWith(parseFragment(negate ? B : b));
     }
-    // Don't need to transform `line_end` and `line_start` because the `Flags` visitor always turns
-    // on `multiline` to match Onig's behavior for `^` and `$`
+    // Kinds `string_end` and `string_start` don't need transformation since JS flag m isn't used.
+    // Kinds `lookahead` and `lookbehind` also don't need transformation
   },
 
   CapturingGroup({node}, {subroutineRefMap}) {
@@ -192,10 +194,16 @@ const FirstPassVisitor = {
     // tokenization (and flag x modifiers are stripped)
     delete node.extended;
     Object.assign(node, {
-      global: false, // JS flag g; no Onig equiv
-      hasIndices: false, // JS flag d; no Onig equiv
-      multiline: true, // JS flag m; no Onig equiv but its behavior is always on in Onig
-      sticky: node.sticky ?? false, // JS flag y; no Onig equiv
+      // JS flag g; no Onig equiv
+      global: false,
+      // JS flag d; no Onig equiv
+      hasIndices: false,
+      // JS flag m; no Onig equiv but its behavior is always on in Onig. Onig's only line break
+      // char is line feed, unlike JS, so the flag isn't used since it would produce inaccurate
+      // results (also allows using `^` and `$` in generated output for string start and end)
+      multiline: false,
+      // JS flag y; no Onig equiv, but used for `\G` emulation
+      sticky: node.sticky ?? false,
       // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
       // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
       // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
@@ -264,6 +272,7 @@ const FirstPassVisitor = {
   },
 
   Quantifier({node}) {
+    // TODO: Handle quantifiers on lookaround; not allowed in JS
     if (node.element.type === AstTypes.Quantifier) {
       const group = prepContainer(createGroup(), [node.element]);
       // Manually set the parent since we're not using `replaceWith`

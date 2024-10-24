@@ -1,5 +1,5 @@
 import {getOptions} from './compile.js';
-import {AstCharacterSetKinds, AstTypes} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, EsVersion, r, Target} from './utils.js';
@@ -87,8 +87,26 @@ function generate(ast, options) {
       case AstTypes.Alternative:
         return node.elements.map(gen).join('');
       case AstTypes.Assertion:
-        // TODO: Set `currentFlags` if lookaround
-        return ''; // TODO
+        // TODO: Move into fns (genLookaround/genStringBoundary?)
+        if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
+          // TODO: Set `currentFlags`
+          return `(?${
+            node.kind === AstAssertionKinds.lookahead ? '' : '<'
+          }${
+            node.negate ? '!' : '='
+          }${node.alternatives.map(gen).join('|')})`;
+        }
+        // Can always use `^` and `$` for string boundaries since JS flag m is never relied on;
+        // Onig uses different line break chars
+        if (node.kind === AstAssertionKinds.string_end) {
+          return '$';
+        }
+        if (node.kind === AstAssertionKinds.string_start) {
+          return '^';
+        }
+        // Kinds `line_end`, `line_start`, `search_start`, `string_end_newline`, and
+        // `word_boundary` are never included in transformer output
+        throw new Error(`Unexpected assertion kind "${node.kind}"`);
       case AstTypes.Backreference:
         return genBackreference(node, state);
       case AstTypes.CapturingGroup:
@@ -311,12 +329,6 @@ function genCharacterSet({kind, negate, value, key}, state) {
       // `\p{Lt}` and in any case it's probably a mistake if using these props case-insensitively
       throw new Error(`Unicode property "${value}" can't be case-insensitive when other chars have specific case`);
     }
-    // Special case `\p{Any}` to `[^]` since it's shorter but also because `\p{Any}` is used when
-    // parsing fragments in the transformer (since the parser follows Onig rules and doesn't allow
-    // empty char classes)
-    if (value === 'Any') {
-      return negate ? '[]' : '[^]';
-    }
     return `${negate ? r`\P` : r`\p`}{${key ? `${key}=` : ''}${value}}`;
   }
   if (kind === AstCharacterSetKinds.word) {
@@ -328,13 +340,15 @@ function genCharacterSet({kind, negate, value, key}, state) {
 
 function genFlags(node, state) {
   return (
-    (node.hasIndices ? 'd' : '') +
-    (node.global ? 'g' : '') +
+    // The transformer should never turn on the properties for flags d, g, and m since Onig doesn't
+    // have equivs. Flag m is never relied on since Onig uses different line break chars than JS
+    // (node.hasIndices ? 'd' : '') +
+    // (node.global ? 'g' : '') +
+    // (node.multiline ? 'm' : '') +
     (state.appliedGlobalFlags.ignoreCase ? 'i' : '') +
-    (node.multiline ? 'm' : '') +
     (node.dotAll ? 's' : '') +
     (node.sticky ? 'y' : '')
-    // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so there are no
+    // `regex` doesn't allow explicitly adding flags it handles implicitly, so there are no
     // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added separately
   );
 }

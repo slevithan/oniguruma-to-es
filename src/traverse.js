@@ -3,7 +3,9 @@ import {throwIfNot} from './utils.js';
 
 function traverse(path, state, visitor) {
   let ast = path.node;
-  while (ast = ast.parent) {}
+  while (ast.parent) {
+    ast = ast.parent;
+  }
   function traverseArray(array, parent) {
     for (let i = 0; i < array.length; i++) {
       const keyShift = traverseNode(array[i], parent, i, array);
