@@ -67,6 +67,7 @@ function generate(ast, options) {
     inCharClass: false,
     lastNode,
     maxRecursionDepth: rDepth,
+    optimize: opts.optimize,
     useAppliedIgnoreCase: !!(!minTargetEsNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useDuplicateNames: minTargetEsNext,
     useFlagMods: minTargetEsNext,
@@ -87,55 +88,15 @@ function generate(ast, options) {
       case AstTypes.Alternative:
         return node.elements.map(gen).join('');
       case AstTypes.Assertion:
-        // TODO: Move into fns (genLookaround/genStringBoundary?)
-        if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
-          // TODO: Set `currentFlags`
-          return `(?${
-            node.kind === AstAssertionKinds.lookahead ? '' : '<'
-          }${
-            node.negate ? '!' : '='
-          }${node.alternatives.map(gen).join('|')})`;
-        }
-        // Can always use `^` and `$` for string boundaries since JS flag m is never relied on;
-        // Onig uses different line break chars
-        if (node.kind === AstAssertionKinds.string_end) {
-          return '$';
-        }
-        if (node.kind === AstAssertionKinds.string_start) {
-          return '^';
-        }
-        // Kinds `line_end`, `line_start`, `search_start`, `string_end_newline`, and
-        // `word_boundary` are never included in transformer output
-        throw new Error(`Unexpected assertion kind "${node.kind}"`);
+        return genAssertion(node, state, gen);
       case AstTypes.Backreference:
         return genBackreference(node, state);
       case AstTypes.CapturingGroup:
-        // TODO: Strip duplicate names if `!state.useDuplicateNames`
-        // TODO: Set `currentFlags`
-        state.captureFlagIMap.set(node.number, state.currentFlags.ignoreCase);
-        return `(${node.name ? `?<${node.name}>` : ''}${node.alternatives.map(gen).join('|')})`;
+        return genCapturingGroup(node, state, gen);
       case AstTypes.Character:
         return genCharacter(node, state);
-      case AstTypes.CharacterClass: {
-        if (
-          (!state.useFlagV || opts.optimize) &&
-          node.parent.type === AstTypes.CharacterClass &&
-          !node.negate &&
-          node.elements[0].type !== AstTypes.CharacterClassIntersection
-        ) {
-          // Remove unnecessary nesting; unwrap kids into the parent char class. The parser has
-          // already done some basic char class optimization; this is primarily about allowing many
-          // nested classes to work with `target` ES2018 (which doesn't support nesting)
-          return node.elements.map(gen).join('');
-        }
-        if (!state.useFlagV && node.parent.type === AstTypes.CharacterClass) {
-          throw new Error('Use of nested character class requires target ES2024 or later');
-        }
-        state.inCharClass = true;
-        const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
-        state.inCharClass = false;
-        return result;
-      }
+      case AstTypes.CharacterClass:
+        return genCharacterClass(node, state, gen);
       case AstTypes.CharacterClassIntersection:
         if (!state.useFlagV) {
           throw new Error('Use of class intersection requires target ES2024 or later');
@@ -148,17 +109,8 @@ function generate(ast, options) {
         return genCharacterSet(node, state);
       case AstTypes.Flags:
         return genFlags(node, state);
-      case AstTypes.Group: {
-        const currentFlags = state.currentFlags;
-        if (node.flags) {
-          state.currentFlags = getNewCurrentFlags(currentFlags, node.flags);
-        }
-        const result = `(?${getGroupPrefix(node.atomic, node.flags, state.useFlagMods)}${
-          node.alternatives.map(gen).join('|')
-        })`;
-        state.currentFlags = currentFlags;
-        return result;
-      }
+      case AstTypes.Group:
+        return genGroup(node, state, gen);
       case AstTypes.Pattern:
         return node.alternatives.map(gen).join('|');
       case AstTypes.Quantifier:
@@ -247,6 +199,28 @@ function charHasCase(char) {
   return casedRe.test(char);
 }
 
+function genAssertion(node, state, gen) {
+  if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
+    // TODO: Set `currentFlags`
+    return `(?${
+      node.kind === AstAssertionKinds.lookahead ? '' : '<'
+    }${
+      node.negate ? '!' : '='
+    }${node.alternatives.map(gen).join('|')})`;
+  }
+  // Can always use `^` and `$` for string boundaries since JS flag m is never relied on; Onig uses
+  // different line break chars
+  if (node.kind === AstAssertionKinds.string_end) {
+    return '$';
+  }
+  if (node.kind === AstAssertionKinds.string_start) {
+    return '^';
+  }
+  // Kinds `line_end`, `line_start`, `search_start`, `string_end_newline`, and `word_boundary` are
+  // never included in transformer output
+  throw new Error(`Unexpected assertion kind "${node.kind}"`);
+}
+
 function genBackreference({ref}, state) {
   if (typeof ref !== 'number') {
     throw new Error('Unexpected named backref in transformed AST');
@@ -260,6 +234,13 @@ function genBackreference({ref}, state) {
     throw new Error('Use of case-insensitive backref to case-sensitive group requires option allowBestEffort or target ESNext');
   }
   return '\\' + ref;
+}
+
+function genCapturingGroup(node, state, gen) {
+  // TODO: Strip duplicate names if `!state.useDuplicateNames`
+  // TODO: Set `currentFlags`
+  state.captureFlagIMap.set(node.number, state.currentFlags.ignoreCase);
+  return `(${node.name ? `?<${node.name}>` : ''}${node.alternatives.map(gen).join('|')})`;
 }
 
 function genCharacter({value}, state) {
@@ -279,6 +260,27 @@ function genCharacter({value}, state) {
       (cases.length > 1 ? `[${cases.join('')}]` : cases[0]);
   }
   return char;
+}
+
+function genCharacterClass(node, state, gen) {
+  if (
+    (!state.useFlagV || state.optimize) &&
+    node.parent.type === AstTypes.CharacterClass &&
+    !node.negate &&
+    node.elements[0].type !== AstTypes.CharacterClassIntersection
+  ) {
+    // Remove unnecessary nesting; unwrap kids into the parent char class. The parser has already
+    // done some basic char class optimization; this is primarily about allowing many nested
+    // classes to work with `target` ES2018 (which doesn't support nesting)
+    return node.elements.map(gen).join('');
+  }
+  if (!state.useFlagV && node.parent.type === AstTypes.CharacterClass) {
+    throw new Error('Use of nested character class requires target ES2024 or later');
+  }
+  state.inCharClass = true;
+  const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
+  state.inCharClass = false;
+  return result;
 }
 
 function genCharacterClassRange(node, state) {
@@ -351,6 +353,18 @@ function genFlags(node, state) {
     // `regex` doesn't allow explicitly adding flags it handles implicitly, so there are no
     // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added separately
   );
+}
+
+function genGroup(node, state, gen) {
+  const currentFlags = state.currentFlags;
+  if (node.flags) {
+    state.currentFlags = getNewCurrentFlags(currentFlags, node.flags);
+  }
+  const result = `(?${getGroupPrefix(node.atomic, node.flags, state.useFlagMods)}${
+    node.alternatives.map(gen).join('|')
+  })`;
+  state.currentFlags = currentFlags;
+  return result;
 }
 
 function genRecursion({ref}, state) {
