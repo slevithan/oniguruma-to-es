@@ -63,7 +63,7 @@ function generate(ast, options) {
       dotAll: ast.flags.dotAll,
       ignoreCase: ast.flags.ignoreCase,
     },
-    groupNames: new Set(), // TODO: Use
+    groupNames: new Set(),
     inCharClass: false,
     lastNode,
     maxRecursionDepth: rDepth,
@@ -103,7 +103,6 @@ function generate(ast, options) {
         }
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
-        // Create the range without calling `gen` on the kids
         return genCharacterClassRange(node, state);
       case AstTypes.CharacterSet:
         return genCharacterSet(node, state);
@@ -199,26 +198,22 @@ function charHasCase(char) {
   return casedRe.test(char);
 }
 
-function genAssertion(node, state, gen) {
-  if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
-    // TODO: Set `currentFlags`
-    return `(?${
-      node.kind === AstAssertionKinds.lookahead ? '' : '<'
-    }${
-      node.negate ? '!' : '='
-    }${node.alternatives.map(gen).join('|')})`;
+function genAssertion({kind, negate, alternatives}, _, gen) {
+  if (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind) {
+    const prefix = `${kind === AstAssertionKinds.lookahead ? '' : '<'}${negate ? '!' : '='}`;
+    return `(?${prefix}${alternatives.map(gen).join('|')})`;
   }
   // Can always use `^` and `$` for string boundaries since JS flag m is never relied on; Onig uses
   // different line break chars
-  if (node.kind === AstAssertionKinds.string_end) {
+  if (kind === AstAssertionKinds.string_end) {
     return '$';
   }
-  if (node.kind === AstAssertionKinds.string_start) {
+  if (kind === AstAssertionKinds.string_start) {
     return '^';
   }
   // Kinds `line_end`, `line_start`, `search_start`, `string_end_newline`, and `word_boundary` are
   // never included in transformer output
-  throw new Error(`Unexpected assertion kind "${node.kind}"`);
+  throw new Error(`Unexpected assertion kind "${kind}"`);
 }
 
 function genBackreference({ref}, state) {
@@ -236,11 +231,19 @@ function genBackreference({ref}, state) {
   return '\\' + ref;
 }
 
-function genCapturingGroup(node, state, gen) {
-  // TODO: Strip duplicate names if `!state.useDuplicateNames`
-  // TODO: Set `currentFlags`
-  state.captureFlagIMap.set(node.number, state.currentFlags.ignoreCase);
-  return `(${node.name ? `?<${node.name}>` : ''}${node.alternatives.map(gen).join('|')})`;
+function genCapturingGroup({name, number, alternatives}, state, gen) {
+  if (name) {
+    if (state.groupNames.has(name)) {
+      if (!state.useDuplicateNames) {
+        // Keep the name only in the first alternation path that used it
+        name = null;
+      }
+    } else {
+      state.groupNames.add(name);
+    }
+  }
+  state.captureFlagIMap.set(number, state.currentFlags.ignoreCase);
+  return `(${name ? `?<${name}>` : ''}${alternatives.map(gen).join('|')})`;
 }
 
 function genCharacter({value}, state) {
@@ -262,23 +265,23 @@ function genCharacter({value}, state) {
   return char;
 }
 
-function genCharacterClass(node, state, gen) {
+function genCharacterClass({negate, parent, elements}, state, gen) {
   if (
     (!state.useFlagV || state.optimize) &&
-    node.parent.type === AstTypes.CharacterClass &&
-    !node.negate &&
-    node.elements[0].type !== AstTypes.CharacterClassIntersection
+    parent.type === AstTypes.CharacterClass &&
+    !negate &&
+    elements[0].type !== AstTypes.CharacterClassIntersection
   ) {
     // Remove unnecessary nesting; unwrap kids into the parent char class. The parser has already
     // done some basic char class optimization; this is primarily about allowing many nested
     // classes to work with `target` ES2018 (which doesn't support nesting)
-    return node.elements.map(gen).join('');
+    return elements.map(gen).join('');
   }
-  if (!state.useFlagV && node.parent.type === AstTypes.CharacterClass) {
+  if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {
     throw new Error('Use of nested character class requires target ES2024 or later');
   }
   state.inCharClass = true;
-  const result = `[${node.negate ? '^' : ''}${node.elements.map(gen).join('')}]`;
+  const result = `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;
   state.inCharClass = false;
   return result;
 }
@@ -304,6 +307,7 @@ function genCharacterClassRange(node, state) {
         getEscapedChar(value, escOpts);
     });
   }
+  // Create the range without calling `gen` on the `min`/`max` kids
   return `${minStr}-${maxStr}${extraChars}`;
 }
 
@@ -355,13 +359,13 @@ function genFlags(node, state) {
   );
 }
 
-function genGroup(node, state, gen) {
+function genGroup({atomic, flags, alternatives}, state, gen) {
   const currentFlags = state.currentFlags;
-  if (node.flags) {
-    state.currentFlags = getNewCurrentFlags(currentFlags, node.flags);
+  if (flags) {
+    state.currentFlags = getNewCurrentFlags(currentFlags, flags);
   }
-  const result = `(?${getGroupPrefix(node.atomic, node.flags, state.useFlagMods)}${
-    node.alternatives.map(gen).join('|')
+  const result = `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${
+    alternatives.map(gen).join('|')
   })`;
   state.currentFlags = currentFlags;
   return result;
