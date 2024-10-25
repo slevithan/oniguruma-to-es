@@ -15,7 +15,7 @@ import {EsVersion, Target} from './utils.js';
 }} CompileOptions
 */
 /**
-Transpiles a regex pattern and flags from Oniguruma to native JS.
+Transpiles an Oniguruma regex pattern and flags to native JS.
 @param {string} pattern Oniguruma regex pattern.
 @param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
 @param {CompileOptions} [options]
@@ -27,7 +27,9 @@ Transpiles a regex pattern and flags from Oniguruma to native JS.
 function compile(pattern, flags, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
+  const onigurumaAst = parse(tokenized, {
+    optimize: opts.optimize,
+  });
   const regexAst = transform(onigurumaAst, {
     allowBestEffort: opts.allowBestEffort,
     bestEffortTarget: opts.target,
@@ -66,20 +68,7 @@ function getOptions(options) {
   };
 }
 
-/**
-Transpiles a regex pattern and flags from Oniguruma to a native JS RegExp.
-@param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
-@param {CompileOptions} [options]
-@returns {RegExp}
-*/
-function toRegExp(pattern, flags, options) {
-  const result = compile(pattern, flags, options);
-  return new RegExp(result.pattern, result.flags);
-}
-
 export {
   compile,
   getOptions,
-  toRegExp,
 };

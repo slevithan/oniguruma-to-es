@@ -22,15 +22,15 @@ function showOutput(el) {
   outputEl.classList.remove('error');
   let output = '';
   try {
-    // Don't actually run `toRegExp` in case the selected `target` includes features that don't
-    // work in the user's browser
+    // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
+    // selected `target` includes features that don't work in the user's browser
     const re = compile(input, flags, {
       allowBestEffort: optionAllowBestEffortValue,
       maxRecursionDepth: optionMaxRecursionDepthValue === '' ? null : +optionMaxRecursionDepthValue,
       optimize: optionOptimizeValue,
       target: optionTargetValue,
     });
-    output = `/${regexize(re.pattern)}/${re.flags}`;
+    output = `/${getRegExpLiteralPattern(re.pattern)}/${re.flags}`;
   } catch (e) {
     outputEl.classList.add('error');
     output = `Error: ${e.message}`;
@@ -47,8 +47,8 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function regexize(str) {
-  return str === '' ? '(?:)' : str.replace(/\\?./gsu, m => m === '/' ? '\\/' : m);
+function getRegExpLiteralPattern(str) {
+  return str ? str.replace(/\\?./gsu, m => m === '/' ? '\\/' : m) : '(?:)';
 }
 
 function setFlagI(checked) {
