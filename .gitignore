@@ -1,7 +1,10 @@
 node_modules
-dist
+dist/**
 /temp
 
 # Folder view configuration files
 .DS_Store
 desktop.ini
+
+# Allow; hack for the demo page
+!/dist/index.min.js

@@ -1,11 +1,11 @@
 # Oniguruma-To-ES
 
-**This library does not work yet.**
-
-This is an in-development **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript RegExp transpiler** that runs in any JavaScript environment. It gives you the ability to:
+This is an *in-development* **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript RegExp transpiler** that runs in any JavaScript environment. It gives you the ability to:
 
 - Use most of Oniguruma's extended regex syntax and behavior in JavaScript.
 - Run regexes intended for Oniguruma in JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
+
+### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
 Compared to running the actual Oniguruma C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes **run much faster**.
 

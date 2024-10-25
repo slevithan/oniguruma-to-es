@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oniguruma-To-ES REPL</title>
+  <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+  <main>
+    <h1>
+      Oniguruma-To-ES
+      <a href="https://github.com/slevithan/oniguruma-to-es">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c2/GitHub_Invertocat_Logo.svg" width="25" height="25" alt="GitHub">
+      </a>
+    </h1>
+    <p>This is a basic REPL for testing the output of <a href="https://github.com/slevithan/oniguruma-to-es">Oniguruma-To-ES</a>, an <a href="https://github.com/kkos/oniguruma">Oniguruma</a> to JavaScript RegExp transpiler.</p>
+
+    <h2>Try it</h2>
+    <p><textarea id="input" spellcheck="false" oninput="showOutput(this); autoGrow(this)"></textarea></p>
+    <p>
+      <b>Flags:</b>
+      <label>
+        <input type="checkbox" id="flag-i" onchange="setFlagI(this.checked)">
+        <code>i</code>
+      </label>
+      <label>
+        <input type="checkbox" id="flag-m" onchange="setFlagM(this.checked)">
+        <code>m</code> <small>(JS flag <code>s</code>)</small>
+      </label>
+      <label>
+        <input type="checkbox" id="flag-x" onchange="setFlagX(this.checked)">
+        <code>x</code>
+      </label>
+    </p>
+    <p>
+      <b>Target:</b>
+      <select id="option-target" onchange="setOptionTarget(this.value)">
+        <option value="ES2018">ES2018</option>
+        <option value="ES2024" selected>ES2024</option>
+        <option value="ESNext">ESNext</option>
+      </select>
+    </p>
+    <details>
+      <summary>More options</summary>
+      <p>
+        <b>Options:</b>
+        <label>
+          <input type="checkbox" id="option-allow-best-effort" checked onchange="setOptionAllowBestEffort(this.checked)">
+          <code>allowBestEffort</code>
+        </label>
+        <label>
+          <input type="number" id="option-max-recursion-depth" value="6" min="2" max="100" onchange="setOptionMaxRecursionDepth(this.value)">
+          <code>maxRecursionDepth</code>
+        </label>
+        <label>
+          <input type="checkbox" id="option-optimize" checked onchange="setOptionOptimize(this.checked)">
+          <code>optimize</code>
+        </label>
+      </p>
+    </details>
+    <pre id="output"></pre>
+  </main>
+
+  <script src="../dist/index.min.js"></script>
+  <script>
+    Object.assign(globalThis, OnigurumaToES);
+  </script>
+  <script src="./demo.js"></script>
+</body>
+</html>
