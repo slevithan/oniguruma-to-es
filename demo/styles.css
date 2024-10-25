@@ -40,6 +40,10 @@ small {
   font-size: 0.8em;
 }
 
+label, .label {
+  margin-right: 0.4em;
+}
+
 textarea {
   width: 100%;
   min-height: 80px;

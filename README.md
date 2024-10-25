@@ -37,6 +37,12 @@ If `null`, any use of recursion throws. If an integer between `2` and `100` (and
 
 *Default: `6`.*
 
+### `optimize`
+
+Simplify the generated pattern when it doesn't change the meaning.
+
+*Default: `true`.*
+
 ### `target`
 
 Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional Oniguruma features.
@@ -55,7 +61,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ## Unicode, mixed case sensitivity
 
-Oniguruma-To-ES fully supports mixed case sensitivity (and handles its Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
+Oniguruma-To-ES fully supports mixed case sensitivity (and handles the Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
 
 Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a couple of minor/rare restrictions:
 

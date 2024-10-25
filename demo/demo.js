@@ -28,7 +28,7 @@ function showOutput(el) {
       optimize: optionOptimizeValue,
       target: optionTargetValue,
     });
-    output = `/${re.source}/${re.flags}`;
+    output = String(re);
   } catch (e) {
     outputEl.classList.add('error');
     output = `Error: ${e.message}`;
