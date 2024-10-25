@@ -59,13 +59,13 @@
       </p>
     </details>
     <pre id="output"></pre>
-    <p><small>The output shows the result of calling <code>toRegExp</code>. Oniguruma-To-ES includes functions to generate additional formats: <code>compile</code> (returns an object with <code>pattern</code> and <code>flags</code> strings), <code>toOnigurumaAst</code>, and <code>toRegexAst</code> (for an AST based on <a href="https://github.com/slevithan/regex"><code>regex</code></a>). You can run all of these from the console on this page. <code>compile</code> and <code>toRegExp</code> accept pattern and flags strings and an options object. <code>toOnigurumaAst</code> and <code>toRegexAst</code> accept a pattern and flags. You can also pass ASTs to <code>printAst</code>.</small></p>
+    <p><small>The output shows the result of calling <code>toRegExp</code>. Oniguruma-To-ES includes functions to generate additional formats: <code>compile</code> (returns an object with <code>pattern</code> and <code>flags</code> strings), <code>toOnigurumaAst</code>, and <code>toRegexAst</code> (for an AST based on <a href="https://github.com/slevithan/regex"><code>regex</code></a>). You can run all of these from the console on this page. <code>compile</code> and <code>toRegExp</code> accept pattern and flags strings and an options object. <code>toOnigurumaAst</code> and <code>toRegexAst</code> accept a pattern and flags. You can also pass AST results to <code>printAst</code>.</small></p>
   </main>
 
   <script src="../dist/index.min.js"></script>
   <script>
     Object.assign(globalThis, OnigurumaToES);
-
+    // For testing in the console
     function printAst(ast) {
       if (ast?.type !== 'Regex') {
         throw new Error('Oniguruma or `regex` AST expected');

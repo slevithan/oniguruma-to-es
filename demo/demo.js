@@ -22,13 +22,15 @@ function showOutput(el) {
   outputEl.classList.remove('error');
   let output = '';
   try {
-    const re = toRegExp(input, flags, {
+    // Don't actually run `toRegExp` in case the selected `target` includes features that don't
+    // work in the user's browser
+    const re = compile(input, flags, {
       allowBestEffort: optionAllowBestEffortValue,
       maxRecursionDepth: optionMaxRecursionDepthValue === '' ? null : +optionMaxRecursionDepthValue,
       optimize: optionOptimizeValue,
       target: optionTargetValue,
     });
-    output = String(re);
+    output = `/${re.pattern ? re.pattern : '(?:)'}/${re.flags}`;
   } catch (e) {
     outputEl.classList.add('error');
     output = `Error: ${e.message}`;
