@@ -3,7 +3,7 @@
   margin: 0;
 }
 
-html, body, #content {height: 100%}
+html, body {height: 100%}
 
 body {
   font-family: Calibri, "Helvetica Neue", sans-serif;

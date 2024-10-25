@@ -127,6 +127,9 @@ const FirstPassVisitor = {
 
   CapturingGroup({node}, {subroutineRefMap}) {
     const {name, number} = node;
+    if (name && !isValidGroupNameJs(name)) {
+      throw new Error(`Group name "${name}" invalid in JS`);
+    }
     subroutineRefMap.set(name ?? number, node);
   },
 
@@ -585,6 +588,12 @@ function getParentAlternative(node) {
     }
   }
   return null;
+}
+
+function isValidGroupNameJs(name) {
+  // JS group names are more restrictive than Oniguruma; see
+  // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
+  return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group

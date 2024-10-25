@@ -467,9 +467,8 @@ function createByGroupKind(token) {
 
 function createCapturingGroup(number, name) {
   const hasName = name !== undefined;
-  if (hasName && !isValidJsGroupName(name)) {
-    // TODO: Move error to the transformer?
-    throw new Error(`Group name "${name}" is invalid in JS`);
+  if (hasName && !isValidGroupNameOniguruma(name)) {
+    throw new Error(`Group name "${name}" invalid in Oniguruma`);
   }
   return {
     type: AstTypes.CapturingGroup,
@@ -662,11 +661,8 @@ function getOptimizedGroup(node) {
   return node;
 }
 
-function isValidJsGroupName(name) {
-  // Oniguruma group name rules are much more permissive than JS, with invalid names seemingly only
-  // being those matched by `/^(?:[-\d]|$)/`. All of these are also invalid by JS rules
-  // See <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
-  return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
+function isValidGroupNameOniguruma(name) {
+  return !/^(?:[-\d]|$)/.test(name);
 }
 
 // For any intersection classes that contain only a class, swap the parent with its (modded) child
