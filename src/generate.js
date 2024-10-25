@@ -267,14 +267,20 @@ function genCharacter({value}, state) {
 
 function genCharacterClass({negate, parent, elements}, state, gen) {
   if (
-    (!state.useFlagV || state.optimize) &&
-    parent.type === AstTypes.CharacterClass &&
     !negate &&
-    elements[0].type !== AstTypes.CharacterClassIntersection
+    ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
+      (!state.useFlagV || state.optimize) &&
+      parent.type === AstTypes.CharacterClass &&
+      elements[0].type !== AstTypes.CharacterClassIntersection
+    ) ||
+    ( state.optimize &&
+      parent.type === AstTypes.CharacterClassIntersection &&
+      elements.length === 1 &&
+      elements[0].type !== AstTypes.CharacterClassRange
+    )
   ) {
-    // Remove unnecessary nesting; unwrap kids into the parent char class. The parser has already
-    // done some basic char class optimization; this is primarily about allowing many nested
-    // classes to work with `target` ES2018 (which doesn't support nesting)
+    // Remove unnecessary nesting; unwrap kids into the parent char class. Some basic char class
+    // optimization has already been done in the parser
     return elements.map(gen).join('');
   }
   if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {
