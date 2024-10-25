@@ -124,8 +124,8 @@ function generate(ast, options) {
   }
 
   const result = gen(ast);
-  // By default, `regex` implicitly chooses flag u or v; control it instead
   if (!minTargetEs2024) {
+    // Switch from flag v to u. By default, `regex` implicitly chooses; control it instead
     delete result.options.force.v;
     result.options.disable.v = true;
     result.options.unicodeSetsPlugin = null;
