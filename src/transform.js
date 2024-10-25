@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, As
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {cp, EsVersion, getOrCreate, r, Target} from './utils.js';
+import {cp, getOrCreate, isMinTarget, r, Target} from './utils.js';
 
 /**
 @typedef {{
@@ -34,13 +34,13 @@ A couple edge cases exist where options `allowBestEffort` and `bestEffortTarget`
 function transform(ast, options) {
   const opts = {
     allowBestEffort: true,
-    bestEffortTarget: Target.ESNext,
+    bestEffortTarget: 'ESNext',
     ...options,
   };
   const firstPassState = {
     allowBestEffort: opts.allowBestEffort,
     flagDirectivesByAlt: new Map(),
-    minTargetEs2024: EsVersion[opts.bestEffortTarget] >= EsVersion[Target.ES2024],
+    minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
   };

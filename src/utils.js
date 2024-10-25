@@ -20,6 +20,15 @@ function getOrCreate(map, key, defaultValue) {
   return map.get(key);
 }
 
+/**
+@param {keyof Target} target
+@param {keyof Target} min
+@returns {boolean}
+*/
+function isMinTarget(target, min) {
+  return EsVersion[target] >= EsVersion[min];
+}
+
 function throwIfNot(value, msg) {
   if (!value) {
     throw new Error(msg ?? 'Value expected');
@@ -31,6 +40,7 @@ export {
   cp,
   EsVersion,
   getOrCreate,
+  isMinTarget,
   r,
   Target,
   throwIfNot,

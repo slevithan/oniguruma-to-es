@@ -1,6 +1,6 @@
 import {generate} from './generate.js';
 import {parse} from './parse.js';
-import {rewrite} from 'regex';
+import {atomic, possessive} from 'regex';
 import {recursion} from 'regex-recursion';
 import {tokenize} from './tokenize.js';
 import {transform} from './transform.js';
@@ -33,15 +33,9 @@ function compile(pattern, flags, options) {
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  // TODO: When `rewrite` is removed, add flag u or v based on `generated.options`
-  const result = rewrite(generated.pattern, {
-    ...generated.options,
-    flags: generated.flags,
-    plugins: [recursion],
-  });
   return {
-    pattern: result.expression,
-    flags: result.flags,
+    pattern: atomic(possessive(recursion(generated.pattern))),
+    flags: `${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
 }
 
@@ -67,7 +61,7 @@ function getOptions(options) {
     optimize: true,
     // Sets the JavaScript language version for generated patterns and flags. Later targets allow
     // faster processing, simpler generated source, and support for additional Oniguruma features.
-    target: Target.ES2024,
+    target: 'ES2024',
     ...options,
   };
 }

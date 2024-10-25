@@ -2,7 +2,7 @@ import {getOptions} from './compile.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, EsVersion, r, Target} from './utils.js';
+import {cp, isMinTarget, r} from './utils.js';
 
 /**
 Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
@@ -16,8 +16,8 @@ Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` 
 */
 function generate(ast, options) {
   const opts = getOptions(options);
-  const minTargetEs2024 = EsVersion[opts.target] >= EsVersion[Target.ES2024];
-  const minTargetEsNext = opts.target === Target.ESNext;
+  const minTargetEs2024 = isMinTarget(opts.target, 'ES2024');
+  const minTargetEsNext = isMinTarget(opts.target, 'ESNext');
   const rDepth = opts.maxRecursionDepth;
   if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 100)) {
     throw new Error('Invalid maxRecursionDepth; use null or 2-100');
