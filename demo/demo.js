@@ -30,7 +30,7 @@ function showOutput(el) {
       optimize: optionOptimizeValue,
       target: optionTargetValue,
     });
-    output = `/${re.pattern ? re.pattern : '(?:)'}/${re.flags}`;
+    output = `/${regexize(re.pattern)}/${re.flags}`;
   } catch (e) {
     outputEl.classList.add('error');
     output = `Error: ${e.message}`;
@@ -45,6 +45,10 @@ function autoGrow(el) {
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
+
+function regexize(str) {
+  return str === '' ? '(?:)' : str.replace(/\\?./gsu, m => m === '/' ? '\\/' : m);
 }
 
 function setFlagI(checked) {
