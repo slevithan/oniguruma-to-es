@@ -365,14 +365,19 @@ function genFlags(node, state) {
   );
 }
 
-function genGroup({atomic, flags, alternatives}, state, gen) {
+function genGroup({atomic, flags, parent, alternatives}, state, gen) {
   const currentFlags = state.currentFlags;
   if (flags) {
     state.currentFlags = getNewCurrentFlags(currentFlags, flags);
   }
-  const result = `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${
-    alternatives.map(gen).join('|')
-  })`;
+  const contents = alternatives.map(gen).join('|');
+  const result = (
+    state.optimize &&
+    alternatives.length === 1 &&
+    parent.type !== AstTypes.Quantifier &&
+    !atomic &&
+    (!state.useFlagMods || !flags)
+   ) ? contents : `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${contents})`;
   state.currentFlags = currentFlags;
   return result;
 }

@@ -1,7 +1,7 @@
 {
   "name": "oniguruma-to-es",
   "version": "0.0.0",
-  "description": "Covert Oniguruma-flavor regexes to native JavaScript RegExp",
+  "description": "Covert Oniguruma regexes to native JavaScript RegExp",
   "author": "Steven Levithan",
   "license": "MIT",
   "type": "module",
