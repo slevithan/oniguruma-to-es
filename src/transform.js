@@ -520,7 +520,7 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
 }
 
 function createRecursion(ref) {
-  if (typeof ref === 'number') {
+  if (typeof ref === 'number' && ref !== 0) {
     // Limitation of `regex-recursion`; remove if future versions support
     throw new Error('Unsupported recursion by number; use name instead');
   }
@@ -591,7 +591,7 @@ function getParentAlternative(node) {
 }
 
 function isValidGroupNameJs(name) {
-  // JS group names are more restrictive than Oniguruma; see
+  // JS group names are more restrictive than Onig; see
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
 }
