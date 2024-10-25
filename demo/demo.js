@@ -24,7 +24,7 @@ function showOutput(el) {
   try {
     const re = toRegExp(input, flags, {
       allowBestEffort: optionAllowBestEffortValue,
-      maxRecursionDepth: +optionMaxRecursionDepthValue,
+      maxRecursionDepth: optionMaxRecursionDepthValue === '' ? null : +optionMaxRecursionDepthValue,
       optimize: optionOptimizeValue,
       target: optionTargetValue,
     });
