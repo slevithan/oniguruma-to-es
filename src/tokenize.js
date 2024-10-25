@@ -441,7 +441,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   // Escaped number: backref (possibly invalid), null, octal, or identity escape, possibly followed
   // by 1-2 literal digits
-  if (!isNaN(char1)) {
+  if (/\d/.test(char1)) {
     return createToken(TokenTypes.EscapedNumber, raw, {
       inCharClass,
     });
