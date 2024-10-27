@@ -13,7 +13,8 @@
     "prebuild": "rm -rf dist/*",
     "build": "npm run bundle:global && npm run bundle:esm",
     "pretest": "npm run build",
-    "test": "echo 'Error: No tests specified' && exit 1"
+    "test": "jasmine",
+    "prepare": "npm test"
   },
   "files": [
     "dist"
@@ -36,6 +37,7 @@
     "regex-recursion": "^4.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "jasmine": "^5.4.0"
   }
 }
