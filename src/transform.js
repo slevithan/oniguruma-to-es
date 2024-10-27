@@ -175,8 +175,8 @@ const FirstPassVisitor = {
   Directive({node, parent, key, container, ast, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}, state) {
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
-      // Flag directive with no flags; ex: `(?-)`, `(?--)`
       if (!flags.enable && !flags.disable) {
+        // Flag directive without flags; ex: `(?-)`, `(?--)`
         remove();
       } else {
         const flagGroup = prepContainer(createGroup({flags}), removeAllNextSiblings());

@@ -345,11 +345,16 @@ function parseGroupOpen(context, state) {
 
 function parseQuantifier({token, parent}) {
   const {min, max, greedy, possessive} = token;
-  if (!parent.elements.length) {
+  const quantifiedNode = parent.elements.at(-1);
+  if (
     // First child in `Alternative`
-    throw new Error('Nothing to repeat');
+    !quantifiedNode ||
+    // `\K` or `(?im-x)`
+    quantifiedNode.type === AstTypes.Directive
+  ) {
+    throw new Error(`Quantifier requires a repeatable token`);
   }
-  const node = createQuantifier(parent.elements.at(-1), min, max, greedy, possessive);
+  const node = createQuantifier(quantifiedNode, min, max, greedy, possessive);
   parent.elements.pop();
   return node;
 }

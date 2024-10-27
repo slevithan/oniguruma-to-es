@@ -513,6 +513,7 @@ function createTokenForFlagMod(raw, context) {
   if (raw.endsWith(')')) {
     // Replace flag x value until the end of the current group
     context.replaceCurrentModX(isXOn);
+    // Can't remove flag directives without flags like `(?-)`; they affect following quantifiers
     return createToken(TokenTypes.Directive, raw, {
       kind: TokenDirectiveKinds.flags,
       flags: flagChanges,
