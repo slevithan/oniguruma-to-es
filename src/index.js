@@ -40,7 +40,7 @@ function toRegexAst(pattern, flags) {
 Transpiles an Oniguruma regex pattern and flags to a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
 @param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
-@param {CompileOptions} [options]
+@param {import('./compile.js').CompileOptions} [options]
 @returns {RegExp}
 */
 function toRegExp(pattern, flags, options) {

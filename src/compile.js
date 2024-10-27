@@ -1,10 +1,10 @@
 import {generate} from './generate.js';
 import {parse} from './parse.js';
-import {atomic, possessive} from 'regex';
-import {recursion} from 'regex-recursion';
 import {tokenize} from './tokenize.js';
 import {transform} from './transform.js';
 import {EsVersion, Target} from './utils.js';
+import {atomic, possessive} from 'regex/atomic.js';
+import {recursion} from 'regex-recursion';
 
 /**
 @typedef {{
