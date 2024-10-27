@@ -521,9 +521,9 @@ function createDirectiveFromToken({kind, flags}) {
     type: AstTypes.Directive,
     kind: throwIfNot(AstDirectiveKinds[kind], `Unexpected directive kind "${kind}"`),
   };
-  // Can't simply create a `Group` with a `flags` prop and wrap the remainder of the open group or
-  // pattern in it, because the flag modifier might extend across alternation. Ex: `a(?i)b|c` is
-  // equivalent to `a(?i:b)|(?i:c)`, not `a(?i:b|c)`. Note: This change is made in the transformer
+  // Can't optimize by simply creating a `Group` with a `flags` prop and wrapping the remainder of
+  // the open group or pattern in it, because the flag modifier's effect might extend across
+  // alternation. Ex: `a(?i)b|c` is equivalent to `a(?i:b)|(?i:c)`, not `a(?i:b|c)`
   if (kind === TokenDirectiveKinds.flags) {
     node.flags = flags;
   }

@@ -87,10 +87,12 @@ const FirstPassVisitor = {
       // nodes to accurately check their level in the tree
       if (flagDirectivesByAlt.get(node)?.length) {
         const flags = getCombinedFlagsFromFlagNodes(flagDirectivesByAlt.get(node));
-        const flagGroup = prepContainer(createGroup({flags}), node.elements);
-        // Manually set the parent since we're not using `replaceWith`
-        flagGroup.parent = node;
-        node.elements = [flagGroup];
+        if (flags) {
+          const flagGroup = prepContainer(createGroup({flags}), node.elements);
+          // Manually set the parent since we're not using `replaceWith`
+          flagGroup.parent = node;
+          node.elements = [flagGroup];
+        }
       }
     },
   },
@@ -170,17 +172,22 @@ const FirstPassVisitor = {
     }
   },
 
-  Directive({node, parent, key, container, ast, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}, state) {
+  Directive({node, parent, key, container, ast, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}, state) {
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
-      const flagGroup = prepContainer(createGroup({flags}), removeAllNextSiblings());
-      replaceWith(flagGroup);
-      traverse({
-        node: flagGroup,
-        parent,
-        key,
-        container,
-      }, state, FirstPassVisitor);
+      // Flag directive with no flags; ex: `(?-)`, `(?--)`
+      if (!flags.enable && !flags.disable) {
+        remove();
+      } else {
+        const flagGroup = prepContainer(createGroup({flags}), removeAllNextSiblings());
+        replaceWith(flagGroup);
+        traverse({
+          node: flagGroup,
+          parent,
+          key,
+          container,
+        }, state, FirstPassVisitor);
+      }
     } else if (kind === AstDirectiveKinds.keep) {
       // Allows multiple `\K`s since the the node is removed
       if (parent.parent !== ast.pattern || ast.pattern.alternatives.length > 1) {
@@ -193,8 +200,7 @@ const FirstPassVisitor = {
   },
 
   Flags({node, parent}) {
-    // Onig's flag x (`extended`) isn't available in JS. Note that flag x is fully handled during
-    // tokenization (and flag x modifiers are stripped)
+    // Onig's flag x (`extended`) isn't available in JS
     delete node.extended;
     Object.assign(node, {
       // JS flag g; no Onig equiv
@@ -275,7 +281,8 @@ const FirstPassVisitor = {
   },
 
   Quantifier({node}) {
-    // TODO: Handle quantifiers on lookaround; not allowed in JS
+    // TODO: Handle quantified assertions; not allowed in JS. If min is 0, remove the assertion and skip kids; else unwrap
+    // TODO: Custom or better error for quantified flag directives `(?i)+`
     if (node.element.type === AstTypes.Quantifier) {
       const group = prepContainer(createGroup(), [node.element]);
       // Manually set the parent since we're not using `replaceWith`

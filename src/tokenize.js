@@ -80,7 +80,7 @@ const tokenRe = new RegExp(r`
     | <[=!]
     | <[^>]*>
     | '[^']*'
-    | # (?:[^)\\] | \\.?)* \)?
+    | # (?:[^)\\] | \\.?)*
     | [imx\-]+[:)]
   )?)?
   | ${quantifierRe.source}
@@ -140,7 +140,7 @@ function tokenize(pattern, flags = '') {
   let match;
   tokenRe.lastIndex = 0;
   while (match = tokenRe.exec(pattern)) {
-    const result = getTokenWithDetails(context, pattern, match[0], tokenRe.lastIndex) ?? {};
+    const result = getTokenWithDetails(context, pattern, match[0], tokenRe.lastIndex);
     if (result.tokens) {
       tokens.push(...result.tokens);
     } else if (result.token) {
@@ -182,7 +182,7 @@ function tokenize(pattern, flags = '') {
       ignoreCase: flags.includes('i'),
       // Onig flag m is equivalent to JS flag s
       dotAll: flags.includes('m'),
-      // Note: Flag x is fully handled during tokenization (and flag x modifiers are stripped)
+      // Flag x is fully handled during tokenization
       extended: flags.includes('x'),
     },
   };
@@ -239,22 +239,21 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
   if (m0 === '(') {
     // Comment group
     if (m2 === '#') {
-      if (!m.endsWith(')')) {
+      // The closing unescaped `)` isn't included in the match
+      if (pattern[lastIndex] !== ')') {
         throw new Error('Unclosed comment group "(?#"');
       }
-      return;
-    }
-    // Modifier/flag group (allows solo `-`)
-    if ('-imx'.includes(m2)) {
-      const token = createTokenForFlagGroup(m, context);
-      if (!token) {
-        return;
-      }
       return {
-        token,
+        lastIndex: lastIndex + 1,
       };
     }
-    // Remaining group types all reuse current flag x status; it can be altered by flag directives
+    // Flag modifier (directive or group opener); allows solo `-`
+    if ('-imx'.includes(m2)) {
+      return {
+        token: createTokenForFlagMod(m, context),
+      };
+    }
+    // Remaining group types all reuse current flag x status
     context.pushModX(context.getCurrentModX());
     if (
       // Unnamed capture if no named captures, else noncapturing group
@@ -316,7 +315,13 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     };
   }
   if (/^\s$/.test(m) && context.getCurrentModX()) {
-    return;
+    const re = /\s+/y;
+    re.lastIndex = lastIndex;
+    const rest = re.exec(pattern);
+    return {
+      // Jump forward to the end of the whitespace
+      lastIndex: rest ? re.lastIndex : lastIndex,
+    };
   }
   if (m === '.') {
     return {
@@ -492,29 +497,28 @@ function createTokenForControlChar(raw) {
   });
 }
 
-function createTokenForFlagGroup(raw, context) {
+function createTokenForFlagMod(raw, context) {
+  // Allows multiple `-` and solo `-` without `on` or `off` flags
   let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[imx\-]*))?/.exec(raw).groups;
+  // If the capturing group didn't participate
   off ??= '';
-  // Flag x is used directly by the tokenizer; other flag modifiers are included in tokens
+  // Flag x is used directly by the tokenizer since it changes how to interpret the pattern
   const isXOn = (context.getCurrentModX() || on.includes('x')) && !off.includes('x');
   const enabledFlags = getFlagPropsForToken(on);
   const disabledFlags = getFlagPropsForToken(off);
   const flagChanges = {};
   enabledFlags && (flagChanges.enable = enabledFlags);
   disabledFlags && (flagChanges.disable = disabledFlags);
-  // Standalone flags modifier; ex: `(?im-x)`
+  // Flag directive; ex: `(?im-x)`
   if (raw.endsWith(')')) {
-    // Replace value until the end of the current group
+    // Replace flag x value until the end of the current group
     context.replaceCurrentModX(isXOn);
-    if (enabledFlags || disabledFlags) {
-      return createToken(TokenTypes.Directive, raw, {
-        kind: TokenDirectiveKinds.flags,
-        flags: flagChanges,
-      });
-    }
-    return;
+    return createToken(TokenTypes.Directive, raw, {
+      kind: TokenDirectiveKinds.flags,
+      flags: flagChanges,
+    });
   }
-  // Modifier/flag group opener; ex: `(?im-x:`
+  // Flag group opener; ex: `(?im-x:`
   if (raw.endsWith(':')) {
     context.pushModX(isXOn);
     const token = createToken(TokenTypes.GroupOpen, raw, {
@@ -525,7 +529,7 @@ function createTokenForFlagGroup(raw, context) {
     }
     return token;
   }
-  throw new Error(`Unexpected flag group "${raw}"`);
+  throw new Error(`Unexpected flag modifier "${raw}"`);
 }
 
 function createTokenForQuantifier(raw) {
@@ -589,7 +593,6 @@ function getValidatedUnicodeCharCode(raw) {
 }
 
 function getFlagPropsForToken(flags) {
-  // Don't include flag x (`extended`) since it's handled by the tokenizer
   // Don't include `false` for flags that aren't included
   const obj = {};
   if (flags.includes('i')) {
@@ -598,6 +601,9 @@ function getFlagPropsForToken(flags) {
   if (flags.includes('m')) {
     // Onig flag m is equivalent to JS flag s
     obj.dotAll = true;
+  }
+  if (flags.includes('x')) {
+    obj.extended = true;
   }
   return Object.keys(obj).length ? obj : null;
 }
