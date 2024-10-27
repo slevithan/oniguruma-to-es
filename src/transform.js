@@ -1,5 +1,5 @@
 import emojiRegex from 'emoji-regex-xs';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
@@ -172,7 +172,8 @@ const FirstPassVisitor = {
     }
   },
 
-  Directive({node, parent, key, container, ast, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}, state) {
+  Directive(path, state) {
+    const {node, parent, ast, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings} = path;
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
       if (!flags.enable && !flags.disable) {
@@ -181,12 +182,7 @@ const FirstPassVisitor = {
       } else {
         const flagGroup = prepContainer(createGroup({flags}), removeAllNextSiblings());
         replaceWith(flagGroup);
-        traverse({
-          node: flagGroup,
-          parent,
-          key,
-          container,
-        }, state, FirstPassVisitor);
+        traverseReplacement(flagGroup, path, state, FirstPassVisitor);
       }
     } else if (kind === AstDirectiveKinds.keep) {
       // Allows multiple `\K`s since the the node is removed
@@ -280,14 +276,28 @@ const FirstPassVisitor = {
     }
   },
 
-  Quantifier({node}) {
-    // TODO: Handle quantified assertions; not allowed in JS. If min is 0, remove the assertion and skip kids; else unwrap
-    // TODO: Custom or better error for quantified flag directives `(?i)+`
-    if (node.element.type === AstTypes.Quantifier) {
-      const group = prepContainer(createGroup(), [node.element]);
-      // Manually set the parent since we're not using `replaceWith`
-      group.parent = node;
-      node.element = group;
+  Quantifier(path, state) {
+    const {node, remove, replaceWith, skip} = path;
+    const child = node.element;
+    if (child.type === AstTypes.Quantifier) {
+      // Change e.g. `a**` to `(?:a*)*`
+      moveQuantifierToWrapper(node);
+    } else if (child.type === AstTypes.Assertion) {
+      // Quantified assertions aren't allowed in JS
+      if (node.min) {
+        // Strip the quantifier but keep its child
+        replaceWith(child);
+        traverseReplacement(child, path, state, FirstPassVisitor);
+        skip();
+      } else if (isLookaround(child)) {
+        // Change e.g. `(?=a)*` to `(?:(?=a))*`; can't remove the child since the lookaround might
+        // contain captures reffed elsewhere
+        moveQuantifierToWrapper(node);
+      } else {
+        // In other cases with `min: 0`, the quantifier makes its assertion irrelevant
+        remove();
+        skip();
+      }
     }
   },
 
@@ -433,16 +443,16 @@ const SecondPassVisitor = {
     },
   },
 
-  Subroutine({node, parent, key, container, replaceWith}, state) {
-    const {groupOriginByCopy, subroutineRefMap} = state;
+  Subroutine(path, state) {
+    const {node, replaceWith} = path;
     const {ref} = node;
-    const reffedGroupNode = subroutineRefMap.get(ref);
+    const reffedGroupNode = state.subroutineRefMap.get(ref);
     // Other forms of recursion are handled by the `CapturingGroup` visitor
     const isGlobalRecursion = ref === 0;
     const expandedSubroutine = isGlobalRecursion ?
       createRecursion(ref) :
       // The reffed group might itself contain subroutines, which are expanded during sub-traversal
-      cloneCapturingGroup(reffedGroupNode, groupOriginByCopy, null);
+      cloneCapturingGroup(reffedGroupNode, state.groupOriginByCopy, null);
     let replacement = expandedSubroutine;
     if (!isGlobalRecursion) {
       // Subroutines take their flags from the reffed group, not the flags surrounding themselves
@@ -457,14 +467,9 @@ const SecondPassVisitor = {
     }
     replaceWith(replacement);
     if (!isGlobalRecursion) {
-      traverse({
-        // Start traversal at the flag group wrapper so the logic for stripping duplicate names
-        // propagates through its alternative
-        node: replacement,
-        parent,
-        key,
-        container,
-      }, state, SecondPassVisitor);
+      // Start traversal at the flag group wrapper so the logic for stripping duplicate names
+      // propagates through its alternative
+      traverseReplacement(replacement, path, state, SecondPassVisitor);
     }
   },
 };
@@ -588,8 +593,8 @@ function getCombinedFlagsFromFlagNodes(flagNodes) {
 }
 
 function getParentAlternative(node) {
-  // Skip past quantifiers, etc.
   while (node = node.parent) {
+    // Skip past quantifiers, etc.
     if (node.type === AstTypes.Alternative) {
       return node;
     }
@@ -601,6 +606,13 @@ function isValidGroupNameJs(name) {
   // JS group names are more restrictive than Onig; see
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
+}
+
+function moveQuantifierToWrapper(quantifier) {
+  const group = prepContainer(createGroup(), [quantifier.element]);
+  // Manually set the parent since we're not using `replaceWith`
+  group.parent = quantifier;
+  quantifier.element = group;
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
@@ -622,6 +634,16 @@ function prepContainer(node, kids) {
     adoptAndSwapKids(node[accessor][0], kids);
   }
   return node;
+}
+
+function traverseReplacement(replacement, {parent, key, container}, state, visitor) {
+  traverse({
+    // Don't use the `node` from `path`
+    node: replacement,
+    parent,
+    key,
+    container,
+  }, state, visitor);
 }
 
 export {

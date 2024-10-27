@@ -1,4 +1,4 @@
-import {AstAssertionKinds, AstTypes, getAstTypeAliases} from './parse.js';
+import {AstTypes, getAstTypeAliases, isLookaround} from './parse.js';
 import {throwIfNot} from './utils.js';
 
 function traverse(path, state, visitor) {
@@ -61,7 +61,7 @@ function traverse(path, state, visitor) {
           traverseArray(node.elements, node);
           break;
         case AstTypes.Assertion:
-          if (node.kind === AstAssertionKinds.lookahead || node.kind === AstAssertionKinds.lookbehind) {
+          if (isLookaround(node)) {
             traverseArray(node.alternatives, node);
           }
           break;

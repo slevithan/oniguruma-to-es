@@ -30,13 +30,10 @@ const AstTypeAliases = {
   AnyNode: 'AnyNode',
 };
 
-function getAstTypeAliases({type, kind}) {
+function getAstTypeAliases(node) {
+  const {type} = node;
   const types = [AstTypeAliases.AnyNode];
-  if (
-    (type === AstTypes.Assertion && (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind)) ||
-    type === AstTypes.CapturingGroup ||
-    type === AstTypes.Group
-  ) {
+  if (isLookaround(node) || type === AstTypes.CapturingGroup || type === AstTypes.Group) {
     types.push(AstTypeAliases.AnyGroup);
   }
   types.push(type);
@@ -666,6 +663,11 @@ function getOptimizedGroup(node) {
   return node;
 }
 
+function isLookaround({type, kind}) {
+  return type === AstTypes.Assertion &&
+    (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind);
+}
+
 function isValidGroupNameOniguruma(name) {
   return !/^(?:[-\d]|$)/.test(name);
 }
@@ -713,5 +715,6 @@ export {
   createUnicodeProperty,
   createVariableLengthCharacterSet,
   getAstTypeAliases,
+  isLookaround,
   parse,
 };

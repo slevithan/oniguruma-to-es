@@ -1,5 +1,5 @@
 import {getOptions} from './compile.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, isLookaround} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, isMinTarget, r} from './utils.js';
@@ -198,8 +198,9 @@ function charHasCase(char) {
   return casedRe.test(char);
 }
 
-function genAssertion({kind, negate, alternatives}, _, gen) {
-  if (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind) {
+function genAssertion(node, _, gen) {
+  const {kind, negate, alternatives} = node;
+  if (isLookaround(node)) {
     const prefix = `${kind === AstAssertionKinds.lookahead ? '' : '<'}${negate ? '!' : '='}`;
     return `(?${prefix}${alternatives.map(gen).join('|')})`;
   }
