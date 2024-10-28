@@ -12,7 +12,7 @@ describe('VariableLengthCharacterSet', () => {
       '\r\n',
       '\xE9', // é
       '\x65\u0301', // é
-      '\u{2194}\u{FE0F}', // ↔️
+      '\u2194\uFE0F', // ↔️
       '\u{1F469}\u{1F3FF}', // 👩🏿
     ];
 
@@ -24,7 +24,7 @@ describe('VariableLengthCharacterSet', () => {
 
     it(r`should match graphemes atomically`, () => {
       for (const grapheme of graphemes) {
-        expect(grapheme).not.toMatchWithAllTargets(r`\A\X${grapheme.at(-1)}\z`);
+        expect(grapheme).not.toMatchWithAllTargets(r`\A\X(?m:.)\z`);
       }
     });
   });

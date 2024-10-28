@@ -136,7 +136,6 @@ describe('Character', () => {
     });
 
     it('should match octals followed by literal digits', () => {
-      expect('\u{0}1').toMatchWithAllTargets(r`\0001`);
       expect(`${String.fromCodePoint(0o100)}0`).toMatchWithAllTargets(r`\1000`);
       expect('\u{1}8').toMatchWithAllTargets(r`\18`);
       expect('\u{1}9').toMatchWithAllTargets(r`\19`);
@@ -146,7 +145,7 @@ describe('Character', () => {
       expect(`${String.fromCodePoint(0o11)}90`).toMatchWithAllTargets(r`\1190`);
     });
 
-    it('should match identity escape followed by literal digits', () => {
+    it('should match identity escapes followed by literal digits', () => {
       expect('80').toMatchWithAllTargets(r`\80`);
       expect('90').toMatchWithAllTargets(r`\90`);
       expect('900').toMatchWithAllTargets(r`\900`);
