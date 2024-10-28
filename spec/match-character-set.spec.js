@@ -18,4 +18,5 @@ describe('CharacterSet', () => {
       expect('\n').toMatchWithAllTargets({pattern: '.', flags: 'm'});
     });
   });
+  // TODO: Rest
 });

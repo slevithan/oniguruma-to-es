@@ -454,19 +454,18 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   if (raw === '\\') {
     throw new Error(r`Incomplete escape "\"`);
   }
-  // Meta `\M-x` and meta control char `\M-\C-x` are unsupported; avoid treating as an identity escape
+  // Meta-code `\M-x` and `\M-\C-x` are unsupported; avoid treating as an identity escape
   if (char1 === 'M') {
-    // [TODO] This can be supported fairly easily
-    throw new Error(`Unsupported meta escape "${raw}"`);
+    // [TODO] Supportable; see <https://github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <https://github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
+    throw new Error(`Unsupported meta-code "${raw}"`);
   }
-  // Identity escape
-  // TODO: Should this count code point length instead?
+  // Identity escape; count code unit length
   if (raw.length === 2) {
     return createToken(TokenTypes.Character, raw, {
       value: raw.codePointAt(1),
     });
   }
-  throw new Error(`Unexpected escape "${raw}"`);
+  throw new Error(`Invalid multibyte escape "${raw}"`);
 }
 
 /**
@@ -486,10 +485,9 @@ function createToken(type, raw, data) {
 // Expects `\cx` or `\C-x`
 function createTokenForControlChar(raw) {
   const char = raw[1] === 'c' ? raw[2] : raw[3];
-  if (!char || !/[a-zA-Z]/.test(char)) {
-    // Unlike JS, Onig allows any char to follow `\c` (with special conversion rules), but this is
-    // an extreme edge case
-    // [TODO] This can be supported fairly easily
+  if (!char || !/[A-Za-z]/.test(char)) {
+    // Unlike JS, Onig allows any char to follow `\c` or `\C-`, but this is an extreme edge case
+    // [TODO] Supportable; see <https://github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#11-onig_syn_op2_esc_capital_c_bar_control-enable-c-x>, <https://github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
     throw new Error(`Unsupported control character "${raw}"`);
   }
   return createToken(TokenTypes.Character, raw, {
