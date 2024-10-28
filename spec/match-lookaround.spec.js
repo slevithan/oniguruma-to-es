@@ -1,4 +1,5 @@
 import {compile} from '../dist/index.mjs';
+import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -48,6 +49,10 @@ describe('Lookaround', () => {
       expect('a').toMatchWithAllTargets('a(?=b)?');
       expect('a').toMatchWithAllTargets('a(?=b)*');
     });
+
+    it('should preserve captures with min 0 quantification', () => {
+      expect('aba').toMatchWithAllTargets(r`a(?=(b))?\1a`);
+    });
   });
 
   describe('lookbehind', () => {
@@ -91,6 +96,10 @@ describe('Lookaround', () => {
     it('should not apply with min 0 quantification', () => {
       expect('a').toMatchWithAllTargets('(?<=b)?a');
       expect('a').toMatchWithAllTargets('(?<=b)*a');
+    });
+
+    it('should preserve captures with min 0 quantification', () => {
+      expect('baba').toMatchWithAllTargets(r`(?<=(b))?a\1a`);
     });
   });
 });

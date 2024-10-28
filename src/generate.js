@@ -130,6 +130,7 @@ function generate(ast, options) {
     result.options.disable.v = true;
     result.options.unicodeSetsPlugin = null;
   }
+  // TODO: Include `metadata` (add to type) about use of atomic groups, possessive quantifiers, and recursion, so those plugins can be skipped if not needed
   return result;
 }
 

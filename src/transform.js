@@ -281,18 +281,26 @@ const FirstPassVisitor = {
     const child = node.element;
     if (child.type === AstTypes.Quantifier) {
       // Change e.g. `a**` to `(?:a*)*`
-      moveQuantifierToWrapper(node);
+      const group = prepContainer(createGroup(), [node.element]);
+      // Manually set the parent since we're not using `replaceWith`
+      group.parent = node;
+      node.element = group;
     } else if (child.type === AstTypes.Assertion) {
       // Quantified assertions aren't allowed in JS
-      if (node.min) {
+      const lookaround = isLookaround(child);
+      if (!node.min && lookaround) {
+        // Can't remove the child since the lookaround might contain captures reffed elsewhere, and
+        // also can't change e.g. `(?=a)*` to `(?:(?=a))*` since optional lookaround is ignored in
+        // JS. So need to add an empty alternative to the lookaround and then strip the quantifier
+        const alt = createAlternative();
+        alt.parent = child;
+        child.alternatives.push(alt);
+      }
+      if (node.min || lookaround) {
         // Strip the quantifier but keep its child
         replaceWith(child);
         traverseReplacement(child, path, state, FirstPassVisitor);
         skip();
-      } else if (isLookaround(child)) {
-        // Change e.g. `(?=a)*` to `(?:(?=a))*`; can't remove the child since the lookaround might
-        // contain captures reffed elsewhere
-        moveQuantifierToWrapper(node);
       } else {
         // In other cases with `min: 0`, the quantifier makes its assertion irrelevant
         remove();
@@ -606,13 +614,6 @@ function isValidGroupNameJs(name) {
   // JS group names are more restrictive than Onig; see
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
-}
-
-function moveQuantifierToWrapper(quantifier) {
-  const group = prepContainer(createGroup(), [quantifier.element]);
-  // Manually set the parent since we're not using `replaceWith`
-  group.parent = quantifier;
-  quantifier.element = group;
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
