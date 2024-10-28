@@ -1,10 +1,10 @@
-import {toRegExp} from '../../src/index.js';
+import {toRegExp} from '../../dist/index.mjs';
 import {Target} from '../../src/utils.js';
 
 const targets = Object.keys(Target);
 
 export const matchers = {
-  toMatchTranspiled() {
+  toMatchWithAllTargets() {
     return {
       compare(actual, expected) {
         const pattern = typeof expected === 'string' ? expected : expected.pattern;

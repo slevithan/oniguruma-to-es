@@ -108,7 +108,7 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.search_start) {
       // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
       // checking in the `Pattern` visitor
-      // TODO: Allow `\G` if it's the first node in a top-level group that doesn't use alternation; ex: `(?i:\G.)` or `\Ga|(?i:\Gb)`; maybe allow further nesting like `(((\Ga)))b|\Gb`; probably stop the sort with directives and instead check the key after subtracting preceding directives
+      // TODO: Allow `\G` if it's the first node in a top-level group that doesn't use alternation; ex: `(?i:\G.)` or `\Ga|(?i:\Gb)`; maybe allow further nesting like `(((\Ga)))b|\Gb`; probably stop the sort with directives and instead check the key after subtracting preceding directives. Can allow `\G+a|\Gb` but not `\G*a|\Gb`; `\G+a` and `\G*a` without alternation already handled correctly due to assertion quantification unwrapping
       if (parent.parent !== ast.pattern || key !== 0) {
         throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
       }

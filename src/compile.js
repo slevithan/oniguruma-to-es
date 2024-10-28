@@ -3,7 +3,7 @@ import {parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {transform} from './transform.js';
 import {EsVersion, Target} from './utils.js';
-import {atomic, possessive} from 'regex/atomic.js';
+import {atomic, possessive} from 'regex/atomic';
 import {recursion} from 'regex-recursion';
 
 /**
