@@ -192,6 +192,8 @@ const CharCodeEscapeMap = new Map([
   [11, r`\v`], // vertical tab
   [12, r`\f`], // form feed
   [13, r`\r`], // carriage return
+  [0x2028, r`\u2028`], // line separator
+  [0x2029, r`\u2029`], // paragraph separator
 ]);
 
 const casedRe = /^\p{Cased}$/u;
@@ -250,7 +252,7 @@ function genCapturingGroup({name, number, alternatives}, state, gen) {
 
 function genCharacter({value}, state) {
   const char = cp(value);
-  const escaped = getEscapedChar(value, {
+  const escaped = getCharEscape(value, {
     isAfterBackref: state.lastNode.type === AstTypes.Backreference,
     inCharClass: state.inCharClass,
     useFlagV: state.useFlagV,
@@ -302,8 +304,8 @@ function genCharacterClassRange(node, state) {
     inCharClass: true,
     useFlagV: state.useFlagV,
   };
-  const minStr = getEscapedChar(min, escOpts);
-  const maxStr = getEscapedChar(max, escOpts);
+  const minStr = getCharEscape(min, escOpts);
+  const maxStr = getCharEscape(max, escOpts);
   let extraChars = '';
   if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
     // [TODO] Avoid duplication by considering other chars in the parent char class when expanding
@@ -311,8 +313,8 @@ function genCharacterClassRange(node, state) {
     const ranges = getCodePointRangesFromChars(charsOutsideRange);
     ranges.forEach(value => {
       extraChars += Array.isArray(value) ?
-        `${getEscapedChar(value[0], escOpts)}-${getEscapedChar(value[1], escOpts)}` :
-        getEscapedChar(value, escOpts);
+        `${getCharEscape(value[0], escOpts)}-${getCharEscape(value[1], escOpts)}` :
+        getCharEscape(value, escOpts);
     });
   }
   // Create the range without calling `gen` on the `min`/`max` kids
@@ -429,6 +431,31 @@ function getCasesOutsideCharClassRange(node, {firstOnly} = {}) {
   return found;
 }
 
+// This shouldn't modifiy any char that has case
+function getCharEscape(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
+  if (CharCodeEscapeMap.has(codePoint)) {
+    return CharCodeEscapeMap.get(codePoint);
+  }
+  if (
+    // Control chars, etc.; condition modeled on the Chrome developer console's display for strings
+    codePoint < 32 || (codePoint > 126 && codePoint < 160) ||
+    // Unicode planes 4-16; unassigned, special purpose, and private use area
+    codePoint > 0x3FFFF ||
+    // Avoid corrupting a preceding backref by immediately following it with a literal digit
+    (isAfterBackref && isDigitCharCode(codePoint))
+  ) {
+    // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
+    return codePoint > 0xFF ?
+      r`\u{${codePoint.toString(16).toUpperCase()}}` :
+      r`\x${codePoint.toString(16).toUpperCase().padStart(2, '0')}`;
+  }
+  const escapeChars = inCharClass ?
+    (useFlagV ? CharClassEscapeCharsFlagV : CharClassEscapeChars) :
+    BaseEscapeChars;
+  const char = cp(codePoint);
+  return (escapeChars.has(char) ? '\\' : '') + char;
+}
+
 function getCodePointRangesFromChars(chars) {
   const codePoints = chars.map(char => char.codePointAt(0)).sort((a, b) => a - b);
   const values = [];
@@ -444,27 +471,6 @@ function getCodePointRangesFromChars(chars) {
     }
   }
   return values;
-}
-
-// This shouldn't modifiy any char that has case
-function getEscapedChar(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
-  if (CharCodeEscapeMap.has(codePoint)) {
-    return CharCodeEscapeMap.get(codePoint);
-  }
-  if (
-    // Control chars, etc.; condition modeled on the Chrome developer console's display for strings
-    codePoint < 32 || (codePoint > 126 && codePoint < 160) ||
-    // Avoid corrupting a preceding backref by immediately following it with a literal digit
-    (isAfterBackref && isDigitCharCode(codePoint))
-  ) {
-    // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
-    return r`\x${codePoint.toString(16).padStart(2, '0')}`;
-  }
-  const escapeChars = inCharClass ?
-    (useFlagV ? CharClassEscapeCharsFlagV : CharClassEscapeChars) :
-    BaseEscapeChars;
-  const char = cp(codePoint);
-  return (escapeChars.has(char) ? '\\' : '') + char;
 }
 
 function getGroupPrefix(atomic, flagMods, useFlagMods) {

@@ -57,8 +57,8 @@ const AstCharacterSetKinds = TokenCharacterSetKinds;
 const AstDirectiveKinds = TokenDirectiveKinds;
 
 const AstVariableLengthCharacterSetKinds = {
-  newline: 'newline',
   grapheme: 'grapheme',
+  newline: 'newline',
 };
 
 /**

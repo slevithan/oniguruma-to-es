@@ -7,6 +7,8 @@ beforeEach(() => {
 });
 
 describe('Assertion', () => {
+  // For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`
+
   describe('line_end', () => {
     it('should match at the end of the string', () => {
       expect('ba').toMatchWithAllTargets('a$');
@@ -69,8 +71,6 @@ describe('Assertion', () => {
       expect('ba').toMatchWithAllTargets('^*a');
     });
   });
-
-  // For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`
 
   describe('search_start', () => {
     it('should match at the start of the search', () => {
