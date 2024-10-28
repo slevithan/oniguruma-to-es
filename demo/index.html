@@ -59,7 +59,7 @@
       </p>
     </details>
     <pre id="output"></pre>
-    <p><small>The output shows the result of calling <code>toRegExp</code>. Oniguruma-To-ES includes functions to generate additional formats: <code>compile</code> (returns an object with <code>pattern</code> and <code>flags</code> strings), <code>toOnigurumaAst</code>, and <code>toRegexAst</code> (for an AST based on <a href="https://github.com/slevithan/regex"><code>regex</code></a>). You can run all of these from the console on this page. <code>compile</code> and <code>toRegExp</code> accept pattern and flags strings and an options object. <code>toOnigurumaAst</code> and <code>toRegexAst</code> accept a pattern and flags. You can also pass AST results to <code>printAst</code>.</small></p>
+    <p><small>The output shows the result of calling <code>toRegExp</code>. Oniguruma-To-ES includes functions to generate additional formats: <code>compile</code>, <code>toOnigurumaAst</code>, and <code>toRegexAst</code> (for an AST based on <a href="https://github.com/slevithan/regex"><code>regex</code></a>). You can run all of these from the console on this page. <code>compile</code> and <code>toRegExp</code> accept a <code>pattern</code> string, optional <code>flags</code> string, and optional <code>options</code> object. <code>toOnigurumaAst</code> and <code>toRegexAst</code> accept a <code>pattern</code> and optional <code>flags</code>. You can also pass AST results to <code>printAst</code>.</small></p>
   </main>
 
   <script src="../dist/index.min.js"></script>
@@ -78,7 +78,7 @@
           nodeIds.set(this, ++counter);
         }
         if (key === 'type') {
-          return `${value} [${nodeIds.get(this)}]`;
+          return `${value} [ID:${nodeIds.get(this)}]`;
         }
         if (key === 'parent') {
           let parentId = null;
