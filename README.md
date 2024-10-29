@@ -11,6 +11,11 @@ Compared to running the actual Oniguruma C library in JavaScript via WASM bindin
 
 Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
 
+## Contents
+
+- [Options](#options)
+- [Unicode, mixed case-sensitivity](#unicode-mixed-case-sensitivity)
+
 ## Options
 
 These options are shared by functions `compile` and `toRegExp`.
@@ -73,3 +78,11 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 ## Similar projects
 
 [js_regex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). js_regex is written in Ruby and relies on Ruby's Onigmo parser, which means regexes must be pre-transpiled to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript, so it can be used at runtime. js_regex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
+
+## About
+
+Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan).
+
+If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) future development.
+
+© 2024–present. MIT License.

@@ -7,16 +7,16 @@ beforeEach(() => {
 describe('CharacterSet', () => {
   describe('any', () => {
     it('should match any character except line feed', () => {
-      expect('a').toMatchWithAllTargets('.');
-      expect('\0').toMatchWithAllTargets('.');
-      expect('\r').toMatchWithAllTargets('.');
-      expect('\u{10000}').toMatchWithAllTargets('^.$');
-      expect('\n').not.toMatchWithAllTargets('.');
+      expect('\n').not.toFindMatch('.');
+      expect([
+        '\0', '\r', 'a', '\u{10000}',
+      ]).toExactlyMatch('.');
     });
 
     it('should match line feed with flag m enabled', () => {
-      expect('\n').toMatchWithAllTargets({pattern: '.', flags: 'm'});
+      expect('\n').toExactlyMatch({pattern: '.', flags: 'm'});
     });
   });
+
   // TODO: Rest
 });

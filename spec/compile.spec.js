@@ -2,8 +2,19 @@ import {compile} from '../dist/index.mjs';
 
 describe('compile', () => {
   it('should return an object with pattern and flags properties', () => {
-    expect(compile('')).toEqual({pattern: '', flags: 'v'});
-    expect(compile('a')).toEqual({pattern: 'a', flags: 'v'});
+    expect(Object.keys(compile('a'))).toEqual(['pattern', 'flags']);
+  });
+
+  it('should return an empty pattern string if given an empty string', () => {
+    expect(compile('').pattern).toBe('');
+  });
+
+  it('should accept supported flags', () => {
+    const compiled = compile('', 'imx');
+    expect(compiled.flags).toContain('i');
+    expect(compiled.flags).toContain('s');
+    expect(compiled.flags).toContain('v');
+    // TODO: More specs
   });
 
   it('should accept supported targets', () => {
@@ -12,8 +23,8 @@ describe('compile', () => {
     expect(compile('', '', {target: 'ESNext'})).toEqual({pattern: '', flags: 'v'});
   });
 
-  it('should not accept unsupported targets', () => {
-    expect(() => compile('', '', {target: 'ES5'})).toThrow();
+  it('should throw for unsupported targets', () => {
+    expect(() => compile('', '', {target: 'ES6'})).toThrow();
     expect(() => compile('', '', {target: 'ES2019'})).toThrow();
   });
 });

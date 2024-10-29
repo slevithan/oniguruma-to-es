@@ -9,68 +9,81 @@ beforeEach(() => {
 describe('Lookaround', () => {
   describe('lookahead', () => {
     it('should match fixed-length positive lookahead', () => {
-      expect('ab').toMatchWithAllTargets('a(?=b)');
-      expect('ac').not.toMatchWithAllTargets('a(?=b)');
-      expect('a').not.toMatchWithAllTargets('a(?=b)');
+      expect('ab').toFindMatch('a(?=b)');
+      expect([
+        'ac', 'a',
+      ]).not.toFindMatch('a(?=b)');
     });
 
     it('should match fixed-length negative lookahead', () => {
-      expect('ab').not.toMatchWithAllTargets('a(?!b)');
-      expect('ac').toMatchWithAllTargets('a(?!b)');
-      expect('a').toMatchWithAllTargets('a(?!b)');
+      expect('ab').not.toFindMatch('a(?!b)');
+      expect([
+        'ac', 'a',
+      ]).toFindMatch('a(?!b)');
     });
 
     it('should match fixed-length repetition in lookahead', () => {
-      expect('abb').toMatchWithAllTargets('a(?=b{2})');
-      expect('abb').toMatchWithAllTargets('a(?=b{2,2})');
+      expect('abb').toFindMatch('a(?=b{2})');
+      expect('abb').toFindMatch('a(?=b{2,2})');
     });
 
     it('should match variable-length repetition in lookahead', () => {
-      expect('a').toMatchWithAllTargets('a(?=b?)');
-      expect('a').toMatchWithAllTargets('a(?=b*)');
-      expect('ab').toMatchWithAllTargets('a(?=b+)');
-      expect('a').toMatchWithAllTargets('a(?=b{0,2})');
-      expect('a').toMatchWithAllTargets('a(?=b{0,})');
+      expect('a').toFindMatch('a(?=b?)');
+      expect('a').toFindMatch('a(?=b*)');
+      expect('ab').toFindMatch('a(?=b+)');
+      expect('a').toFindMatch('a(?=b{0,2})');
+      expect('a').toFindMatch('a(?=b{0,})');
     });
 
     it('should match top-level variable-length alternatives in lookahead', () => {
-      expect('ab').toMatchWithAllTargets('a(?=b|cc)');
-      expect('acc').toMatchWithAllTargets('a(?=b|cc)');
-      expect('ac').not.toMatchWithAllTargets('a(?=b|cc)');
+      expect([
+        'ab', 'acc',
+      ]).toFindMatch('a(?=b|cc)');
+      expect([
+        'ac', 'a',
+      ]).not.toFindMatch('a(?=b|cc)');
+    });
+
+    it('should match non-top-level variable-length alternatives in lookahead', () => {
+      expect([
+        'abc', 'abdd',
+      ]).toFindMatch('a(?=b(?:c|dd))');
     });
 
     it('should apply with positive min quantification', () => {
-      expect('ab').toMatchWithAllTargets('a(?=b)+');
-      expect('a').not.toMatchWithAllTargets('a(?=b)+');
-      expect('a').not.toMatchWithAllTargets('a(?=b)+?');
+      expect('ab').toFindMatch('a(?=b)+');
+      expect('a').not.toFindMatch('a(?=b)+');
+      expect('a').not.toFindMatch('a(?=b)+?');
     });
   
     it('should not apply with min 0 quantification', () => {
-      expect('a').toMatchWithAllTargets('a(?=b)?');
-      expect('a').toMatchWithAllTargets('a(?=b)*');
+      expect('a').toExactlyMatch('a(?=b)?');
+      expect('a').toExactlyMatch('a(?=b)*');
     });
 
     it('should preserve captures with min 0 quantification', () => {
-      expect('aba').toMatchWithAllTargets(r`a(?=(b))?\1a`);
+      expect('aba').toExactlyMatch(r`a(?=(b))?\1a`);
     });
   });
 
   describe('lookbehind', () => {
     it('should match fixed-length positive lookbehind', () => {
-      expect('ba').toMatchWithAllTargets('(?<=b)a');
-      expect('ca').not.toMatchWithAllTargets('(?<=b)a');
-      expect('a').not.toMatchWithAllTargets('(?<=b)a');
+      expect('ba').toFindMatch('(?<=b)a');
+      expect([
+        'ca', 'a',
+      ]).not.toFindMatch('(?<=b)a');
     });
 
     it('should match fixed-length negative lookbehind', () => {
-      expect('ba').not.toMatchWithAllTargets('(?<!b)a');
-      expect('ca').toMatchWithAllTargets('(?<!b)a');
-      expect('a').toMatchWithAllTargets('(?<!b)a');
+      expect('ba').not.toFindMatch('(?<!b)a');
+      expect([
+        'ca', 'a',
+      ]).toFindMatch('(?<!b)a');
     });
 
     it('should match fixed-length repetition in lookbehind', () => {
-      expect('bba').toMatchWithAllTargets('(?<=b{2})a');
-      expect('bba').toMatchWithAllTargets('(?<=b{2,2})a');
+      expect('bba').toFindMatch('(?<=b{2})a');
+      expect('bba').toFindMatch('(?<=b{2,2})a');
     });
 
     it('should throw for variable-length repetition in lookbehind', () => {
@@ -82,24 +95,27 @@ describe('Lookaround', () => {
     });
 
     it('should match top-level variable-length alternatives in lookbehind', () => {
-      expect('ba').toMatchWithAllTargets('(?<=b|cc)a');
-      expect('cca').toMatchWithAllTargets('(?<=b|cc)a');
-      expect('ca').not.toMatchWithAllTargets('(?<=b|cc)a');
+      expect([
+        'ba', 'cca',
+      ]).toFindMatch('(?<=b|cc)a');
+      expect([
+        'ca', 'a',
+      ]).not.toFindMatch('(?<=b|cc)a');
     });
 
     it('should apply with positive min quantification', () => {
-      expect('ba').toMatchWithAllTargets('(?<=b)+a');
-      expect('a').not.toMatchWithAllTargets('(?<=b)+a');
-      expect('a').not.toMatchWithAllTargets('(?<=b)+?a');
+      expect('ba').toFindMatch('(?<=b)+a');
+      expect('a').not.toFindMatch('(?<=b)+a');
+      expect('a').not.toFindMatch('(?<=b)+?a');
     });
   
     it('should not apply with min 0 quantification', () => {
-      expect('a').toMatchWithAllTargets('(?<=b)?a');
-      expect('a').toMatchWithAllTargets('(?<=b)*a');
+      expect('a').toExactlyMatch('(?<=b)?a');
+      expect('a').toExactlyMatch('(?<=b)*a');
     });
 
     it('should preserve captures with min 0 quantification', () => {
-      expect('baba').toMatchWithAllTargets(r`(?<=(b))?a\1a`);
+      expect('baba').toFindMatch(r`(?<=(b))?a\1a`);
     });
   });
 });

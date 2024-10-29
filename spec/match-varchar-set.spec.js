@@ -17,35 +17,29 @@ describe('VariableLengthCharacterSet', () => {
     ];
 
     it('should match any Unicode grapheme', () => {
-      for (const grapheme of graphemes) {
-        expect(grapheme).toMatchWithAllTargets(r`\A\X\z`);
-      }
+      expect(graphemes).toExactlyMatch(r`\X`);
     });
 
     it(r`should match graphemes atomically`, () => {
-      for (const grapheme of graphemes) {
-        expect(grapheme).not.toMatchWithAllTargets(r`\A\X(?m:.)\z`);
-      }
+      expect(graphemes).not.toFindMatch(r`\X\p{Any}`);
     });
   });
 
   describe('newline', () => {
-    it('should match any line break from the accepted newline set', () => {
-      const newlines = ['\r\n', '\r', '\n', '\v', '\f', '\x85', '\u2028', '\u2029'];
-      for (const newline of newlines) {
-        expect(newline).toMatchWithAllTargets(r`\A\R\z`);
-      }
+    it('should match any line break from the allowed newline set', () => {
+      expect([
+        '\r\n', '\r', '\n', '\v', '\f', '\x85', '\u2028', '\u2029',
+      ]).toExactlyMatch(r`\R`);
     });
 
-    it('should not match chars outside the accepted newline set', () => {
-      const nonNewlines = ['\n\r', ' ', 't'];
-      for (const non of nonNewlines) {
-        expect(non).not.toMatchWithAllTargets(r`\A\R\z`);
-      }
+    it('should not match chars outside the allowed newline set', () => {
+      expect([
+        '\n\r', '\t', ' ',
+      ]).not.toExactlyMatch(r`\R`);
     });
 
-    it(r`should match \r\n atomically`, () => {
-      expect('\r\n').not.toMatchWithAllTargets(r`\A\R\n\z`);
+    it(r`should match newlines atomically`, () => {
+      expect('\r\n').not.toFindMatch(r`\R\n`);
     });
   });
 });
