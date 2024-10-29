@@ -8,6 +8,8 @@ beforeEach(() => {
 });
 
 describe('Backreference', () => {
+  // TODO: Backref to not-yet-closed parent group
+
   describe('numbered backref', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\1`);
@@ -40,6 +42,15 @@ describe('Backreference', () => {
 
     it('should throw for mixed named capture and numbered backrefs', () => {
       expect(() => compile(r`(?<a>)\1`)).toThrow();
+    });
+
+    it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
+      expect('abb').toExactlyMatch(r`(\w)\g<1>\1`);
+      expect('aba').not.toFindMatch(r`(\w)\g<1>\1`);
+      expect('abb').toExactlyMatch(r`\g<1>(\w)\1`);
+      expect('aba').not.toFindMatch(r`\g<1>(\w)\1`);
+      expect('1233').toExactlyMatch(r`(([123]))\g<1>\g<1>\2`);
+      expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<1>\2`);
     });
   });
 
@@ -89,9 +100,18 @@ describe('Backreference', () => {
       expect(() => compile(r`(?<a>)\k<1>`)).toThrow();
       expect(() => compile(r`(?<a>)\k'1'`)).toThrow();
     });
+
+    it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
+      expect('abb').toExactlyMatch(r`(\w)\g<1>\k<1>`);
+      expect('aba').not.toFindMatch(r`(\w)\g<1>\k<1>`);
+      expect('abb').toExactlyMatch(r`\g<1>(\w)\k<1>`);
+      expect('aba').not.toFindMatch(r`\g<1>(\w)\k<1>`);
+      expect('1233').toExactlyMatch(r`(([123]))\g<1>\g<1>\k<2>`);
+      expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<1>\k<2>`);
+    });
   });
 
-  describe('relative backref number', () => {
+  describe('enclosed relative numbered backref', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\k<-1>`);
       expect('aa').toExactlyMatch(r`(a)\k'-1'`);
@@ -142,6 +162,15 @@ describe('Backreference', () => {
       expect(() => compile(r`()\k<+1>()`)).toThrow();
       expect(() => compile(r`()\k'+1'()`)).toThrow();
     });
+
+    it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
+      expect('abb').toExactlyMatch(r`(\w)\g<1>\k<-1>`);
+      expect('aba').not.toFindMatch(r`(\w)\g<1>\k<-1>`);
+      expect('abb').toExactlyMatch(r`\g<1>(\w)\k<-1>`);
+      expect('aba').not.toFindMatch(r`\g<1>(\w)\k<-1>`);
+      expect('1233').toExactlyMatch(r`(([123]))\g<1>\g<-2>\k<-1>`);
+      expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<-2>\k<-1>`);
+    });
   });
 
   describe('named backref', () => {
@@ -173,19 +202,39 @@ describe('Backreference', () => {
       expect('aab').toExactlyMatch(r`(?<n>a)\k<n>(?<n>b)`);
       expect('aa').toExactlyMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)`,
-        targetMax: duplicateCaptureNamesSupported ? null : 'ES2024',
+        maxTarget: duplicateCaptureNamesSupported ? null : 'ES2024',
       });
     });
 
     it('should multiplex for duplicate names to the left', () => {
-      expect([
-        'aba', 'abb',
-      ]).toExactlyMatch(r`(?<n>a)(?<n>b)\k<n>`);
-      expect([
-        'abca', 'abcb', 'abcc',
-      ]).toExactlyMatch(r`(?<n>a)(?<n>b)(?<n>c)\k<n>`);
+      expect(['aba', 'abb']).toExactlyMatch(r`(?<n>a)(?<n>b)\k<n>`);
+      expect(['abca', 'abcb', 'abcc']).toExactlyMatch(r`(?<n>a)(?<n>b)(?<n>c)\k<n>`);
+      expect(['aba', 'abb']).toExactlyMatch(r`(?<n>\w)(?<n>\w)\k<n>`);
+      expect(['aab', 'abc']).not.toFindMatch(r`(?<n>\w)(?<n>\w)\k<n>`);
     });
 
-    // TODO: Subroutine backrefs
+    // TODO: Multiplexing changes across multiple backrefs as more duplicate groups are added
+
+    it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
+      expect('abb').toExactlyMatch(r`(?<a>\w)\g<a>\k<a>`);
+      expect('aba').not.toFindMatch(r`(?<a>\w)\g<a>\k<a>`);
+      expect('abb').toExactlyMatch(r`\g<a>(?<a>\w)\k<a>`);
+      expect('aba').not.toFindMatch(r`\g<a>(?<a>\w)\k<a>`);
+    });
+
+    it('should multiplex for duplicate names to the left but use only the most recent of an indirect capture/subroutine set', () => {
+      expect([
+        '1010', '1011', '1020', '1022', '2010', '2011', '2020', '2022',
+      ]).toExactlyMatch(r`(?<a>(?<b>[12]))(?<b>0)\g<a>\k<b>`);
+      expect(['1021', '2012']).not.toFindMatch(r`(?<a>(?<b>[12]))(?<b>0)\g<a>\k<b>`);
+
+      // Not listing all possible matches below...
+      expect(['01230', '01233']).toExactlyMatch(r`(?<b>0)(?<a>(?<b>[123]))\g<a>\g<a>\k<b>`);
+      expect(['01231', '01232']).not.toFindMatch(r`(?<b>0)(?<a>(?<b>[123]))\g<a>\g<a>\k<b>`);
+      expect(['10230', '10233']).toExactlyMatch(r`(?<a>(?<b>[123]))(?<b>0)\g<a>\g<a>\k<b>`);
+      expect(['10231', '10232']).not.toFindMatch(r`(?<a>(?<b>[123]))(?<b>0)\g<a>\g<a>\k<b>`);
+      expect(['12300', '12303']).toExactlyMatch(r`(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`);
+      expect(['12301', '12302']).not.toFindMatch(r`(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`);
+    });
   });
 });

@@ -2,18 +2,20 @@ import {toRegExp} from '../../dist/index.mjs';
 import {EsVersion} from '../../src/utils.js';
 
 function getArgs(actual, expected) {
-  const pattern = typeof expected === 'string' ? expected : expected.pattern;
-  const flags = expected.flags ?? '';
-  const strings = Array.isArray(actual) ? actual : [actual];
-  let targets = ['ES2018', 'ES2024', 'ESNext'];
-  if (expected.targetMax) {
-    targets = targets.filter(target => EsVersion[target] <= EsVersion[expected.targetMax]);
-  }
+  const opts = {
+    pattern: typeof expected === 'string' ? expected : expected.pattern,
+    flags: expected.flags ?? '',
+    maxTarget: expected.maxTarget ?? null,
+  };
+  const targets = ['ES2018', 'ES2024', 'ESNext'];
+  const targeted = opts.maxTarget ?
+    targets.filter(target => EsVersion[target] <= EsVersion[opts.maxTarget]) :
+    targets;
   return {
-    pattern,
-    flags,
-    strings,
-    targets,
+    pattern: opts.pattern,
+    flags: opts.flags,
+    strings: Array.isArray(actual) ? actual : [actual],
+    targets: targeted,
   };
 }
 
@@ -37,7 +39,7 @@ function matchWithAllTargets({pattern, flags, strings, targets}, {exact, negate}
       if (failed) {
         return {
           pass: false,
-          message: `Expected "${pattern}" ${negate ? 'not ' : ''}to ${exact ? 'exactly ' : ''}match "${str}" with ${flags ? `flags "${flags}" and ` : ''}target ${target}`,
+          message: `Expected "${pattern}" ${flags ? `(flags ${flags}) ` : ''}${negate ? 'not ' : ''}to ${exact ? 'exactly match' : 'match within'} "${str}" (${target})`,
         };
       }
     }

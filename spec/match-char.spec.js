@@ -10,6 +10,7 @@ describe('Character', () => {
   describe('literal', () => {
     it('should match literal chars', () => {
       expect('a').toExactlyMatch('a');
+      expect('😊').toExactlyMatch('😊'); // U+1F60A
       expect('Multiple literal chars!').toExactlyMatch('Multiple literal chars!');
     });
   });
