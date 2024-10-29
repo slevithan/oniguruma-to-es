@@ -1,4 +1,4 @@
-import {r} from '../src/utils.js';
+import {cp, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -36,8 +36,8 @@ describe('CharacterClass', () => {
         expect('\u{1}').toExactlyMatch(r`[\1]`);
         expect('\u{1}').toExactlyMatch(r`[\01]`);
         expect('\u{1}').toExactlyMatch(r`[\001]`);
-        expect(String.fromCodePoint(0o17)).toExactlyMatch(r`[\17]`);
-        expect(String.fromCodePoint(0o777)).toExactlyMatch(r`[\777]`);
+        expect(cp(0o17)).toExactlyMatch(r`[\17]`);
+        expect(cp(0o777)).toExactlyMatch(r`[\777]`);
       });
 
       it('should match octals followed by literal digits', () => {

@@ -1,5 +1,6 @@
 import {compile} from '../dist/index.mjs';
-import {r} from '../src/utils.js';
+import {cp, r} from '../src/utils.js';
+import {duplicateCaptureNamesSupported} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -21,7 +22,7 @@ describe('Backreference', () => {
     });
 
     it('should treat escaped number as octal if > 1 digit and not enough captures to the left', () => {
-      expect(`123456789${String.fromCodePoint(0o10)}`).toExactlyMatch(r`(1)(2)(3)(4)(5)(6)(7)(8)(9)\10`);
+      expect(`123456789${cp(0o10)}`).toExactlyMatch(r`(1)(2)(3)(4)(5)(6)(7)(8)(9)\10`);
       expect('\u{1}8').toExactlyMatch(r`()\18`);
     });
 
@@ -170,7 +171,10 @@ describe('Backreference', () => {
 
     it('should reference the group to the left when there are duplicate names to the right', () => {
       expect('aab').toExactlyMatch(r`(?<n>a)\k<n>(?<n>b)`);
-      expect('aa').toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)`);
+      expect('aa').toExactlyMatch({
+        pattern: r`(?<n>a)\k<n>|(?<n>b)`,
+        targetMax: duplicateCaptureNamesSupported ? null : 'ES2024',
+      });
     });
 
     it('should multiplex for duplicate names to the left', () => {
