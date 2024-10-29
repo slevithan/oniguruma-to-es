@@ -632,13 +632,14 @@ function getJsUnicodePropertyName(value) {
   if (jsName) {
     return jsName;
   }
-  // Assume it's a script name; JS requires formatting 'Like_This', so use a best effort to
-  // reformat the name (not able to map for all possible formatting differences)
+  // Assume it's a script name (avoids adding heavyweight data for the names); JS requires
+  // formatting 'Like_This', so use a best effort to reformat the name (covers everything sane, but
+  // not able to map for all possible formatting differences)
   return value.
     trim().
     replace(/\s+/g, '_').
     replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_'). // `PropertyName` to `Property_Name`
-    replace(/[a-z]+/ig, m => m[0].toUpperCase() + m.slice(1).toLowerCase());
+    replace(/[A-Za-z]+/g, m => m[0].toUpperCase() + m.slice(1).toLowerCase());
 }
 
 // If a direct child group is needlessly nested, return it instead (after modifying it)

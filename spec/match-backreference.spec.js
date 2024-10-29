@@ -8,11 +8,15 @@ beforeEach(() => {
 });
 
 describe('Backreference', () => {
-  // TODO: Backref to not-yet-closed parent group
-
   describe('numbered backref', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\1`);
+    });
+
+    it('should not match if it references a not-yet-closed group', () => {
+      expect('').not.toFindMatch(r`(\1)`);
+      expect('').not.toFindMatch(r`(((\2)))`);
+      expect('aa').not.toFindMatch(r`(a\1)`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -71,6 +75,12 @@ describe('Backreference', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\k<1>`);
       expect('aa').toExactlyMatch(r`(a)\k'1'`);
+    });
+
+    it('should not match if it references a not-yet-closed group', () => {
+      expect('').not.toFindMatch(r`(\k<1>)`);
+      expect('').not.toFindMatch(r`(((\k<2>)))`);
+      expect('aa').not.toFindMatch(r`(a\k<1>)`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -141,6 +151,12 @@ describe('Backreference', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\k<-1>`);
       expect('aa').toExactlyMatch(r`(a)\k'-1'`);
+    });
+
+    it('should not match if it references a not-yet-closed group', () => {
+      expect('').not.toFindMatch(r`(\k<-1>)`);
+      expect('').not.toFindMatch(r`(((\k<-2>)))`);
+      expect('aa').not.toFindMatch(r`(a\k<-1>)`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -218,6 +234,12 @@ describe('Backreference', () => {
       expect('aa').toExactlyMatch(r`(?'n'a)\k'n'`);
       expect('aa').toExactlyMatch(r`(?'n'a)\k<n>`);
       expect('aa').toExactlyMatch(r`(?<n>a)\k'n'`);
+    });
+
+    it('should not match if it references a not-yet-closed group', () => {
+      expect('').not.toFindMatch(r`(?<a>\k<a>)`);
+      expect('').not.toFindMatch(r`(?<a>(?<b>(?<c>\k<b>)))`);
+      expect('aa').not.toFindMatch(r`(?<a>a\k<a>)`);
     });
 
     it('should throw if capture is not to the left', () => {

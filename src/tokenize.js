@@ -142,7 +142,7 @@ function tokenize(pattern, flags = '') {
   let tokens = [];
   let match;
   tokenRe.lastIndex = 0;
-  while (match = tokenRe.exec(pattern)) {
+  while ((match = tokenRe.exec(pattern))) {
     const result = getTokenWithDetails(context, pattern, match[0], tokenRe.lastIndex);
     if (result.tokens) {
       tokens.push(...result.tokens);
@@ -366,7 +366,7 @@ function getAllTokensForCharClass(pattern, opener, lastIndex) {
   let numCharClassesOpen = 1;
   let match;
   charClassTokenRe.lastIndex = lastIndex;
-  while (match = charClassTokenRe.exec(pattern)) {
+  while ((match = charClassTokenRe.exec(pattern))) {
     const m = match[0];
     // Start of nested char class
     // POSIX classes are handled as a single token; not as a nested char class

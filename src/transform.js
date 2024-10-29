@@ -127,6 +127,15 @@ const FirstPassVisitor = {
     // Kinds `lookahead` and `lookbehind` also don't need transformation
   },
 
+  Backreference({node, replaceWith}) {
+    // Convert backrefs reffing a not-yet-closed group to `(?!)`; they can't match in Onig but
+    // match an empty string in JS
+    const unclosed = getAllParents(node, node => node.type === AstTypes.CapturingGroup);
+    if (unclosed.some(capture => capture.number === node.ref || capture.name === node.ref)) {
+      replaceWith(createLookaround({negate: true}));
+    }
+  },
+
   CapturingGroup({node}, {subroutineRefMap}) {
     const {name, number} = node;
     if (name && !isValidGroupNameJs(name)) {
@@ -435,7 +444,7 @@ const SecondPassVisitor = {
         // named groups from their preceding siblings
         parentAlt = getParentAlternative(parentAlt);
         if (parentAlt) {
-          while (parentAlt = getParentAlternative(parentAlt)) {
+          while ((parentAlt = getParentAlternative(parentAlt))) {
             getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
           }
         }
@@ -552,7 +561,7 @@ function createRecursion(ref) {
 
 function getAllParents(node, filterFn) {
   const results = [];
-  while (node = node.parent) {
+  while ((node = node.parent)) {
     if (!filterFn || filterFn(node)) {
       results.push(node);
     }
@@ -600,8 +609,9 @@ function getCombinedFlagsFromFlagNodes(flagNodes) {
   return null;
 }
 
+// See also `getAllParents`
 function getParentAlternative(node) {
-  while (node = node.parent) {
+  while ((node = node.parent)) {
     // Skip past quantifiers, etc.
     if (node.type === AstTypes.Alternative) {
       return node;
