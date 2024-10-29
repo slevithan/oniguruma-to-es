@@ -19,7 +19,7 @@ import {tokenize} from './tokenize.js';
 /**
 Generates an Oniguruma AST from an Oniguruma pattern and flags.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
+@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS's flag `s`.
 @returns {import('./parse.js').OnigurumaAst}
 */
 function toOnigurumaAst(pattern, flags) {
@@ -29,7 +29,7 @@ function toOnigurumaAst(pattern, flags) {
 /**
 Generates a `regex` AST from an Oniguruma pattern and flags.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
+@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS's flag `s`.
 @returns {import('./transform.js').RegexAst}
 */
 function toRegexAst(pattern, flags) {
@@ -39,13 +39,16 @@ function toRegexAst(pattern, flags) {
 /**
 Transpiles an Oniguruma regex pattern and flags to a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
+@param {string} [flags] Any combination of Oniguruma flags `imx` and JS flags `dg`. Flag `m` is
+  equivalent to JS's flag `s`.
 @param {import('./compile.js').CompileOptions} [options]
 @returns {RegExp}
 */
-function toRegExp(pattern, flags, options) {
+function toRegExp(pattern, flags = '', options) {
+  const allowedJsFlags = flags.replace(/[^dg]+/g, '');
+  flags = flags.replace(/[dg]+/g, '');
   const result = compile(pattern, flags, options);
-  return new RegExp(result.pattern, result.flags);
+  return new RegExp(result.pattern, `${allowedJsFlags}${result.flags}`);
 }
 
 export {

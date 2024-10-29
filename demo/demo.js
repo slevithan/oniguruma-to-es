@@ -24,7 +24,7 @@ function showOutput(el) {
   try {
     // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
-    const re = compile(input, flags, {
+    const re = OnigurumaToES.compile(input, flags, {
       allowBestEffort: optionAllowBestEffortValue,
       maxRecursionDepth: optionMaxRecursionDepthValue === '' ? null : +optionMaxRecursionDepthValue,
       optimize: optionOptimizeValue,

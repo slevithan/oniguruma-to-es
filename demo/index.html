@@ -70,9 +70,12 @@
   </main>
 
   <script src="../dist/index.min.js"></script>
+  <script src="./demo.js"></script>
   <script>
-    Object.assign(globalThis, OnigurumaToES);
     // For testing in the console
+    Object.assign(globalThis, OnigurumaToES);
+    const r = String.raw;
+    const cp = String.fromCodePoint;
     function printAst(ast) {
       if (ast?.type !== 'Regex') {
         throw new Error('Oniguruma or `regex` AST expected');
@@ -104,6 +107,5 @@
       }, '│ '));
     }
   </script>
-  <script src="./demo.js"></script>
 </body>
 </html>

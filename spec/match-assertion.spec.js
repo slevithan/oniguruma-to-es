@@ -1,4 +1,4 @@
-import {compile} from '../dist/index.mjs';
+import {compile, toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -88,9 +88,7 @@ describe('Assertion', () => {
     });
 
     it('should match only at the start of the search when applied repeatedly', () => {
-      const compiled = compile(r`\G[ab]`);
-      const re = new RegExp(compiled.pattern, `g${compiled.flags}`);
-      expect('abbcbb'.match(re)).toEqual(['a', 'b', 'b']);
+      expect('abbcbb'.match(toRegExp(r`\G[ab]`, 'g'))).toEqual(['a', 'b', 'b']);
     });
 
     it('should apply with positive min quantification', () => {

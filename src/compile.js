@@ -17,7 +17,7 @@ import {recursion} from 'regex-recursion';
 /**
 Transpiles an Oniguruma regex pattern and flags to native JS.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
+@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS's flag `s`.
 @param {CompileOptions} [options]
 @returns {{
   pattern: string;

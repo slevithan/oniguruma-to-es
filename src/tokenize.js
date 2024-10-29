@@ -122,7 +122,7 @@ const charClassTokenRe = new RegExp(r`
 */
 /**
 @param {string} pattern
-@param {OnigurumaFlags} [flags] Oniguruma flags. Flag m is equivalent to JS's flag s.
+@param {OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS's flag `s`.
 @returns {TokenizerResult}
 */
 function tokenize(pattern, flags = '') {
