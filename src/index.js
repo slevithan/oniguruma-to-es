@@ -37,7 +37,7 @@ function toRegexAst(pattern, flags) {
 }
 
 /**
-Transpiles an Oniguruma regex pattern and flags to a native JS RegExp.
+Transpiles an Oniguruma regex pattern and flags and returns a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
 @param {string} [flags] Any combination of Oniguruma flags `imx` and JS flags `dg`. Flag `m` is
   equivalent to JS's flag `s`.

@@ -126,6 +126,9 @@ const charClassTokenRe = new RegExp(r`
 @returns {TokenizerResult}
 */
 function tokenize(pattern, flags = '') {
+  if (typeof pattern !== 'string') {
+    throw new Error('String expected as pattern');
+  }
   if (!/^[imx]*$/.test(flags)) {
     throw new Error(`Flags "${flags}" unsupported in Oniguruma`);
   }
