@@ -59,6 +59,7 @@ describe('Lookaround', () => {
     it('should not apply with min 0 quantification', () => {
       expect('a').toExactlyMatch('a(?=b)?');
       expect('a').toExactlyMatch('a(?=b)*');
+      expect('a').toExactlyMatch('a(?=b)**');
     });
 
     it('should preserve captures with min 0 quantification', () => {
@@ -112,6 +113,7 @@ describe('Lookaround', () => {
     it('should not apply with min 0 quantification', () => {
       expect('a').toExactlyMatch('(?<=b)?a');
       expect('a').toExactlyMatch('(?<=b)*a');
+      expect('a').toExactlyMatch('(?<=b)**a');
     });
 
     it('should preserve captures with min 0 quantification', () => {

@@ -21,6 +21,14 @@ describe('Backreference', () => {
       expect(() => compile(r`\2`)).toThrow();
       expect(() => compile(r`()\2`)).toThrow();
       expect(() => compile(r`()\2()`)).toThrow();
+      expect(() => compile(r`(()\3)`)).toThrow();
+      expect(() => compile(r`(()\3)()`)).toThrow();
+    });
+
+    it('should throw if not enough captures to the left even when subroutines add captures', () => {
+      expect(() => compile(r`\g<1>\1()`)).toThrow();
+      expect(() => compile(r`()\g<1>\2`)).toThrow();
+      expect(() => compile(r`\g<1>(()\3)`)).toThrow();
     });
 
     it('should treat escaped number as octal if > 1 digit and not enough captures to the left', () => {
@@ -52,6 +60,11 @@ describe('Backreference', () => {
       expect('1233').toExactlyMatch(r`(([123]))\g<1>\g<1>\2`);
       expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<1>\2`);
     });
+
+    it('should track independent captures when used in a group referenced by a subroutine', () => {
+      expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\2)\g<1>`);
+      expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\2)\g<1>`);
+    });
   });
 
   describe('enclosed numbered backref', () => {
@@ -67,6 +80,14 @@ describe('Backreference', () => {
       expect(() => compile(r`\k<2>`)).toThrow();
       expect(() => compile(r`()\k<2>`)).toThrow();
       expect(() => compile(r`()\k<2>()`)).toThrow();
+      expect(() => compile(r`(()\k<3>)`)).toThrow();
+      expect(() => compile(r`(()\k<3>)()`)).toThrow();
+    });
+
+    it('should throw if not enough captures to the left even when subroutines add captures', () => {
+      expect(() => compile(r`\g<1>\k<1>()`)).toThrow();
+      expect(() => compile(r`()\g<1>\k<2>`)).toThrow();
+      expect(() => compile(r`\g<1>(()\k<3>)`)).toThrow();
     });
 
     it('should throw for group 0', () => {
@@ -109,6 +130,11 @@ describe('Backreference', () => {
       expect('1233').toExactlyMatch(r`(([123]))\g<1>\g<1>\k<2>`);
       expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<1>\k<2>`);
     });
+
+    it('should track independent captures when used in a group referenced by a subroutine', () => {
+      expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\k<2>)\g<1>`);
+      expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\k<2>)\g<1>`);
+    });
   });
 
   describe('enclosed relative numbered backref', () => {
@@ -124,6 +150,14 @@ describe('Backreference', () => {
       expect(() => compile(r`\k<-2>`)).toThrow();
       expect(() => compile(r`()\k<-2>`)).toThrow();
       expect(() => compile(r`()\k<-2>()`)).toThrow();
+      expect(() => compile(r`(()\k<-3>)`)).toThrow();
+      expect(() => compile(r`(()\k<-3>)()`)).toThrow();
+    });
+
+    it('should throw if not enough captures to the left even when subroutines add captures', () => {
+      expect(() => compile(r`\g<1>\k<-1>()`)).toThrow();
+      expect(() => compile(r`()\g<1>\k<-2>`)).toThrow();
+      expect(() => compile(r`\g<1>(()\k<-3>)`)).toThrow();
     });
 
     it('should throw for negative 0', () => {
@@ -171,6 +205,11 @@ describe('Backreference', () => {
       expect('1233').toExactlyMatch(r`(([123]))\g<1>\g<-2>\k<-1>`);
       expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<-2>\k<-1>`);
     });
+
+    it('should track independent captures when used in a group referenced by a subroutine', () => {
+      expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\k<-1>)\g<1>`);
+      expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\k<-1>)\g<1>`);
+    });
   });
 
   describe('named backref', () => {
@@ -185,7 +224,11 @@ describe('Backreference', () => {
       expect(() => compile(r`\k<n>`)).toThrow();
       expect(() => compile(r`\k'n'`)).toThrow();
       expect(() => compile(r`\k<n>(?<n>)`)).toThrow();
-      expect(() => compile(r`\k'n'(?'n')`)).toThrow();
+      expect(() => compile(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
+    });
+
+    it('should throw if capture is not to the left even when subroutines add captures', () => {
+      expect(() => compile(r`\g<n>\k<n>(?<n>)`)).toThrow();
     });
 
     it('should throw for surrounding whitespace', () => {
@@ -223,18 +266,21 @@ describe('Backreference', () => {
     });
 
     it('should multiplex for duplicate names to the left but use only the most recent of an indirect capture/subroutine set', () => {
-      expect([
+      expect([ // All possible matches
         '1010', '1011', '1020', '1022', '2010', '2011', '2020', '2022',
       ]).toExactlyMatch(r`(?<a>(?<b>[12]))(?<b>0)\g<a>\k<b>`);
       expect(['1021', '2012']).not.toFindMatch(r`(?<a>(?<b>[12]))(?<b>0)\g<a>\k<b>`);
-
-      // Not listing all possible matches below...
       expect(['01230', '01233']).toExactlyMatch(r`(?<b>0)(?<a>(?<b>[123]))\g<a>\g<a>\k<b>`);
       expect(['01231', '01232']).not.toFindMatch(r`(?<b>0)(?<a>(?<b>[123]))\g<a>\g<a>\k<b>`);
       expect(['10230', '10233']).toExactlyMatch(r`(?<a>(?<b>[123]))(?<b>0)\g<a>\g<a>\k<b>`);
       expect(['10231', '10232']).not.toFindMatch(r`(?<a>(?<b>[123]))(?<b>0)\g<a>\g<a>\k<b>`);
       expect(['12300', '12303']).toExactlyMatch(r`(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`);
       expect(['12301', '12302']).not.toFindMatch(r`(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`);
+    });
+
+    it('should track independent captures when used in a group referenced by a subroutine', () => {
+      expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`(?<a>(?<b>\w)\k<b>)\g<a>`);
+      expect(['aaba', 'bbab']).not.toFindMatch(r`(?<a>(?<b>\w)\k<b>)\g<a>`);
     });
   });
 });

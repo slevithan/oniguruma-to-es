@@ -20,7 +20,7 @@ describe('VariableLengthCharacterSet', () => {
       expect(graphemes).toExactlyMatch(r`\X`);
     });
 
-    it(r`should match graphemes atomically`, () => {
+    it('should match graphemes atomically', () => {
       expect(graphemes).not.toFindMatch(r`\X\p{Any}`);
     });
   });
@@ -38,7 +38,7 @@ describe('VariableLengthCharacterSet', () => {
       ]).not.toExactlyMatch(r`\R`);
     });
 
-    it(r`should match newlines atomically`, () => {
+    it('should match newlines atomically', () => {
       expect('\r\n').not.toFindMatch(r`\R\n`);
     });
   });

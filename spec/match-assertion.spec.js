@@ -37,6 +37,7 @@ describe('Assertion', () => {
     it('should not apply with min 0 quantification', () => {
       expect('ab').toFindMatch('a$?');
       expect('ab').toFindMatch('a$*');
+      expect('ab').toFindMatch('a$**');
     });
   });
 
@@ -70,6 +71,7 @@ describe('Assertion', () => {
     it('should not apply with min 0 quantification', () => {
       expect('ba').toFindMatch('^?a');
       expect('ba').toFindMatch('^*a');
+      expect('ba').toFindMatch('^**a');
     });
   });
 
@@ -100,6 +102,7 @@ describe('Assertion', () => {
     it('should not apply with min 0 quantification', () => {
       expect('ba').toFindMatch(r`\G?a`);
       expect('ba').toFindMatch(r`\G*a`);
+      expect('ba').toFindMatch(r`\G**a`);
     });
 
     // Unsupported: not emulatable without RegExp subclass
@@ -134,6 +137,7 @@ describe('Assertion', () => {
     it('should not apply with min 0 quantification', () => {
       expect('ab').toFindMatch(r`a\z?`);
       expect('ab').toFindMatch(r`a\z*`);
+      expect('ab').toFindMatch(r`a\z**`);
     });
   });
 
@@ -169,6 +173,7 @@ describe('Assertion', () => {
     it('should not apply with min 0 quantification', () => {
       expect('ab').toFindMatch(r`a\Z?`);
       expect('ab').toFindMatch(r`a\Z*`);
+      expect('ab').toFindMatch(r`a\Z**`);
     });
   });
 
@@ -196,6 +201,7 @@ describe('Assertion', () => {
     it('should not apply with min 0 quantification', () => {
       expect('ba').toFindMatch(r`\A?a`);
       expect('ba').toFindMatch(r`\A*a`);
+      expect('ba').toFindMatch(r`\A**a`);
     });
   });
 
