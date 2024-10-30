@@ -108,7 +108,7 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.search_start) {
       // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
       // checking in the `Pattern` visitor
-      // TODO: Allow `\G` if it's the first node in a top-level group that doesn't use alternation; ex: `(?i:\G.)` or `\Ga|(?i:\Gb)`; maybe allow further nesting like `(((\Ga)))b|\Gb`; probably stop the sort with directives and instead check the key after subtracting preceding directives. Can allow `\G+a|\Gb` but not `\G*a|\Gb`; `\G+a` and `\G*a` without alternation already handled correctly due to assertion quantification unwrapping
+      // [TODO] Support more cases
       if (parent.parent !== ast.pattern || key !== 0) {
         throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
       }
@@ -385,8 +385,15 @@ const SecondPassVisitor = {
         openDirectCaptures.add(node);
       }
       if (openDirectCaptures.has(origin)) {
-        // Recursion doesn't change following backrefs to `ref` (unlike other subroutines), so
-        // don't wrap with a capture for this node's ref
+        // Recursion doesn't affect any following backrefs to its `ref` (unlike other subroutines),
+        // so don't wrap with a capture
+        // [TODO] The reffed group might have its name removed due to a later subroutine expansion
+        // (ex: `(?<a>\g<a>)\g<a>`), so use `number` for `ref`, look up the reffed node in
+        // `openDirectCaptures`, and rename `reffedNodesByBackreference` so it can also be used to
+        // track the reffed node. Like with backrefs, can then modify the `ref` in the final pass
+        // to use the recalculated group number. But this relies on `regex-recursion` supporting
+        // multiple non-overlapping recursions and recursion by number. For now, the resulting
+        // error is caught by `regex-recursion`
         replaceWith(createRecursion(ref));
         // This node's kids have been removed from the tree, so no need to traverse them
         skip();
@@ -430,7 +437,7 @@ const SecondPassVisitor = {
       if (name) {
         const namedGroupsInScope = getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map());
         if (namedGroupsInScope.has(name)) {
-          // Will change the earlier instance of this group name to an unnamed capturing group
+          // Will change the earlier instance with this name to an unnamed capture in a later pass
           groupsWithDuplicateNamesToRemove.add(namedGroupsInScope.get(name));
         }
         // Track the latest instance of this group name, and pass it up through parent alternatives
@@ -487,16 +494,6 @@ const SecondPassVisitor = {
 };
 
 const ThirdPassVisitor = {
-  CapturingGroup({node}, state) {
-    // Recalculate the number since the current value might be wrong due to subroutine expansion
-    node.number = ++state.numCapturesToLeft;
-    // Removing duplicate names here rather than in an earlier pass avoids extra complexity when
-    // handling subroutine expansion and backref multiplexing
-    if (state.groupsWithDuplicateNamesToRemove.has(node)) {
-      delete node.name;
-    }
-  },
-
   Backreference({node, replaceWith}, {reffedNodesByBackreference}) {
     const refNodes = reffedNodesByBackreference.get(node);
     const unclosedCaps = getAllParents(node, node => node.type === AstTypes.CapturingGroup);
@@ -520,6 +517,16 @@ const ThirdPassVisitor = {
       if (unclosedCaps.some(capture => capture.number === node.ref)) {
         replaceWith(createLookaround({negate: true}));
       }
+    }
+  },
+
+  CapturingGroup({node}, state) {
+    // Recalculate the number since the current value might be wrong due to subroutine expansion
+    node.number = ++state.numCapturesToLeft;
+    // Removing duplicate names here rather than in an earlier pass avoids extra complexity when
+    // handling subroutine expansion and backref multiplexing
+    if (state.groupsWithDuplicateNamesToRemove.has(node)) {
+      delete node.name;
     }
   },
 };
@@ -631,7 +638,6 @@ function isValidGroupNameJs(name) {
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
-// TODO: Consider moving to `parse` module and dropping assumptions about `parent` props
 function parseFragment(pattern, {bypassPropertyNameCheck} = {}) {
   const ast = parse(tokenize(pattern), {bypassPropertyNameCheck});
   const alts = ast.pattern.alternatives;

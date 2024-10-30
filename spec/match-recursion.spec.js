@@ -84,7 +84,7 @@ describe('Recursion', () => {
 
     // Current limitation of `regex-recursion`
     it('should throw for multiple direct, non-overlapping recursions', () => {
-      // TODO: `regex-recursion` has a bug and lets invalid JS syntax through so using `toRegExp` instead of `compile`
+      // [TODO] `regex-recursion` has a bug and lets invalid JS syntax through so using `toRegExp` instead of `compile`
       expect(() => toRegExp(r`(?<r1>a\g<r1>?)(?<r2>a\g<r2>?)`)).toThrow();
     });
 

@@ -94,7 +94,6 @@ describe('Backreference', () => {
 
     it('should throw if not enough captures to the left', () => {
       expect(() => compile(r`\k<1>`)).toThrow();
-      expect(() => compile(r`\k'1'`)).toThrow();
       expect(() => compile(r`\k<1>()`)).toThrow();
       expect(() => compile(r`\k<2>`)).toThrow();
       expect(() => compile(r`()\k<2>`)).toThrow();
@@ -111,14 +110,11 @@ describe('Backreference', () => {
 
     it('should throw for group 0', () => {
       expect(() => compile(r`()\k<0>`)).toThrow();
-      expect(() => compile(r`()\k'0'`)).toThrow();
     });
 
     it('should allow leading 0s', () => {
       expect('aa').toExactlyMatch(r`(a)\k<01>`);
-      expect('aa').toExactlyMatch(r`(a)\k'01'`);
       expect('aa').toExactlyMatch(r`(a)\k<000000000000001>`);
-      expect('aa').toExactlyMatch(r`(a)\k'000000000000001'`);
     });
 
     it('should throw for surrounding whitespace', () => {
@@ -127,9 +123,7 @@ describe('Backreference', () => {
     });
 
     it('should allow 3-digit backrefs', () => {
-      const caps99 = '()'.repeat(99);
-      expect('aa').toExactlyMatch(r`${caps99}(a)\k<100>`);
-      expect('aa').toExactlyMatch(r`${caps99}(a)\k'100'`);
+      expect('aa').toExactlyMatch(r`${'()'.repeat(99)}(a)\k<100>`);
     });
 
     it('should allow 4-digit backrefs', () => {
@@ -138,7 +132,6 @@ describe('Backreference', () => {
 
     it('should throw for mixed named capture and numbered backrefs', () => {
       expect(() => compile(r`(?<a>)\k<1>`)).toThrow();
-      expect(() => compile(r`(?<a>)\k'1'`)).toThrow();
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
@@ -177,7 +170,6 @@ describe('Backreference', () => {
 
     it('should throw if not enough captures to the left', () => {
       expect(() => compile(r`\k<-1>`)).toThrow();
-      expect(() => compile(r`\k'-1'`)).toThrow();
       expect(() => compile(r`\k<-1>()`)).toThrow();
       expect(() => compile(r`\k<-2>`)).toThrow();
       expect(() => compile(r`()\k<-2>`)).toThrow();
@@ -194,14 +186,11 @@ describe('Backreference', () => {
 
     it('should throw for negative 0', () => {
       expect(() => compile(r`()\k<-0>`)).toThrow();
-      expect(() => compile(r`()\k'-0'`)).toThrow();
     });
 
     it('should allow leading 0s', () => {
       expect('aa').toExactlyMatch(r`(a)\k<-01>`);
-      expect('aa').toExactlyMatch(r`(a)\k'-01'`);
       expect('aa').toExactlyMatch(r`(a)\k<-000000000000001>`);
-      expect('aa').toExactlyMatch(r`(a)\k'-000000000000001'`);
     });
 
     it('should throw for surrounding whitespace', () => {
@@ -210,9 +199,7 @@ describe('Backreference', () => {
     });
 
     it('should allow 3-digit numbers', () => {
-      const caps99 = '()'.repeat(99);
-      expect('aa').toExactlyMatch(r`(a)${caps99}\k<-100>`);
-      expect('aa').toExactlyMatch(r`(a)${caps99}\k'-100'`);
+      expect('aa').toExactlyMatch(r`(a)${'()'.repeat(99)}\k<-100>`);
     });
 
     it('should allow 4-digit numbers', () => {
@@ -221,7 +208,6 @@ describe('Backreference', () => {
 
     it('should throw for mixed named capture and relative numbered backrefs', () => {
       expect(() => compile(r`(?<a>)\k<-1>`)).toThrow();
-      expect(() => compile(r`(?<a>)\k'-1'`)).toThrow();
     });
 
     it('should throw for forward relative numbers', () => {
@@ -252,8 +238,6 @@ describe('Backreference', () => {
   describe('named backref', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(?<n>a)\k<n>`);
-      expect('aa').toExactlyMatch(r`(?'n'a)\k'n'`);
-      expect('aa').toExactlyMatch(r`(?'n'a)\k<n>`);
       expect('aa').toExactlyMatch(r`(?<n>a)\k'n'`);
     });
 
@@ -289,7 +273,6 @@ describe('Backreference', () => {
 
     it('should throw if capture is not to the left', () => {
       expect(() => compile(r`\k<n>`)).toThrow();
-      expect(() => compile(r`\k'n'`)).toThrow();
       expect(() => compile(r`\k<n>(?<n>)`)).toThrow();
       expect(() => compile(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
     });

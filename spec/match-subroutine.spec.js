@@ -7,11 +7,10 @@ beforeEach(() => {
 });
 
 describe('Subroutine', () => {
-  // TODO: Test `\g'n'` syntax
-
   describe('numbered', () => {
     it('should match the expression within the referenced group', () => {
       expect('aa').toExactlyMatch(r`(a)\g<1>`);
+      expect('aa').toExactlyMatch(r`(a)\g'1'`);
       expect('babab').toExactlyMatch(r`b(a)b\g<1>b`);
     });
 
@@ -42,11 +41,13 @@ describe('Subroutine', () => {
   describe('relative numbered', () => {
     it('should match the expression within the referenced group', () => {
       expect('aa').toExactlyMatch(r`(a)\g<-1>`);
+      expect('aa').toExactlyMatch(r`(a)\g'-1'`);
       expect('babab').toExactlyMatch(r`b(a)b\g<-1>b`);
     });
 
     it('should allow a subroutine to come before the referenced group', () => {
       expect('aa').toExactlyMatch(r`\g<+1>(a)`);
+      expect('aa').toExactlyMatch(r`\g'+1'(a)`);
       expect('aa').toExactlyMatch(r`(\g<+1>(a))`);
     });
 
@@ -75,6 +76,7 @@ describe('Subroutine', () => {
   describe('named', () => {
     it('should match the expression within the referenced group', () => {
       expect('aa').toExactlyMatch(r`(?<a>a)\g<a>`);
+      expect('aa').toExactlyMatch(r`(?<a>a)\g'a'`);
       expect('babab').toExactlyMatch(r`b(?<a>a)b\g<a>b`);
     });
 
