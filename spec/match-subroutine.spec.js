@@ -7,6 +7,8 @@ beforeEach(() => {
 });
 
 describe('Subroutine', () => {
+  // TODO: Subroutines use the flags that apply to their reffed group
+
   describe('numbered', () => {
     it('should match the expression within the referenced group', () => {
       expect('aa').toExactlyMatch(r`(a)\g<1>`);

@@ -8,6 +8,8 @@ beforeEach(() => {
 });
 
 describe('Backreference', () => {
+  // TODO: Case-insensitive backref to case-sensitive group requires allowBestEffort or ESNext
+
   describe('numbered backref', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\1`);

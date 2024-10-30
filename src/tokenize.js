@@ -135,6 +135,7 @@ function tokenize(pattern, flags = '') {
   const xStack = [flags.includes('x')];
   const context = {
     getCurrentModX: () => xStack.at(-1),
+    numOpenGroups: 0,
     popModX() {xStack.pop()},
     pushModX(isXOn) {xStack.push(isXOn)},
     replaceCurrentModX(isXOn) {xStack[xStack.length - 1] = isXOn},
@@ -258,6 +259,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     }
     // Remaining group types all reuse current flag x status
     context.pushModX(context.getCurrentModX());
+    context.numOpenGroups++;
     if (
       // Unnamed capture if no named captures, else noncapturing group
       m === '(' ||
@@ -305,6 +307,10 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
   }
   if (m === ')') {
     context.popModX();
+    context.numOpenGroups--;
+    if (context.numOpenGroups < 0) {
+      throw new Error('Unmatched ")"');
+    }
     return {
       token: createToken(TokenTypes.GroupClose, m),
     };
@@ -523,6 +529,7 @@ function createTokenForFlagMod(raw, context) {
   // Flag group opener; ex: `(?im-x:`
   if (raw.endsWith(':')) {
     context.pushModX(isXOn);
+    context.numOpenGroups++;
     const token = createToken(TokenTypes.GroupOpen, raw, {
       kind: TokenGroupKinds.group,
     });
