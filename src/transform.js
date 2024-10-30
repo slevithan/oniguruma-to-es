@@ -511,16 +511,17 @@ const ThirdPassVisitor = {
     if (refNodes.length > 1) {
       const alts = refNodes.map(reffedGroupNode => adoptAndSwapKids(
         createAlternative(),
-        [ unclosedCaps.some(cap => cap.number === reffedGroupNode.number) ?
+        [ unclosedCaps.some(capture => capture.number === reffedGroupNode.number) ?
             createLookaround({negate: true}) :
             createBackreference(reffedGroupNode.number)
         ]
       ));
       replaceWith(adoptAndSwapKids(createGroup(), alts));
-    } else if (unclosedCaps.some(cap => cap.number === node.ref || cap.name === node.ref)) {
-      replaceWith(createLookaround({negate: true}));
     } else {
       node.ref = refNodes[0].number;
+      if (unclosedCaps.some(capture => capture.number === node.ref)) {
+        replaceWith(createLookaround({negate: true}));
+      }
     }
   },
 };

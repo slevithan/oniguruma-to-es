@@ -1,4 +1,4 @@
-export const duplicateCaptureNamesSupported = (() => {
+const duplicateCaptureNamesSupported = (() => {
   try {
     new RegExp('(?<n>)|(?<n>)');
   } catch (e) {
@@ -6,3 +6,9 @@ export const duplicateCaptureNamesSupported = (() => {
   }
   return true;
 })();
+
+const maxTargetForDuplicateNames = duplicateCaptureNamesSupported ? null : 'ES2024';
+
+export {
+  maxTargetForDuplicateNames,
+};
