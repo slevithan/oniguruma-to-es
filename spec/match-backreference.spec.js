@@ -17,6 +17,7 @@ describe('Backreference', () => {
       expect('').not.toFindMatch(r`(\1)`);
       expect('').not.toFindMatch(r`(((\2)))`);
       expect(['a', 'aa']).not.toFindMatch(r`(a\1)`);
+      expect('').not.toFindMatch(r`(\g<2>(\1))`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -86,6 +87,7 @@ describe('Backreference', () => {
       expect('').not.toFindMatch(r`(\k<1>)`);
       expect('').not.toFindMatch(r`(((\k<2>)))`);
       expect(['a', 'aa']).not.toFindMatch(r`(a\k<1>)`);
+      expect('').not.toFindMatch(r`(\g<2>(\k<1>))`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -167,6 +169,7 @@ describe('Backreference', () => {
       expect('').not.toFindMatch(r`(\k<-1>)`);
       expect('').not.toFindMatch(r`(((\k<-2>)))`);
       expect(['a', 'aa']).not.toFindMatch(r`(a\k<-1>)`);
+      expect('').not.toFindMatch(r`(\g<+1>(\k<-2>))`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -255,12 +258,13 @@ describe('Backreference', () => {
       expect('').not.toFindMatch(r`(?<a>\k<a>)`);
       expect('').not.toFindMatch(r`(?<a>(?<b>(?<c>\k<b>)))`);
       expect(['a', 'aa']).not.toFindMatch(r`(?<a>a\k<a>)`);
+      expect('').not.toFindMatch(r`(?<a>\g<b>(?<b>\k<a>))`);
       expect('').not.toFindMatch(r`(?<a>(?<a>\k<a>))`);
       expect('aa').toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b\k<n>)`);
       expect(['a', 'b', 'ba', 'bb']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b\k<n>)`);
     });
 
-    it('should only preclude the not-yet-closed groups when multiplexing', () => {
+    it('should preclude only the not-yet-closed groups when multiplexing', () => {
       expect('aa').toExactlyMatch(r`(?<a>a)(?<a>\k<a>)`);
       expect('aba').toExactlyMatch(r`(?<n>a)(?<n>b\k<n>)`);
       expect(['aa', 'bcb']).toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`);
@@ -306,6 +310,7 @@ describe('Backreference', () => {
 
     it('should increase multiplexing as duplicate names are added to the left', () => {
       expect(['aaba', 'aabb']).toExactlyMatch(r`(?<n>a)\k<n>(?<n>b)\k<n>`);
+      expect(['aaba', 'aabb']).toExactlyMatch(r`((?<n>a)\k<n>)(?<n>b)\k<n>`);
       expect(['abba', 'abbb']).not.toFindMatch(r`(?<n>a)\k<n>(?<n>b)\k<n>`);
     });
 

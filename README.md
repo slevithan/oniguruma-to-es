@@ -40,6 +40,8 @@ Specifically, this option enables the following additional features, depending o
 
 If `null`, any use of recursion throws. If an integer between `2` and `100` (and `allowBestEffort` is on), common recursion forms are supported and recurse up to the specified max depth.
 
+Using a higher limit is not a problem if needed. Although it can add a slight performance cost, that's limited to regexes that actually use recursion.
+
 *Default: `6`.*
 
 ### `optimize`

@@ -441,9 +441,9 @@ const SecondPassVisitor = {
         // named groups from their preceding siblings
         let upAlt = getParentAlternative(parentAlt);
         if (upAlt) {
-          while ((upAlt = getParentAlternative(upAlt))) {
+          do {
             getOrCreate(namedGroupsInScopeByAlt, upAlt, new Map()).set(name, node);
-          }
+          } while ((upAlt = getParentAlternative(upAlt)));
         }
       }
     },

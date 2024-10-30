@@ -7,6 +7,8 @@ beforeEach(() => {
 });
 
 describe('Subroutine', () => {
+  // TODO: Test `\g'n'` syntax
+
   describe('numbered', () => {
     it('should match the expression within the referenced group', () => {
       expect('aa').toExactlyMatch(r`(a)\g<1>`);
