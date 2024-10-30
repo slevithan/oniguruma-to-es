@@ -1,13 +1,14 @@
 # Oniguruma-To-ES
 
-This is an **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript RegExp transpiler** that runs in any JavaScript environment. It gives you the ability to:
+A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the browser or on your server. Use it to:
 
-- Use most of Oniguruma's extended regex syntax and behavior in JavaScript.
+- Take advantage of Oniguruma's extended regex capabilities in JavaScript.
 - Run regexes intended for Oniguruma in JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
+- Share regexes across your Ruby and JavaScript code.
+
+Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes **run much faster** since they run as native JavaScript.
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
-
-Compared to running the actual Oniguruma C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes **run much faster**.
 
 Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
 
@@ -72,7 +73,7 @@ The returned `pattern` and `flags` can be provided directly to the `RegExp` cons
 A string with `i`, `m`, and `x` in any order (all optional).
 
 > [!WARNING]
-> Oniguruma's flag `m` is equivalent to JavaScript's flag `s`.
+> Oniguruma's flag `m` is equivalent to JavaScript's flag `s` (`dotAll`).
 
 #### Type `CompileOptions`
 
@@ -130,7 +131,7 @@ function toRegexAst(
 
 ## 🔩 Options
 
-These options are shared by functions `compile` and `toRegExp`.
+These options are shared by functions [`compile`](#compile) and [`toRegExp`](#toregexp).
 
 ### `allowBestEffort`
 
@@ -209,6 +210,6 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan).
 
-If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) future development.
+If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
 
 © 2024–present. MIT License.
