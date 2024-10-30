@@ -11,29 +11,29 @@ Compared to running the actual Oniguruma C library in JavaScript via WASM bindin
 
 Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
 
-## Contents
+## 📜 Contents
 
-- [Install and use](#install-and-use)
-- [API](#api)
-- [Options](#options)
-- [Unicode / mixed case-sensitivity](#unicode--mixed-case-sensitivity)
+- [Install and use](#️-install-and-use)
+- [API](#-api)
+- [Options](#-options)
+- [Unicode / mixed case-sensitivity](#️-unicode--mixed-case-sensitivity)
 
-## Install and use
+## 🕹️ Install and use
 
 ```sh
 npm install oniguruma-to-es
 ```
 
 ```js
-import {compile, toRegExp} from 'regex';
+import {compile} from 'oniguruma-to-es';
 ```
 
 In browsers:
 
 ```html
 <script type="module">
-  import {compile, toRegExp} from 'https://esm.run/oniguruma-to-es';
-  // …
+  import {compile} from 'https://esm.run/oniguruma-to-es';
+  compile(String.raw`…`);
 </script>
 ```
 
@@ -43,12 +43,12 @@ In browsers:
 ```html
 <script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"></script>
 <script>
-  const {compile, toRegExp} = OnigurumaToES;
+  const {compile} = OnigurumaToES;
 </script>
 ```
 </details>
 
-## API
+## 🔑 API
 
 ### `compile`
 
@@ -67,7 +67,12 @@ function compile(
 
 The returned `pattern` and `flags` can be provided directly to the `RegExp` constructor.
 
-`OnigurumaFlags` are `i`, `m`, and `x` in any order (all optional). Oniguruma's flag `m` is equivalent to JavaScript's flag `s`.
+#### Type `OnigurumaFlags`
+
+A string with `i`, `m`, and `x` in any order (all optional).
+
+> [!WARNING]
+> Oniguruma's flag `m` is equivalent to JavaScript's flag `s`.
 
 #### Type `CompileOptions`
 
@@ -80,7 +85,7 @@ type CompileOptions = {
 };
 ```
 
-See [Options](#options) for more details.
+See [Options](#-options) for more details.
 
 ### `toRegExp`
 
@@ -123,7 +128,7 @@ function toRegexAst(
 
 `regex` syntax and behavior is a strict superset of native JavaScript `RegExp`, so the AST is very close to representing native ESNext JavaScript but with some added features (atomic groups, possessive quantifiers, recursion). The `regex` AST doesn't use some `regex` features like flag `x` or subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The AST represents what's needed to precisely reproduce the Oniguruma behavior.
 
-## Options
+## 🔩 Options
 
 These options are shared by functions `compile` and `toRegExp`.
 
@@ -185,7 +190,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
 </details>
 
-## Unicode / mixed case-sensitivity
+## ㊗️ Unicode / mixed case-sensitivity
 
 Oniguruma-To-ES fully supports mixed case-sensitivity (and handles the Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
 
@@ -196,11 +201,11 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
   - In other words, almost every usage is fine, inluding `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
 
-## Similar projects
+## 👀 Similar projects
 
 [js_regex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). js_regex is written in Ruby and relies on Ruby's built-in Onigmo parser, which means regexes must be transpiled ahead of time to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript, so it can be used at runtime. js_regex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
 
-## About
+## 🏷️ About
 
 Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan).
 
