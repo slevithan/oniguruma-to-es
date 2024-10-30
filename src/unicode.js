@@ -174,7 +174,7 @@ const JsUnicodePropertiesPostEs2018 = new Set((
   ' Cpmn Cypro_Minoan Old_Uyghur Ougr Tangsa Tnsa Toto Vith Vithkuqi' +
   // ES2023 scripts
   ' Gara Garay Gukh Gurung_Khema Hrkt Katakana_Or_Hiragana Kawi Kirat_Rai Krai Nag_Mundari Nagm Ol_Onal Onao Sunu Sunuwar Todhri Todr Tulu_Tigalari Tutg Unknown Zzzz'
-  // ES2024: None added except `JsUnicodePropertiesOfStrings`
+  // ES2024: None, but added `JsUnicodePropertiesOfStrings`
 ).split(' '));
 
 const LowerToAlternativeUpperCaseMap = new Map([

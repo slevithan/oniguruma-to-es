@@ -33,8 +33,8 @@ const TokenCharacterSetKinds = {
 };
 
 const TokenDirectiveKinds = {
-  keep: 'keep',
   flags: 'flags',
+  keep: 'keep',
 };
 
 const TokenGroupKinds = {

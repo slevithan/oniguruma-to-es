@@ -61,8 +61,8 @@ describe('CharacterClass', () => {
       });
     });
 
-    // TODO: Rest
+    // TODO: Add remaining
   });
 
-  // TODO: Rest
+  // TODO: Add remaining
 });

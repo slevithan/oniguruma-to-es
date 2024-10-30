@@ -7,7 +7,7 @@ beforeEach(() => {
 });
 
 describe('Assertion', () => {
-  // For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`
+  // [Note] For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`
 
   describe('line_end', () => {
     it('should match at the end of the string', () => {
