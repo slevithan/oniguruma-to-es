@@ -16,7 +16,7 @@ describe('Backreference', () => {
     it('should not match if it references a not-yet-closed group', () => {
       expect('').not.toFindMatch(r`(\1)`);
       expect('').not.toFindMatch(r`(((\2)))`);
-      expect('aa').not.toFindMatch(r`(a\1)`);
+      expect(['a', 'aa']).not.toFindMatch(r`(a\1)`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -65,6 +65,11 @@ describe('Backreference', () => {
       expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<1>\2`);
     });
 
+    it('should continue to reference the correct group when subroutines add captures', () => {
+      expect('aabb').toExactlyMatch(r`(a)\g<1>(b)\2`);
+      expect('aaba').not.toFindMatch(r`(a)\g<1>(b)\2`);
+    });
+
     it('should track independent captures when used in a group referenced by a subroutine', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\2)\g<1>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\2)\g<1>`);
@@ -80,7 +85,7 @@ describe('Backreference', () => {
     it('should not match if it references a not-yet-closed group', () => {
       expect('').not.toFindMatch(r`(\k<1>)`);
       expect('').not.toFindMatch(r`(((\k<2>)))`);
-      expect('aa').not.toFindMatch(r`(a\k<1>)`);
+      expect(['a', 'aa']).not.toFindMatch(r`(a\k<1>)`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -141,6 +146,11 @@ describe('Backreference', () => {
       expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<1>\k<2>`);
     });
 
+    it('should continue to reference the correct group when subroutines add captures', () => {
+      expect('aabb').toExactlyMatch(r`(a)\g<1>(b)\k<2>`);
+      expect('aaba').not.toFindMatch(r`(a)\g<1>(b)\k<2>`);
+    });
+
     it('should track independent captures when used in a group referenced by a subroutine', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\k<2>)\g<1>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\k<2>)\g<1>`);
@@ -156,7 +166,7 @@ describe('Backreference', () => {
     it('should not match if it references a not-yet-closed group', () => {
       expect('').not.toFindMatch(r`(\k<-1>)`);
       expect('').not.toFindMatch(r`(((\k<-2>)))`);
-      expect('aa').not.toFindMatch(r`(a\k<-1>)`);
+      expect(['a', 'aa']).not.toFindMatch(r`(a\k<-1>)`);
     });
 
     it('should throw if not enough captures to the left', () => {
@@ -222,6 +232,11 @@ describe('Backreference', () => {
       expect(['1231', '1232']).not.toFindMatch(r`(([123]))\g<1>\g<-2>\k<-1>`);
     });
 
+    it('should continue to reference the correct group when subroutines add captures', () => {
+      expect('aabb').toExactlyMatch(r`(a)\g<1>(b)\k<-1>`);
+      expect('aaba').not.toFindMatch(r`(a)\g<1>(b)\k<-1>`);
+    });
+
     it('should track independent captures when used in a group referenced by a subroutine', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\k<-1>)\g<1>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\k<-1>)\g<1>`);
@@ -239,7 +254,17 @@ describe('Backreference', () => {
     it('should not match if it references a not-yet-closed group', () => {
       expect('').not.toFindMatch(r`(?<a>\k<a>)`);
       expect('').not.toFindMatch(r`(?<a>(?<b>(?<c>\k<b>)))`);
-      expect('aa').not.toFindMatch(r`(?<a>a\k<a>)`);
+      expect(['a', 'aa']).not.toFindMatch(r`(?<a>a\k<a>)`);
+      expect('').not.toFindMatch(r`(?<a>(?<a>\k<a>))`);
+      expect('aa').toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b\k<n>)`);
+      expect(['a', 'b', 'ba', 'bb']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b\k<n>)`);
+    });
+
+    it('should only preclude the not-yet-closed groups when multiplexing', () => {
+      expect('aa').toExactlyMatch(r`(?<a>a)(?<a>\k<a>)`);
+      expect('aba').toExactlyMatch(r`(?<n>a)(?<n>b\k<n>)`);
+      expect(['aa', 'bcb']).toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`);
+      expect(['a', 'bc', 'bca', 'bcc']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`);
     });
 
     it('should throw if capture is not to the left', () => {
@@ -273,12 +298,16 @@ describe('Backreference', () => {
 
     it('should multiplex for duplicate names to the left', () => {
       expect(['aba', 'abb']).toExactlyMatch(r`(?<n>a)(?<n>b)\k<n>`);
+      expect(['aba', 'abb', 'ab']).toExactlyMatch(r`(?<n>a)(?<n>b)\k<n>?`);
       expect(['abca', 'abcb', 'abcc']).toExactlyMatch(r`(?<n>a)(?<n>b)(?<n>c)\k<n>`);
       expect(['aba', 'abb']).toExactlyMatch(r`(?<n>\w)(?<n>\w)\k<n>`);
       expect(['aab', 'abc']).not.toFindMatch(r`(?<n>\w)(?<n>\w)\k<n>`);
     });
 
-    // TODO: Multiplexing changes across multiple backrefs as more duplicate groups are added
+    it('should increase multiplexing as duplicate names are added to the left', () => {
+      expect(['aaba', 'aabb']).toExactlyMatch(r`(?<n>a)\k<n>(?<n>b)\k<n>`);
+      expect(['abba', 'abbb']).not.toFindMatch(r`(?<n>a)\k<n>(?<n>b)\k<n>`);
+    });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
       expect('abb').toExactlyMatch(r`(?<a>\w)\g<a>\k<a>`);
@@ -287,7 +316,12 @@ describe('Backreference', () => {
       expect('aba').not.toFindMatch(r`\g<a>(?<a>\w)\k<a>`);
     });
 
-    it('should multiplex for duplicate names to the left but use only the most recent of an indirect capture/subroutine set', () => {
+    it('should continue to reference the correct group when subroutines add captures', () => {
+      expect('aabb').toExactlyMatch(r`(?<a>a)\g<a>(?<b>b)\k<b>`);
+      expect('aaba').not.toFindMatch(r`(?<a>a)\g<a>(?<b>b)\k<b>`);
+    });
+
+    it('should multiplex for duplicate names to the left but only use the most recent of an indirect capture/subroutine set', () => {
       expect([ // All possible matches
         '1010', '1011', '1020', '1022', '2010', '2011', '2020', '2022',
       ]).toExactlyMatch(r`(?<a>(?<b>[12]))(?<b>0)\g<a>\k<b>`);
@@ -298,6 +332,15 @@ describe('Backreference', () => {
       expect(['10231', '10232']).not.toFindMatch(r`(?<a>(?<b>[123]))(?<b>0)\g<a>\g<a>\k<b>`);
       expect(['12300', '12303']).toExactlyMatch(r`(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`);
       expect(['12301', '12302']).not.toFindMatch(r`(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`);
+    });
+
+    it('should preclude groups not in the alternation path when multiplexing', () => {
+      // This enforces Oniguruma logic where backrefs to nonparticipating groups fail to match
+      // rather than JS logic where they match the empty string
+      expect(['aa', 'bb']).toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)\k<n>`);
+      expect(['a', 'b', 'ba']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b)\k<n>`);
+      expect(['aa', 'bcb', 'bcc']).toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`);
+      expect(['a', 'bc', 'bca']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`);
     });
 
     it('should track independent captures when used in a group referenced by a subroutine', () => {

@@ -238,7 +238,8 @@ function genCapturingGroup({name, number, alternatives}, state, gen) {
   if (name) {
     if (state.groupNames.has(name)) {
       if (!state.useDuplicateNames) {
-        // Keep the name only in the first alternation path that used it
+        // Keep the name only in the first alternation path that used it; the transformer already
+        // stripped all but the last duplicate name per alternation path
         name = null;
       }
     } else {

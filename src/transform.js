@@ -127,15 +127,6 @@ const FirstPassVisitor = {
     // Kinds `lookahead` and `lookbehind` also don't need transformation
   },
 
-  Backreference({node, replaceWith}) {
-    // Convert backrefs reffing a not-yet-closed group to `(?!)`; they can't match in Onig but
-    // match an empty string in JS
-    const unclosed = getAllParents(node, node => node.type === AstTypes.CapturingGroup);
-    if (unclosed.some(capture => capture.number === node.ref || capture.name === node.ref)) {
-      replaceWith(createLookaround({negate: true}));
-    }
-  },
-
   CapturingGroup({node}, {subroutineRefMap}) {
     const {name, number} = node;
     if (name && !isValidGroupNameJs(name)) {
@@ -378,6 +369,7 @@ const SecondPassVisitor = {
       const ref = name ?? number;
       // Has value if we're within a subroutine expansion
       const origin = groupOriginByCopy.get(node);
+      const parentAlt = getParentAlternative(node);
 
       // ## Handle recursion; runs after subroutine expansion
       // TODO: Can this be refactored into conditions for `isDirectRecursion` and `isIndirectRecursion`?
@@ -413,13 +405,19 @@ const SecondPassVisitor = {
         // tracked multiplexed nodes for this group name or number to see if there's a node being
         // replaced by this capture
         const multiplex = multiplexNodes[i];
+        const mpName = multiplex.node.name;
         if (
           // This group is from subroutine expansion, and there's a multiplex value from either the
           // origin node or a prior subroutine expansion group with the same origin
           (origin === multiplex.node || (origin && origin === multiplex.origin)) ||
           // This group is not from subroutine expansion, and it comes after a subroutine expansion
-          // group that refers to itself
-          node === multiplex.origin
+          // group that refers to this group
+          node === multiplex.origin ||
+          // The multiplex node is a named group that's not in the current alternation path (which
+          // will mean it's nonparticipating for any following backrefs); remove it from
+          // multiplexing since backrefs to nonparticipating groups can't match in Onig but match
+          // the empty string in JS
+          (mpName && !getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map()).has(mpName))
         ) {
           multiplexNodes.splice(i, 1);
           break;
@@ -432,20 +430,19 @@ const SecondPassVisitor = {
       // nested groups), so if using a duplicate name for this alternation path, remove the name from
       // all but the latest instance (also applies to groups added via subroutine expansion)
       if (name) {
-        let parentAlt = getParentAlternative(node);
         const namedGroupsInScope = getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map());
         if (namedGroupsInScope.has(name)) {
-          // Change the earlier instance of this group name to an unnamed capturing group
+          // Will change the earlier instance of this group name to an unnamed capturing group
           groupsWithDuplicateNamesToRemove.add(namedGroupsInScope.get(name));
         }
         // Track the latest instance of this group name, and pass it up through parent alternatives
         namedGroupsInScope.set(name, node);
         // Skip the immediate parent alt because we don't want subsequent sibling alts to consider
         // named groups from their preceding siblings
-        parentAlt = getParentAlternative(parentAlt);
-        if (parentAlt) {
-          while ((parentAlt = getParentAlternative(parentAlt))) {
-            getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map()).set(name, node);
+        let upAlt = getParentAlternative(parentAlt);
+        if (upAlt) {
+          while ((upAlt = getParentAlternative(upAlt))) {
+            getOrCreate(namedGroupsInScopeByAlt, upAlt, new Map()).set(name, node);
           }
         }
       }
@@ -504,16 +501,24 @@ const ThirdPassVisitor = {
 
   Backreference({node, replaceWith}, {reffedNodesByBackreference}) {
     const refNodes = reffedNodesByBackreference.get(node);
+    const unclosedCaps = getAllParents(node, node => node.type === AstTypes.CapturingGroup);
     // For the backref's `ref`, use `number` rather than `name` because group names might have been
     // removed if they're duplicates within their alternation path, or they might be removed later
-    // by the generator (depending on options) if they're duplicates within the overall pattern.
-    // Backrefs must come after groups they ref, so reffed node `number`s are already recalculated
+    // by the generator (depending on target) if they're duplicates within the overall pattern.
+    // Backrefs must come after groups they ref, so reffed node `number`s are already recalculated.
+    // Also, convert backrefs to not-yet-closed groups to `(?!)`; they can't match in Onig but
+    // match the empty string in JS
     if (refNodes.length > 1) {
       const alts = refNodes.map(reffedGroupNode => adoptAndSwapKids(
         createAlternative(),
-        [createBackreference(reffedGroupNode.number)]
+        [ unclosedCaps.some(cap => cap.number === reffedGroupNode.number) ?
+            createLookaround({negate: true}) :
+            createBackreference(reffedGroupNode.number)
+        ]
       ));
       replaceWith(adoptAndSwapKids(createGroup(), alts));
+    } else if (unclosedCaps.some(cap => cap.number === node.ref || cap.name === node.ref)) {
+      replaceWith(createLookaround({negate: true}));
     } else {
       node.ref = refNodes[0].number;
     }
