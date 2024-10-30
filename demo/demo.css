@@ -12,11 +12,12 @@ body {
 }
 
 main {
-  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.9);
   max-width: 65rem;
   padding: 2.8vw 4.5vw;
   margin: 0 auto;
   box-shadow: 0 0 0 10px #80c0ff;
+  border-radius: 0 0 15px 15px;
 }
 
 h1, h2, ul, p, pre, details, summary {
@@ -33,7 +34,7 @@ h2 {
 
 code {
   padding: 0 3px;
-  background-color: #f3f3f3;
+  background-color: #f6f6f6;
 }
 
 small {
@@ -42,6 +43,31 @@ small {
 
 label, .label {
   margin-right: 0.4em;
+}
+
+input[type='checkbox'] {
+  width: 1.25em;
+  height: 1.25em;
+  border-radius: 6px;
+  vertical-align: middle;
+  accent-color: #80c0ff;
+}
+
+input[type='number'] {
+  border: 1px solid #bbb;
+  height: 1.6em;
+  border-radius: 4px;
+  padding-left: 4px;
+  width: 3.5em;
+}
+
+select {
+  padding: 4px 35px 4px 10px;
+  font-size: 0.9em;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  appearance: none;
+  background: url(https://upload.wikimedia.org/wikipedia/commons/9/99/Unofficial_JavaScript_logo_2.svg) 96% / 15% no-repeat #f6f6f6;
 }
 
 textarea {
@@ -72,18 +98,19 @@ pre, code, textarea {
 }
 
 #output {
-  border: 1px dotted #aaa;
+  border: 1px dotted #80c0ff;
   width: 100%;
   min-height: 2.5em;
   max-height: 150px;
   overflow: auto;
-  background-color: #f9f9f9;
+  background-color: #d6ebff;
+  background: repeating-linear-gradient(45deg, #d6ebff, #d6ebff 3px, #c9e4ff 3px, #c9e4ff 10px);
 }
 
 #output.error {
+  border-color: pink;
   background-color: pink;
-}
-
-#option-max-recursion-depth {
-  width: 3.5em;
+  color: #841448;
+  font-weight: bold;
+  background: repeating-linear-gradient(45deg, #feddff, #feddff 3px, #ffd7f6 3px, #ffd7f6 10px);
 }

@@ -17,6 +17,7 @@ Oniguruma-To-ES deeply understands all of the hundreds of large and small differ
 - [Install and use](#️-install-and-use)
 - [API](#-api)
 - [Options](#-options)
+- [Supported features](#-supported-features)
 - [Unicode / mixed case-sensitivity](#️-unicode--mixed-case-sensitivity)
 
 ## 🕹️ Install and use
@@ -191,6 +192,88 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
 </details>
 
+## ✅ Supported features
+
+<table >
+  <tr>
+    <th colspan="2">Description</th>
+    <th>Example</th>
+    <th>ES2018</th>
+    <th>ES2024</th>
+    <th>ESNext</th>
+    <th>Comments</th>
+  </tr>
+  <tr valign="top">
+    <td rowspan="3"><b>Flags</b></td>
+    <td><code>i</code></td>
+    <td><code>/i</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      • Unicode case folding<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td><code>m</code></td>
+    <td><code>/m</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      • Equivalent to JS flag <code>s</code> (<code>dotAll</code>)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td><code>x</code></td>
+    <td><code>/x</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      • Unicode whitespace ignored<br>
+      • Whitespace not allowed between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive<br>
+      • Line comments with <code>#</code><br>
+      • Whitespace and <code>#</code> not ignored in char classes<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td rowspan="2" valign="top"><b>Flag modifiers</b></td>
+    <td>Groups</td>
+    <td><code>(?im-x:…)</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      • Allows enabling and disabling the same flag (disable overrides)<br>
+      • Allows lone or multiple <code>-</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Directives</td>
+    <td><code>(?im-x)</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      • Continues until end of pattern or group (spanning alternatives)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td colspan="2"><b>Comment groups</b></td>
+    <td><code>(?#…)</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      • Allows escaping <code>\)</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td colspan="7"><b>…</b></td>
+  </tr>
+</table>
+
 ## ㊗️ Unicode / mixed case-sensitivity
 
 Oniguruma-To-ES fully supports mixed case-sensitivity (and handles the Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
@@ -204,7 +287,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[js_regex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). js_regex is written in Ruby and relies on Ruby's built-in Onigmo parser, which means regexes must be transpiled ahead of time to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript, so it can be used at runtime. js_regex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). JsRegex is written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Onigmo parser, which means regexes must be pre-transpiled on the server to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript, so it can be used at runtime. JsRegex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
 
 ## 🏷️ About
 
