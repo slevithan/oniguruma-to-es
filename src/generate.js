@@ -2,7 +2,7 @@ import {getOptions} from './compile.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, isLookaround} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, isMinTarget, r} from './utils.js';
+import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 
 /**
 Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
@@ -488,13 +488,6 @@ function getGroupPrefix(atomic, flagMods, useFlagMods) {
       (disable?.dotAll ? 's' : '');
   }
   return `${mods}:`;
-}
-
-function getNewCurrentFlags(current, {enable, disable}) {
-  return {
-    dotAll: !disable?.dotAll && !!(enable?.dotAll || current.dotAll),
-    ignoreCase: !disable?.ignoreCase && !!(enable?.ignoreCase || current.ignoreCase),
-  };
 }
 
 function getQuantifierStr({min, max, greedy, possessive}) {

@@ -13,6 +13,13 @@ const Target = /** @type {const} */ ({
   ESNext: 'ESNext',
 });
 
+function getNewCurrentFlags(current, {enable, disable}) {
+  return {
+    dotAll: !disable?.dotAll && !!(enable?.dotAll || current.dotAll),
+    ignoreCase: !disable?.ignoreCase && !!(enable?.ignoreCase || current.ignoreCase),
+  };
+}
+
 function getOrCreate(map, key, defaultValue) {
   if (!map.has(key)) {
     map.set(key, defaultValue);
@@ -39,6 +46,7 @@ function throwIfNot(value, msg) {
 export {
   cp,
   EsVersion,
+  getNewCurrentFlags,
   getOrCreate,
   isMinTarget,
   r,

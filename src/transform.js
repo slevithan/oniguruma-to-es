@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, As
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {cp, getOrCreate, isMinTarget, r, Target} from './utils.js';
+import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './utils.js';
 
 /**
 @typedef {{
@@ -45,12 +45,20 @@ function transform(ast, options) {
     subroutineRefMap: new Map(),
   };
   traverse({node: ast}, firstPassState, FirstPassVisitor);
+  // Global flags modified by the first pass
+  const globalFlags = {
+    dotAll: ast.flags.dotAll,
+    ignoreCase: ast.flags.ignoreCase,
+  };
   // The interplay of subroutines (with Onig's unique rules/behavior for them; see comments in the
   // parser for details) with backref multiplexing (a unique Onig feature), flag modifiers, and
   // duplicate group names (which might be indirectly referenced by subroutines even though
   // subroutines can't directly reference duplicate names) is extremely complicated to emulate in
   // JS in a way that handles all edge cases, so we need multiple passes to do it
   const secondPassState = {
+    currentFlags: globalFlags,
+    prevFlags: null,
+    globalFlags,
     groupOriginByCopy: new Map(),
     groupsWithDuplicateNamesToRemove: new Set(),
     multiplexCapturesToLeftByRef: new Map(),
@@ -86,7 +94,7 @@ const FirstPassVisitor = {
       // directives from prior sibling alternatives because doing this at the end allows inner
       // nodes to accurately check their level in the tree
       if (flagDirectivesByAlt.get(node)?.length) {
-        const flags = getCombinedFlagsFromFlagNodes(flagDirectivesByAlt.get(node));
+        const flags = getCombinedFlagModsFromFlagNodes(flagDirectivesByAlt.get(node));
         if (flags) {
           const flagGroup = prepContainer(createGroup({flags}), node.elements);
           // Manually set the parent since we're not using `replaceWith`
@@ -207,7 +215,7 @@ const FirstPassVisitor = {
       // char is line feed, unlike JS, so the flag isn't used since it would produce inaccurate
       // results (also allows using `^` and `$` in generated output for string start and end)
       multiline: false,
-      // JS flag y; no Onig equiv, but used for `\G` emulation
+      // JS flag y; no Onig equiv, but modified by preceding `Pattern` traversal for `\G` emulation
       sticky: node.sticky ?? false,
       // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
       // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
@@ -235,17 +243,17 @@ const FirstPassVisitor = {
     if (!node.flags) {
       return;
     }
-    // JS doesn't support flag groups that enable and disable the same flag; ex: `(?i-i:)`
     const {enable, disable} = node.flags;
-    if (enable?.dotAll && disable?.dotAll) {
-      delete enable.dotAll;
-    }
-    if (enable?.ignoreCase && disable?.ignoreCase) {
-      delete enable.ignoreCase;
-    }
-    if (enable && !Object.keys(enable).length) {
-      delete node.flags.enable;
-    }
+    // Onig's flag x (`extended`) isn't available in JS
+    enable?.extended && delete enable.extended;
+    disable?.extended && delete disable.extended;
+    // JS doesn't support flag groups that enable and disable the same flag; ex: `(?i-i:)`
+    enable?.dotAll && disable?.dotAll && delete enable.dotAll;
+    enable?.ignoreCase && disable?.ignoreCase && delete enable.ignoreCase;
+    // Cleanup
+    enable && !Object.keys(enable).length && delete node.flags.enable;
+    disable && !Object.keys(disable).length && delete node.flags.disable;
+    !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
   Pattern({node}) {
@@ -462,6 +470,19 @@ const SecondPassVisitor = {
     },
   },
 
+  Group: {
+    enter({node}, state) {
+      // Flag directives have already been converted to flag groups by the previous pass
+      state.prevFlags = state.currentFlags;
+      if (node.flags) {
+        state.currentFlags = getNewCurrentFlags(state.currentFlags, node.flags);
+      }
+    },
+    exit(_, state) {
+      state.currentFlags = state.prevFlags;
+    },
+  },
+
   Subroutine(path, state) {
     const {node, replaceWith} = path;
     const {ref} = node;
@@ -475,19 +496,20 @@ const SecondPassVisitor = {
     let replacement = expandedSubroutine;
     if (!isGlobalRecursion) {
       // Subroutines take their flags from the reffed group, not the flags surrounding themselves
-      const flags = getCombinedFlagsFromFlagNodes(getAllParents(reffedGroupNode, node => {
+      const reffedGroupFlagMods = getCombinedFlagModsFromFlagNodes(getAllParents(reffedGroupNode, node => {
         return node.type === AstTypes.Group && !!node.flags;
       }));
-      // TODO: Avoid if flags are the same as the currently active flag groups
-      // TODO: When there aren't mods affecting the reffed group, need to disable currently active flags to match
-      if (flags) {
-        replacement = prepContainer(createGroup({flags}), [expandedSubroutine]);
+      const reffedGroupFlags = reffedGroupFlagMods ?
+        getNewCurrentFlags(state.globalFlags, reffedGroupFlagMods) :
+        state.globalFlags;
+      if (!areFlagsEqual(reffedGroupFlags, state.currentFlags)) {
+        replacement = prepContainer(createGroup({
+          flags: getFlagModsFromFlags(reffedGroupFlags),
+        }), [expandedSubroutine]);
       }
     }
     replaceWith(replacement);
     if (!isGlobalRecursion) {
-      // Start traversal at the flag group wrapper so the logic for stripping duplicate names
-      // propagates through its alternative
       traverseReplacement(replacement, path, state, SecondPassVisitor);
     }
   },
@@ -535,6 +557,10 @@ function adoptAndSwapKids(parent, kids) {
   kids.forEach(kid => kid.parent = parent);
   parent[getChildContainerAccessor(parent)] = kids;
   return parent;
+}
+
+function areFlagsEqual(a, b) {
+  return a.dotAll === b.dotAll && a.ignoreCase === b.ignoreCase;
 }
 
 // Creates a deep copy of the provided node, with special handling:
@@ -593,7 +619,7 @@ function getChildContainerAccessor(node) {
   throw new Error('Accessor for child container unknown');
 }
 
-function getCombinedFlagsFromFlagNodes(flagNodes) {
+function getCombinedFlagModsFromFlagNodes(flagNodes) {
   const flagProps = ['dotAll', 'ignoreCase'];
   const combinedFlags = {enable: {}, disable: {}};
   flagNodes.forEach(({flags}) => {
@@ -618,6 +644,21 @@ function getCombinedFlagsFromFlagNodes(flagNodes) {
     return combinedFlags;
   }
   return null;
+}
+
+function getFlagModsFromFlags({dotAll, ignoreCase}) {
+  const mods = {};
+  if (dotAll || ignoreCase) {
+    mods.enable = {};
+    dotAll && (mods.enable.dotAll = true);
+    ignoreCase && (mods.enable.ignoreCase = true);
+  }
+  if (!dotAll || !ignoreCase) {
+    mods.disable = {};
+    !dotAll && (mods.disable.dotAll = true);
+    !ignoreCase && (mods.disable.ignoreCase = true);
+  }
+  return mods;
 }
 
 // See also `getAllParents`
