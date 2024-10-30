@@ -372,21 +372,19 @@ const SecondPassVisitor = {
       const parentAlt = getParentAlternative(node);
 
       // ## Handle recursion; runs after subroutine expansion
-      // TODO: Can this be refactored into conditions for `isDirectRecursion` and `isIndirectRecursion`?
-      const isRecursion = openSubroutineRefs.has(ref) || openDirectCaptures.has(origin);
-      const isDirectRecursion = isRecursion && !openSubroutineRefs.size;
-      if (isRecursion && !isDirectRecursion) {
+      if (openSubroutineRefs.has(ref)) {
         // Indirect recursion is supportable at the AST level but would require `regex-recursion`
         // to allow multiple recursions in a pattern, along with code changes here (after which
         // `openDirectCaptures` and `openSubroutineRefs` could be combined)
         throw new Error('Unsupported indirect recursion');
       }
       if (origin) {
+        // Name or number; not mixed since can't use numbered subroutines with named capture
         openSubroutineRefs.add(ref);
       } else {
         openDirectCaptures.add(node);
       }
-      if (isDirectRecursion) {
+      if (openDirectCaptures.has(origin)) {
         // Recursion doesn't change following backrefs to `ref` (unlike other subroutines), so
         // don't wrap with a capture for this node's ref
         replaceWith(createRecursion(ref));
@@ -546,7 +544,7 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
     } else {
       if (key === 'type' && value === AstTypes.CapturingGroup) {
         // Key is the copied node, value is the origin node
-        originMap.set(store, obj);
+        originMap.set(store, originMap.get(obj) ?? obj);
       }
       store[key] = value;
     }

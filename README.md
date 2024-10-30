@@ -24,25 +24,33 @@ These options are shared by functions `compile` and `toRegExp`.
 
 Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern can't be emulated with identical behavior for the given `target`.
 
+*Default: `true`.*
+
+<details>
+  <summary>More details</summary>
+
 Specifically, this option enables the following additional features, depending on `target`:
 
 - All targets (`ESNext` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
-  - Enables recursion via `\g<0>` and `\g<name>` using a depth limit specified via option `maxRecursionDepth`.
+  - Enables recursion (e.g. via `\g<0>`) using a depth limit specified via option `maxRecursionDepth`.
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
   - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes always use Unicode.
-
-*Default: `true`.*
+</details>
 
 ### `maxRecursionDepth`
 
-If `null`, any use of recursion throws. If an integer between `2` and `100` (and `allowBestEffort` is on), common recursion forms are supported and recurse up to the specified max depth.
-
-Using a higher limit is not a problem if needed. Although it can add a slight performance cost, that's limited to regexes that actually use recursion.
+If `null`, any use of recursion throws. If an integer between `2` and `100` (and `allowBestEffort` is `true`), common recursion forms are supported and recurse up to the specified max depth.
 
 *Default: `6`.*
+
+<details>
+  <summary>More details</summary>
+
+Using a higher limit is not a problem if needed. Although there can be a performance cost (generally small unless exacerbating an existing problem with superlinear backtracking), there is no effect on regexes that don't use recursion.
+</details>
 
 ### `optimize`
 
@@ -54,6 +62,11 @@ Simplify the generated pattern when it doesn't change the meaning.
 
 Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional Oniguruma features.
 
+*Default: `'ES2024'`.*
+
+<details open>
+  <summary>More details</summary>
+
 - `ES2018`: Uses JS flag `u`.
   - Emulation restrictions: Character class intersection, nested negated classes, and Unicode properties added after ES2018 are not allowed.
   - Generated regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case). Minimum requirement for any regex is Node.js 6 or a 2016-era browser.
@@ -63,8 +76,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 - `ESNext`: Uses JS flag `v` and allows use of flag groups and duplicate group names.
   - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
-
-*Default: `'ES2024'`.*
+</details>
 
 ## Unicode, mixed case-sensitivity
 

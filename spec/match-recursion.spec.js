@@ -17,7 +17,7 @@ describe('Recursion', () => {
     expect(() => compile('', '', {maxRecursionDepth: null})).not.toThrow();
   });
 
-  it('should throw if maxRecursionDepth is not null or a positive-integer in range 2-100', () => {
+  it('should throw if maxRecursionDepth is not null or a positive-integer 2-100', () => {
     for (const value of [-2, 0, 1, 2.5, 101, Infinity, '2', '', undefined, NaN, false, [], {}]) {
       expect(() => compile('', '', {maxRecursionDepth: value})).toThrow();
     }
@@ -51,7 +51,7 @@ describe('Recursion', () => {
 
   describe('numbered', () => {
     // Current limitation of `regex-recursion`
-    it('should throw for recursion by number', () => {
+    it('should throw for numbered recursion', () => {
       expect(() => compile(r`(a\g<1>?)`)).toThrow();
       expect(() => compile(r`(a\g<2>(\g<1>?))`)).toThrow();
     });
@@ -59,7 +59,7 @@ describe('Recursion', () => {
 
   describe('relative numbered', () => {
     // Current limitation of `regex-recursion`
-    it('should throw for recursion by number', () => {
+    it('should throw for relative numbered recursion', () => {
       expect(() => compile(r`(a\g<-1>?)`)).toThrow();
       expect(() => compile(r`(a\g<+1>(\g<-2>?))`)).toThrow();
     });
