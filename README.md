@@ -194,14 +194,17 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ## ✅ Supported features
 
+Notice that nearly every feature has at least some subtle difference from JavaScript. Some features and sub-features listed as unsupported can be added in future versions, but some are not emulatable with native JavaScript regexes.
+
 <table>
   <tr>
-    <th colspan="2">Description</th>
+    <th colspan="2">Feature</th>
     <th>Example</th>
     <th>ES2018</th>
-    <th>ES2024+<sup>[1]</sup></th>
+    <th>ES2024<sup>[1]</sup></th>
     <th>Comments</th>
   </tr>
+
   <tr valign="top">
     <th align="left" rowspan="3"><b>Flags</b></th>
     <td><code>i</code></td>
@@ -209,7 +212,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Unicode case folding<br>
+      ✔ Unicode case folding (same as JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -235,6 +238,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
       ✔ Whitespace and <code>#</code> not ignored in char classes<br>
     </td>
   </tr>
+
   <tr valign="top">
     <th align="left" rowspan="2" valign="top"><b>Flag modifiers</b></th>
     <td>Groups</td>
@@ -256,6 +260,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
       ✔ Continues until end of pattern or group (spanning alternatives)<br>
     </td>
   </tr>
+
   <tr valign="top">
     <th align="left" colspan="2"><b>Comment groups</b></th>
     <td><code>(?#…)</code></td>
@@ -267,24 +272,25 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
       ✔ Comments not allowed between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive<br>
     </td>
   </tr>
+
   <tr valign="top">
     <th align="left" rowspan="9"><b>Characters</b></th>
     <td>Literal</td>
-    <td><code>E!</code></td>
+    <td><code>E</code>, <code>!</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Code point based matching<br>
+      ✔ Code point based matching (same as JS with flag <code>u</code>, <code>v</code>)<br>
       ✔ Standalone <code>]</code>, <code>{</code>, <code>}</code> don't require escaping<br>
     </td>
   </tr>
   <tr valign="top">
     <td>Identity escape</td>
-    <td><code>\E\!</code></td>
+    <td><code>\E</code>, <code>\!</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Different set than JS<br>
+      ✔ Different allowed set than JS<br>
       ✔ Invalid for multibyte chars<br>
     </td>
   </tr>
@@ -333,7 +339,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <td align="middle">✅</td>
     <td>
       ✔ Can be backref, error, null, octal, identity escape, or one these combined with literal digits, based on complex context<br>
-      ✔ Always treats escaped single digit 1-9 outside char class as backref<br>
+      ✔ Always handles escaped single digit 1-9 outside char class as backref<br>
     </td>
   </tr>
   <tr valign="top">
@@ -346,16 +352,16 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     </td>
   </tr>
   <tr valign="top">
-    <td>Other</td>
-    <td><code>\M-\1</code></td>
+    <td colspan="2">Other (very rare)</td>
     <td align="middle">✖️</td>
     <td align="middle">✖️</td>
     <td>
-      Not yet supported; very rare<br>
-      ✘ <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
-      ✘ Meta-code <code>\M-x</code>, <code>\M-\C-x</code><br>
+      Not yet supported:<br>
+      • <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
+      • Meta-code <code>\M-x</code>, <code>\M-\C-x</code><br>
     </td>
   </tr>
+
   <tr valign="top">
     <th align="left" rowspan="5"><b>Character sets</b></th>
     <td>Digit, word</td>
@@ -404,14 +410,36 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
       ✔ Scripts<br>
       ✔ Aliases<br>
       ✔ POSIX<br>
-      ✘ Blocks (wontfix)<br>
       ✔ Negate with <code>\p{^…}</code>, <code>\P{^…}</code><br>
       ✔ Insignificant spaces, underscores, and casing in names<br>
       ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is identity escape<br>
       ✔ JS prefixes (ex: <code>Script=</code>) invalid<br>
       ✔ JS properties of strings invalid<br>
+      ✖️ Blocks (wontfix)<br>
     </td>
   </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="2"><b>Variable-length character sets</b></th>
+    <td>Newline</td>
+    <td><code>\R</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Matched atomically<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Grapheme</td>
+    <td><code>\X</code></td>
+    <td align="middle">☑️</td>
+    <td align="middle">☑️</td>
+    <td>
+      • Uses close approximation<br>
+      ✔ Matched atomically<br>
+    </td>
+  </tr>
+
   <tr valign="top">
     <th align="left" rowspan="6"><b>Character classes</b></th>
     <td>Base</td>
@@ -463,13 +491,97 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
   </tr>
   <tr valign="top">
     <td>Intersection</td>
-    <td><code>[a-z&&\h]</code></td>
+    <td><code>[a-z&amp;&amp;\h]</code></td>
     <td align="middle">❌</td>
     <td align="middle">✅</td>
     <td>
       ✔ Doesn't require nested classes for union and ranges (unlike JS)<br>
     </td>
   </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="7"><b>Assertions</b></th>
+    <td>Line start, end</td>
+    <td><code>^</code>, <code>$</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ No non-multiline mode<br>
+      ✔ Only <code>\n</code> as boundary<br>
+      ✔ Allows following quantifier (unlike JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>String start, end</td>
+    <td><code>\A</code>, <code>\z</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Like JS <code>^</code>, <code>$</code> without flag <code>m</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>String end or before terminating newline</td>
+    <td><code>\Z</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Only <code>\n</code> as newline<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Search start</td>
+    <td><code>\G\w</code></td>
+    <td align="middle">☑️</td>
+    <td align="middle">☑️</td>
+    <td>
+      • Supported when used at the start of all top-level alternatives<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Word boundary</td>
+    <td><code>\b</code>, <code>\B</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode interpretation (unlike JS)<br>
+      ✔ Allows following quantifier (unlike JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Lookahead</td>
+    <td><code>(?=…)</code>, <code>(?!…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Allows following quantifier (unlike JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Values captured within min-0 quantified lookahead remain referenceable (unlike JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Lookbehind</td>
+    <td><code>(?&lt;=…)</code>, <code>(?&lt;!…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Variable-length quantifiers within lookbehind invalid (unlike JS)<br>
+      ✔ Allows variable-length top-level alternatives<br>
+      ✔ Allows following quantifier (unlike JS in any mode)<br>
+      ✔ Values captured within min-0 quantified lookbehind remain referenceable<br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left"><b>JS-only syntax</b></th>
+    <td colspan="2">Handled with Oniguruma rules</td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ <code>[\q{…}]</code> matches literal <code>q</code>, etc.<br>
+      ✔ <code>[a--b]</code> includes invalid reversed range <code>a</code> to <code>-</code><br>
+    </td>
+  </tr>
+
   <tr valign="top">
     <td colspan="7"><b>Work in progress…</b></td>
   </tr>
@@ -477,9 +589,9 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ### Footnotes
 
-1. Emulation capabilities are the same for targets ES2024 and ESNext, although resulting regex patterns and flags might differ.
-2. Target ES2018 doesn't allow Unicode property names added after ES2018.
-3. With target ES2018, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target ES2024 and later. They are an error if option `allowBestEffort` is disabled.
+1. Targets ES2024 and ESNext have the same emulation capabilities, although resulting regex patterns and flags might differ.
+2. Target ES2018 doesn't allow Unicode property names added in JavaScript specifications after ES2018.
+3. With target ES2018, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target ES2024 and later, and they are an error if option `allowBestEffort` is disabled.
 4. Target ES2018 doesn't allow nested negated character classes.
 
 ## ㊗️ Unicode / mixed case-sensitivity
@@ -495,7 +607,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). JsRegex is written in Ruby and relies on the Ruby [Regexp::Parser](https://github.com/ammar/regexp_parser) Onigmo parser, which means regexes must be pre-transpiled on the server to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript, so it can be used at runtime. JsRegex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). JsRegex is written in Ruby and relies on the Ruby [Regexp::Parser](https://github.com/ammar/regexp_parser), which means regexes must be pre-transpiled on the server to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript, so it can be used at runtime. JsRegex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
 
 ## 🏷️ About
 
