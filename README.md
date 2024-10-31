@@ -194,15 +194,17 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ## ✅ Supported features
 
-Notice that nearly every feature has at least some subtle difference from JavaScript. Some features and sub-features listed as unsupported can be added in future versions, but some are not emulatable with native JavaScript regexes.
+Following are the supported features by target. ES2024 and ESNext have the same emulation capabilities, although resulting regex patterns and flags might differ.
+
+Notice that nearly every feature has at least subtle differences from JavaScript. Some features and sub-features listed as unsupported can be added in future versions, but some are not emulatable with native JavaScript regexes. Unsupported features throw an error.
 
 <table>
   <tr>
     <th colspan="2">Feature</th>
     <th>Example</th>
     <th>ES2018</th>
-    <th>ES2024<sup>[1]</sup></th>
-    <th>Comments</th>
+    <th>ES2024+</th>
+    <th>Details and differences</th>
   </tr>
 
   <tr valign="top">
@@ -309,8 +311,8 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ 1-digit hex <code>\xA</code><br>
-      ✔ 2-digit hex <code>\xA0</code><br>
+      ✔ 1 hex digit <code>\xA</code><br>
+      ✔ 2 hex digits <code>\xA0</code> (same as JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -338,8 +340,9 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Can be backref, error, null, octal, identity escape, or one these combined with literal digits, based on complex context<br>
+      ✔ Can be backref, error, null, octal, identity escape, or any of these combined with literal digits, based on complex rules that differ from JS<br>
       ✔ Always handles escaped single digit 1-9 outside char class as backref<br>
+      ✔ Allows null with 1-3 0s (unlike JS in any mode)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -357,8 +360,8 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
     <td align="middle">✖️</td>
     <td>
       Not yet supported:<br>
-      • <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
-      • Meta-code <code>\M-x</code>, <code>\M-\C-x</code><br>
+      ● <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
+      ● Meta-code <code>\M-x</code>, <code>\M-\C-x</code><br>
     </td>
   </tr>
 
@@ -401,15 +404,15 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
   </tr>
   <tr valign="top">
     <td>Unicode property</td>
-    <td><code>\p{L}</code>, <code>\P{L}</code></td>
-    <td align="middle">✅<sup>[2]</sup></td>
+    <td><code>\p{L}</code>,<br><code>\P{L}</code></td>
+    <td align="middle">✅<sup>[1]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ Categories<br>
       ✔ Binary properties<br>
       ✔ Scripts<br>
       ✔ Aliases<br>
-      ✔ POSIX<br>
+      ✔ POSIX properties<br>
       ✔ Negate with <code>\p{^…}</code>, <code>\P{^…}</code><br>
       ✔ Insignificant spaces, underscores, and casing in names<br>
       ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is identity escape<br>
@@ -420,7 +423,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="2"><b>Variable-length character sets</b></th>
+    <th align="left" rowspan="2"><b>Variable-length sets</b></th>
     <td>Newline</td>
     <td><code>\R</code></td>
     <td align="middle">✅</td>
@@ -435,7 +438,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      • Uses close approximation<br>
+      ● Uses close approximation<br>
       ✔ Matched atomically<br>
     </td>
   </tr>
@@ -447,7 +450,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Literal unescaped <code>-</code> in some contexts (different than any JS mode)<br>
+      ✔ Literal unescaped <code>-</code> in some contexts (different than JS in any mode)<br>
       ✔ Fewer chars require escaping than JS<br>
       ✔ No subtraction operator (from JS flag <code>v</code>)<br>
     </td>
@@ -473,7 +476,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
   <tr valign="top">
     <td>POSIX classes</td>
     <td><code>[[:word:]]</code></td>
-    <td align="middle">☑️<sup>[3]</sup></td>
+    <td align="middle">☑️<sup>[2]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ Unicode interpretations<br>
@@ -483,7 +486,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
   <tr valign="top">
     <td>Nested classes</td>
     <td><code>[a[b]]</code></td>
-    <td align="middle">☑️<sup>[4]</sup></td>
+    <td align="middle">☑️<sup>[3]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ Same as JS with flag <code>v</code><br>
@@ -535,7 +538,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      • Supported when used at the start of all top-level alternatives<br>
+      ● Supported when used at the start of all top-level alternatives<br>
     </td>
   </tr>
   <tr valign="top">
@@ -550,7 +553,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
   </tr>
   <tr valign="top">
     <td>Lookahead</td>
-    <td><code>(?=…)</code>, <code>(?!…)</code></td>
+    <td><code>(?=…)</code>,<br><code>(?!…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -560,7 +563,7 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
   </tr>
   <tr valign="top">
     <td>Lookbehind</td>
-    <td><code>(?&lt;=…)</code>, <code>(?&lt;!…)</code></td>
+    <td><code>(?&lt;=…)</code>,<br><code>(?&lt;!…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -572,8 +575,35 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
   </tr>
 
   <tr valign="top">
-    <th align="left"><b>JS-only syntax</b></th>
-    <td colspan="2">Handled with Oniguruma rules</td>
+    <th align="left" rowspan="4"><b>Other</b></th>
+    <td>Alternation</td>
+    <td><code>a|b</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Same as JS<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Absence operator</td>
+    <td><code>(?~ab)</code></td>
+    <td align="middle">❌</td>
+    <td align="middle">❌</td>
+    <td>
+      ● Some forms are supportable<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Conditionals</td>
+    <td><code>(?(1)a|b)</code></td>
+    <td align="middle">❌</td>
+    <td align="middle">❌</td>
+    <td>
+      ● Some forms are supportable<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td colspan="2">JS-only syntax handled with Oniguruma rules</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -589,10 +619,9 @@ Notice that nearly every feature has at least some subtle difference from JavaSc
 
 ### Footnotes
 
-1. Targets ES2024 and ESNext have the same emulation capabilities, although resulting regex patterns and flags might differ.
-2. Target ES2018 doesn't allow Unicode property names added in JavaScript specifications after ES2018.
-3. With target ES2018, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target ES2024 and later, and they are an error if option `allowBestEffort` is disabled.
-4. Target ES2018 doesn't allow nested negated character classes.
+1. Target ES2018 doesn't allow Unicode property names added in JavaScript specifications after ES2018.
+2. With target ES2018, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target ES2024 and later, and they are an error if option `allowBestEffort` is disabled.
+3. Target ES2018 doesn't allow nested negated character classes.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
@@ -602,12 +631,12 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 - Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` or later if you need support for these Oniguruma features.
 - A handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
-  - In other words, almost every usage is fine, inluding `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
+  - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). JsRegex is written in Ruby and relies on the Ruby [Regexp::Parser](https://github.com/ammar/regexp_parser), which means regexes must be pre-transpiled on the server to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript, so it can be used at runtime. JsRegex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). JsRegex is written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled on the server to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript and does its own parsing, so it can be used at runtime. JsRegex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
 
 ## 🏷️ About
 
