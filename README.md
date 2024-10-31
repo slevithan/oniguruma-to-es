@@ -67,14 +67,14 @@ function compile(
 };
 ```
 
-The returned `pattern` and `flags` can be provided directly to the `RegExp` constructor.
+The returned `pattern` and `flags` are JavaScript native and can be provided directly to the `RegExp` constructor. Various JavaScript flags might be added or removed compared to the Oniguruma flags provided, as part of the emulation process.
 
 #### Type `OnigurumaFlags`
 
 A string with `i`, `m`, and `x` in any order (all optional).
 
 > [!WARNING]
-> Oniguruma's flag `m` is equivalent to JavaScript's flag `s` (`dotAll`).
+> Oniguruma and JavaScript both have flag `m` but with different meanings. Oniguruma's `m` is equivalent to JavaScript's flag `s` (`dotAll`).
 
 #### Type `CompileOptions`
 
@@ -101,7 +101,7 @@ function toRegExp(
 ): RegExp;
 ```
 
-Flags are any combination of Oniguruma flags `i`, `m`, and `x`, and JavaScript flags `d` and `g`. Oniguruma's flag `m` is equivalent to JavaScript's flag `s`.
+Flags are any combination of Oniguruma flags `i`, `m`, and `x`, plus JavaScript flags `d` and `g`. Oniguruma's flag `m` is equivalent to JavaScript's flag `s`. See [Options](#-options) for more details.
 
 > [!TIP]
 > Try it in the [demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/).
@@ -128,7 +128,7 @@ function toRegexAst(
 ): RegexAst;
 ```
 
-`regex` syntax and behavior is a strict superset of native JavaScript `RegExp`, so the AST is very close to representing native ESNext JavaScript but with some added features (atomic groups, possessive quantifiers, recursion). The `regex` AST doesn't use some `regex` features like flag `x` or subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The AST represents what's needed to precisely reproduce the Oniguruma behavior.
+`regex`'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close to representing native ESNext JavaScript `RegExp` but with some added features (atomic groups, possessive quantifiers, recursion). The `regex` AST doesn't use some of `regex`'s extended features like flag `x` or subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The AST represents what's needed to precisely reproduce the Oniguruma behavior using `regex`.
 
 ## 🔩 Options
 
@@ -174,7 +174,7 @@ Simplify the generated pattern when it doesn't change the meaning.
 
 ### `target`
 
-Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional Oniguruma features.
+Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
 
 *Default: `'ES2024'`.*
 
@@ -194,7 +194,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ## ✅ Supported features
 
-Following are the supported features by target. ES2024 and ESNext have the same emulation capabilities, although resulting regex patterns and flags might differ.
+Following are the supported features by target. Targets `ES2024` and `ESNext` have the same emulation capabilities, although resulting regexes might differ (though not in the strings they match).
 
 Notice that nearly every feature has at least subtle differences from JavaScript. Some features and sub-features listed as unsupported can be added in future versions, but some are not emulatable with native JavaScript regexes. Unsupported features throw an error.
 
@@ -204,7 +204,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <th>Example</th>
     <th>ES2018</th>
     <th>ES2024+</th>
-    <th>Details &amp; JS differences</th>
+    <th>Subfeatures &amp; JS differences</th>
   </tr>
 
   <tr valign="top">
@@ -409,7 +409,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
       ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is identity escape (like JS without flag <code>u</code>, <code>v</code>)<br>
       ✔ JS prefixes invalid (ex: <code>Script=</code>)<br>
       ✔ JS properties of strings invalid<br>
-      ✖️ Blocks (wontfix)<br>
+      ❌ Blocks (wontfix)<br>
     </td>
   </tr>
 
@@ -511,7 +511,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Like JS <code>^</code>, <code>$</code> without flag <code>m</code><br>
+      ✔ Like JS <code>^</code> <code>$</code> without JS flag <code>m</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -529,7 +529,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Supported when used at the start of all top-level alternatives<br>
+      ● Supported at start of pattern if no top-level alternation, and when at start of all top-level alternatives<br>
     </td>
   </tr>
   <tr valign="top">
@@ -566,7 +566,36 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="5">Other</th>
+    <th align="left" rowspan="3">Quantifiers</th>
+    <td>Greedy, lazy</td>
+    <td><code>*</code>, <code>+?</code>, <code>{2}</code>, etc.</td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Same as JS<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Possessive</td>
+    <td><code>?+</code>, <code>*+</code>, <code>++</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ <code>+</code> suffix doesn't possessivize <code>{…}</code> quantifiers (creates a chained quantifier instead)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Chained</td>
+    <td><code>**</code>, <code>??+*</code>, <code>{2,3}+</code>, etc.</td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Each applies itself to the preceding repetition<br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="6">Other</th>
     <td>Comment groups</td>
     <td><code>(?#…)</code></td>
     <td align="middle">✅</td>
@@ -584,6 +613,15 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td>
       ✔ Same as JS<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Keep</td>
+    <td><code>\K</code></td>
+    <td align="middle">☑️</td>
+    <td align="middle">☑️</td>
+    <td>
+      ● Supported at top level if no top-level alternation or used within the first alternative<br>
     </td>
   </tr>
   <tr valign="top">
@@ -605,7 +643,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">JS features handled with Oniguruma rules</td>
+    <td colspan="2">JS features handled using Oniguruma syntax rules</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -615,15 +653,17 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <td colspan="7"><b>Work in progress…</b></td>
+    <td colspan="7"><b>Not yet complete…</b></td>
   </tr>
 </table>
 
+As detailed as the table above is, it doesn't include all aspects of the many ways Oniguruma-To-ES strives to perfectly emulate Oniguruma (for example, most aspects that work the same as JavaScript are excluded).
+
 ### Footnotes
 
-1. Target ES2018 doesn't allow Unicode property names added in JavaScript specifications after ES2018.
-2. With target ES2018, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target ES2024 and later, and they are an error if option `allowBestEffort` is disabled.
-3. Target ES2018 doesn't allow nested negated character classes.
+1. Target `ES2018` doesn't allow Unicode property names added in JavaScript specifications after ES2018.
+2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
+3. Target `ES2018` doesn't allow nested negated character classes.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
@@ -632,7 +672,7 @@ Oniguruma-To-ES fully supports mixed case-sensitivity (and handles the Unicode e
 Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a couple of minor/rare restrictions:
 
 - Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` or later if you need support for these Oniguruma features.
-- A handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
+- With targets before `ESNext`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
   - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
 

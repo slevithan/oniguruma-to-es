@@ -193,7 +193,8 @@ const FirstPassVisitor = {
         traverseReplacement(flagGroup, path, state, FirstPassVisitor);
       }
     } else if (kind === AstDirectiveKinds.keep) {
-      // Allows multiple `\K`s since the the node is removed
+      // Allows multiple `\K`s
+      // TODO: Can allow for multiple alts if it's in the first alt
       if (parent.parent !== ast.pattern || ast.pattern.alternatives.length > 1) {
         // `\K` is emulatable at least within top-level alternation, but it's tricky.
         // Ex: `ab\Kc|a` is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`

@@ -62,7 +62,7 @@ function getOptions(options) {
     // Simplify the generated pattern when it doesn't change the meaning.
     optimize: true,
     // Sets the JavaScript language version for generated patterns and flags. Later targets allow
-    // faster processing, simpler generated source, and support for additional Oniguruma features.
+    // faster processing, simpler generated source, and support for additional features.
     target: 'ES2024',
     ...options,
   };
