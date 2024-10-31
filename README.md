@@ -204,11 +204,11 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <th>Example</th>
     <th>ES2018</th>
     <th>ES2024+</th>
-    <th>Details and differences</th>
+    <th>Details &amp; JS differences</th>
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="3"><b>Flags</b></th>
+    <th align="left" rowspan="3">Flags</th>
     <td><code>i</code></td>
     <td><code>i</code></td>
     <td align="middle">✅</td>
@@ -235,14 +235,14 @@ Notice that nearly every feature has at least subtle differences from JavaScript
       ✔ Unicode whitespace ignored<br>
       ✔ Line comments with <code>#</code><br>
       ✔ Whitespace/comments allowed between a token and its quantifier<br>
-      ✔ Whitespace/comments not allowed between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive<br>
+      ✔ Whitespace/comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a chained quantifier<br>
       ✔ Whitespace/comments separate tokens (ex: <code>\1 0</code>)<br>
       ✔ Whitespace and <code>#</code> not ignored in char classes<br>
     </td>
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="2" valign="top"><b>Flag modifiers</b></th>
+    <th align="left" rowspan="2" valign="top">Flag modifiers</th>
     <td>Groups</td>
     <td><code>(?im-x:…)</code></td>
     <td align="middle">✅</td>
@@ -264,19 +264,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <th align="left" colspan="2"><b>Comment groups</b></th>
-    <td><code>(?#…)</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Allows escaping <code>\)</code>, <code>\\</code><br>
-      ✔ Comments allowed between a token and its quantifier<br>
-      ✔ Comments not allowed between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive<br>
-    </td>
-  </tr>
-
-  <tr valign="top">
-    <th align="left" rowspan="9"><b>Characters</b></th>
+    <th align="left" rowspan="9">Characters</th>
     <td>Literal</td>
     <td><code>E</code>, <code>!</code></td>
     <td align="middle">✅</td>
@@ -313,6 +301,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td>
       ✔ 1 hex digit <code>\xA</code><br>
       ✔ 2 hex digits <code>\xA0</code> (same as JS)<br>
+      ✔ Incomplete <code>\x</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -321,7 +310,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Same as JS<br>
+      ✔ Incomplete <code>\u</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -332,6 +321,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td>
       ✔ Allows whitespace padding<br>
       ✔ Allows leading 0s up to 6 total hex digits (JS allows unlimited)<br>
+      ✔ Incomplete <code>\u{</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -351,13 +341,14 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ With A-Za-z (JS: only <code>\c</code>)<br>
+      ✔ With A-Za-z (JS: only <code>\c</code> form)<br>
+      ✔ Incomplete <code>\c</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
     <td colspan="2">Other (very rare)</td>
-    <td align="middle">✖️</td>
-    <td align="middle">✖️</td>
+    <td align="middle">❌</td>
+    <td align="middle">❌</td>
     <td>
       Not yet supported:<br>
       ● <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
@@ -366,7 +357,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="5"><b>Character sets</b></th>
+    <th align="left" rowspan="5">Character sets</th>
     <td>Digit, word</td>
     <td><code>\d</code>, <code>\w</code>, etc.</td>
     <td align="middle">✅</td>
@@ -415,15 +406,15 @@ Notice that nearly every feature has at least subtle differences from JavaScript
       ✔ POSIX properties<br>
       ✔ Negate with <code>\p{^…}</code>, <code>\P{^…}</code><br>
       ✔ Insignificant spaces, underscores, and casing in names<br>
-      ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is identity escape<br>
-      ✔ JS prefixes (ex: <code>Script=</code>) invalid<br>
+      ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is identity escape (like JS without flag <code>u</code>, <code>v</code>)<br>
+      ✔ JS prefixes invalid (ex: <code>Script=</code>)<br>
       ✔ JS properties of strings invalid<br>
       ✖️ Blocks (wontfix)<br>
     </td>
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="2"><b>Variable-length sets</b></th>
+    <th align="left" rowspan="2">Variable-length sets</th>
     <td>Newline</td>
     <td><code>\R</code></td>
     <td align="middle">✅</td>
@@ -438,19 +429,19 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Uses close approximation<br>
+      ● Uses a close approximation<br>
       ✔ Matched atomically<br>
     </td>
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="6"><b>Character classes</b></th>
+    <th align="left" rowspan="6">Character classes</th>
     <td>Base</td>
-    <td><code>[ab]</code>, <code>[^a]</code></td>
+    <td><code>[…]</code>, <code>[^…]</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Literal unescaped <code>-</code> in some contexts (different than JS in any mode)<br>
+      ✔ Unescaped <code>-</code> is literal char in some contexts (different than JS rules in any mode)<br>
       ✔ Fewer chars require escaping than JS<br>
       ✔ No subtraction operator (from JS flag <code>v</code>)<br>
     </td>
@@ -479,13 +470,13 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">☑️<sup>[2]</sup></td>
     <td align="middle">✅</td>
     <td>
-      ✔ Unicode interpretations<br>
+      ✔ All use Unicode interpretations<br>
       ✔ Negate with <code>[:^…:]</code><br>
     </td>
   </tr>
   <tr valign="top">
     <td>Nested classes</td>
-    <td><code>[a[b]]</code></td>
+    <td><code>[…[…]]</code></td>
     <td align="middle">☑️<sup>[3]</sup></td>
     <td align="middle">✅</td>
     <td>
@@ -494,7 +485,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>Intersection</td>
-    <td><code>[a-z&amp;&amp;\h]</code></td>
+    <td><code>[…&amp;&amp;…]</code></td>
     <td align="middle">❌</td>
     <td align="middle">✅</td>
     <td>
@@ -503,7 +494,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="7"><b>Assertions</b></th>
+    <th align="left" rowspan="7">Assertions</th>
     <td>Line start, end</td>
     <td><code>^</code>, <code>$</code></td>
     <td align="middle">✅</td>
@@ -534,7 +525,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>Search start</td>
-    <td><code>\G\w</code></td>
+    <td><code>\G</code></td>
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
@@ -575,9 +566,20 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="4"><b>Other</b></th>
+    <th align="left" rowspan="5">Other</th>
+    <td>Comment groups</td>
+    <td><code>(?#…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Allows escaping <code>\)</code>, <code>\\</code><br>
+      ✔ Comments allowed between a token and its quantifier<br>
+      ✔ Comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a chained quantifier<br>
+    </td>
+  </tr>
+  <tr valign="top">
     <td>Alternation</td>
-    <td><code>a|b</code></td>
+    <td><code>…|…</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -585,8 +587,8 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td>Absence operator</td>
-    <td><code>(?~ab)</code></td>
+    <td>Absence operators</td>
+    <td><code>(?~…)</code></td>
     <td align="middle">❌</td>
     <td align="middle">❌</td>
     <td>
@@ -595,7 +597,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>Conditionals</td>
-    <td><code>(?(1)a|b)</code></td>
+    <td><code>(?(1)…)</code></td>
     <td align="middle">❌</td>
     <td align="middle">❌</td>
     <td>
@@ -603,12 +605,12 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">JS-only syntax handled with Oniguruma rules</td>
+    <td colspan="2">JS features handled with Oniguruma rules</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
       ✔ <code>[\q{…}]</code> matches literal <code>q</code>, etc.<br>
-      ✔ <code>[a--b]</code> includes invalid reversed range <code>a</code> to <code>-</code><br>
+      ✔ <code>[a--b]</code> includes the invalid reversed range <code>a</code> to <code>-</code><br>
     </td>
   </tr>
 
