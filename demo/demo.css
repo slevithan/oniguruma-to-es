@@ -110,7 +110,6 @@ pre, code, textarea {
 #output.error {
   border-color: pink;
   background-color: pink;
-  color: #841448;
-  font-weight: bold;
-  background: repeating-linear-gradient(45deg, #feddff, #feddff 3px, #ffd7f6 3px, #ffd7f6 10px);
+  color: #a9004f;
+  background: repeating-linear-gradient(45deg, #fee6ff, #fee6ff 3px, #ffe0f8 3px, #ffe0f8 10px);
 }

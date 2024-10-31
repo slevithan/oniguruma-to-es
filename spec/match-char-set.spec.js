@@ -9,7 +9,7 @@ describe('CharacterSet', () => {
     it('should match any character except line feed', () => {
       expect('\n').not.toFindMatch('.');
       expect([
-        '\0', '\r', 'a', '\u{10000}',
+        '\0', '\r', 'a', '\x85', '\u2028', '\u2029', '\u{10000}', '\u{10FFFF}',
       ]).toExactlyMatch('.');
     });
 

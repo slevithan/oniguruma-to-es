@@ -204,50 +204,51 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <th>Comments</th>
   </tr>
   <tr valign="top">
-    <th rowspan="3"><b>Flags</b></th>
+    <th align="left" rowspan="3"><b>Flags</b></th>
     <td><code>i</code></td>
-    <td><code>/i</code></td>
+    <td><code>i</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Unicode case folding<br>
+      ✔ Unicode case folding<br>
     </td>
   </tr>
   <tr valign="top">
     <td><code>m</code></td>
-    <td><code>/m</code></td>
+    <td><code>m</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Equivalent to JS flag <code>s</code> (<code>dotAll</code>)<br>
+      ✔ Equivalent to JS flag <code>s</code> (<code>dotAll</code>)<br>
     </td>
   </tr>
   <tr valign="top">
     <td><code>x</code></td>
-    <td><code>/x</code></td>
+    <td><code>x</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Unicode whitespace chars ignored<br>
-      🗸 Whitespace not allowed between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive<br>
-      🗸 Line comments with <code>#</code><br>
-      🗸 Whitespace/comments separate tokens (ex: <code>\1 0</code>)<br>
-      🗸 Whitespace and <code>#</code> not ignored in char classes<br>
+      ✔ Unicode whitespace ignored<br>
+      ✔ Line comments with <code>#</code><br>
+      ✔ Whitespace/comments allowed between a token and its quantifier<br>
+      ✔ Whitespace/comments not allowed between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive<br>
+      ✔ Whitespace/comments separate tokens (ex: <code>\1 0</code>)<br>
+      ✔ Whitespace and <code>#</code> not ignored in char classes<br>
     </td>
   </tr>
   <tr valign="top">
-    <th rowspan="2" valign="top"><b>Flag modifiers</b></th>
+    <th align="left" rowspan="2" valign="top"><b>Flag modifiers</b></th>
     <td>Groups</td>
     <td><code>(?im-x:…)</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Allows enabling and disabling the same flag (priority: disable)<br>
-      🗸 Allows lone or multiple <code>-</code><br>
+      ✔ Allows enabling and disabling the same flag (priority: disable)<br>
+      ✔ Allows lone or multiple <code>-</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -257,40 +258,42 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Continues until end of pattern or group (spanning alternatives)<br>
+      ✔ Continues until end of pattern or group (spanning alternatives)<br>
     </td>
   </tr>
   <tr valign="top">
-    <th colspan="2"><b>Comment groups</b></th>
+    <th align="left" colspan="2"><b>Comment groups</b></th>
     <td><code>(?#…)</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Allows escaping <code>\)</code><br>
+      ✔ Allows escaping <code>\)</code>, <code>\\</code><br>
+      ✔ Comments allowed between a token and its quantifier<br>
+      ✔ Comments not allowed between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive<br>
     </td>
   </tr>
   <tr valign="top">
-    <th rowspan="9"><b>Characters</b></th>
+    <th align="left" rowspan="9"><b>Characters</b></th>
     <td>Literal</td>
     <td><code>E!</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Code point based matching<br>
-      🗸 <code>]</code>, <code>{</code>, <code>}</code> don't require escaping<br>
+      ✔ Code point based matching<br>
+      ✔ Standalone <code>]</code>, <code>{</code>, <code>}</code> don't require escaping<br>
     </td>
   </tr>
   <tr valign="top">
-    <td>Identity</td>
+    <td>Identity escape</td>
     <td><code>\E\!</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Different set than JS<br>
-      🗸 Invalid for multibyte chars<br>
+      ✔ Different set than JS<br>
+      ✔ Invalid for multibyte chars<br>
     </td>
   </tr>
   <tr valign="top">
@@ -300,42 +303,41 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 JS set plus <code>\a</code>, <code>\e</code><br>
+      ✔ JS set plus <code>\a</code>, <code>\e</code><br>
     </td>
   </tr>
   <tr valign="top">
-    <td><code>\xNN</code></td>
+    <td><code>\x</code></td>
     <td><code>\xA0</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 1-digit hex <code>\xA</code><br>
-      🗸 2-digit hex <code>\xA0</code><br>
-      🗸 Incomplete <code>\x</code> invalid<br>
+      ✔ 1-digit hex <code>\xA</code><br>
+      ✔ 2-digit hex <code>\xA0</code><br>
+      ✔ Incomplete <code>\x</code> invalid<br>
     </td>
   </tr>
   <tr valign="top">
-    <td><code>\uNNNN</code></td>
+    <td><code>\u</code></td>
     <td><code>\uFFFF</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Incomplete <code>\u</code> invalid<br>
+      ✔ Incomplete <code>\u</code> invalid<br>
     </td>
   </tr>
   <tr valign="top">
-    <td><code>\u{N…}</code></td>
+    <td><code>\u{…}</code></td>
     <td><code>\u{A}</code></td>
     <td>✅</td>
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Incomplete <code>\u{…}</code> invalid<br>
-      🗸 Allows padding<br>
-      🗸 Allows leading 0s up to 6 total digits<br>
-      🗸 Invalid above 10FFFF<br>
+      ✔ Incomplete <code>\u{…}</code> invalid<br>
+      ✔ Allows whitespace<br>
+      ✔ Allows leading 0s up to 6 total hex digits<br>
     </td>
   </tr>
   <tr valign="top">
@@ -345,9 +347,8 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 Can be null, backref, error, octal, identity escape, literal, or multiple, based on complex context<br>
-      🗸 Always treat escaped single digit 1-9 outside char class as backref<br>
-      🗸 Throws if not enough captures<br>
+      ✔ Can be null, backref, error, octal, identity escape, literal, or multiple of these, based on complex context<br>
+      ✔ Always treat escaped single digit 1-9 outside char class as backref<br>
     </td>
   </tr>
   <tr valign="top">
@@ -357,8 +358,9 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <td>✅</td>
     <td>✅</td>
     <td>
-      🗸 <code>\cx</code> with A-Za-z<br>
-      🗸 <code>\C-x</code> with A-Za-z<br>
+      ✔ <code>\cx</code> with A-Za-z<br>
+      ✔ <code>\C-x</code> with A-Za-z<br>
+      ✔ Incomplete <code>\c</code>/<code>\C</code> invalid<br>
     </td>
   </tr>
   <tr valign="top">
@@ -368,15 +370,90 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
     <td>✖️</td>
     <td>✖️</td>
     <td>
-      Not yet supported; all are extremely rare<br>
-      🗙 <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
-      🗙 Meta-code <code>\M-x</code>, <code>\M-\C-x</code><br>
+      Not yet supported; all extremely rare<br>
+      ✘ <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
+      ✘ Meta-code <code>\M-x</code>, <code>\M-\C-x</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <th align="left" rowspan="6"><b>Character sets</b></th>
+    <td>Dot</td>
+    <td><code>.</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      ✔ Excludes only <code>\n</code> (unlike JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Digit</td>
+    <td><code>\d\D</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      ✔ ASCII<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Hex digit</td>
+    <td><code>\h\H</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      ✔ ASCII<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Word</td>
+    <td><code>\w\W</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      ✔ ASCII<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Whitespace</td>
+    <td><code>\s\S</code></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      ✔ ASCII (unlike JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Unicode property <code>\p</code>/<code>\P</code></td>
+    <td><code>\p{greek}</code></td>
+    <td>✅ <sup>[1]</sup></td>
+    <td>✅</td>
+    <td>✅</td>
+    <td>
+      ✔ Categories<br>
+      ✔ Binary properties<br>
+      ✔ Scripts<br>
+      ✘ Blocks (wontfix)<br>
+      ✔ Aliases<br>
+      ✔ Negate with <code>\p{^…}</code>, <code>\P{^…}</code><br>
+      ✔ Insignificant spaces, underscores, and casing in names<br>
+      ✔ <code>\p</code>/<code>\P</code> is identity escape<br>
+      ✔ Incomplete <code>\p{</code>/<code>\P{</code> invalid<br>
+      ✔ JS prefixes (ex: <code>Script=</code>) invalid<br>
+      ✔ JS properties of strings invalid<br>
     </td>
   </tr>
   <tr valign="top">
     <td colspan="7"><b>Work in progress…</b></td>
   </tr>
 </table>
+
+### Footnotes
+
+1. Target ES2018 doesn't allow Unicode properties added after ES2018.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
