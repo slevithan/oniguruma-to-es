@@ -67,14 +67,14 @@ function compile(
 };
 ```
 
-The returned `pattern` and `flags` are JavaScript native and can be provided directly to the `RegExp` constructor. Various JavaScript flags might be added or removed compared to the Oniguruma flags provided, as part of the emulation process.
+The returned `pattern` and `flags` can be provided directly to the JavaScript `RegExp` constructor. Various JavaScript flags might have been added or removed compared to the Oniguruma flags provided, as part of the emulation process.
 
 #### Type `OnigurumaFlags`
 
 A string with `i`, `m`, and `x` in any order (all optional).
 
-> [!WARNING]
-> Oniguruma and JavaScript both have flag `m` but with different meanings. Oniguruma's `m` is equivalent to JavaScript's flag `s` (`dotAll`).
+> [!IMPORTANT]
+> Oniguruma and JavaScript both have an `m` flag but with different meanings. Oniguruma's `m` is equivalent to JavaScript's `s` (`dotAll`).
 
 #### Type `CompileOptions`
 
@@ -101,7 +101,7 @@ function toRegExp(
 ): RegExp;
 ```
 
-Flags are any combination of Oniguruma flags `i`, `m`, and `x`, plus JavaScript flags `d` and `g`. Oniguruma's flag `m` is equivalent to JavaScript's flag `s`. See [Options](#-options) for more details.
+The `flags` string can be any combination of Oniguruma flags `i`, `m`, and `x`, plus JavaScript flags `d` and `g`. Oniguruma's flag `m` is equivalent to JavaScript's flag `s`. See [Options](#-options) for more details.
 
 > [!TIP]
 > Try it in the [demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/).
@@ -409,7 +409,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
       ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is identity escape (like JS without flag <code>u</code>, <code>v</code>)<br>
       ✔ JS prefixes invalid (ex: <code>Script=</code>)<br>
       ✔ JS properties of strings invalid<br>
-      ❌ Blocks (wontfix)<br>
+      ❌ Blocks (wontfix<sup>[2]</sup>)<br>
     </td>
   </tr>
 
@@ -467,7 +467,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   <tr valign="top">
     <td>POSIX classes</td>
     <td><code>[[:word:]]</code></td>
-    <td align="middle">☑️<sup>[2]</sup></td>
+    <td align="middle">☑️<sup>[3]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ All use Unicode interpretations<br>
@@ -477,7 +477,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   <tr valign="top">
     <td>Nested classes</td>
     <td><code>[…[…]]</code></td>
-    <td align="middle">☑️<sup>[3]</sup></td>
+    <td align="middle">☑️<sup>[4]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ Same as JS with flag <code>v</code><br>
@@ -500,8 +500,8 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ No non-multiline mode<br>
-      ✔ Only <code>\n</code> as boundary<br>
+      ✔ Multiline mode only (compared to JS)<br>
+      ✔ Only <code>\n</code> as newline (unlike JS)<br>
       ✔ Allows following quantifier (unlike JS)<br>
     </td>
   </tr>
@@ -529,7 +529,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Supported at start of pattern if no top-level alternation, and when at start of all top-level alternatives<br>
+      ● Supported when used at start of pattern (if no top-level alternation) and when at start of all top-level alternatives<br>
     </td>
   </tr>
   <tr valign="top">
@@ -595,7 +595,46 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="6">Other</th>
+    <th align="left" rowspan="4">Groups</th>
+    <td>Noncapturing</td>
+    <td><code>(?:…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Same as JS<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Atomic</td>
+    <td><code>(?&gt;…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Supported<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Capturing</td>
+    <td><code>(…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Is noncapturing if any named capture is used<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Named capturing</td>
+    <td><code>(?&lt;n&gt;…)</code>,<br><code>(?'n'…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Allows duplicate names<br>
+      ✔ Error for group names invalid in Oniguruma or JS<br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="7">Other</th>
     <td>Comment groups</td>
     <td><code>(?#…)</code></td>
     <td align="middle">✅</td>
@@ -621,7 +660,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Supported at top level if no top-level alternation or used within the first alternative<br>
+      ● Supported if used at top level and no top-level alternation is used<br>
     </td>
   </tr>
   <tr valign="top">
@@ -643,12 +682,20 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">JS features handled using Oniguruma syntax rules</td>
+    <td colspan="2">Unsupported JS features are handled using Oniguruma syntax rules</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
       ✔ <code>[\q{…}]</code> matches literal <code>q</code>, etc.<br>
       ✔ <code>[a--b]</code> includes the invalid reversed range <code>a</code> to <code>-</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td colspan="2">Invalid Oniguruma syntax</td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Error; not passed through<br>
     </td>
   </tr>
 
@@ -657,13 +704,14 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 </table>
 
-As detailed as the table above is, it doesn't include all aspects of the many ways Oniguruma-To-ES strives to perfectly emulate Oniguruma (for example, most aspects that work the same as JavaScript are excluded).
+As detailed as the table above is, it doesn't include all aspects that Oniguruma-To-ES emulates. For example, most aspects that work the same as JavaScript are omitted, as are aspects of non-JavaScript features that work the same in other regex flavors that support them.
 
 ### Footnotes
 
 1. Target `ES2018` doesn't allow Unicode property names added in JavaScript specifications after ES2018.
-2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
-3. Target `ES2018` doesn't allow nested negated character classes.
+2. Unicode blocks are easily emulatable but their character data would significantly increase library weight, and they're a flawed, arguably-unuseful feature (use Unicode scripts and other properties instead).
+3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
+4. Target `ES2018` doesn't allow nested negated character classes.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
