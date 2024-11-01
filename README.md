@@ -194,9 +194,9 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ## ✅ Supported features
 
-Following are the supported features by target. Targets `ES2024` and `ESNext` have the same emulation capabilities, although resulting regexes might differ (though not in the strings they match).
+Following are the supported features by target. Targets `ES2024` and `ESNext` have the same emulation capabilities (resulting regexes might differ, but not in the strings they match).
 
-Notice that nearly every feature has at least subtle differences from JavaScript. Some features and sub-features listed as unsupported can be added in future versions, but some are not emulatable with native JavaScript regexes. Unsupported features throw an error.
+Notice that nearly every feature has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported can be added in future versions, but some are not emulatable with native JavaScript regexes. Unsupported features throw an error.
 
 <table>
   <tr>
@@ -264,7 +264,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="9">Characters</th>
+    <th align="left" rowspan="10">Characters</th>
     <td>Literal</td>
     <td><code>E</code>, <code>!</code></td>
     <td align="middle">✅</td>
@@ -281,11 +281,20 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td>
       ✔ Different allowed set than JS<br>
-      ✔ Invalid for multibyte chars<br>
+      ✔ Error for multibyte chars<br>
     </td>
   </tr>
   <tr valign="top">
-    <td>Char escapes</td>
+    <td>Escaped metachar</td>
+    <td><code>\\</code>, <code>\.</cpde></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Same as JS<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Shorthand</td>
     <td><code>\t</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -299,9 +308,9 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ 1 hex digit <code>\xF</code><br>
-      ✔ 2 hex digits with max value <code>\x7F</code> (unlike JS)<br>
-      ✔ Incomplete <code>\x</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Allows 1 hex digit<br>
+      ✔ Error for 2 hex digits above 7F<br>
+      ✔ Error for incomplete <code>\x</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -310,7 +319,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Incomplete <code>\u</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Error for incomplete <code>\u</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -321,7 +330,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td>
       ✔ Allows whitespace padding<br>
       ✔ Allows leading 0s up to 6 total hex digits (JS allows unlimited)<br>
-      ✔ Incomplete <code>\u{</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Error for incomplete <code>\u{</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -332,7 +341,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td>
       ✔ Can be backref, error, null, octal, identity escape, or any of these combined with literal digits, based on complex rules that differ from JS<br>
       ✔ Always handles escaped single digit 1-9 outside char class as backref<br>
-      ✔ Allows null with 1-3 0s (unlike JS in any mode)<br>
+      ✔ Allows null with 1-3 0s (unlike JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -342,7 +351,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td>
       ✔ With A-Za-z (JS: only <code>\c</code> form)<br>
-      ✔ Incomplete <code>\c</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Error for incomplete <code>\c</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -452,7 +461,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Invalid (unlike JS)<br>
+      ✔ Error (unlike JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -466,12 +475,11 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>POSIX classes</td>
-    <td><code>[[:word:]]</code></td>
+    <td><code>[[:word:]]</code>,<br><code>[[:^word:]]</code></td>
     <td align="middle">☑️<sup>[3]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ All use Unicode interpretations<br>
-      ✔ Negate with <code>[:^…:]</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -558,7 +566,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Variable-length quantifiers within lookbehind invalid (unlike JS)<br>
+      ✔ Error for variable-length quantifiers within lookbehind (unlike JS)<br>
       ✔ Allows variable-length top-level alternatives<br>
       ✔ Allows following quantifier (unlike JS in any mode)<br>
       ✔ Values captured within min-0 quantified lookbehind remain referenceable<br>
@@ -628,8 +636,8 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Allows duplicate names<br>
-      ✔ Error for group names invalid in Oniguruma or JS<br>
+      ✔ Duplicate names allowed (no restrictions)<br>
+      ✔ Error for names invalid in Oniguruma or JS<br>
     </td>
   </tr>
 
@@ -671,12 +679,32 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ✔ Error if named backref and group defined to the right<br>
-      ● Error if numbered backref and group defined to the right<sup>[5]</sup><br>
-      ✔ Fail to match when referencing a containing group<br>
-      ✔ Fail to match (or don't include as a multiplex option) if group defined in a preceding alternation path<br>
-      ✔ Groups to the right not included as multiplex options<br>
-      ❌ Some rare cases are indeterminable through static analysis, and use JS behavior of matching the empty string<br>
+      ✔ Error if group defined to the right<sup>[5]</sup><br>
+      ✔ Duplicate names/subroutines to the right not included in multiplex<br>
+      ✔ Fail to match (or don't include in multiplex) ancestor groups and groups in preceding alternation paths<br>
+      ❌ Some rare cases are indeterminable at compile time, so use JS behavior (match empty string)<br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="1">Subroutines</th>
+    <td><b>TODO: Add me</b></td>
+    <td><code></code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ <br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="1">Recursion</th>
+    <td><b>TODO: Add me</b></td>
+    <td><code></code></td>
+    <td align="middle">☑️<sup>[6]</sup></td>
+    <td align="middle">☑️<sup>[6]</sup></td>
+    <td>
+      ✔ <br>
     </td>
   </tr>
 
@@ -745,13 +773,9 @@ Notice that nearly every feature has at least subtle differences from JavaScript
       ✔ Error; not passed through<br>
     </td>
   </tr>
-
-  <tr valign="top">
-    <td colspan="7"><b>Not yet complete…</b></td>
-  </tr>
 </table>
 
-Despite all the details in the table above, it doesn't include all aspects that Oniguruma-To-ES emulates (e.g., some error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in other regex flavors that support them).
+Despite all the details in the table above, it doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in other regex flavors that support them).
 
 ### Footnotes
 
@@ -759,7 +783,8 @@ Despite all the details in the table above, it doesn't include all aspects that 
 2. Unicode blocks are easily emulatable but their character data would significantly increase library weight, and they're a flawed, arguably-unuseful feature (use Unicode scripts and other properties instead).
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
 4. Target `ES2018` doesn't allow nested negated character classes.
-5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) almost all placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), and (2) the edge cases where it's matchable rely on rules for backreference resetting within quantified groups that are different in JS and are not emulatable. Note that it's not a backreference in the first place if `\10`+ and not as many capturing groups defined to the left (it's an octal or identity escape).
+5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) almost all placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) it matches the behavior of named groups, and (3) the edge cases where it's matchable rely on rules for backreference resetting within quantified groups that are different in JS and are not emulatable. Note that it's not a backreference in the first place if `\10`+ and not as many capturing groups defined to the left (it's an octal or identity escape).
+6. Recursion depth is limited; specified by option `maxRecursionDepth`.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
