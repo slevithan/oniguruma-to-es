@@ -151,7 +151,7 @@ Specifically, this option enables the following additional features, depending o
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
-  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes always use Unicode.
+  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes always use Unicode.
 </details>
 
 ### `maxRecursionDepth`
@@ -290,17 +290,17 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ JS set plus <code>\a</code>, <code>\e</code><br>
+      ✔ The JS set plus <code>\a</code>, <code>\e</code><br>
     </td>
   </tr>
   <tr valign="top">
     <td><code>\x</code></td>
-    <td><code>\xA0</code></td>
+    <td><code>\x7F</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ 1 hex digit <code>\xA</code><br>
-      ✔ 2 hex digits <code>\xA0</code> (same as JS)<br>
+      ✔ 1 hex digit <code>\xF</code><br>
+      ✔ 2 hex digits with max value <code>\x7F</code> (unlike JS)<br>
       ✔ Incomplete <code>\x</code> is invalid (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
@@ -346,7 +346,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">Other (very rare)</td>
+    <td colspan="2">Other (rare)</td>
     <td align="middle">❌</td>
     <td align="middle">❌</td>
     <td>
@@ -500,7 +500,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Multiline mode only (compared to JS)<br>
+      ✔ Always multiline (in JS terms)<br>
       ✔ Only <code>\n</code> as newline (unlike JS)<br>
       ✔ Allows following quantifier (unlike JS)<br>
     </td>
@@ -619,17 +619,64 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Is noncapturing if any named capture is used<br>
+      ✔ Is noncapturing if named capture present<br>
     </td>
   </tr>
   <tr valign="top">
     <td>Named capturing</td>
-    <td><code>(?&lt;n&gt;…)</code>,<br><code>(?'n'…)</code></td>
+    <td><code>(?&lt;a&gt;…)</code>,<br><code>(?'a'…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
       ✔ Allows duplicate names<br>
       ✔ Error for group names invalid in Oniguruma or JS<br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="4">Backreferences</th>
+    <td>Numbered</td>
+    <td><code>\1</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Error if named capture present<br>
+      ✔ Refs the most recent of a capture/subroutine set<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Enclosed numbered, relative numbered</td>
+    <td><code>\k&lt;1&gt;</code>,<br><code>\k'1'</code>,<br><code>\k&lt;-1&gt;</code>,<br><code>\k'-1'</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Error if named capture present<br>
+      ✔ Allows leading 0s<br>
+      ✔ Refs the most recent of a capture/subroutine set<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Named</td>
+    <td><code>\k&lt;a&gt;</code>,<br><code>\k'a'</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ For duplicate group names, rematch any of their matches (multiplex)<br>
+      ✔ Refs the most recent of a capture/subroutine set (no multiplex)<br>
+      ✔ Combination of multiplex and most recent of capture/subroutine set if duplicate name is indirectly created by a subroutine<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td colspan="2">To nonparticipating groups</td>
+    <td align="middle">☑️</td>
+    <td align="middle">☑️</td>
+    <td>
+      ✔ Error if named backref and group defined to the right<br>
+      ● Error if numbered backref and group defined to the right<sup>[5]</sup><br>
+      ✔ Fail to match when referencing a containing group<br>
+      ✔ Fail to match (or don't include as a multiplex option) if group defined in a preceding alternation path<br>
+      ✔ Groups to the right not included as multiplex options<br>
+      ❌ Some rare cases are indeterminable through static analysis, and use JS behavior of matching the empty string<br>
     </td>
   </tr>
 
@@ -682,7 +729,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">Unsupported JS features are handled using Oniguruma syntax rules</td>
+    <td colspan="2">JS features unknown to Oniguruma are handled using Oniguruma syntax</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -704,14 +751,15 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 </table>
 
-As detailed as the table above is, it doesn't include all aspects that Oniguruma-To-ES emulates. For example, most aspects that work the same as JavaScript are omitted, as are aspects of non-JavaScript features that work the same in other regex flavors that support them.
+Despite all the details in the table above, it doesn't include all aspects that Oniguruma-To-ES emulates (e.g., some error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in other regex flavors that support them).
 
 ### Footnotes
 
 1. Target `ES2018` doesn't allow Unicode property names added in JavaScript specifications after ES2018.
 2. Unicode blocks are easily emulatable but their character data would significantly increase library weight, and they're a flawed, arguably-unuseful feature (use Unicode scripts and other properties instead).
-3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
+3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
 4. Target `ES2018` doesn't allow nested negated character classes.
+5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) almost all placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), and (2) the edge cases where it's matchable rely on rules for backreference resetting within quantified groups that are different in JS and are not emulatable. Note that it's not a backreference in the first place if `\10`+ and not as many capturing groups defined to the left (it's an octal or identity escape).
 
 ## ㊗️ Unicode / mixed case-sensitivity
 

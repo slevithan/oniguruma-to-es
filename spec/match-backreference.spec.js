@@ -260,7 +260,7 @@ describe('Backreference', () => {
       });
     });
 
-    it('should preclude only the not-yet-closed groups when multiplexing', () => {
+    it('should preclude not-yet-closed groups when multiplexing', () => {
       expect('aa').toExactlyMatch(r`(?<a>a)(?<a>\k<a>)`);
       expect('aba').toExactlyMatch(r`(?<n>a)(?<n>b\k<n>)`);
       expect(['aa', 'bcb']).toExactlyMatch({
