@@ -151,7 +151,7 @@ Specifically, this option enables the following additional features, depending o
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
-  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes always use Unicode.
+  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes are always based on Unicode.
 </details>
 
 ### `global`
@@ -210,7 +210,7 @@ Following are the supported features by target.
 
 > Targets `ES2024` and `ESNext` have the same emulation capabilities. Resulting regexes might differ, but not in the strings they match.
 
-Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but others can have support added in future versions. Unsupported features throw an error.
+Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but others might get support in future versions of Oniguruma-To-ES. Unsupported features throw an error.
 
 <table>
   <tr>
@@ -868,7 +868,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 2. Unicode blocks are easily emulatable but their character data would significantly increase library weight. They're also a deeply flawed and arguably-unuseful feature, given the ability to use Unicode scripts and other properties instead.
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` are an error if option `allowBestEffort` is `false`, and they use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later.
 4. Target `ES2018` doesn't support nested negated character classes.
-5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named groups, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JS and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
+5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JS and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 6. Recursion depth is limited, and specified by option `maxRecursionDepth`. Any use of recursion results in an error if `maxRecursionDepth` is `null` or `allowBestEffort` is `false`. Additionally, some forms of recursion are not yet supported, including mixing recursion with backreferences, using multiple recursions in the same pattern, and recursion by group number. Because recursion is bounded, patterns that fail due to infinite recursion in Oniguruma might find a match in Oniguruma-To-ES. Future versions will detect this and throw an error.
 
 ## ㊗️ Unicode / mixed case-sensitivity
@@ -884,7 +884,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma with mostly shared syntax/behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled to use them in JavaScript. Note that it doesn't always translate edge case behavior.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma with mostly shared syntax and behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled on the server to use them in JavaScript. Note that JsRegex doesn't always translate edge case behavior differences.
 
 ## 🏷️ About
 
