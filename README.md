@@ -1,6 +1,6 @@
 # Oniguruma-To-ES
 
-A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the browser or on your server. Use it to:
+A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the browser and on your server. Use it to:
 
 - Take advantage of Oniguruma's extended regex capabilities in JavaScript.
 - Run regexes intended for Oniguruma in JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
@@ -243,7 +243,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
 
   <tr valign="top">
     <th align="left" rowspan="2" valign="top">Flag modifiers</th>
-    <td>Groups</td>
+    <td>Group</td>
     <td><code>(?im-x:…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -254,7 +254,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td>Directives</td>
+    <td>Directive</td>
     <td><code>(?im-x)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -329,7 +329,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td>
       ✔ Allows whitespace padding<br>
-      ✔ Allows leading 0s up to 6 total hex digits (JS allows unlimited)<br>
+      ✔ Allows leading 0s up to 6 total hex digits (unlimited in JS)<br>
       ✔ Error for incomplete <code>\u{</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
@@ -404,12 +404,15 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>Unicode property</td>
-    <td><code>\p{L}</code>,<br><code>\P{L}</code></td>
+    <td>
+      <code>\p{L}</code>,<br>
+      <code>\P{L}</code>
+    </td>
     <td align="middle">✅<sup>[1]</sup></td>
     <td align="middle">✅</td>
     <td>
-      ✔ Categories<br>
       ✔ Binary properties<br>
+      ✔ Categories<br>
       ✔ Scripts<br>
       ✔ Aliases<br>
       ✔ POSIX properties<br>
@@ -452,7 +455,6 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td>
       ✔ Unescaped <code>-</code> is literal char in some contexts (different than JS rules in any mode)<br>
       ✔ Fewer chars require escaping than JS<br>
-      ✔ No subtraction operator (from JS flag <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -465,7 +467,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td>Ranges</td>
+    <td>Range</td>
     <td><code>[a-z]</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -474,16 +476,19 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td>POSIX classes</td>
-    <td><code>[[:word:]]</code>,<br><code>[[:^word:]]</code></td>
+    <td>POSIX class</td>
+    <td>
+      <code>[[:word:]]</code>,<br>
+      <code>[[:^word:]]</code>
+    </td>
     <td align="middle">☑️<sup>[3]</sup></td>
     <td align="middle">✅</td>
     <td>
-      ✔ All use Unicode interpretations<br>
+      ✔ All use Unicode definitions<br>
     </td>
   </tr>
   <tr valign="top">
-    <td>Nested classes</td>
+    <td>Nested class</td>
     <td><code>[…[…]]</code></td>
     <td align="middle">☑️<sup>[4]</sup></td>
     <td align="middle">✅</td>
@@ -546,13 +551,16 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Unicode interpretation (unlike JS)<br>
+      ✔ Unicode definition (unlike JS)<br>
       ✔ Allows following quantifier (unlike JS)<br>
     </td>
   </tr>
   <tr valign="top">
     <td>Lookahead</td>
-    <td><code>(?=…)</code>,<br><code>(?!…)</code></td>
+    <td>
+      <code>(?=…)</code>,<br>
+      <code>(?!…)</code>
+    </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -562,7 +570,10 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>Lookbehind</td>
-    <td><code>(?&lt;=…)</code>,<br><code>(?&lt;!…)</code></td>
+    <td>
+      <code>(?&lt;=…)</code>,<br>
+      <code>(?&lt;!…)</code>
+    </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -580,7 +591,10 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Same as JS, plus additional form <code>{,2}</code> for implicit min 0<br>
+      ✔ Includes all JS forms<br>
+      ✔ Adds form <code>{,n}</code> for implicit min 0<br>
+      ✔ Explicit bounds have upper limit of 100,000 (unlimited in JS)<br>
+      ✔ Allowed to follow assertions (unlike JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -589,7 +603,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <code>+</code> suffix doesn't make <code>{…}</code> quantifiers possessive (creates a chained quantifier)<br>
+      ✔ <code>+</code> suffix doesn't make interval (<code>{…}</code>) quantifiers possessive (creates a chained quantifier)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -632,11 +646,14 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>Named capturing</td>
-    <td><code>(?&lt;a&gt;…)</code>,<br><code>(?'a'…)</code></td>
+    <td>
+      <code>(?&lt;a&gt;…)</code>,<br>
+      <code>(?'a'…)</code>
+    </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Duplicate names allowed (no restrictions)<br>
+      ✔ Duplicate names allowed (including within the same alternation path) unless directly referenced by a subroutine<br>
       ✔ Error for names invalid in Oniguruma or JS<br>
     </td>
   </tr>
@@ -653,8 +670,13 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td>Enclosed numbered, relative numbered</td>
-    <td><code>\k&lt;1&gt;</code>,<br><code>\k'1'</code>,<br><code>\k&lt;-1&gt;</code>,<br><code>\k'-1'</code></td>
+    <td>Enclosed numbered, relative</td>
+    <td>
+      <code>\k&lt;1&gt;</code>,<br>
+      <code>\k'1'</code>,<br>
+      <code>\k&lt;-1&gt;</code>,<br>
+      <code>\k'-1'</code>
+    </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -665,7 +687,10 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
   <tr valign="top">
     <td>Named</td>
-    <td><code>\k&lt;a&gt;</code>,<br><code>\k'a'</code></td>
+    <td>
+      <code>\k&lt;a&gt;</code>,<br>
+      <code>\k'a'</code>
+    </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -682,35 +707,81 @@ Notice that nearly every feature has at least subtle differences from JavaScript
       ✔ Error if group defined to the right<sup>[5]</sup><br>
       ✔ Duplicate names/subroutines to the right not included in multiplex<br>
       ✔ Fail to match (or don't include in multiplex) ancestor groups and groups in preceding alternation paths<br>
-      ❌ Some rare cases are indeterminable at compile time, so use JS behavior (match empty string)<br>
+      ❌ Some rare cases are indeterminable at compile time and use the JS behavior of matching an empty string<br>
     </td>
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="1">Subroutines</th>
-    <td><b>TODO: Add me</b></td>
-    <td><code></code></td>
+    <th align="left" rowspan="2">Subroutines</th>
+    <td>Numbered, relative</td>
+    <td>
+      <code>\g&lt;1&gt;</code>,<br>
+      <code>\g'1'</code>,<br>
+      <code>\g&lt;-1&gt;</code>,<br>
+      <code>\g'-1'</code>,<br>
+      <code>\g&lt;+1&gt;</code>,<br>
+      <code>\g'+1'</code>
+    </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <br>
+      ✔ Can appear before reffed group<br>
+      ✔ Any depth of subroutine nesting<br>
+      ✔ Doesn't alter backref nums<br>
+      ✔ Reuses flags that apply to the reffed group (not local flags)<br>
+      ✔ Replaces most recent captured values used by backrefs<br>
+      ✔ Error if named capture present<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Named</td>
+    <td>
+      <code>\g&lt;a&gt;</code>,<br>
+      <code>\g'a'</code>
+    </td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ● Same behavior as numbered<br>
+      ✔ Error if refs a duplicate name<br>
     </td>
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="1">Recursion</th>
-    <td><b>TODO: Add me</b></td>
-    <td><code></code></td>
-    <td align="middle">☑️<sup>[6]</sup></td>
-    <td align="middle">☑️<sup>[6]</sup></td>
+    <th align="left" rowspan="3">Recursion</th>
+    <td>Full pattern</td>
     <td>
-      ✔ <br>
+      <code>\g&lt;0&gt;</code>,<br>
+      <code>\g'0'</code>
+    </td>
+    <td align="middle">☑️</td>
+    <td align="middle">☑️</td>
+    <td>
+      ● Limited support<sup>[6]</sup><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Numbered, relative</td>
+    <td><code>(…\g&lt;1&gt;?…)</code>, etc.</td>
+    <td align="middle">❌</td>
+    <td align="middle">❌</td>
+    <td>
+      ● Not yet supported<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Named</td>
+    <td><code>(?&lt;a&gt;…\g&lt;a&gt;?…)</code>, etc.</td>
+    <td align="middle">☑️</td>
+    <td align="middle">☑️</td>
+    <td>
+      ● Limited support<sup>[6]</sup><br>
     </td>
   </tr>
 
   <tr valign="top">
     <th align="left" rowspan="7">Other</th>
-    <td>Comment groups</td>
+    <td>Comment group</td>
     <td><code>(?#…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -739,7 +810,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td>Absence operators</td>
+    <td>Absence operator</td>
     <td><code>(?~…)</code></td>
     <td align="middle">❌</td>
     <td align="middle">❌</td>
@@ -748,7 +819,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     </td>
   </tr>
   <tr valign="top">
-    <td>Conditionals</td>
+    <td>Conditional</td>
     <td><code>(?(1)…)</code></td>
     <td align="middle">❌</td>
     <td align="middle">❌</td>
@@ -775,16 +846,16 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 </table>
 
-Despite all the details in the table above, it doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in other regex flavors that support them).
+Despite all the details in the table above, it doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them).
 
 ### Footnotes
 
-1. Target `ES2018` doesn't allow Unicode property names added in JavaScript specifications after ES2018.
-2. Unicode blocks are easily emulatable but their character data would significantly increase library weight, and they're a flawed, arguably-unuseful feature (use Unicode scripts and other properties instead).
-3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
-4. Target `ES2018` doesn't allow nested negated character classes.
-5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) almost all placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named groups, and (3) the edge cases where it's matchable rely on rules for backreference resetting within quantified groups that are different in JS and aren't emulatable. Note that it's not a backreference in the first place if `\10`+ and not as many capturing groups defined to the left (it's an octal or identity escape).
-6. Recursion depth is limited, and specified by option `maxRecursionDepth`.
+1. Target `ES2018` doesn't allow Unicode property names added in JavaScript specifications after ES2018 to be used.
+2. Unicode blocks are easily emulatable but their character data would significantly increase library weight. They're also a deeply flawed and arguably-unuseful feature, given the ability to use Unicode scripts and other properties instead.
+3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` are an error if option `allowBestEffort` is `false`, and they use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later.
+4. Target `ES2018` doesn't support nested negated character classes.
+5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named groups, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JS and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
+6. Recursion depth is limited, and specified by option `maxRecursionDepth`. Any use of recursion results in an error if `maxRecursionDepth` is `null` or `allowBestEffort` is `false`. Additionally, some forms of recursion are not yet supported, including mixing recursion with backreferences, using multiple recursions in the same pattern, and recursion by group number. Because recursion is bounded, patterns that fail due to infinite recursion in Oniguruma might find a match in Oniguruma-To-ES. Future versions will detect this and throw an error.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
@@ -799,7 +870,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled to use them in JavaScript. Compared to Oniguruma-To-ES, it produces regexes with more edge cases that don't perfectly translate their behavior to JavaScript.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma with mostly shared syntax/behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled to use them in JavaScript. Compared to Oniguruma-To-ES, it doesn't focus as much on total accuracy so it doesn't always translate edge case behavior.
 
 ## 🏷️ About
 

@@ -369,7 +369,7 @@ function parseQuantifier({token, parent}) {
 //   - Subroutines can't reference duplicate group names (though duplicate names are valid if no
 //     subroutines reference them).
 //   - Subroutines can't use absolute or relative numbers if named capture is used anywhere.
-//   - Backrefs must be to the right of their group definition, so the backref in
+//   - Named backrefs must be to the right of their group definition, so the backref in
 //     `\g<a>\k<a>(?<a>)` is invalid (not directly related to subroutines).
 //   - Subroutines don't restore capturing group match values (for backrefs) upon exit, so e.g.
 //     `(?<a>(?<b>[ab]))\g<a>\k<b>` matches `abb` but not `aba`; same for numbered.
@@ -567,6 +567,7 @@ function createPattern() {
 }
 
 function createQuantifier(element, min, max, greedy, possessive) {
+  // TODO: Move validation to tokenizer?
   if (max < min) {
     throw new Error('Quantifier range out of order');
   }
