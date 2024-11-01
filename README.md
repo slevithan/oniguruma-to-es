@@ -343,7 +343,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Can be backref, error, null, octal, identity escape, or any of these combined with literal digits, based on complex rules that differ from JS<br>
       ✔ Always handles escaped single digit 1-9 outside char class as backref<br>
-      ✔ Allows null with 1-3 0s (unlike JS)<br>
+      ✔ Allows null with 1-3 0s<br>
     </td>
   </tr>
   <tr valign="top">
@@ -465,7 +465,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Error (unlike JS)<br>
+      ✔ Error<br>
     </td>
   </tr>
   <tr valign="top">
@@ -504,7 +504,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">❌</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Doesn't require nested classes for union and ranges (unlike JS)<br>
+      ✔ Doesn't require nested classes for union and ranges<br>
     </td>
   </tr>
 
@@ -515,9 +515,9 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Always multiline (in JS terms)<br>
-      ✔ Only <code>\n</code> as newline (unlike JS)<br>
-      ✔ Allows following quantifier (unlike JS)<br>
+      ✔ Always "multiline" (per JS)<br>
+      ✔ Only <code>\n</code> as newline<br>
+      ✔ Allows following quantifier<br>
     </td>
   </tr>
   <tr valign="top">
@@ -553,8 +553,8 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Unicode definition (unlike JS)<br>
-      ✔ Allows following quantifier (unlike JS)<br>
+      ✔ Unicode based (unlike JS)<br>
+      ✔ Allows following quantifier<br>
     </td>
   </tr>
   <tr valign="top">
@@ -579,10 +579,10 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Error for variable-length quantifiers within lookbehind (unlike JS)<br>
+      ✔ Error for variable-length quantifiers within lookbehind (JS allows)<br>
       ✔ Allows variable-length top-level alternatives<br>
       ✔ Allows following quantifier (unlike JS in any mode)<br>
-      ✔ Values captured within min-0 quantified lookbehind remain referenceable<br>
+      ✔ Values captured within min-0 quantified lookbehind remain referenceable (unlike JS)<br>
     </td>
   </tr>
 
@@ -596,7 +596,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Includes all JS forms<br>
       ✔ Adds form <code>{,n}</code> for implicit min 0<br>
       ✔ Explicit bounds have upper limit of 100,000 (unlimited in JS)<br>
-      ✔ Allowed to follow assertions (unlike JS)<br>
+      ✔ Allowed to follow assertions<br>
     </td>
   </tr>
   <tr valign="top">
