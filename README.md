@@ -576,11 +576,11 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   <tr valign="top">
     <th align="left" rowspan="3">Quantifiers</th>
     <td>Greedy, lazy</td>
-    <td><code>*</code>, <code>+?</code>, <code>{2}</code>, etc.</td>
+    <td><code>*</code>, <code>+?</code>, <code>{2,}</code>, etc.</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Same as JS<br>
+      ✔ Same as JS, plus additional form <code>{,2}</code> for implicit min 0<br>
     </td>
   </tr>
   <tr valign="top">
@@ -589,7 +589,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <code>+</code> suffix doesn't possessivize <code>{…}</code> quantifiers (creates a chained quantifier instead)<br>
+      ✔ <code>+</code> suffix doesn't make <code>{…}</code> quantifiers possessive (creates a chained quantifier)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -598,7 +598,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Each applies itself to the preceding repetition<br>
+      ✔ Further repeats the preceding repetition<br>
     </td>
   </tr>
 
@@ -770,7 +770,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Error; not passed through<br>
+      ✔ Error<br>
     </td>
   </tr>
 </table>
@@ -783,8 +783,8 @@ Despite all the details in the table above, it doesn't include all aspects that 
 2. Unicode blocks are easily emulatable but their character data would significantly increase library weight, and they're a flawed, arguably-unuseful feature (use Unicode scripts and other properties instead).
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if option `allowBestEffort` is disabled.
 4. Target `ES2018` doesn't allow nested negated character classes.
-5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) almost all placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) it matches the behavior of named groups, and (3) the edge cases where it's matchable rely on rules for backreference resetting within quantified groups that are different in JS and are not emulatable. Note that it's not a backreference in the first place if `\10`+ and not as many capturing groups defined to the left (it's an octal or identity escape).
-6. Recursion depth is limited; specified by option `maxRecursionDepth`.
+5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) almost all placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named groups, and (3) the edge cases where it's matchable rely on rules for backreference resetting within quantified groups that are different in JS and aren't emulatable. Note that it's not a backreference in the first place if `\10`+ and not as many capturing groups defined to the left (it's an octal or identity escape).
+6. Recursion depth is limited, and specified by option `maxRecursionDepth`.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
@@ -799,7 +799,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). JsRegex is written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled on the server to use them in JavaScript. In contrast, Oniguruma-To-ES is written in JavaScript and does its own parsing, so it can be used at runtime. JsRegex also produces regexes with more edge cases that don't perfectly follow Oniguruma's behavior, in addition to the Oniguruma/Onigmo differences.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma that has slightly different syntax/behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled to use them in JavaScript. Compared to Oniguruma-To-ES, it produces regexes with more edge cases that don't perfectly translate their behavior to JavaScript.
 
 ## 🏷️ About
 
