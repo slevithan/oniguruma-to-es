@@ -16,7 +16,7 @@ const TokenTypes = /** @type {const} */ ({
   GroupOpen: 'GroupOpen',
   Subroutine: 'Subroutine',
   Quantifier: 'Quantifier',
-  // These aren't allowed in char classes, so they aren't equivalent to JS's `[\q{}]`
+  // These aren't allowed in char classes, so they aren't equivalent to JS `[\q{}]`
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
   // Intermediate representation not included in results
   EscapedNumber: 'EscapedNumber',
@@ -122,7 +122,7 @@ const charClassTokenRe = new RegExp(r`
 */
 /**
 @param {string} pattern
-@param {OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS's flag `s`.
+@param {OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
 @returns {TokenizerResult}
 */
 function tokenize(pattern, flags = '') {

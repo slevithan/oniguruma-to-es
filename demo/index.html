@@ -17,25 +17,25 @@
     <p>This is a basic REPL for testing the output of <a href="https://github.com/slevithan/oniguruma-to-es">Oniguruma-To-ES</a>, an Oniguruma to JavaScript RegExp transpiler. See <a href="https://github.com/kkos/oniguruma/blob/master/doc/RE">Oniguruma syntax</a> for an overview, but there are many subtleties to Oniguruma's differences from JavaScript that aren't shown in the docs.</p>
 
     <h2>Try it</h2>
-    <p><textarea id="input" spellcheck="false" oninput="showOutput(this); autoGrow(this)"></textarea></p>
+    <p><textarea id="input" spellcheck="false" oninput="autoGrow(this); showOutput(this)"></textarea></p>
     <p>
       <b class="label">Flags:</b>
       <label>
-        <input type="checkbox" id="flag-i" onchange="setFlagI(this.checked)">
+        <input type="checkbox" id="flag-i" onchange="setFlag('i', this.checked)">
         <code>i</code>
       </label>
       <label>
-        <input type="checkbox" id="flag-m" onchange="setFlagM(this.checked)">
+        <input type="checkbox" id="flag-m" onchange="setFlag('m', this.checked)">
         <code>m</code> <small>(JS flag <code>s</code>)</small>
       </label>
       <label>
-        <input type="checkbox" id="flag-x" onchange="setFlagX(this.checked)">
+        <input type="checkbox" id="flag-x" onchange="setFlag('x', this.checked)">
         <code>x</code>
       </label>
     </p>
     <p>
       <b class="label"><code>target</code>:</b>
-      <select id="option-target" onchange="setOptionTarget(this.value)">
+      <select id="option-target" onchange="setOption('target', this.value)">
         <option value="ES2018">ES2018</option>
         <option value="ES2024" selected>ES2024</option>
         <option value="ESNext">ESNext</option>
@@ -45,16 +45,24 @@
       <summary>More options</summary>
       <p>
         <label>
-          <input type="checkbox" id="option-allow-best-effort" checked onchange="setOptionAllowBestEffort(this.checked)">
+          <input type="checkbox" id="option-allow-best-effort" checked onchange="setOption('allowBestEffort', this.checked)">
           <code>allowBestEffort</code>
         </label>
         <label>
-          <input type="checkbox" id="option-optimize" checked onchange="setOptionOptimize(this.checked)">
+          <input type="checkbox" id="option-optimize" checked onchange="setOption('optimize', this.checked)">
           <code>optimize</code>
         </label>
         <label>
-          <input type="number" id="option-max-recursion-depth" value="6" min="2" max="100" onchange="setOptionMaxRecursionDepth(this.value)" onkeyup="setOptionMaxRecursionDepth(this.value)">
+          <input type="number" id="option-max-recursion-depth" value="6" min="2" max="100" onchange="setOption('maxRecursionDepth', this.value)" onkeyup="setOption('maxRecursionDepth', this.value)">
           <code>maxRecursionDepth</code>
+        </label>
+        <label>
+          <input type="checkbox" id="option-global" onchange="setOption('global', this.checked)">
+          <code>global</code>
+        </label>
+        <label>
+          <input type="checkbox" id="option-has-indices" onchange="setOption('hasIndices', this.checked)">
+          <code>hasIndices</code>
         </label>
       </p>
     </details>

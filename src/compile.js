@@ -9,6 +9,8 @@ import {recursion} from 'regex-recursion';
 /**
 @typedef {{
   allowBestEffort?: boolean;
+  global?: boolean;
+  hasIndices?: boolean;
   maxRecursionDepth?: number | null;
   optimize?: boolean;
   target?: keyof Target;
@@ -17,7 +19,7 @@ import {recursion} from 'regex-recursion';
 /**
 Transpiles an Oniguruma regex pattern and flags to native JS.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS's flag `s`.
+@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
 @param {CompileOptions} [options]
 @returns {{
   pattern: string;
@@ -37,7 +39,7 @@ function compile(pattern, flags, options) {
   const generated = generate(regexAst, opts);
   return {
     pattern: atomic(possessive(recursion(generated.pattern))),
-    flags: `${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
+    flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
 }
 
@@ -53,16 +55,20 @@ function getOptions(options) {
   // Set default values
   return {
     // Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern
-    // can't be emulated with identical behavior.
+    // can't be emulated with identical behavior
     allowBestEffort: true,
+    // Include JS flag `g` in results
+    global: false,
+    // Include JS flag `d` in results
+    hasIndices: false,
     // If `null`, any use of recursion throws. If an integer between `2` and `100` (and
     // `allowBestEffort` is on), common recursion forms are supported and recurse up to the
-    // specified max depth.
+    // specified max depth
     maxRecursionDepth: 6,
-    // Simplify the generated pattern when it doesn't change the meaning.
+    // Simplify the generated pattern when it doesn't change the meaning
     optimize: true,
     // Sets the JavaScript language version for generated patterns and flags. Later targets allow
-    // faster processing, simpler generated source, and support for additional features.
+    // faster processing, simpler generated source, and support for additional features
     target: 'ES2024',
     ...options,
   };

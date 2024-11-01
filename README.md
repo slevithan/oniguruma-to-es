@@ -81,6 +81,8 @@ A string with `i`, `m`, and `x` in any order (all optional).
 ```ts
 type CompileOptions = {
     allowBestEffort?: boolean;
+    global?: boolean;
+    hasIndices?: boolean;
     maxRecursionDepth?: number | null;
     optimize?: boolean;
     target?: 'ES2018' | 'ES2024' | 'ESNext';
@@ -96,12 +98,10 @@ Transpiles an Oniguruma regex pattern and flags and returns a native JavaScript 
 ```ts
 function toRegExp(
   pattern: string,
-  flags?: string,
+  flags?: OnigurumaFlags,
   options?: CompileOptions
 ): RegExp;
 ```
-
-The `flags` string can be any combination of Oniguruma flags `i`, `m`, and `x`, plus JavaScript flags `d` and `g`. Oniguruma's flag `m` is equivalent to JavaScript's flag `s`. See [Options](#-options) for more details.
 
 > [!TIP]
 > Try it in the [demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/).
@@ -128,7 +128,7 @@ function toRegexAst(
 ): RegexAst;
 ```
 
-`regex`'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close to representing native ESNext JavaScript `RegExp` but with some added features (atomic groups, possessive quantifiers, recursion). The `regex` AST doesn't use some of `regex`'s extended features like flag `x` or subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The AST represents what's needed to precisely reproduce the Oniguruma behavior using `regex`.
+`regex`'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close to representing native ESNext `RegExp` but with some added features (atomic groups, possessive quantifiers, recursion). The `regex` AST doesn't use some of `regex`'s extended features like flag `x` or subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The AST represents what's needed to precisely reproduce the Oniguruma behavior using `regex`.
 
 ## 🔩 Options
 
@@ -153,6 +153,18 @@ Specifically, this option enables the following additional features, depending o
 - `ES2018`:
   - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes always use Unicode.
 </details>
+
+### `global`
+
+Include JavaScript flag `g` (`global`) in results.
+
+*Default: `false`.*
+
+### `hasIndices`
+
+Include JavaScript flag `d` (`hasIndices`) in results.
+
+*Default: `false`.*
 
 ### `maxRecursionDepth`
 
@@ -745,7 +757,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ● Same behavior as numbered<br>
-      ✔ Error if refs a duplicate name<br>
+      ✔ Error if reffed group uses duplicate name<br>
     </td>
   </tr>
 
@@ -834,7 +846,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <code>[\q{…}]</code> matches literal <code>q</code>, etc.<br>
+      ✔ <code>[\q{…}]</code> matches one of literal <code>q</code>, <code>{</code>, etc.<br>
       ✔ <code>[a--b]</code> includes the invalid reversed range <code>a</code> to <code>-</code><br>
     </td>
   </tr>

@@ -1,15 +1,18 @@
-let useFlagI = getValue('flag-i');
-let useFlagM = getValue('flag-m');
-let useFlagX = getValue('flag-x');
-let optionAllowBestEffortValue = getValue('option-allow-best-effort');
-let optionMaxRecursionDepthValue = getValue('option-max-recursion-depth');
-let optionOptimizeValue = getValue('option-optimize');
-let optionTargetValue = getValue('option-target');
-
-function getValue(id) {
-  const el = document.getElementById(id);
-  return el.type === 'checkbox' ? el.checked : el.value;
-}
+const state = {
+  flags: {
+    i: getValue('flag-i'),
+    m: getValue('flag-m'),
+    x: getValue('flag-x'),
+  },
+  opts: {
+    allowBestEffort: getValue('option-allow-best-effort'),
+    global: getValue('option-global'),
+    hasIndices: getValue('option-has-indices'),
+    maxRecursionDepth: getValue('option-max-recursion-depth'),
+    optimize: getValue('option-optimize'),
+    target: getValue('option-target'),
+  },
+};
 
 const inputEl = document.getElementById('input');
 autoGrow(inputEl);
@@ -17,7 +20,7 @@ showOutput(inputEl);
 
 function showOutput(el) {
   const input = el.value;
-  const flags = `${useFlagI ? 'i' : ''}${useFlagM ? 'm' : ''}${useFlagX ? 'x' : ''}`;
+  const flags = `${state.flags.i ? 'i' : ''}${state.flags.m ? 'm' : ''}${state.flags.x ? 'x' : ''}`;
   const outputEl = document.getElementById('output');
   outputEl.classList.remove('error');
   let output = '';
@@ -25,10 +28,8 @@ function showOutput(el) {
     // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
     const re = OnigurumaToES.compile(input, flags, {
-      allowBestEffort: optionAllowBestEffortValue,
-      maxRecursionDepth: optionMaxRecursionDepthValue === '' ? null : +optionMaxRecursionDepthValue,
-      optimize: optionOptimizeValue,
-      target: optionTargetValue,
+      ...state.opts,
+      maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
     });
     output = `/${getRegExpLiteralPattern(re.pattern)}/${re.flags}`;
   } catch (e) {
@@ -51,31 +52,17 @@ function getRegExpLiteralPattern(str) {
   return str ? str.replace(/\\?./gsu, m => m === '/' ? '\\/' : m) : '(?:)';
 }
 
-function setFlagI(checked) {
-  useFlagI = checked;
+function getValue(id) {
+  const el = document.getElementById(id);
+  return el.type === 'checkbox' ? el.checked : el.value;
+}
+
+function setFlag(flag, value) {
+  state.flags[flag] = value;
   showOutput(inputEl);
 }
-function setFlagM(checked) {
-  useFlagM = checked;
-  showOutput(inputEl);
-}
-function setFlagX(checked) {
-  useFlagX = checked;
-  showOutput(inputEl);
-}
-function setOptionAllowBestEffort(checked) {
-  optionAllowBestEffortValue = checked;
-  showOutput(inputEl);
-}
-function setOptionMaxRecursionDepth(value) {
-  optionMaxRecursionDepthValue = value;
-  showOutput(inputEl);
-}
-function setOptionOptimize(checked) {
-  optionOptimizeValue = checked;
-  showOutput(inputEl);
-}
-function setOptionTarget(value) {
-  optionTargetValue = value;
+
+function setOption(option, value) {
+  state.opts[option] = value;
   showOutput(inputEl);
 }

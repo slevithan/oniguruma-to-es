@@ -88,7 +88,7 @@ describe('Assertion', () => {
     });
 
     it('should match only at the start of the search when applied repeatedly', () => {
-      expect('abbcbb'.match(toRegExp(r`\G[ab]`, 'g'))).toEqual(['a', 'b', 'b']);
+      expect('abbcbb'.match(toRegExp(r`\G[ab]`, '', {global: true}))).toEqual(['a', 'b', 'b']);
     });
 
     it('should apply with positive min quantification', () => {

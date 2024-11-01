@@ -36,7 +36,7 @@ describe('Recursion', () => {
         '<>', '<<>>', '<a<b<c>d>e>', '<<<<<<a>>>bc>>>',
       ]).toExactlyMatch(pattern);
       expect(
-        'test > <balanced <<brackets>>> <> <<a>> < <b>'.match(toRegExp(pattern, 'g'))
+        'test > <balanced <<brackets>>> <> <<a>> < <b>'.match(toRegExp(pattern, '', {global: true}))
       ).toEqual(['<balanced <<brackets>>>', '<>', '<<a>>', '<b>']);
     });
 
