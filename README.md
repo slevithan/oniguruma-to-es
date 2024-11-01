@@ -6,7 +6,7 @@ A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the bro
 - Run regexes intended for Oniguruma in JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
 - Share regexes across your Ruby and JavaScript code.
 
-Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma) or [node-oniguruma](https://github.com/atom/node-oniguruma)), this library is **much lighter weight** and its regexes **run much faster** since they run as native JavaScript.
+Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** and its regexes **run much faster** since they run as native JavaScript.
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
@@ -194,9 +194,11 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 ## ✅ Supported features
 
-Following are the supported features by target. Targets `ES2024` and `ESNext` have the same emulation capabilities (resulting regexes might differ, but not in the strings they match).
+Following are the supported features by target.
 
-Notice that nearly every feature has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported can be added in future versions, but some are not emulatable with native JavaScript regexes. Unsupported features throw an error.
+> Targets `ES2024` and `ESNext` have the same emulation capabilities. Resulting regexes might differ, but not in the strings they match.
+
+Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but others can have support added in future versions. Unsupported features throw an error.
 
 <table>
   <tr>
@@ -846,7 +848,7 @@ Notice that nearly every feature has at least subtle differences from JavaScript
   </tr>
 </table>
 
-Despite all the details in the table above, it doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them).
+The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them).
 
 ### Footnotes
 
@@ -870,7 +872,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma with mostly shared syntax/behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled to use them in JavaScript. Compared to Oniguruma-To-ES, it doesn't focus as much on total accuracy so it doesn't always translate edge case behavior.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma with mostly shared syntax/behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled to use them in JavaScript. Note that it doesn't always translate edge case behavior.
 
 ## 🏷️ About
 
