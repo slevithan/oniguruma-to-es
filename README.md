@@ -591,10 +591,10 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Error for variable-length quantifiers within lookbehind (JS allows)<br>
+      ✔ Error for variable-length quantifiers within lookbehind (allowed in JS)<br>
       ✔ Allows variable-length top-level alternatives<br>
       ✔ Allows following quantifier (unlike JS in any mode)<br>
-      ✔ Values captured within min-0 quantified lookbehind remain referenceable (unlike JS)<br>
+      ✔ Values captured within min-0 quantified lookbehind remain referenceable<br>
     </td>
   </tr>
 

@@ -214,7 +214,7 @@ const PosixClassesMap = new Map([
   ['graph', r`[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]`],
   ['lower', r`\p{Lower}`],
   ['print', r`[[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]\p{Zs}]`],
-  ['punct', r`[\p{P}\p{S}]`],
+  ['punct', r`[\p{P}\p{S}]`], // New value from Oniguruma 6.9.9
   ['space', r`\p{space}`],
   ['upper', r`\p{Upper}`],
   ['word', r`[\p{Alpha}\p{M}\p{Nd}\p{Pc}]`],

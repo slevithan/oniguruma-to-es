@@ -19,7 +19,7 @@ function getArgs(actual, expected) {
   };
 }
 
-function matchedFullStr(match, str) {
+function wasFullStrMatch(match, str) {
   return !!match && match.index === 0 && match[0].length === str.length;
 }
 
@@ -30,12 +30,12 @@ function matchWithAllTargets({pattern, flags, strings, targets}, {exact, negate}
   for (const target of targets) {
     const re = toRegExp(pattern, flags, {target});
     for (const str of strings) {
-      // In case `flags` included `y`
+      // In case `flags` includes `g` or `y`
       re.lastIndex = 0;
       const match = re.exec(str);
       const failed = negate ?
-        ((exact && matchedFullStr(match, str)) || (!exact && match)) :
-        ((exact && !matchedFullStr(match, str)) || (!exact && !match));
+        ((exact && wasFullStrMatch(match, str)) || (!exact && match)) :
+        ((exact && !wasFullStrMatch(match, str)) || (!exact && !match));
       if (failed) {
         return {
           pass: false,
