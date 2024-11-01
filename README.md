@@ -420,9 +420,9 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ POSIX properties<br>
       ✔ Negate with <code>\p{^…}</code>, <code>\P{^…}</code><br>
       ✔ Insignificant spaces, underscores, and casing in names<br>
-      ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is identity escape (like JS without flag <code>u</code>, <code>v</code>)<br>
-      ✔ JS prefixes invalid (ex: <code>Script=</code>)<br>
-      ✔ JS properties of strings invalid<br>
+      ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is an identity escape<br>
+      ✔ Error for key prefixes<br>
+      ✔ Error for props of strings<br>
       ❌ Blocks (wontfix<sup>[2]</sup>)<br>
     </td>
   </tr>
@@ -667,7 +667,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Error if named capture present<br>
+      ✔ Error if named capture used<br>
       ✔ Refs the most recent of a capture/subroutine set<br>
     </td>
   </tr>
@@ -682,7 +682,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Error if named capture present<br>
+      ✔ Error if named capture used<br>
       ✔ Allows leading 0s<br>
       ✔ Refs the most recent of a capture/subroutine set<br>
     </td>
@@ -706,8 +706,8 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ✔ Error if group defined to the right<sup>[5]</sup><br>
-      ✔ Duplicate names/subroutines to the right not included in multiplex<br>
+      ✔ Error if group to the right<sup>[5]</sup><br>
+      ✔ Duplicate names (and subroutines) to the right not included in multiplex<br>
       ✔ Fail to match (or don't include in multiplex) ancestor groups and groups in preceding alternation paths<br>
       ❌ Some rare cases are indeterminable at compile time and use the JS behavior of matching an empty string<br>
     </td>
@@ -727,12 +727,12 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Can appear before reffed group<br>
-      ✔ Any depth of subroutine nesting<br>
+      ✔ Allowed before reffed group<br>
+      ✔ Can be nested (any depth)<br>
       ✔ Doesn't alter backref nums<br>
-      ✔ Reuses flags that apply to the reffed group (not local flags)<br>
-      ✔ Replaces most recent captured values used by backrefs<br>
-      ✔ Error if named capture present<br>
+      ✔ Reuses flags from the reffed group (ignores local flags)<br>
+      ✔ Replaces most recent captured values (for backrefs)<br>
+      ✔ Error if named capture used<br>
     </td>
   </tr>
   <tr valign="top">
@@ -808,7 +808,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Supported if used at top level and no top-level alternation is used<br>
+      ● Supported if at top level and no top-level alternation is used<br>
     </td>
   </tr>
   <tr valign="top">
