@@ -21,7 +21,8 @@
     "build": "npm run bundle:global && npm run bundle:esm && npm run types",
     "pretest": "npm run build",
     "test": "jasmine",
-    "compare": "node spec/compare-oniguruma.js",
+    "onig:compare": "node scripts/onig-compare.js",
+    "onig:match": "node scripts/onig-match.js",
     "prepare": "npm test"
   },
   "files": [
