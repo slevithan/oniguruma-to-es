@@ -381,7 +381,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="5">Character sets</th>
+    <th align="left" rowspan="7">Character sets</th>
     <td>Digit, word</td>
     <td><code>\d</code>, <code>\w</code>, etc.</td>
     <td align="middle">✅</td>
@@ -415,6 +415,26 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Excludes only <code>\n</code> (unlike JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Any</td>
+    <td><code>\O</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Any char (any flags)<br>
+      ✔ Identity escape in char class<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Non-newline</td>
+    <td><code>\N</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Excludes only <code>\n</code> (any flags)<br>
+      ✔ Identity escape in char class<br>
     </td>
   </tr>
   <tr valign="top">
@@ -860,7 +880,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ <code>\u{…}</code> is an error<br>
-      ✔ <code>[\q{…}]</code> matches one of <code>q</code>, <code>{</code>, etc.<br>
+      ✔ <code>[\q{…}]</code> matches <code>q</code>, etc.<br>
       ✔ <code>[a--b]</code> includes the invalid reversed range <code>a</code> to <code>-</code><br>
     </td>
   </tr>

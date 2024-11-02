@@ -322,7 +322,7 @@ function genCharacterClassRange(node, state) {
 }
 
 function genCharacterSet({kind, negate, value, key}, state) {
-  if (kind === AstCharacterSetKinds.any) {
+  if (kind === AstCharacterSetKinds.dot) {
     return state.currentFlags.dotAll ?
       ((state.appliedGlobalFlags.dotAll || state.useFlagMods) ? '.' : '[^]') :
       // Onig's only line break char is line feed, unlike JS

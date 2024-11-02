@@ -145,8 +145,12 @@ const FirstPassVisitor = {
 
   CharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
     const {kind, negate, value} = node;
-    if (kind === AstCharacterSetKinds.hex) {
+    if (kind === AstCharacterSetKinds.any) {
+      replaceWith(createUnicodeProperty('Any'));
+    } else if (kind === AstCharacterSetKinds.hex) {
       replaceWith(createUnicodeProperty('AHex', {negate}));
+    } else if (kind === AstCharacterSetKinds.non_newline) {
+      replaceWith(parseFragment(r`[^\n]`));
     } else if (kind === AstCharacterSetKinds.posix) {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (!allowBestEffort) {

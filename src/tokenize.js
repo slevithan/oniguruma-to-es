@@ -25,7 +25,9 @@ const TokenTypes = /** @type {const} */ ({
 const TokenCharacterSetKinds = {
   any: 'any',
   digit: 'digit',
+  dot: 'dot',
   hex: 'hex',
+  non_newline: 'non_newline',
   posix: 'posix',
   property: 'property',
   space: 'space',
@@ -228,6 +230,20 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         }),
       };
     }
+    if (m1 === 'N') {
+      return {
+        token: createToken(TokenTypes.CharacterSet, m, {
+          kind: TokenCharacterSetKinds.non_newline,
+        }),
+      };
+    }
+    if (m1 === 'O') {
+      return {
+        token: createToken(TokenTypes.CharacterSet, m, {
+          kind: TokenCharacterSetKinds.any,
+        }),
+      };
+    }
     if ('RX'.includes(m1)) {
       return {
         token: createToken(TokenTypes.VariableLengthCharacterSet, m, {
@@ -335,7 +351,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
   if (m === '.') {
     return {
       token: createToken(TokenTypes.CharacterSet, m, {
-        kind: TokenCharacterSetKinds.any,
+        kind: TokenCharacterSetKinds.dot,
       }),
     };
   }

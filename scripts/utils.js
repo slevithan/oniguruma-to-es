@@ -70,19 +70,6 @@ function getMatchDetails(match) {
 }
 
 /**
-@type {MatchDetailsFn<Promise<MatchDetails>>}
-*/
-const onigurumaResult = async (pattern, str, pos) => {
-  let result;
-  try {
-    result = await onigurumaExec(pattern, str, pos);
-  } catch (err) {
-    result = err;
-  }
-  return getMatchDetails(result);
-};
-
-/**
 @type {MatchDetailsFn}
 */
 const transpiledRegExpResult = (pattern, str, pos) => {
@@ -94,6 +81,19 @@ const transpiledRegExpResult = (pattern, str, pos) => {
       re.lastIndex = pos;
     }
     result = re.exec(str);
+  } catch (err) {
+    result = err;
+  }
+  return getMatchDetails(result);
+};
+
+/**
+@type {MatchDetailsFn<Promise<MatchDetails>>}
+*/
+const onigurumaResult = async (pattern, str, pos) => {
+  let result;
+  try {
+    result = await onigurumaExec(pattern, str, pos);
   } catch (err) {
     result = err;
   }
