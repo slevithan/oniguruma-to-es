@@ -94,8 +94,8 @@ describe('Character', () => {
     });
   });
 
-  describe('meta-code', () => {
-    it('should throw for unsupported meta-code', () => {
+  describe('meta', () => {
+    it('should throw for unsupported meta', () => {
       expect(() => compile(r`\M`)).toThrow();
       expect(() => compile(r`\M-`)).toThrow();
       // Currently unsupported
@@ -153,7 +153,7 @@ describe('Character', () => {
     });
   });
 
-  describe('unicode', () => {
+  describe('hex char code', () => {
     it(r`should match hex char code with \xN`, () => {
       expect('\u{1}').toExactlyMatch(r`\x1`);
       expect('\u{A}').toExactlyMatch(r`\xA`);
@@ -169,7 +169,14 @@ describe('Character', () => {
 
     it(r`should throw for incomplete \x`, () => {
       expect(() => compile(r`\x`)).toThrow();
-      expect(() => compile(r`\xG0`)).toThrow();
+      expect(() => compile(r`\x.`)).toThrow();
+      expect(() => compile(r`[\x]`)).toThrow();
+    });
+
+    it(r`should throw for multibyte \xNN (above 7F)`, () => {
+      expect(() => compile(r`\x7F`)).not.toThrow();
+      expect(() => compile(r`\x80`)).toThrow();
+      expect(() => compile(r`\xFF`)).toThrow();
     });
 
     it(r`should match hex char code with \uNNNN`, () => {
@@ -180,42 +187,37 @@ describe('Character', () => {
 
     it(r`should throw for incomplete \u`, () => {
       expect(() => compile(r`\u`)).toThrow();
-      expect(() => compile(r`\uG000`)).toThrow();
+      expect(() => compile(r`\u.`)).toThrow();
+      expect(() => compile(r`[\u]`)).toThrow();
       expect(() => compile(r`\u0`)).toThrow();
       expect(() => compile(r`\u00`)).toThrow();
       expect(() => compile(r`\u000`)).toThrow();
     });
 
-    it(r`should match hex char code with \u{N...}`, () => {
-      expect('\u{1}').toExactlyMatch(r`\u{1}`);
-      expect('\u{A}').toExactlyMatch(r`\u{A}`);
-      expect('\u{a}').toExactlyMatch(r`\u{a}`);
-      expect('\u{10FFFF}').toExactlyMatch(r`\u{10FFFF}`);
+    it(r`should match hex char code with \x{N...}`, () => {
+      expect('\u{1}').toExactlyMatch(r`\x{1}`);
+      expect('\u{A}').toExactlyMatch(r`\x{A}`);
+      expect('\u{a}').toExactlyMatch(r`\x{a}`);
+      expect('\u{10FFFF}').toExactlyMatch(r`\x{10FFFF}`);
     });
 
-    it(r`should allow whitespace with \u{N...}`, () => {
-      expect('\u{1}').toExactlyMatch(r`\u{ 1}`);
-      expect('\u{1}').toExactlyMatch(r`\u{1 }`);
-      expect('\u{1}').toExactlyMatch(r`\u{  1  }`);
+    it(r`should allow leading 0s up to 8 total hex digits with \x{N...}`, () => {
+      expect('\u{1}').toExactlyMatch(r`\x{01}`);
+      expect('\u{1}').toExactlyMatch(r`\x{00000001}`);
+      expect('\u{10}').toExactlyMatch(r`\x{00000010}`);
+      expect(() => compile(r`\x{000000001}`)).toThrow();
     });
 
-    it(r`should allow leading 0s up to 6 total hex digits with \u{N...}`, () => {
-      expect('\u{1}').toExactlyMatch(r`\u{01}`);
-      expect('\u{1}').toExactlyMatch(r`\u{000001}`);
-      expect('\u{10}').toExactlyMatch(r`\u{000010}`);
+    it(r`should throw for incomplete \x{N...}`, () => {
+      expect(() => compile(r`\x{`)).toThrow();
+      expect(() => compile(r`\x{0`)).toThrow();
+      expect(() => compile(r`\x{,2}`)).toThrow();
+      expect(() => compile(r`\x{2,}`)).toThrow();
     });
 
-    it(r`should throw for incomplete \u{N...}`, () => {
-      expect(() => compile(r`\u{`)).toThrow();
-      expect(() => compile(r`\u{0`)).toThrow();
-    });
-
-    it(r`should throw for invalid \u{N...}`, () => {
-      expect(() => compile(r`\u{0 0}`)).toThrow();
-      expect(() => compile(r`\u{G}`)).toThrow();
-      expect(() => compile(r`\u{0000001}`)).toThrow();
-      expect(() => compile(r`\u{0000010}`)).toThrow();
-      expect(() => compile(r`\u{110000}`)).toThrow();
+    it(r`should throw for invalid \x{N...}`, () => {
+      expect(() => compile(r`\x{G}`)).toThrow();
+      expect(() => compile(r`\x{110000}`)).toThrow();
     });
   });
 });

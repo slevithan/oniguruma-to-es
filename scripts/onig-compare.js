@@ -1,47 +1,89 @@
 import {r} from '../src/utils.js';
 import {areMatchDetailsEqual, color, err, ok, onigurumaResult, transpiledRegExpResult, value} from './utils.js';
 
-// Help with improving this script or comparing with Oniguruma automaticlly in Jasmine specs would
-// be very welcome
+// Help with improving this script and/or comparing with Oniguruma automaticlly in Jasmine specs
+// would be very welcome
 
 compare([
-  [r`\0`, `\0`],
-  [r`\00`, `\0`],
-  [r`\000`, `\0`],
+  [r`\0`, `\u{0}`],
+  [r`\00`, `\u{0}`],
+  [r`\000`, `\u{0}`],
+  [r`[\000]`, `\u{0}`],
+  [r`[\000]`, `0`],
   [r`\0000`, `\u{0}0`],
-  [r`\c`, r`\c`],
-  [r`\O`, `\n`], // Capital O
-  [r`\p`, r`\p`],
-  [r`\p{`, r`\p{`],
-  [r`\u`, r`\u`],
-  [r`\u0`, r`\u0`],
-  [r`\u00`, r`\u00`],
-  [r`\u000`, r`\u000`],
-  [r`\u0000`, `\0`],
-  [r`\u{A0}`, `\u{A0}`],
-  [r`\x`, r`\x`],
-  [r`\x1`, `\x01`],
-  [r`\x7F`, `\x7F`],
-  [r`\x80`, `\x80`],
-  [r`\x{`, r`\x{`],
-  [r`\x{1}`, `\x01`],
-  [r`\x{00000001}`, `\x10`], // 8 hex digits
-  [r`\x{000000001}`, `\x10`], // 9 hex digits
+  [r`[\0000]`, `0`],
+  [r`\1`, `\u{1}`],
+  [r`\10`, String.fromCodePoint(0o10)],
+  [r`\18`, `\u{1}8`],
+  [r`\177`, String.fromCodePoint(0o177)],
+  [r`\200`, String.fromCodePoint(0o200)], // Multibyte octal not allowed
+  [r`\c`, `c`],
+  [r`[\c]`, `c`],
+  [r`\N`, `\n`],
+  [r`[\N]`, `\n`],
+  [r`\N`, `\r`],
+  [r`[\N]`, `\r`],
+  [r`[\N]`, `N`],
+  [r`\o`, `o`],
+  [r`[\o]`, `o`],
+  [r`\o{1}`, `\u{1}`],
+  [r`[\o{1}]`, `\u{1}`],
+  [r`\O`, `\n`],
+  [r`[\O]`, `\n`],
+  [r`\O`, `\r`],
+  [r`[\O]`, `\r`],
+  [r`[\O]`, `O`],
+  [r`\p`, `p`],
+  [r`[\p]`, `p`],
+  [r`\p{`, `p{`],
+  [r`[\p{]`, `p`],
+  [r`\u`, `u`, r`Onig bug: pattern-terminating \u as identity escape`],
+  [r`\u.`, `ua`],
+  [r`[\u]`, `u`],
+  [r`\u0`, `u0`],
+  [r`[\u0]`, `u`],
+  [r`\u00`, `u00`],
+  [r`\u000`, `u000`],
+  [r`\u0000`, `\u{0}`],
+  [r`\uFFFF`, `\u{FFFF}`],
+  [r`\u{`, `u{`],
+  [r`[\u{]`, `u`],
+  [r`\u{A}`, `\u{A}`],
+  [r`[\u{A}]`, `u`],
+  [r`\x`, `x`, r`Onig bug: pattern-terminating \x as identity escape`],
+  [r`\x.`, `xa`, r`Onig bug: incomplete \x doesn't error but fails to match`],
+  [r`[\x]`, `x`, r`Onig bug: incomplete \x doesn't error but fails to match`],
+  [r`\x1`, `\u{1}`],
+  [r`[\x1]`, `\u{1}`],
+  [r`\x7F`, `\u{7F}`],
+  [r`\x80`, `\u{80}`],  // Multibyte `\xNN` not allowed
+  [r`\x{`, `x{`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
+  [r`[\x{]`, `x`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
+  [r`\x{ 1 }`, `x{ 1 }`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
+  [r`^\x{,2}$`, `xx`, r`Incomplete "\x" as identity unsupported: high ambiguity`],
+  [r`^\x{2,}$`, `xx`],
+  [r`\x{1}`, `\u{1}`],
+  [r`[\x{1}]`, `\u{1}`],
+  [r`\x{00000001}`, `\u{1}`], // 8 hex digits
+  [r`\x{000000001}`, `\u{1}`], // 9 hex digits
   [r`\x{10FFFF}`, `\u{10FFFF}`],
   [r`\x{0010FFFF}`, `\u{10FFFF}`], // 8 hex digits
   [r`\x{00010FFFF}`, `\u{10FFFF}`], // 9 hex digits
-  [r`\x{110000}`, ``],
-  [r`\x{13FFFF}`, ``],
-  [r`\x{0013FFFF}`, ``], // 8 hex digits
-  [r`\x{00013FFFF}`, ``], // 9 hex digits
+  [r`\x{13FFFF}`, ``, r`Beyond Unicode range: JS doesn't support`],
   [r`\x{140000}`, ``],
+  [r`\x{0 1}`, `\u{0}\u{1}`],
 ]);
 
 async function compare(tests) {
   let numSame = 0;
   let numDiff = 0;
+  let numDiffExpected = 0;
+  function logExpectedDiff(i, msg) {
+    numDiffExpected++;
+    console.log(`  └ ${color('gray', `(${i}. Difference expected: ${msg})`)}`);
+  }
   for (let i = 0; i < tests.length; i++) {
-    const [pattern, str] = tests[i];
+    const [pattern, str, diffExplanation] = tests[i];
     const libMatch = transpiledRegExpResult(pattern, str);
     const onigMatch = await onigurumaResult(pattern, str);
     const searched = `${color('yellow', `/${pattern}/`)} with ${value(str)} ${color('gray', `(len ${str.length})`)}`;
@@ -56,6 +98,9 @@ async function compare(tests) {
       ok(i, `Results same for ${searched}${
         detail ? ` (${color('yellow', detail)})` : ''
       }`);
+      if (diffExplanation) {
+        logExpectedDiff(i, diffExplanation);
+      }
       continue;
     }
     numDiff++;
@@ -67,9 +112,14 @@ async function compare(tests) {
       err(i, `Results differed for ${searched}: lib: ${value(libMatch.result)}, onig: ${value(onigMatch.result)}`);
     } else if (libMatch.index !== onigMatch.index) {
       err(i, `Match positions differed for ${searched}: lib: ${value(libMatch.index)}, onig: ${value(onigMatch.index)}`);
+    } else {
+      throw new Error(`Unexpected path for test ${i} ${tests[i]}`);
+    }
+    if (diffExplanation) {
+      logExpectedDiff(i, diffExplanation);
     }
   }
   numSame &&= `${color('green', numSame)}`;
   numDiff &&= `${color('red', numDiff)}`;
-  console.log(`\nFinished: ${numSame} same, ${numDiff} different`);
+  console.log(`\nFinished: ${numSame} same, ${numDiff} different, ${numDiffExpected} differences expected`);
 }

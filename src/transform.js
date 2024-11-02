@@ -150,7 +150,7 @@ const FirstPassVisitor = {
     } else if (kind === AstCharacterSetKinds.posix) {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (!allowBestEffort) {
-          throw new Error(`POSIX class "${value}" requires option allowBestEffort or target ES2024`);
+          throw new Error(`POSIX class "${value}" requires option allowBestEffort or min target ES2024`);
         }
         let ascii = {
           graph: '!-~',
@@ -159,7 +159,7 @@ const FirstPassVisitor = {
         if (negate) {
           // POSIX classes are always nested in a char class; manually invert the range rather than
           // using `[^...]` so it can be unwrapped since ES2018 doesn't support nested classes
-          ascii = r`\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
+          ascii = `\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
         }
         replaceWith(parseFragment(`[${ascii}]`));
       } else {
@@ -232,7 +232,7 @@ const FirstPassVisitor = {
       },
       force: {
         // Always add flag v because we're generating an AST that relies on it (it enables JS
-        // support for Onig features nested classes, set intersection, Unicode properties, `\u{}`).
+        // support for Onig features nested classes, set intersection, Unicode properties, etc.).
         // However, the generator might disable flag v based on its `target` option
         v: true,
       },
@@ -320,7 +320,7 @@ const FirstPassVisitor = {
   VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
     const {kind} = node;
     if (kind === AstVariableLengthCharacterSetKinds.newline) {
-      replaceWith(parseFragment(r`(?>\r\n?|[\n\v\f\x85\u2028\u2029])`));
+      replaceWith(parseFragment('(?>\r\n?|[\n\v\f\x85\u2028\u2029])'));
     } else if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
       if (!allowBestEffort) {
         throw new Error(r`Use of "\X" requires option allowBestEffort`);
@@ -328,7 +328,7 @@ const FirstPassVisitor = {
       // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
       // emoji using a general pattern that matches any Unicode sequence following the structure of
       // a valid emoji. That actually makes it more accurate for matching any grapheme
-      const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source;
+      const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, r`\x{`);
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
       // Bypass name check to allow `RGI_Emoji` through, which Onig doesn't support
       replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {bypassPropertyNameCheck: true}));

@@ -59,7 +59,7 @@ const EscapeCharCodes = new Map([
 const controlCharPattern = 'c.? | C(?:-.?)?';
 // Onig considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and `\p{gc=L}` are invalid
 const unicodePropertyPattern = r`[pP]\{(?:\^?[\x20\w]+\})?`;
-const hexCharPattern = r`u\{[^\}]*\}? | u\p{AHex}{0,4} | x\p{AHex}{0,2}`;
+const hexCharPattern = r`u(?:\p{AHex}{4})? | x\{[^\}]*\}? | x\p{AHex}{0,2}`;
 const escapedNumPattern = r`\d{1,3}`;
 const charClassOpenPattern = r`\[\^?\]?`;
 // Even with flag x, Onig doesn't allow whitespace to separate a quantifier from the `?` or `+`
@@ -445,7 +445,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   if (char1 === 'u' || char1 === 'x') {
     return createToken(TokenTypes.Character, raw, {
-      value: getValidatedUnicodeCharCode(raw),
+      value: getValidatedHexCharCode(raw),
     });
   }
   if (EscapeCharCodes.has(char1)) {
@@ -463,10 +463,10 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   if (raw === '\\') {
     throw new Error(r`Incomplete escape "\"`);
   }
-  // Meta-code `\M-x` and `\M-\C-x` are unsupported; avoid treating as an identity escape
+  // Meta `\M-x` and `\M-\C-x` are unsupported; avoid treating as an identity escape
   if (char1 === 'M') {
     // [TODO] Supportable; see <https://github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <https://github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
-    throw new Error(`Unsupported meta-code "${raw}"`);
+    throw new Error(`Unsupported meta "${raw}"`);
   }
   // Identity escape; count code unit length
   if (raw.length === 2) {
@@ -586,21 +586,6 @@ function createTokenForUnicodeProperty(raw) {
   });
 }
 
-function getValidatedUnicodeCharCode(raw) {
-  if (/^(?:\\x$|\\u(?!\p{AHex}{4}|\{\s*\p{AHex}{1,6}\s*\}))/u.test(raw)) {
-    throw new Error(`Incomplete or invalid escape "${raw}"`);
-  }
-  // Might include leading 0s
-  const hex = raw[2] === '{' ?
-    /^\\u\{\s*(?<hex>\p{AHex}+)/u.exec(raw).groups.hex :
-    raw.slice(2);
-  const dec = parseInt(hex, 16);
-  if (dec > 0x10FFFF) {
-    throw new Error(`Invalid escape out of range "${raw}"`);
-  }
-  return dec;
-}
-
 function getFlagPropsForToken(flags) {
   // Don't include `false` for flags that aren't included
   const obj = {};
@@ -615,6 +600,32 @@ function getFlagPropsForToken(flags) {
     obj.extended = true;
   }
   return Object.keys(obj).length ? obj : null;
+}
+
+function getValidatedHexCharCode(raw) {
+  // Note: Onig (tested 6.9.8) has a bug where bare `\u` and `\x` are identity escapes if they
+  // appear at the very end of the pattern, so e.g. `\u` matches `u`, but `\u0`, `\u.`, and `[\u]`
+  // are all errors, and `\x.` and `[\x]` are not errors but fail to match anything. Don't emulate
+  // these bugs, and just treat these cases as errors. Also, Onig treats incomplete `\x{` (with the
+  // brace and not immediately followed by a hex digit) as an identity escape, so e.g. `\x{`
+  // matches `x{` and `^\x{,2}$` matches `xx`, but `\x{2,}` and `\x{0,2}` are errors. Don't emulate
+  // this crazy and pointless ambiguity, and just treat incomplete `\x{` as an error
+  if (/^(?:\\u(?!\p{AHex}{4})|\\x(?!\p{AHex}{1,2}|\{\p{AHex}{1,8}\}))/u.test(raw)) {
+    throw new Error(`Incomplete or invalid escape "${raw}"`);
+  }
+  // Might include leading 0s
+  const hex = raw[2] === '{' ?
+    /^\\x\{\s*(?<hex>\p{AHex}+)/u.exec(raw).groups.hex :
+    raw.slice(2);
+  const dec = parseInt(hex, 16);
+  if (dec > 0x7F && /^\\x\p{AHex}/u.test(raw)) {
+    throw new Error(r`\xNN above 7F unsupported in Oniguruma "${raw}"`);
+  } else if (dec > 0x13FFFF) {
+    throw new Error(`Invalid out of range "${raw}"`);
+  } else if (dec > 0x10FFFF) {
+    throw new Error(`Invalid out of range in JS "${raw}"`);
+  }
+  return dec;
 }
 
 // Value is 1-3 digits, which can be a backref (possibly invalid), null, octal, or identity escape,

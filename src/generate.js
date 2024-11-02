@@ -99,7 +99,7 @@ function generate(ast, options) {
         return genCharacterClass(node, state, gen);
       case AstTypes.CharacterClassIntersection:
         if (!state.useFlagV) {
-          throw new Error('Use of class intersection requires target ES2024 or later');
+          throw new Error('Use of class intersection requires min target ES2024');
         }
         return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
@@ -288,7 +288,7 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
     return elements.map(gen).join('');
   }
   if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {
-    throw new Error('Use of nested character class requires target ES2024 or later');
+    throw new Error('Use of nested character class requires min target ES2024');
   }
   state.inCharClass = true;
   const result = `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;

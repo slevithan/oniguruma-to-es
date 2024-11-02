@@ -320,34 +320,31 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td><code>\x</code></td>
+    <td><code>\xNN</code></td>
     <td><code>\x7F</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
       ✔ Allows 1 hex digit<br>
       ✔ Error for 2 hex digits > <code>7F</code><br>
-      ✔ Error for incomplete <code>\x</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
-    <td><code>\u</code></td>
+    <td><code>\uNNNN</code></td>
     <td><code>\uFFFF</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Error for incomplete <code>\u</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Same as JS with flag <code>u</code>, <code>v</code><br>
     </td>
   </tr>
   <tr valign="top">
-    <td><code>\u{…}</code></td>
-    <td><code>\u{A}</code></td>
+    <td><code>\x{…}</code></td>
+    <td><code>\x{A}</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Allows whitespace padding<br>
-      ✔ Allows leading 0s up to 6 total hex digits (unlimited in JS)<br>
-      ✔ Error for incomplete <code>\u{</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Allows leading 0s up to 8 total hex digits<br>
     </td>
   </tr>
   <tr valign="top">
@@ -359,6 +356,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Can be backref, error, null, octal, identity escape, or any of these combined with literal digits, based on complex rules that differ from JS<br>
       ✔ Always handles escaped single digit 1-9 outside char class as backref<br>
       ✔ Allows null with 1-3 0s<br>
+      ✔ Error for octal > <code>177</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -368,7 +366,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ With A-Za-z (JS: only <code>\c</code> form)<br>
-      ✔ Error for incomplete <code>\c</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -378,7 +375,8 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       Not yet supported:<br>
       ● <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
-      ● Meta-code <code>\M-x</code>, <code>\M-\C-x</code><br>
+      ● Meta <code>\M-x</code>, <code>\M-\C-x</code><br>
+      ● Multibyte octal <code>\o{…}</code><br>
     </td>
   </tr>
 
@@ -797,7 +795,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="7">Other</th>
+    <th align="left" rowspan="8">Other</th>
     <td>Comment group</td>
     <td><code>(?#…)</code></td>
     <td align="middle">✅</td>
@@ -845,11 +843,24 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
+    <td>Char sequence</td>
+    <td>
+      <code>\x{1 2 …N}</code>,<br>
+      <code>\o{1 2 …N}</code><br>
+    </td>
+    <td align="middle">❌</td>
+    <td align="middle">❌</td>
+    <td>
+      ● Not yet supported<br>
+    </td>
+  </tr>
+  <tr valign="top">
     <td colspan="2">JS features unknown to Oniguruma are handled using Oniguruma syntax</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <code>[\q{…}]</code> matches one of literal <code>q</code>, <code>{</code>, etc.<br>
+      ✔ <code>\u{…}</code> is an error<br>
+      ✔ <code>[\q{…}]</code> matches one of <code>q</code>, <code>{</code>, etc.<br>
       ✔ <code>[a--b]</code> includes the invalid reversed range <code>a</code> to <code>-</code><br>
     </td>
   </tr>
