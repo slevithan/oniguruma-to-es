@@ -8,6 +8,9 @@ A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the bro
 
 Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** and its regexes **run much faster** since they run as native JavaScript.
 
+> [!WARNING]
+> This library is currently in alpha and has known bugs.
+
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
 Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
@@ -208,9 +211,9 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 Following are the supported features by target.
 
-> Targets `ES2024` and `ESNext` have the same emulation capabilities. Resulting regexes might differ, but not in the strings they match.
+> Targets `ES2024` and `ESNext` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings.
 
-Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but others might get support in future versions of Oniguruma-To-ES. Unsupported features throw an error.
+Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of Oniguruma-To-ES. Unsupported features throw an error.
 
 <table>
   <tr>

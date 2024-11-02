@@ -1,4 +1,5 @@
 import {toRegExp} from '../dist/index.mjs';
+import {r} from '../src/utils.js';
 import {readFileSync} from 'node:fs';
 // vscode-oniguruma 2.0.1 uses Oniguruma 6.9.8
 import oniguruma from 'vscode-oniguruma';
@@ -129,6 +130,26 @@ function areMatchDetailsEqual(a, b) {
   return !(a.index !== b.index || a.result !== b.result || !!a.error !== !!b.error);
 }
 
+function value(value) {
+  if (value === null) {
+    return color('gray', value);
+  }
+  if (typeof value === 'number') {
+    return color('blue', value);
+  }
+  if (typeof value === 'string') {
+    return color('cyan', `"${esc(value, ansi.cyan)}"`);
+  }
+  return String(value);
+}
+
+function esc(str, restoreEsc = '') {
+  return str.
+    replace(/\n/g, `${color('gray', r`\n`)}${restoreEsc}`).
+    replace(/\r/g, `${color('gray', r`\r`)}${restoreEsc}`).
+    replace(/\0/g, `${color('gray', r`\0`)}${restoreEsc}`);
+}
+
 export {
   areMatchDetailsEqual,
   color,
@@ -136,4 +157,5 @@ export {
   ok,
   onigurumaResult,
   transpiledRegExpResult,
+  value,
 };

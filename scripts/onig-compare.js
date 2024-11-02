@@ -1,5 +1,5 @@
 import {r} from '../src/utils.js';
-import {areMatchDetailsEqual, color, err, ok, onigurumaResult, transpiledRegExpResult} from './utils.js';
+import {areMatchDetailsEqual, color, err, ok, onigurumaResult, transpiledRegExpResult, value} from './utils.js';
 
 // Help with improving this script or comparing with Oniguruma automaticlly in Jasmine specs would
 // be very welcome
@@ -10,7 +10,7 @@ compare([
   [r`\000`, `\0`],
   [r`\0000`, `\u{0}0`],
   [r`\c`, r`\c`],
-  [r`\O`, `\n`], // Ucase o
+  [r`\O`, `\n`], // Capital O
   [r`\p`, r`\p`],
   [r`\p{`, r`\p{`],
   [r`\u`, r`\u`],
@@ -23,6 +23,18 @@ compare([
   [r`\x1`, `\x01`],
   [r`\x7F`, `\x7F`],
   [r`\x80`, `\x80`],
+  [r`\x{`, r`\x{`],
+  [r`\x{1}`, `\x01`],
+  [r`\x{00000001}`, `\x10`], // 8 hex digits
+  [r`\x{000000001}`, `\x10`], // 9 hex digits
+  [r`\x{10FFFF}`, `\u{10FFFF}`],
+  [r`\x{0010FFFF}`, `\u{10FFFF}`], // 8 hex digits
+  [r`\x{00010FFFF}`, `\u{10FFFF}`], // 9 hex digits
+  [r`\x{110000}`, ``],
+  [r`\x{13FFFF}`, ``],
+  [r`\x{0013FFFF}`, ``], // 8 hex digits
+  [r`\x{00013FFFF}`, ``], // 9 hex digits
+  [r`\x{140000}`, ``],
 ]);
 
 async function compare(tests) {
@@ -60,24 +72,4 @@ async function compare(tests) {
   numSame &&= `${color('green', numSame)}`;
   numDiff &&= `${color('red', numDiff)}`;
   console.log(`\nFinished: ${numSame} same, ${numDiff} different`);
-}
-
-function value(value) {
-  if (value === null) {
-    return color('gray', value);
-  }
-  if (typeof value === 'number') {
-    return color('blue', value);
-  }
-  if (typeof value === 'string') {
-    return color('cyan', `"${esc(value)}"`);
-  }
-  return String(value);
-}
-
-function esc(str) {
-  return str.
-    replace(/\n/g, '\\n').
-    replace(/\r/g, '\\r').
-    replace(/\0/g, '\\0');
 }
