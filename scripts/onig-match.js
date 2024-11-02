@@ -2,7 +2,7 @@ import {areMatchDetailsEqual, err, ok, onigurumaResult, transpiledRegExpResult} 
 
 exec(process.argv.slice(2));
 
-// Basic Oniguruma console-based tester that also does a comparison with Oniguruma-to-ES results
+// Basic Oniguruma console-based tester that also does a comparison with Oniguruma-to-ES
 async function exec([pattern, str]) {
   if (!(typeof pattern === 'string' && typeof str === 'string')) {
     err(null, 'pattern and str args expected');
@@ -45,7 +45,7 @@ async function exec([pattern, str]) {
       err(null, 'Oniguruma and library results differed');
       console.log('Library results:', libMatches);
     } else {
-      ok(null, 'Oniguruma and library results matched');
+      ok(null, 'Results same for Oniguruma and library');
     }
   }
 }

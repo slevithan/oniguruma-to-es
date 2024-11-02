@@ -4,18 +4,30 @@ import {readFileSync} from 'node:fs';
 import oniguruma from 'vscode-oniguruma';
 
 const ansi = {
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  gray: '\x1b[38;2;100;100;100m',
   green: '\x1b[32m',
   red: '\x1b[31m',
   reset: '\x1b[0m',
-  yellow: '\x1b[33m',
+  yellow: '\x1b[38;2;253;182;0m',
 };
 
+/**
+@param {keyof ansi} color
+@param {string} str
+@returns {string}
+*/
+function color(color, str) {
+  return `${ansi[color]}${str}${ansi.reset}`;
+}
+
 function ok(i, msg) {
-  console.log(`${i ? `  ${i}. ` : ''}${ansi.green}✅${ansi.reset} ${msg}`);
+  console.log(`${typeof i === 'number' ? `  ${i}. ` : ''}${color('green', '✅')} ${msg}`);
 }
 
 function err(i, msg) {
-  console.log(`${i ? `  ${i}. ` : ''}${ansi.red}❌ ${msg}${ansi.reset}`);
+  console.log(`${typeof i === 'number' ? `  ${i}. ` : ''}${color('red', '❌')} ${msg}`);
 }
 
 /**
@@ -118,8 +130,8 @@ function areMatchDetailsEqual(a, b) {
 }
 
 export {
-  ansi,
   areMatchDetailsEqual,
+  color,
   err,
   ok,
   onigurumaResult,
