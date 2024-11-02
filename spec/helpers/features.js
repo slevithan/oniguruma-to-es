@@ -16,7 +16,7 @@ const patternModsSupported = (() => {
   }
   return true;
 })();
-const maxTargetForPatternMods = patternModsSupported ? null : 'ESNext';
+const maxTargetForPatternMods = patternModsSupported ? null : 'ES2024';
 
 export {
   maxTargetForDuplicateNames,
