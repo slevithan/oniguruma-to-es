@@ -319,16 +319,7 @@ function parseGroupOpen(context, state) {
       context.current++;
     } else {
       const alt = node.alternatives.at(-1);
-      state.isInLookbehind ||= node.kind === AstAssertionKinds.lookbehind;
-      const child = walk(alt, state);
-      alt.elements.push(child);
-      if (state.isInLookbehind && child.type === AstTypes.Quantifier && child.min !== child.max) {
-        // JS supports variable-length quantifiers in lookbehind but Onig doesn't
-        throw new Error('Variable repetition within lookbehind unsupported in Oniguruma');
-        // Additionally, Onig only supports variable-length alternation at the top level of
-        // lookbehind, but this isn't currently enforced. Ex: `(?<=a|bc)` and `(?<=a|b(c|d))` are
-        // valid, but not `(?<=a(b|cd))`
-      }
+      alt.elements.push(walk(alt, state));
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }

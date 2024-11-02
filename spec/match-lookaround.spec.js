@@ -87,12 +87,12 @@ describe('Lookaround', () => {
       expect('bba').toFindMatch('(?<=b{2,2})a');
     });
 
-    it('should throw for variable-length repetition in lookbehind', () => {
-      expect(() => compile('(?<=b?)a')).toThrow();
-      expect(() => compile('(?<=b*)a')).toThrow();
-      expect(() => compile('(?<=b+)a')).toThrow();
-      expect(() => compile('(?<=b{0,2})a')).toThrow();
-      expect(() => compile('(?<=b{0,})a')).toThrow();
+    it('should match variable-length repetition in lookbehind', () => {
+      expect('a').toFindMatch('(?<=b?)a');
+      expect('a').toFindMatch('(?<=b*)a');
+      expect('ba').toFindMatch('(?<=b+)a');
+      expect('a').toFindMatch('(?<=b{0,2})a');
+      expect('a').toFindMatch('(?<=b{0,})a');
     });
 
     it('should match top-level variable-length alternatives in lookbehind', () => {
@@ -102,6 +102,12 @@ describe('Lookaround', () => {
       expect([
         'ca', 'a',
       ]).not.toFindMatch('(?<=b|cc)a');
+    });
+
+    it('should match non-top-level variable-length alternatives in lookbehind', () => {
+      expect([
+        'bca', 'bdda',
+      ]).toFindMatch('(?<=b(?:c|dd))a');
     });
 
     it('should apply with positive min quantification', () => {
