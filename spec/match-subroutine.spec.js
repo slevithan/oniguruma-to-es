@@ -7,7 +7,7 @@ beforeEach(() => {
 });
 
 describe('Subroutine', () => {
-  // TODO: Subroutines use the flags that apply to their reffed group
+  // TODO: Test that subroutines use the flags that apply to their reffed group
 
   describe('numbered', () => {
     it('should match the expression within the referenced group', () => {

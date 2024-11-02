@@ -295,7 +295,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Different allowed set than JS<br>
-      ✔ Error for multibyte chars<br>
+      ✔ Allows multibyte chars<br>
     </td>
   </tr>
   <tr valign="top">
@@ -323,7 +323,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Allows 1 hex digit<br>
-      ✔ Error for 2 hex digits above 7F<br>
+      ✔ Error for 2 hex digits > <code>7F</code><br>
       ✔ Error for incomplete <code>\x</code> (like JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
@@ -642,7 +642,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
   <tr valign="top">
     <td>Atomic</td>
-    <td><code>(?&gt;…)</code></td>
+    <td><code>(?>…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -661,7 +661,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   <tr valign="top">
     <td>Named capturing</td>
     <td>
-      <code>(?&lt;a&gt;…)</code>,<br>
+      <code>(?&lt;a>…)</code>,<br>
       <code>(?'a'…)</code>
     </td>
     <td align="middle">✅</td>
@@ -686,9 +686,9 @@ Notice that nearly every feature below has at least subtle differences from Java
   <tr valign="top">
     <td>Enclosed numbered, relative</td>
     <td>
-      <code>\k&lt;1&gt;</code>,<br>
+      <code>\k&lt;1></code>,<br>
       <code>\k'1'</code>,<br>
-      <code>\k&lt;-1&gt;</code>,<br>
+      <code>\k&lt;-1></code>,<br>
       <code>\k'-1'</code>
     </td>
     <td align="middle">✅</td>
@@ -702,7 +702,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   <tr valign="top">
     <td>Named</td>
     <td>
-      <code>\k&lt;a&gt;</code>,<br>
+      <code>\k&lt;a></code>,<br>
       <code>\k'a'</code>
     </td>
     <td align="middle">✅</td>
@@ -729,11 +729,11 @@ Notice that nearly every feature below has at least subtle differences from Java
     <th align="left" rowspan="2">Subroutines</th>
     <td>Numbered, relative</td>
     <td>
-      <code>\g&lt;1&gt;</code>,<br>
+      <code>\g&lt;1></code>,<br>
       <code>\g'1'</code>,<br>
-      <code>\g&lt;-1&gt;</code>,<br>
+      <code>\g&lt;-1></code>,<br>
       <code>\g'-1'</code>,<br>
-      <code>\g&lt;+1&gt;</code>,<br>
+      <code>\g&lt;+1></code>,<br>
       <code>\g'+1'</code>
     </td>
     <td align="middle">✅</td>
@@ -750,7 +750,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   <tr valign="top">
     <td>Named</td>
     <td>
-      <code>\g&lt;a&gt;</code>,<br>
+      <code>\g&lt;a></code>,<br>
       <code>\g'a'</code>
     </td>
     <td align="middle">✅</td>
@@ -765,7 +765,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <th align="left" rowspan="3">Recursion</th>
     <td>Full pattern</td>
     <td>
-      <code>\g&lt;0&gt;</code>,<br>
+      <code>\g&lt;0></code>,<br>
       <code>\g'0'</code>
     </td>
     <td align="middle">☑️</td>
@@ -776,7 +776,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
   <tr valign="top">
     <td>Numbered, relative</td>
-    <td><code>(…\g&lt;1&gt;?…)</code>, etc.</td>
+    <td><code>(…\g&lt;1>?…)</code>, etc.</td>
     <td align="middle">❌</td>
     <td align="middle">❌</td>
     <td>
@@ -785,7 +785,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
   <tr valign="top">
     <td>Named</td>
-    <td><code>(?&lt;a&gt;…\g&lt;a&gt;?…)</code>, etc.</td>
+    <td><code>(?&lt;a>…\g&lt;a>?…)</code>, etc.</td>
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
