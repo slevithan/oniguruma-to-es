@@ -1,4 +1,5 @@
 import {r} from '../src/utils.js';
+import {maxTargetForPatternMods} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -14,7 +15,10 @@ describe('CharacterSet', () => {
     });
 
     it('should match line feed with flag m disabled', () => {
-      expect('\n').toExactlyMatch(r`(?-m)\O`);
+      expect('\n').toExactlyMatch({
+        pattern: r`(?-m)\O`,
+        maxTarget: maxTargetForPatternMods,
+      });
     });
 
     it('should be identity escape within a char class', () => {

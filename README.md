@@ -423,17 +423,16 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Any char (any flags)<br>
+      ✔ Any char (with any flags)<br>
       ✔ Identity escape in char class<br>
     </td>
   </tr>
   <tr valign="top">
-    <td>Non-newline</td>
+    <td>Not newline</td>
     <td><code>\N</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Excludes only <code>\n</code> (any flags)<br>
       ✔ Identity escape in char class<br>
     </td>
   </tr>
