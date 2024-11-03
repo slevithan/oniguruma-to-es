@@ -43,6 +43,7 @@ function transform(ast, options) {
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
+    supportedGNodes: new Set(),
   };
   traverse({node: ast}, firstPassState, FirstPassVisitor);
   // Global flags modified by the first pass
@@ -105,7 +106,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, parent, key, ast, remove, replaceWith}) {
+  Assertion({node, ast, remove, replaceWith}, {supportedGNodes}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -114,9 +115,7 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?<=\A|\n)`));
     } else if (kind === AstAssertionKinds.search_start) {
-      // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
-      // checking in `Pattern` visitor
-      if (parent.parent !== ast.pattern || key !== 0) {
+      if (!supportedGNodes.has(node)) {
         throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
       }
       ast.flags.sticky = true;
@@ -259,14 +258,14 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}) {
+  Pattern({node}, {supportedGNodes}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
     let hasAltWithLeadG = false;
     let hasAltWithoutLeadG = false;
     for (const alt of node.alternatives) {
-      if (alt.elements[0]?.kind === AstAssertionKinds.search_start) {
+      if (hasLeadingG(alt.elements, supportedGNodes)) {
         hasAltWithLeadG = true;
       } else {
         hasAltWithoutLeadG = true;
@@ -640,6 +639,36 @@ function getParentAlternative(node) {
     }
   }
   return null;
+}
+
+function hasLeadingG(els, supportedGNodes) {
+  if (!els.length) {
+    return false;
+  }
+  const firstToConsider = els.find(el => {
+    return el.kind === AstAssertionKinds.search_start ?
+      true :
+      ( el.type !== AstTypes.Directive &&
+        el.type !== AstTypes.Assertion &&
+        !(el.type === AstTypes.Quantifier && !el.min)
+      );
+  });
+  if (!firstToConsider) {
+    return false;
+  }
+  if (firstToConsider.kind === AstAssertionKinds.search_start) {
+    supportedGNodes.add(firstToConsider);
+    return true;
+  }
+  if (firstToConsider.type === AstTypes.Group || firstToConsider.type === AstTypes.CapturingGroup) {
+    for (const alt of firstToConsider.alternatives) {
+      if (!hasLeadingG(alt.elements, supportedGNodes)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 function isValidGroupNameJs(name) {

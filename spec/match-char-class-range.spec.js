@@ -31,19 +31,19 @@ describe('CharacterClassRange', () => {
   it('should match unescaped hyphen as literal at intersection boundary', () => {
     expect('-').toExactlyMatch({
       pattern: r`[a-&&\p{Any}]`,
-      minTarget: minTestTargetForFlagV,
+      minTestTarget: minTestTargetForFlagV,
     });
     expect('-').toExactlyMatch({
       pattern: r`[\w-&&\p{Any}]`,
-      minTarget: minTestTargetForFlagV,
+      minTestTarget: minTestTargetForFlagV,
     });
     expect('-').toExactlyMatch({
       pattern: r`[\p{Any}&&-a]`,
-      minTarget: minTestTargetForFlagV,
+      minTestTarget: minTestTargetForFlagV,
     });
     expect('-').toExactlyMatch({
       pattern: r`[\p{Any}&&-\w]`,
-      minTarget: minTestTargetForFlagV,
+      minTestTarget: minTestTargetForFlagV,
     });
   });
 

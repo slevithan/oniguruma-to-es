@@ -17,15 +17,15 @@ async function exec([pattern, str]) {
 
   const libMatches = [];
   let libMatch = transpiledRegExpResult(pattern, str, 0);
-  while (libMatch.result) {
+  while (libMatch.result !== null) {
     libMatches.push(libMatch);
-    libMatch = transpiledRegExpResult(pattern, str, libMatch.index + libMatch.result.length);
+    libMatch = transpiledRegExpResult(pattern, str, libMatch.index + (libMatch.result.length || 1));
   }
   const onigMatches = [];
   let onigMatch = await onigurumaResult(pattern, str, 0);
-  while (onigMatch.result) {
+  while (onigMatch.result !== null) {
     onigMatches.push(onigMatch);
-    onigMatch = await onigurumaResult(pattern, str, onigMatch.index + onigMatch.result.length);
+    onigMatch = await onigurumaResult(pattern, str, onigMatch.index + (onigMatch.result.length || 1));
   }
 
   console.log('Pattern:', color('yellow', pattern));

@@ -5,13 +5,13 @@ function getArgs(actual, expected) {
   const opts = {
     pattern: typeof expected === 'string' ? expected : expected.pattern,
     flags: expected.flags ?? '',
-    maxTarget: expected.maxTarget ?? null,
-    minTarget: expected.minTarget ?? null,
+    maxTestTarget: expected.maxTestTarget ?? null,
+    minTestTarget: expected.minTestTarget ?? null,
   };
   const targets = ['ES2018', 'ES2024', 'ESNext'];
   const targeted = targets.
-    filter(target => !opts.maxTarget || (EsVersion[target] <= EsVersion[opts.maxTarget])).
-    filter(target => !opts.minTarget || (EsVersion[target] >= EsVersion[opts.minTarget]));
+    filter(target => !opts.maxTestTarget || (EsVersion[target] <= EsVersion[opts.maxTestTarget])).
+    filter(target => !opts.minTestTarget || (EsVersion[target] >= EsVersion[opts.minTestTarget]));
   return {
     pattern: opts.pattern,
     flags: opts.flags,

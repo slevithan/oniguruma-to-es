@@ -17,7 +17,7 @@ describe('CharacterSet', () => {
     it('should match line feed with flag m disabled', () => {
       expect('\n').toExactlyMatch({
         pattern: r`(?-m)\O`,
-        maxTarget: maxTestTargetForPatternMods,
+        maxTestTarget: maxTestTargetForPatternMods,
       });
     });
 

@@ -1,5 +1,6 @@
 import {compile, toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
+import {maxTestTargetForPatternMods} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -67,16 +68,62 @@ describe('Assertion', () => {
       expect('abbcbb'.match(toRegExp(r`\G[ab]`, '', {global: true}))).toEqual(['a', 'b', 'b']);
     });
 
-    it('should allow redundant assertions', () => {
-      expect('a').toExactlyMatch(r`\G\Ga`);
-      expect('b').toExactlyMatch(r`\Ga|\G\Gb`);
-    });
-
     // Unsupported: not emulatable without RegExp subclass
     it('should throw if not used at the start of every top-level alternative', () => {
       expect(() => compile(r`a\G`)).toThrow();
       expect(() => compile(r`\Ga|b`)).toThrow();
       expect(() => compile(r`a|\Gb`)).toThrow();
+    });
+
+    it('should allow if following a directive', () => {
+      expect('a').toExactlyMatch(r`\K\Ga`);
+      expect('a').toExactlyMatch({
+        pattern: r`(?i)\Ga`,
+        maxTestTarget: maxTestTargetForPatternMods,
+      });
+      expect('a').toExactlyMatch({
+        pattern: r`(?i)(?m)\Ga`,
+        maxTestTarget: maxTestTargetForPatternMods,
+      });
+    });
+
+    it('should allow if following an assertion', () => {
+      expect('a').toExactlyMatch(r`\A\Ga`);
+      expect('a').toExactlyMatch(r`\b\Ga`);
+      expect('a').toExactlyMatch(r`(?=a)\Ga`);
+      expect('a').toExactlyMatch(r`(?<!a)\Ga`);
+      expect('a').toExactlyMatch(r`(?<!a)(?=a)\Ga`);
+    });
+
+    it('should allow if following a 0-min quantified token', () => {
+      expect('a').toExactlyMatch(r`a*\Ga`);
+      expect('a').toExactlyMatch(r`(a)*\Ga`);
+      expect('a').toExactlyMatch(r`[a]*\Ga`);
+    });
+
+    it('should throw if following a non-0-min quantified token', () => {
+      expect(() => compile(r`a+\G`)).toThrow();
+      expect(() => compile(r`a+?\G`)).toThrow();
+      expect(() => compile(r`(a)+\G`)).toThrow();
+    });
+
+    it('should check within groups to determine validity', () => {
+      expect('a').toExactlyMatch(r`(\Ga)`);
+      expect('a').toExactlyMatch(r`(?:(?>^(?<n>\Ga)))`);
+      expect(() => compile(r`(?:(?>a(?<n>\Gb)))`)).toThrow();
+      expect('a').toExactlyMatch(r`\Ga|(((\Gb)))`);
+      expect(() => compile(r`\Ga|(((b\Gc)))`)).toThrow();
+    });
+
+    it('should throw if leading in a non-0-min quantified group', () => {
+      expect(() => compile(r`(\Ga)+`)).toThrow();
+      expect(() => compile(r`(\Ga)+\G`)).toThrow();
+    });
+
+    // Documenting current behavior; supportable
+    it('should allow redundant assertions', () => {
+      expect(() => compile(r`\G\Ga`)).toThrow();
+      expect(() => compile(r`\Ga|\G\Gb`)).toThrow();
     });
   });
 

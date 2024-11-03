@@ -252,11 +252,11 @@ describe('Backreference', () => {
       expect('').not.toFindMatch(r`(?<a>(?<a>\k<a>))`);
       expect('aa').toExactlyMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
       expect(['a', 'b', 'ba', 'bb']).not.toFindMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
     });
 
@@ -265,11 +265,11 @@ describe('Backreference', () => {
       expect('aba').toExactlyMatch(r`(?<n>a)(?<n>b\k<n>)`);
       expect(['aa', 'bcb']).toExactlyMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
       expect(['a', 'bc', 'bca', 'bcc']).not.toFindMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
     });
 
@@ -297,7 +297,7 @@ describe('Backreference', () => {
       expect('aab').toExactlyMatch(r`(?<n>a)\k<n>(?<n>b)`);
       expect('aa').toExactlyMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
     });
 
@@ -345,19 +345,19 @@ describe('Backreference', () => {
       // rather than JS logic where they match the empty string
       expect(['aa', 'bb']).toExactlyMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
       expect(['a', 'b', 'ba']).not.toFindMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
       expect(['aa', 'bcb', 'bcc']).toExactlyMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
       expect(['a', 'bc', 'bca']).not.toFindMatch({
         pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
-        maxTarget: maxTestTargetForDuplicateNames,
+        maxTestTarget: maxTestTargetForDuplicateNames,
       });
     });
 
