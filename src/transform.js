@@ -1,5 +1,5 @@
 import emojiRegex from 'emoji-regex-xs';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
@@ -105,7 +105,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, replaceWith}) {
+  Assertion({node, parent, key, ast, remove, replaceWith}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -113,6 +113,14 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.line_start) {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?<=\A|\n)`));
+    } else if (kind === AstAssertionKinds.search_start) {
+      // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
+      // checking in `Pattern` visitor
+      if (parent.parent !== ast.pattern || key !== 0) {
+        throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+      }
+      ast.flags.sticky = true;
+      remove();
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
     } else if (kind === AstAssertionKinds.word_boundary) {
@@ -211,7 +219,7 @@ const FirstPassVisitor = {
       // results (also allows `^` and `$` to be used in the generator for string start and end)
       multiline: false,
       // JS flag y; no Onig equiv, but used for `\G` emulation
-      sticky: false,
+      sticky: node.sticky ?? false,
       // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
       // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
       // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
@@ -251,36 +259,31 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Quantifier(path, state) {
-    const {node, remove, replaceWith, skip} = path;
-    const child = node.element;
-    if (child.type === AstTypes.Quantifier) {
+  Pattern({node}) {
+    // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
+    // of every top-level alternative (with complex rules for what determines being at the start).
+    // Additional `\G` error checking in `Assertion` visitor
+    let hasAltWithLeadG = false;
+    let hasAltWithoutLeadG = false;
+    for (const alt of node.alternatives) {
+      if (alt.elements[0]?.kind === AstAssertionKinds.search_start) {
+        hasAltWithLeadG = true;
+      } else {
+        hasAltWithoutLeadG = true;
+      }
+    }
+    if (hasAltWithLeadG && hasAltWithoutLeadG) {
+      throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+    }
+  },
+
+  Quantifier({node}) {
+    if (node.element.type === AstTypes.Quantifier) {
       // Change e.g. `a**` to `(?:a*)*`
       const group = prepContainer(createGroup(), [node.element]);
       // Manually set the parent since we're not using `replaceWith`
       group.parent = node;
       node.element = group;
-    } else if (child.type === AstTypes.Assertion) {
-      // Quantified assertions aren't allowed in JS
-      const lookaround = isLookaround(child);
-      if (!node.min && lookaround) {
-        // Can't remove the child since the lookaround might contain captures reffed elsewhere, and
-        // also can't change e.g. `(?=a)*` to `(?:(?=a))*` since optional lookaround is ignored in
-        // JS. So need to add an empty alternative to the lookaround and then strip the quantifier
-        const alt = createAlternative();
-        alt.parent = child;
-        child.alternatives.push(alt);
-      }
-      if (node.min || lookaround) {
-        // Strip the quantifier but keep its child
-        replaceWith(child);
-        traverseReplacement(child, path, state, FirstPassVisitor);
-        skip();
-      } else {
-        // In other cases with `min: 0`, the quantifier makes its assertion irrelevant
-        remove();
-        skip();
-      }
     }
   },
 
@@ -316,18 +319,6 @@ const SecondPassVisitor = {
       if (groups) {
         namedGroupsInScopeByAlt.set(node, groups);
       }
-    }
-  },
-
-  Assertion({node, parent, key, ast, remove}) {
-    if (node.kind === AstAssertionKinds.search_start) {
-      // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
-      // checking in `Pattern` visitor
-      if (parent.parent !== ast.pattern || key !== 0) {
-        throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
-      }
-      ast.flags.sticky = true;
-      remove();
     }
   },
 
@@ -460,26 +451,6 @@ const SecondPassVisitor = {
     exit(_, state) {
       state.currentFlags = state.prevFlags;
     },
-  },
-
-  // `\G` validity check is done in the second pass to make it easier to deal with the effect of
-  // unwrapping quantified assertions
-  Pattern({node}) {
-    // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
-    // of every top-level alternative (with complex rules for what determines being at the start).
-    // Additional `\G` error checking in `Assertion` visitor
-    let hasAltWithLeadG = false;
-    let hasAltWithoutLeadG = false;
-    for (const alt of node.alternatives) {
-      if (alt.elements[0]?.kind === AstAssertionKinds.search_start) {
-        hasAltWithLeadG = true;
-      } else {
-        hasAltWithoutLeadG = true;
-      }
-    }
-    if (hasAltWithLeadG && hasAltWithoutLeadG) {
-      throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
-    }
   },
 
   Subroutine(path, state) {

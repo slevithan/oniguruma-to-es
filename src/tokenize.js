@@ -509,7 +509,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   // Meta `\M-x` and `\M-\C-x` are unsupported; avoid treating as an identity escape
   if (char1 === 'M') {
-    // [TODO] Supportable; see <https://github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <https://github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
+    // [TODO] Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
     throw new Error(`Unsupported meta "${raw}"`);
   }
   // Identity escape; count code point length
@@ -540,7 +540,7 @@ function createTokenForControlChar(raw) {
   const char = raw[1] === 'c' ? raw[2] : raw[3];
   if (!char || !/[A-Za-z]/.test(char)) {
     // Unlike JS, Onig allows any char to follow `\c` or `\C-`, but this is an extreme edge case
-    // [TODO] Supportable; see <https://github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#11-onig_syn_op2_esc_capital_c_bar_control-enable-c-x>, <https://github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
+    // [TODO] Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#11-onig_syn_op2_esc_capital_c_bar_control-enable-c-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
     throw new Error(`Unsupported control character "${raw}"`);
   }
   return createToken(TokenTypes.Character, raw, {

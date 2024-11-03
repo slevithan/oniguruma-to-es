@@ -49,22 +49,6 @@ describe('Lookaround', () => {
         'abc', 'abdd',
       ]).toFindMatch('a(?=b(?:c|dd))');
     });
-
-    it('should apply with positive min quantification', () => {
-      expect('ab').toFindMatch('a(?=b)+');
-      expect('a').not.toFindMatch('a(?=b)+');
-      expect('a').not.toFindMatch('a(?=b)+?');
-    });
-  
-    it('should not apply with min 0 quantification', () => {
-      expect('a').toExactlyMatch('a(?=b)?');
-      expect('a').toExactlyMatch('a(?=b)*');
-      expect('a').toExactlyMatch('a(?=b)**');
-    });
-
-    it('should preserve captures with min 0 quantification', () => {
-      expect('aba').toExactlyMatch(r`a(?=(b))?\1a`);
-    });
   });
 
   describe('lookbehind', () => {
@@ -108,22 +92,6 @@ describe('Lookaround', () => {
       expect([
         'bca', 'bdda',
       ]).toFindMatch('(?<=b(?:c|dd))a');
-    });
-
-    it('should apply with positive min quantification', () => {
-      expect('ba').toFindMatch('(?<=b)+a');
-      expect('a').not.toFindMatch('(?<=b)+a');
-      expect('a').not.toFindMatch('(?<=b)+?a');
-    });
-  
-    it('should not apply with min 0 quantification', () => {
-      expect('a').toExactlyMatch('(?<=b)?a');
-      expect('a').toExactlyMatch('(?<=b)*a');
-      expect('a').toExactlyMatch('(?<=b)**a');
-    });
-
-    it('should preserve captures with min 0 quantification', () => {
-      expect('baba').toFindMatch(r`(?<=(b))?a\1a`);
     });
   });
 });

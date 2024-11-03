@@ -102,7 +102,7 @@ const onigurumaResult = async (pattern, str, pos) => {
 
 async function onigurumaExec(pattern, str, pos = 0) {
   await loadOniguruma();
-  // See https://github.com/microsoft/vscode-oniguruma/blob/main/main.d.ts
+  // See <github.com/microsoft/vscode-oniguruma/blob/main/main.d.ts>
   const re = new oniguruma.OnigScanner([pattern]);
   const match = re.findNextMatchSync(str, pos);
   if (!match) {

@@ -27,18 +27,6 @@ describe('Assertion', () => {
     it('should not match at positions other than the end of the string or before a line feed', () => {
       expect('ab').not.toFindMatch('a$');
     });
-
-    it('should apply with positive min quantification', () => {
-      expect('ba').toFindMatch('a$+');
-      expect('ab').not.toFindMatch('a$+');
-      expect('ab').not.toFindMatch('a$+?');
-    });
-
-    it('should not apply with min 0 quantification', () => {
-      expect('ab').toFindMatch('a$?');
-      expect('ab').toFindMatch('a$*');
-      expect('ab').toFindMatch('a$**');
-    });
   });
 
   describe('line_start', () => {
@@ -60,18 +48,6 @@ describe('Assertion', () => {
 
     it('should not match at positions other than the start of the string or after a line feed', () => {
       expect('ba').not.toFindMatch('^a');
-    });
-
-    it('should apply with positive min quantification', () => {
-      expect('ab').toFindMatch('^+a');
-      expect('ba').not.toFindMatch('^+a');
-      expect('ba').not.toFindMatch('^+?a');
-    });
-
-    it('should not apply with min 0 quantification', () => {
-      expect('ba').toFindMatch('^?a');
-      expect('ba').toFindMatch('^*a');
-      expect('ba').toFindMatch('^**a');
     });
   });
 
@@ -96,23 +72,10 @@ describe('Assertion', () => {
       expect('b').toExactlyMatch(r`\Ga|\G\Gb`);
     });
 
-    it('should apply with positive min quantification', () => {
-      expect('ab').toFindMatch(r`\G+a`);
-      expect('ba').not.toFindMatch(r`\G+a`);
-      expect('ba').not.toFindMatch(r`\G+?a`);
-    });
-
-    it('should not apply with min 0 quantification', () => {
-      expect('ba').toFindMatch(r`\G?a`);
-      expect('ba').toFindMatch(r`\G*a`);
-      expect('ba').toFindMatch(r`\G**a`);
-    });
-
     // Unsupported: not emulatable without RegExp subclass
     it('should throw if not used at the start of every top-level alternative', () => {
       expect(() => compile(r`a\G`)).toThrow();
       expect(() => compile(r`\Ga|b`)).toThrow();
-      expect(() => compile(r`\G+a|b`)).toThrow();
       expect(() => compile(r`a|\Gb`)).toThrow();
     });
   });
@@ -130,18 +93,6 @@ describe('Assertion', () => {
 
     it('should not match at positions other than the end of the string', () => {
       expect('ab').not.toFindMatch(r`a\z`);
-    });
-
-    it('should apply with positive min quantification', () => {
-      expect('ba').toFindMatch(r`a\z+`);
-      expect('ab').not.toFindMatch(r`a\z+`);
-      expect('ab').not.toFindMatch(r`a\z+?`);
-    });
-
-    it('should not apply with min 0 quantification', () => {
-      expect('ab').toFindMatch(r`a\z?`);
-      expect('ab').toFindMatch(r`a\z*`);
-      expect('ab').toFindMatch(r`a\z**`);
     });
   });
 
@@ -167,18 +118,6 @@ describe('Assertion', () => {
     it('should not match at positions other than the end of the string or string-terminating line feed', () => {
       expect('ab').not.toFindMatch(r`a\Z`);
     });
-
-    it('should apply with positive min quantification', () => {
-      expect('ba').toFindMatch(r`a\Z+`);
-      expect('ab').not.toFindMatch(r`a\Z+`);
-      expect('ab').not.toFindMatch(r`a\Z+?`);
-    });
-
-    it('should not apply with min 0 quantification', () => {
-      expect('ab').toFindMatch(r`a\Z?`);
-      expect('ab').toFindMatch(r`a\Z*`);
-      expect('ab').toFindMatch(r`a\Z**`);
-    });
   });
 
   describe('string_start', () => {
@@ -194,18 +133,6 @@ describe('Assertion', () => {
 
     it('should not match at positions other than the start of the string', () => {
       expect('ba').not.toFindMatch(r`\Aa`);
-    });
-
-    it('should apply with positive min quantification', () => {
-      expect('ab').toFindMatch(r`\A+a`);
-      expect('ba').not.toFindMatch(r`\A+a`);
-      expect('ba').not.toFindMatch(r`\A+?a`);
-    });
-
-    it('should not apply with min 0 quantification', () => {
-      expect('ba').toFindMatch(r`\A?a`);
-      expect('ba').toFindMatch(r`\A*a`);
-      expect('ba').toFindMatch(r`\A**a`);
     });
   });
 

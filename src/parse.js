@@ -336,9 +336,8 @@ function parseQuantifier({token, parent}) {
   const {min, max, greedy, possessive} = token;
   const quantifiedNode = parent.elements.at(-1);
   if (
-    // First child in `Alternative`
     !quantifiedNode ||
-    // `\K` or `(?im-x)`
+    quantifiedNode.type === AstTypes.Assertion ||
     quantifiedNode.type === AstTypes.Directive
   ) {
     throw new Error(`Quantifier requires a repeatable token`);

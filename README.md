@@ -544,7 +544,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="7">Assertions</th>
+    <th align="left" rowspan="6">Assertions</th>
     <td>Line start, end</td>
     <td><code>^</code>, <code>$</code></td>
     <td align="middle">✅</td>
@@ -552,7 +552,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Always "multiline" (per JS)<br>
       ✔ Only <code>\n</code> as newline<br>
-      ✔ Allows following quantifier<br>
     </td>
   </tr>
   <tr valign="top">
@@ -589,34 +588,21 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Unicode based (unlike JS)<br>
-      ✔ Allows following quantifier<br>
     </td>
   </tr>
   <tr valign="top">
-    <td>Lookahead</td>
+    <td>Lookaround</td>
     <td>
       <code>(?=…)</code>,<br>
-      <code>(?!…)</code>
-    </td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Allows following quantifier (unlike JS with flag <code>u</code>, <code>v</code>)<br>
-      ✔ Values captured within min-0 quantified lookahead remain referenceable (unlike JS)<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Lookbehind</td>
-    <td>
+      <code>(?!…)</code>,<br>
       <code>(?&lt;=…)</code>,<br>
       <code>(?&lt;!…)</code>
     </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
+      ✔ Same as JS<br>
       ✔ Allows variable-length quantifiers and alternation within lookbehind<br>
-      ✔ Allows following quantifier (unlike JS in any mode)<br>
-      ✔ Values captured within min-0 quantified lookbehind remain referenceable<br>
     </td>
   </tr>
 
@@ -630,7 +616,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Includes all JS forms<br>
       ✔ Adds form <code>{,n}</code> for implicit min 0<br>
       ✔ Explicit bounds have upper limit of 100,000 (unlimited in JS)<br>
-      ✔ Allowed to follow assertions<br>
+      ✔ Error with assertions (same as JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
   </tr>
   <tr valign="top">
