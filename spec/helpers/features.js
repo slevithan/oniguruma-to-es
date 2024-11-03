@@ -6,7 +6,7 @@ const duplicateCaptureNamesSupported = (() => {
   }
   return true;
 })();
-const maxTargetForDuplicateNames = duplicateCaptureNamesSupported ? null : 'ES2024';
+const maxTestTargetForDuplicateNames = duplicateCaptureNamesSupported ? null : 'ES2024';
 
 const patternModsSupported = (() => {
   try {
@@ -16,9 +16,12 @@ const patternModsSupported = (() => {
   }
   return true;
 })();
-const maxTargetForPatternMods = patternModsSupported ? null : 'ES2024';
+const maxTestTargetForPatternMods = patternModsSupported ? null : 'ES2024';
+
+const minTestTargetForFlagV = 'ES2024';
 
 export {
-  maxTargetForDuplicateNames,
-  maxTargetForPatternMods,
+  maxTestTargetForDuplicateNames,
+  maxTestTargetForPatternMods,
+  minTestTargetForFlagV,
 };

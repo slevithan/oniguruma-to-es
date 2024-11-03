@@ -6,11 +6,12 @@ function getArgs(actual, expected) {
     pattern: typeof expected === 'string' ? expected : expected.pattern,
     flags: expected.flags ?? '',
     maxTarget: expected.maxTarget ?? null,
+    minTarget: expected.minTarget ?? null,
   };
   const targets = ['ES2018', 'ES2024', 'ESNext'];
-  const targeted = opts.maxTarget ?
-    targets.filter(target => EsVersion[target] <= EsVersion[opts.maxTarget]) :
-    targets;
+  const targeted = targets.
+    filter(target => !opts.maxTarget || (EsVersion[target] <= EsVersion[opts.maxTarget])).
+    filter(target => !opts.minTarget || (EsVersion[target] >= EsVersion[opts.minTarget]));
   return {
     pattern: opts.pattern,
     flags: opts.flags,

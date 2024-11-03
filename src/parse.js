@@ -220,6 +220,7 @@ function parseCharacterClassHyphen(context, state) {
   if (
     prevSiblingNode &&
     prevSiblingNode.type !== AstTypes.CharacterClass &&
+    prevSiblingNode.type !== AstTypes.CharacterClassRange &&
     nextToken &&
     nextToken.type !== TokenTypes.CharacterClassOpen &&
     nextToken.type !== TokenTypes.CharacterClassClose &&
@@ -558,7 +559,8 @@ function createPattern() {
 }
 
 function createQuantifier(element, min, max, greedy, possessive) {
-  // TODO: Move validation to tokenizer?
+  // Could be checked in the tokenizer, but done here to parallel char class range validation and
+  // to prevent manually creating invalid quantifiers
   if (max < min) {
     throw new Error('Quantifier range out of order');
   }

@@ -66,4 +66,5 @@ describe('CharacterClass', () => {
   });
 
   // TODO: Add remaining
+  // TODO: Test that nested negated classes throw for target ES2018
 });

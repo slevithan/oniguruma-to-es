@@ -476,7 +476,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
       }).decode(new Uint8Array(bytes));
       const encoder = new TextEncoder();
       const tokens = [...decoded].map(char => {
-        // Might have different casing for hex A-F than the input
+        // Since this regenerates `raw`, it might have different casing for hex A-F than the input
         const raw = [...encoder.encode(char)].map(byte => `\\x${byte.toString(16)}`).join('');
         return createToken(TokenTypes.Character, raw, {
           value: char.codePointAt(0),

@@ -6,6 +6,7 @@ beforeEach(() => {
 });
 
 // TODO: Add me
+// TODO: Test that it throws for target ES2018
 
 describe('CharacterClassIntersection', () => {
   it('should', () => {

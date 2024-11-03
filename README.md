@@ -488,8 +488,9 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Unescaped <code>-</code> is literal char in some contexts (different than JS rules in any mode)<br>
+      ✔ Unescaped <code>-</code> outside of range is literal in some contexts (different than JS rules in any mode)<br>
       ✔ Fewer chars require escaping than JS<br>
+      ✔ Error for reversed range (same as JS)<br>
     </td>
   </tr>
   <tr valign="top">
