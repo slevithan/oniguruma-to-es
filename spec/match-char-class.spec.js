@@ -6,6 +6,7 @@ beforeEach(() => {
 });
 
 describe('CharacterClass', () => {
+  // TODO: Move to `match-char.spec.js`?
   describe('Character', () => {
     describe('escape', () => {
       it('should match supported letter escapes', () => {

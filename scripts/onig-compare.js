@@ -72,6 +72,8 @@ compare([
   [r`\x{13FFFF}`, ``, r`Beyond Unicode range: JS doesn't support`],
   [r`\x{140000}`, ``],
   [r`\x{0 1}`, `\u{0}\u{1}`],
+  [r`\💖`, '💖'],
+  [`\\\u{10000}`, '\u{10000}'],
 ]);
 
 async function compare(tests) {

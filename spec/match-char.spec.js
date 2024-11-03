@@ -75,7 +75,7 @@ describe('Character', () => {
   });
 
   describe('identity escape', () => {
-    it('should match identity escapes', () => {
+    it('should match BMP identity escapes', () => {
       const baseNonmetachars = [
         '\0', '!', '~', ' ', '\n', 'E', 'm', '£', '\uFFFF',
       ];
@@ -84,12 +84,12 @@ describe('Character', () => {
       }
     });
 
-    it('should throw for multibyte escapes', () => {
-      const multibyte = [
+    it('should match astral identity escapes', () => {
+      const astral = [
         '💖', '\u{10000}', '\u{10FFFF}',
       ];
-      for (const char of multibyte) {
-        expect(() => compile(`\\${char}`)).toThrow();
+      for (const char of astral) {
+        expect(char).toExactlyMatch(`\\${char}`);
       }
     });
   });
@@ -160,23 +160,32 @@ describe('Character', () => {
       expect('\u{A}').toExactlyMatch(r`\xa`);
     });
 
-    it(r`should match hex char code with \xNN`, () => {
+    it(r`should match hex char code with \xNN up to 7F`, () => {
       expect('\u{1}').toExactlyMatch(r`\x01`);
       expect('\u{1}1').toExactlyMatch(r`\x011`);
       expect('\u{A}').toExactlyMatch(r`\x0A`);
       expect('\u{A}').toExactlyMatch(r`\x0a`);
+      expect('\u{7F}').toExactlyMatch(r`\x7F`);
+    });
+
+    it(r`should match hex char code UTF-8 encoded byte sequences \xNN (above 7F)`, () => {
+      expect('\u{20AC}').toExactlyMatch(r`\xE2\x82\xAC`); // €
+      expect('\u{20AC}\u{20AC}').toExactlyMatch(r`\xE2\x82\xAC\xE2\x82\xAC`); // €€
+      expect('\u{20AC}\u{7F}\u{20AC}').toExactlyMatch(r`\xE2\x82\xAC\x7F\xE2\x82\xAC`); // €€
+      expect('\u{9A69}').toExactlyMatch(r`\xE9\xA9\xA9`); // 驩
+      expect('\u{FEFF}').toExactlyMatch(r`\xEF\xBB\xBF`); // ZWNBSP/BOM
+    });
+
+    it(r`should throw for invalid UTF-8 encoded byte sequences \xNN (above 7F)`, () => {
+      expect(() => compile(r`\x80`)).toThrow();
+      expect(() => compile(r`\xFF`)).toThrow();
+      expect(() => compile(r`\xEF\xC0\xBB`)).toThrow();
     });
 
     it(r`should throw for incomplete \x`, () => {
       expect(() => compile(r`\x`)).toThrow();
       expect(() => compile(r`\x.`)).toThrow();
       expect(() => compile(r`[\x]`)).toThrow();
-    });
-
-    it(r`should throw for multibyte \xNN (above 7F)`, () => {
-      expect(() => compile(r`\x7F`)).not.toThrow();
-      expect(() => compile(r`\x80`)).toThrow();
-      expect(() => compile(r`\xFF`)).toThrow();
     });
 
     it(r`should match hex char code with \uNNNN`, () => {

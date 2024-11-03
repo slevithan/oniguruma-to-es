@@ -61,6 +61,7 @@ const EscapeCharCodes = new Map([
 const controlCharPattern = 'c.? | C(?:-.?)?';
 // Onig considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and `\p{gc=L}` are invalid
 const unicodePropertyPattern = r`[pP]\{(?:\^?[\x20\w]+\})?`;
+const encodedByteValuePattern = r`x[89A-Fa-f]\p{AHex}(?:\\x[89A-Fa-f]\p{AHex})*`;
 const hexCharPattern = r`u(?:\p{AHex}{4})? | x\{[^\}]*\}? | x\p{AHex}{0,2}`;
 const escapedNumPattern = r`\d{1,3}`;
 const charClassOpenPattern = r`\[\^?\]?`;
@@ -71,6 +72,7 @@ const tokenRe = new RegExp(r`
   \\ (?:
     ${controlCharPattern}
     | ${unicodePropertyPattern}
+    | ${encodedByteValuePattern}
     | ${hexCharPattern}
     | ${escapedNumPattern}
     | [gk]<[^>]*>
@@ -93,6 +95,7 @@ const charClassTokenRe = new RegExp(r`
   \\ (?:
     ${controlCharPattern}
     | ${unicodePropertyPattern}
+    | ${encodedByteValuePattern}
     | ${hexCharPattern}
     | ${escapedNumPattern}
     | .
@@ -252,9 +255,8 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       };
     }
     // Run last since it assumes an identity escape as final condition
-    return {
-      token: createTokenForSharedEscape(m, {inCharClass: false}),
-    };
+    const result = createTokenForSharedEscape(m, {inCharClass: false});
+    return Array.isArray(result) ? {tokens: result} : {token: result};
   }
   if (m0 === '(') {
     // Comment group
@@ -405,7 +407,12 @@ function getAllTokensForCharClass(pattern, opener, lastIndex) {
         break;
       }
     } else {
-      tokens.push(createTokenForAnyTokenWithinCharClass(m));
+      const result = createTokenForAnyTokenWithinCharClass(m);
+      if (Array.isArray(result)) {
+        tokens.push(...result);
+      } else {
+        tokens.push(result);
+      }
     }
   }
   return {
@@ -459,6 +466,27 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
     }
     return createTokenForUnicodeProperty(raw);
   }
+  // UTF-8 encoded byte sequence
+  if (/^\\x[89A-Fa-f]\p{AHex}/u.test(raw)) {
+    try {
+      const bytes = raw.split(/\\x/).slice(1).map(hex => parseInt(hex, 16));
+      const decoded = new TextDecoder('utf-8', {
+        ignoreBOM: true,
+        fatal: true,
+      }).decode(new Uint8Array(bytes));
+      const encoder = new TextEncoder();
+      const tokens = [...decoded].map(char => {
+        // Might have different casing for hex A-F than the input
+        const raw = [...encoder.encode(char)].map(byte => `\\x${byte.toString(16)}`).join('');
+        return createToken(TokenTypes.Character, raw, {
+          value: char.codePointAt(0),
+        });
+      });
+      return tokens;
+    } catch (err) {
+      throw new Error(`Too short or invalid multibyte code "${raw}"`);
+    }
+  }
   if (char1 === 'u' || char1 === 'x') {
     return createToken(TokenTypes.Character, raw, {
       value: getValidatedHexCharCode(raw),
@@ -484,13 +512,13 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
     // [TODO] Supportable; see <https://github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <https://github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
     throw new Error(`Unsupported meta "${raw}"`);
   }
-  // Identity escape; count code unit length
-  if (raw.length === 2) {
+  // Identity escape; count code point length
+  if ([...raw].length === 2) {
     return createToken(TokenTypes.Character, raw, {
       value: raw.codePointAt(1),
     });
   }
-  throw new Error(`Invalid multibyte escape "${raw}"`);
+  throw new Error(`Unexpected escape "${raw}"`);
 }
 
 /**

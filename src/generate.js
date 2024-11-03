@@ -193,6 +193,7 @@ const CharCodeEscapeMap = new Map([
   [13, r`\r`], // carriage return
   [0x2028, r`\u2028`], // line separator
   [0x2029, r`\u2029`], // paragraph separator
+  [0xFEFF, r`\uFEFF`], // ZWNBSP/BOM
 ]);
 
 const casedRe = /^\p{Cased}$/u;

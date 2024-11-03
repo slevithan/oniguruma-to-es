@@ -326,7 +326,8 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Allows 1 hex digit<br>
-      ✔ Error for 2 hex digits > <code>7F</code><br>
+      ✔ Above <code>7F</code>, is UTF-8 encoded byte (unlike JS)<br>
+      ✔ Error for invalid encoded bytes<br>
     </td>
   </tr>
   <tr valign="top">
