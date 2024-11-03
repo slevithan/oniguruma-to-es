@@ -1,5 +1,5 @@
 import emojiRegex from 'emoji-regex-xs';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
@@ -644,6 +644,18 @@ function getParentAlternative(node) {
 function hasLeadingG(els, supportedGNodes) {
   if (!els.length) {
     return false;
+  }
+  const first = els[0];
+  // Special case for leading positive lookaround with leading `\G`, else all leading assertions
+  // are ignored when looking for `\G`
+  if (
+    isLookaround(first) &&
+    !first.negate &&
+    first.alternatives.length === 1 &&
+    first.alternatives[0].elements[0]?.kind === AstAssertionKinds.search_start
+  ) {
+    supportedGNodes.add(first.alternatives[0].elements[0]);
+    return true;
   }
   const firstToConsider = els.find(el => {
     return el.kind === AstAssertionKinds.search_start ?

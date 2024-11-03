@@ -91,6 +91,7 @@ describe('Assertion', () => {
       expect('a').toExactlyMatch(r`\A\Ga`);
       expect('a').toExactlyMatch(r`\b\Ga`);
       expect('a').toExactlyMatch(r`(?=a)\Ga`);
+      expect('a').toExactlyMatch(r`(?<=\A)\Ga`);
       expect('a').toExactlyMatch(r`(?<!a)\Ga`);
       expect('a').toExactlyMatch(r`(?<!a)(?=a)\Ga`);
     });
@@ -120,8 +121,23 @@ describe('Assertion', () => {
       expect(() => compile(r`(\Ga)+\G`)).toThrow();
     });
 
+    it('should allow if leading in a leading positive lookaround', () => {
+      expect('a').toExactlyMatch(r`(?=\G)a`);
+      expect('a').toExactlyMatch(r`(?<=\G)a`);
+      expect(() => compile(r`(?<=a\G)a`)).toThrow();
+      expect(() => compile(r`(?<=\G|)a`)).toThrow();
+      expect(() => compile(r`(?:(?<=\G))?a`)).toThrow();
+      expect('a').toExactlyMatch(r`(?=\G)a|\Gb`);
+      expect(() => compile(r`(?=\G)a|b`)).toThrow();
+    });
+
+    it('should throw if leading in a leading negative lookaround', () => {
+      expect(() => compile(r`(?!\G)a`)).toThrow();
+      expect(() => compile(r`(?<!\G)a`)).toThrow();
+    });
+
     // Documenting current behavior; supportable
-    it('should allow redundant assertions', () => {
+    it('should throw for redundant assertions', () => {
       expect(() => compile(r`\G\Ga`)).toThrow();
       expect(() => compile(r`\Ga|\G\Gb`)).toThrow();
     });

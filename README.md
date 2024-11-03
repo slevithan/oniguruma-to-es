@@ -578,7 +578,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Supported when used at start of pattern (if no top-level alternation) and when at start of all top-level alternatives<br>
+      ● Many common uses supported<br>
     </td>
   </tr>
   <tr valign="top">
