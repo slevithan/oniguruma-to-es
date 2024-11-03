@@ -77,8 +77,15 @@
     </details>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"></script>
-  <!-- <script src="../dist/index.min.js"></script> -->
+  <!-- Only available if running locally -->
+  <script src="../dist/index.min.js"></script>
+  <script>
+    // Hack to make it work on GitHub Pages, where `dist/` isn't checked in; use the last published
+    // release's copy
+    if (typeof OnigurumaToES === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"><\/script>');
+    }
+  </script>
   <script src="./demo.js"></script>
   <script>
     // For testing in the console

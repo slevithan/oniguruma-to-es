@@ -47,15 +47,16 @@ describe('CharacterClassRange', () => {
     });
   });
 
-  it('should match unescaped hyphen as literal at right of range', () => {
+  it('should match unescaped hyphen as literal if follows range', () => {
     expect('-').toExactlyMatch(r`[a-z-0]`);
     expect('-').toExactlyMatch(r`[a-z-\w]`);
     expect('-').toExactlyMatch(r`[a-z-0-9]`);
+    expect(['a', 'b', 'c', '-', 'z']).toExactlyMatch(r`[a-c-z]`);
+    expect('d').not.toFindMatch(r`[a-c-z]`);
   });
 
-  it('should throw for reversed ranges', () => {
-    expect(() => compile(r`[z-a]`)).toThrow();
-    expect(() => compile(r`[\u{1}-\0]`)).toThrow();
+  it('should throw for range with range', () => {
+    expect(() => compile(r`[a-0-9]`)).toThrow();
   });
 
   it('should throw for range with set', () => {
@@ -64,5 +65,10 @@ describe('CharacterClassRange', () => {
     expect(() => compile(r`[\w-a-z]`)).toThrow();
     expect(() => compile(r`[a-z-\w]`)).toThrow();
     expect(() => compile(r`[\w-\s]`)).toThrow();
+  });
+
+  it('should throw for reversed ranges', () => {
+    expect(() => compile(r`[z-a]`)).toThrow();
+    expect(() => compile(r`[\u{1}-\0]`)).toThrow();
   });
 });

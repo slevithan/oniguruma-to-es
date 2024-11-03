@@ -370,14 +370,15 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">Other (rare)</td>
+    <td colspan="2">Other (extremely rare)</td>
     <td align="middle">❌</td>
     <td align="middle">❌</td>
     <td>
       Not yet supported:<br>
-      ● <code>\cx</code>, <code>\C-x</code> with non-A-Za-z<br>
+      ● Non-A-Za-z with <code>\cx</code>, <code>\C-x</code><br>
       ● Meta <code>\M-x</code>, <code>\M-\C-x</code><br>
-      ● Multibyte octal <code>\o{…}</code><br>
+      ● Octal code point <code>\o{…}</code><br>
+      ● UTF-8 encoded bytes in octal<br>
     </td>
   </tr>
 
