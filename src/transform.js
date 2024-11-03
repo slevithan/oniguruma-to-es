@@ -105,7 +105,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, parent, key, ast, remove, replaceWith}) {
+  Assertion({node, replaceWith}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -113,15 +113,6 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.line_start) {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?<=\A|\n)`));
-    } else if (kind === AstAssertionKinds.search_start) {
-      // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
-      // checking in the `Pattern` visitor
-      // [TODO] Support more cases
-      if (parent.parent !== ast.pattern || key !== 0) {
-        throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
-      }
-      ast.flags.sticky = true;
-      remove();
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
     } else if (kind === AstAssertionKinds.word_boundary) {
@@ -216,11 +207,11 @@ const FirstPassVisitor = {
       // JS flag d; no Onig equiv
       hasIndices: false,
       // JS flag m; no Onig equiv but its behavior is always on in Onig. Onig's only line break
-      // char is line feed, unlike JS, so the flag isn't used since it would produce inaccurate
-      // results (also allows using `^` and `$` in generated output for string start and end)
+      // char is line feed, unlike JS, so this flag isn't used since it would produce inaccurate
+      // results (also allows `^` and `$` to be used in the generator for string start and end)
       multiline: false,
-      // JS flag y; no Onig equiv, but modified by preceding `Pattern` traversal for `\G` emulation
-      sticky: node.sticky ?? false,
+      // JS flag y; no Onig equiv, but used for `\G` emulation
+      sticky: false,
       // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
       // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
       // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
@@ -258,34 +249,6 @@ const FirstPassVisitor = {
     enable && !Object.keys(enable).length && delete node.flags.enable;
     disable && !Object.keys(disable).length && delete node.flags.disable;
     !node.flags.enable && !node.flags.disable && delete node.flags;
-  },
-
-  Pattern({node}) {
-    // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
-    // of every top-level alternative. Additional `\G` error checking in the `Assertion` visitor
-    let hasAltWithLeadG = false;
-    let hasAltWithoutLeadG = false;
-    for (const alt of node.alternatives) {
-      // Move neighboring `\G` assertions in front of flag directives since `Assertion` only allows
-      // top-level `\G` but flag directives nest their following siblings into a flag group
-      alt.elements.sort((a, b) => {
-        if (a.kind === AstAssertionKinds.search_start && b.kind === AstDirectiveKinds.flags) {
-          return -1;
-        }
-        if (a.kind === AstDirectiveKinds.flags && b.kind === AstAssertionKinds.search_start) {
-          return 1;
-        }
-        return 0;
-      });
-      if (alt.elements[0]?.kind === AstAssertionKinds.search_start) {
-        hasAltWithLeadG = true;
-      } else {
-        hasAltWithoutLeadG = true;
-      }
-    }
-    if (hasAltWithLeadG && hasAltWithoutLeadG) {
-      throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
-    }
   },
 
   Quantifier(path, state) {
@@ -353,6 +316,18 @@ const SecondPassVisitor = {
       if (groups) {
         namedGroupsInScopeByAlt.set(node, groups);
       }
+    }
+  },
+
+  Assertion({node, parent, key, ast, remove}) {
+    if (node.kind === AstAssertionKinds.search_start) {
+      // Allows multiple leading `\G`s since the the node is removed. Additional `\G` error
+      // checking in `Pattern` visitor
+      if (parent.parent !== ast.pattern || key !== 0) {
+        throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+      }
+      ast.flags.sticky = true;
+      remove();
     }
   },
 
@@ -485,6 +460,26 @@ const SecondPassVisitor = {
     exit(_, state) {
       state.currentFlags = state.prevFlags;
     },
+  },
+
+  // `\G` validity check is done in the second pass to make it easier to deal with the effect of
+  // unwrapping quantified assertions
+  Pattern({node}) {
+    // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
+    // of every top-level alternative (with complex rules for what determines being at the start).
+    // Additional `\G` error checking in `Assertion` visitor
+    let hasAltWithLeadG = false;
+    let hasAltWithoutLeadG = false;
+    for (const alt of node.alternatives) {
+      if (alt.elements[0]?.kind === AstAssertionKinds.search_start) {
+        hasAltWithLeadG = true;
+      } else {
+        hasAltWithoutLeadG = true;
+      }
+    }
+    if (hasAltWithLeadG && hasAltWithoutLeadG) {
+      throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+    }
   },
 
   Subroutine(path, state) {

@@ -91,6 +91,11 @@ describe('Assertion', () => {
       expect('abbcbb'.match(toRegExp(r`\G[ab]`, '', {global: true}))).toEqual(['a', 'b', 'b']);
     });
 
+    it('should allow redundant assertions', () => {
+      expect('a').toExactlyMatch(r`\G\Ga`);
+      expect('b').toExactlyMatch(r`\Ga|\G\Gb`);
+    });
+
     it('should apply with positive min quantification', () => {
       expect('ab').toFindMatch(r`\G+a`);
       expect('ba').not.toFindMatch(r`\G+a`);
@@ -107,6 +112,7 @@ describe('Assertion', () => {
     it('should throw if not used at the start of every top-level alternative', () => {
       expect(() => compile(r`a\G`)).toThrow();
       expect(() => compile(r`\Ga|b`)).toThrow();
+      expect(() => compile(r`\G+a|b`)).toThrow();
       expect(() => compile(r`a|\Gb`)).toThrow();
     });
   });
