@@ -55,10 +55,6 @@ describe('CharacterClassRange', () => {
     expect('d').not.toFindMatch(r`[a-c-z]`);
   });
 
-  it('should throw for range with range', () => {
-    expect(() => compile(r`[a-0-9]`)).toThrow();
-  });
-
   it('should throw for range with set', () => {
     expect(() => compile(r`[a-\w]`)).toThrow();
     expect(() => compile(r`[\w-a]`)).toThrow();
@@ -70,5 +66,6 @@ describe('CharacterClassRange', () => {
   it('should throw for reversed ranges', () => {
     expect(() => compile(r`[z-a]`)).toThrow();
     expect(() => compile(r`[\u{1}-\0]`)).toThrow();
+    expect(() => compile(r`[a-0-9]`)).toThrow();
   });
 });
