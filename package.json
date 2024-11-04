@@ -44,7 +44,7 @@
   "dependencies": {
     "emoji-regex-xs": "^1.0.0",
     "regex": "^4.4.0",
-    "regex-recursion": "^4.0.0"
+    "regex-recursion": "^4.1.0"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

@@ -395,7 +395,7 @@ function genRecursion({ref}, state) {
   if (!state.allowBestEffort) {
     throw new Error('Use of recursion requires option allowBestEffort');
   }
-  // Use syntax supported by `regex-recursion`
+  // Using the syntax supported by `regex-recursion`
   return ref === 0 ? `(?R=${rDepth})` : r`\g<${ref}&R=${rDepth}>`;
 }
 

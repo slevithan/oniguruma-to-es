@@ -580,7 +580,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Many common uses supported<br>
+      ● Common uses supported<br>
     </td>
   </tr>
   <tr valign="top">
@@ -772,7 +772,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="3">Recursion</th>
+    <th align="left" rowspan="2">Recursion</th>
     <td>Full pattern</td>
     <td>
       <code>\g&lt;0></code>,<br>
@@ -785,17 +785,12 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Numbered, relative</td>
-    <td><code>(…\g&lt;1>?…)</code>, etc.</td>
-    <td align="middle">❌</td>
-    <td align="middle">❌</td>
+    <td>Named, numbered, relative</td>
     <td>
-      ● Not yet supported<br>
+      <code>(?&lt;a>…\g&lt;a>?…)</code>,<br>
+      <code>(…\g&lt;1>?…)</code>,<br>
+      <code>(…\g&lt;-1>?…)</code>, etc.
     </td>
-  </tr>
-  <tr valign="top">
-    <td>Named</td>
-    <td><code>(?&lt;a>…\g&lt;a>?…)</code>, etc.</td>
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
@@ -892,7 +887,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` are an error if option `allowBestEffort` is `false`, and they use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later.
 4. Target `ES2018` doesn't support nested negated character classes.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JS and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
-6. Recursion depth is limited, and specified by option `maxRecursionDepth`. Any use of recursion results in an error if `maxRecursionDepth` is `null` or `allowBestEffort` is `false`. Additionally, some forms of recursion are not yet supported, including mixing recursion with backreferences, using multiple recursions in the same pattern, and recursion by group number. Because recursion is bounded, patterns that fail due to infinite recursion in Oniguruma might find a match in Oniguruma-To-ES. Future versions will detect this and throw an error.
+6. The maximum recursion depth is specified by option `maxRecursionDepth`. Use of recursion results in an error if `maxRecursionDepth` is `null` or `allowBestEffort` is `false`. Some forms of recursion (mixing recursion with backreferences, and using multiple recursions in the same pattern) are not yet supported. Note that, because recursion is bounded, patterns that fail due to infinite recursion in Oniguruma might find a match in Oniguruma-To-ES. Future versions will detect this and throw an error.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 

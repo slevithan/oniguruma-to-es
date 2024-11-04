@@ -385,8 +385,8 @@ const SecondPassVisitor = {
         // `openDirectCaptures`, and rename `reffedNodesByBackreference` so it can also be used to
         // track the reffed node. Like with backrefs, can then modify the `ref` in the final pass
         // to use the recalculated group number. But this relies on `regex-recursion` supporting
-        // multiple non-overlapping recursions and recursion by number. For now, the resulting
-        // error is caught by `regex-recursion`
+        // multiple non-overlapping recursions. For now, the resulting error is caught by
+        // `regex-recursion`
         replaceWith(createRecursion(ref));
         // This node's kids have been removed from the tree, so no need to traverse them
         skip();
@@ -662,10 +662,6 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
 }
 
 function createRecursion(ref) {
-  if (typeof ref === 'number' && ref !== 0) {
-    // Limitation of `regex-recursion`; remove if future versions support
-    throw new Error('Unsupported recursion by number; use name instead');
-  }
   return {
     type: AstTypes.Recursion,
     ref,

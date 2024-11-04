@@ -25,12 +25,10 @@ describe('Recursion', () => {
 
   describe('global', () => {
     it('should match direct recursion', () => {
-      // Match an equal number of two different subpatterns
       expect('aaabbb').toExactlyMatch(r`a\g<0>?b`);
       expect('test aaaaaabbb').toFindMatch(r`a\g<0>?b`);
       expect('aaabbb').toExactlyMatch(r`(?<n>a\g<0>?b)`);
 
-      // Match balanced brackets
       const pattern = r`<(?:[^<>]|\g<0>)*>`;
       expect([
         '<>', '<<>>', '<a<b<c>d>e>', '<<<<<<a>>>bc>>>',
@@ -50,17 +48,25 @@ describe('Recursion', () => {
   });
 
   describe('numbered', () => {
-    // Current limitation of `regex-recursion`
-    it('should throw for numbered recursion', () => {
-      expect(() => compile(r`(a\g<1>?)`)).toThrow();
+    it('should match direct recursion', () => {
+      expect('aaa').toExactlyMatch(r`(a\g<1>?)`);
+      expect('aaabbb').toExactlyMatch(r`\A(a\g<1>?b)\z`);
+      expect('aaabb').not.toFindMatch(r`\A(a\g<1>?b)\z`);
+    });
+
+    it('should throw for indirect recursion', () => {
       expect(() => compile(r`(a\g<2>(\g<1>?))`)).toThrow();
     });
   });
 
   describe('relative numbered', () => {
-    // Current limitation of `regex-recursion`
-    it('should throw for relative numbered recursion', () => {
-      expect(() => compile(r`(a\g<-1>?)`)).toThrow();
+    it('should match direct recursion', () => {
+      expect('aaa').toExactlyMatch(r`(a\g<-1>?)`);
+      expect('aaabbb').toExactlyMatch(r`\A(a\g<-1>?b)\z`);
+      expect('aaabb').not.toFindMatch(r`\A(a\g<-1>?b)\z`);
+    });
+
+    it('should throw for indirect recursion', () => {
       expect(() => compile(r`(a\g<+1>(\g<-2>?))`)).toThrow();
     });
 
@@ -72,7 +78,6 @@ describe('Recursion', () => {
 
   describe('named', () => {
     it('should match direct recursion', () => {
-      // Match an equal number of two different subpatterns as the entire string
       expect('aaabbb').toExactlyMatch(r`\A(?<r>a\g<r>?b)\z`);
       expect('aaabb').not.toFindMatch(r`\A(?<r>a\g<r>?b)\z`);
     });
@@ -84,8 +89,7 @@ describe('Recursion', () => {
 
     // Current limitation of `regex-recursion`
     it('should throw for multiple direct, non-overlapping recursions', () => {
-      // [TODO] `regex-recursion` has a bug and lets invalid JS syntax through so using `toRegExp` instead of `compile`
-      expect(() => toRegExp(r`(?<r1>a\g<r1>?)(?<r2>a\g<r2>?)`)).toThrow();
+      expect(() => compile(r`(?<r1>a\g<r1>?)(?<r2>a\g<r2>?)`)).toThrow();
     });
 
     it('should throw for multiple indirect, overlapping recursions', () => {
