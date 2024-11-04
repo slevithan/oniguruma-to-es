@@ -15,7 +15,11 @@ import {recursion} from 'regex-recursion';
   optimize?: boolean;
   target?: keyof Target;
 }} CompileOptions
+@typedef {CompileOptions & {
+  allowSubclass?: boolean;
+}} ToRegExpOptions
 */
+
 /**
 Transpiles an Oniguruma regex pattern and flags to native JS.
 @param {string} pattern Oniguruma regex pattern.
@@ -33,7 +37,7 @@ function compile(pattern, flags, options) {
 /**
 @param {string} pattern
 @param {import('./tokenize.js').OnigurumaFlags} [flags]
-@param {CompileOptions & {allowSubclass?: boolean;}} [options]
+@param {ToRegExpOptions} [options]
 @returns {{
   pattern: string;
   flags: string;
@@ -45,36 +49,28 @@ function compile(pattern, flags, options) {
 */
 function compileInternal(pattern, flags, options) {
   const opts = getOptions(options);
-  const transformOpts = {
+  const tokenized = tokenize(pattern, flags);
+  const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
+  const regexAst = transform(onigurumaAst, {
     allowBestEffort: opts.allowBestEffort,
     allowSubclass: opts.allowSubclass,
     bestEffortTarget: opts.target,
-  };
-  const tokenized = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
-  const result = getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts);
-  if (result._internal) {
-    result._internal = {
-      strategy: result._internal.strategy,
-      subpattern: (
-        result._internal.subtree ?
-          getResultFromOnigurumaAst(result._internal.subtree, opts, transformOpts).pattern :
-          null
-      ),
-    };
-  }
-  return result;
-}
-
-function getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts) {
-  const regexAst = transform(onigurumaAst, transformOpts);
+  });
   const generated = generate(regexAst, opts);
   const result = {
     pattern: atomic(possessive(recursion(generated.pattern))),
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  if (regexAst._internal) {
-    result._internal = regexAst._internal;
+  if (regexAst._strategy) {
+    let emulationSubpattern = null;
+    result.pattern = result.pattern.replace(/\(\?:\\p\{sc=<<\}\|(.*?)\|\\p\{sc=>>\}\)/su, (_, sub) => {
+      emulationSubpattern = sub;
+      return '';
+    });
+    result._internal = {
+      strategy: regexAst._strategy.name,
+      subpattern: emulationSubpattern,
+    };
   }
   return result;
 }
@@ -82,7 +78,7 @@ function getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts) {
 /**
 Returns a complete set of options, with default values set for options that weren't provided.
 @param {CompileOptions} [options]
-@returns {Required<CompileOptions & {allowSubclass?: boolean;}>}
+@returns {Required<ToRegExpOptions>}
 */
 function getOptions(options) {
   if (options?.target !== undefined && !EsVersion[options.target]) {

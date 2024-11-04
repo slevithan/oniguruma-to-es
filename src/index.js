@@ -40,7 +40,7 @@ function toRegexAst(pattern, flags) {
 Transpiles an Oniguruma regex pattern and flags and returns a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
 @param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
-@param {import('./compile.js').CompileOptions & {allowSubclass?: boolean;}} [options]
+@param {import('./compile.js').ToRegExpOptions} [options]
 @returns {RegExp}
 */
 function toRegExp(pattern, flags, options) {
@@ -107,7 +107,7 @@ class WrappedRegExp extends RegExp {
       }
       return match;
     }
-    // Support leading `(?<=\G|…)`
+    // Support leading `(?<=\G|…)` and similar
     // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
     if (this.#data.strategy === 'after_search_start_or_subpattern') {
       let match = exec.call(this, str);

@@ -167,12 +167,13 @@ describe('Assertion', () => {
         expect(toRegExp(r`((?!\G)a)`, '', opts).exec('aba')?.index).toBe(2);
       });
 
-      // Leading `(?<=\G|…)`
+      // Leading `(?<=\G|…)` and similar
       it('should apply after_search_start_or_subpattern', () => {
         expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('ba')?.index).toBe(0);
         expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('aba')?.index).toBe(1);
         expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('aaba')?.index).toBe(2);
         expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('cbbab')?.index).toBe(4);
+        expect(toRegExp(r`((?<=xy?|\G|a)b)`, '', opts).exec('cbbab')?.index).toBe(4);
         expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('cbba')).toBeNull();
       });
     });
