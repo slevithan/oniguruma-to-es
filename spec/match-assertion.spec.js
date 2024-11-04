@@ -145,7 +145,7 @@ describe('Assertion', () => {
     });
 
     describe('subclass strategies', () => {
-      const opts = {allowSubclass: true};
+      const opts = {allowSubclassBasedEmulation: true};
 
       // Leading `(^|\G)` and similar
       it('should apply search_or_line_start', () => {

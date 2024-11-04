@@ -41,7 +41,7 @@ function showOutput(el) {
     try {
       const re2 = OnigurumaToES.toRegExp(input, flags, {
         ...opts,
-        allowSubclass: true,
+        allowSubclassBasedEmulation: true,
       });
       infoEl.classList.remove('hidden');
     } catch (err2) {

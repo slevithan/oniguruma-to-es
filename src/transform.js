@@ -21,6 +21,7 @@ then down-convert to the desired JS target version.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   allowBestEffort?: boolean;
+  allowSubclassBasedEmulation?: boolean;
   bestEffortTarget?: keyof Target;
 }} [options]
 @returns {RegexAst}
@@ -34,12 +35,12 @@ function transform(ast, options) {
     //   representations are hard to change after the fact in the generator to a best-effort
     //   approximation based on the target, so produce the appropriate structure here.
     allowBestEffort: true,
-    allowSubclass: false,
+    allowSubclassBasedEmulation: false,
     bestEffortTarget: 'ESNext',
     ...options,
   };
-  // Experimental AST changes that work together with a `RegExp` subclass to add advanced emulation
-  const strategy = opts.allowSubclass ? applySubclassStrategies(ast) : null;
+  // AST changes that work together with a `RegExp` subclass to add advanced emulation
+  const strategy = opts.allowSubclassBasedEmulation ? applySubclassStrategies(ast) : null;
   const firstPassState = {
     allowBestEffort: opts.allowBestEffort,
     flagDirectivesByAlt: new Map(),

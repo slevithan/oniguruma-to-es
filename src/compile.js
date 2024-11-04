@@ -16,7 +16,7 @@ import {recursion} from 'regex-recursion';
   target?: keyof Target;
 }} CompileOptions
 @typedef {CompileOptions & {
-  allowSubclass?: boolean;
+  allowSubclassBasedEmulation?: boolean;
 }} ToRegExpOptions
 */
 
@@ -53,7 +53,7 @@ function compileInternal(pattern, flags, options) {
   const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
   const regexAst = transform(onigurumaAst, {
     allowBestEffort: opts.allowBestEffort,
-    allowSubclass: opts.allowSubclass,
+    allowSubclassBasedEmulation: opts.allowSubclassBasedEmulation,
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
@@ -63,7 +63,7 @@ function compileInternal(pattern, flags, options) {
   };
   if (regexAst._strategy) {
     let emulationSubpattern = null;
-    result.pattern = result.pattern.replace(/\(\?:\\p\{sc=<<\}\|(.*?)\|\\p\{sc=>>\}\)/su, (_, sub) => {
+    result.pattern = result.pattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
       emulationSubpattern = sub;
       return '';
     });
@@ -90,7 +90,7 @@ function getOptions(options) {
     // can't be emulated with identical behavior
     allowBestEffort: true,
     // Experimental
-    allowSubclass: false,
+    allowSubclassBasedEmulation: false,
     // Include JS flag `g` in results
     global: false,
     // Include JS flag `d` in results

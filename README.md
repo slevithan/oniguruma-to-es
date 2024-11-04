@@ -103,7 +103,7 @@ function toRegExp(
   pattern: string,
   flags?: OnigurumaFlags,
   options?: (CompileOptions & {
-    allowSubclass?: boolean;
+    allowSubclassBasedEmulation?: boolean;
   })
 ): RegExp;
 ```
