@@ -1,5 +1,5 @@
 import {transform} from './transform.js';
-import {compile} from './compile.js';
+import {compile, compileInternal} from './compile.js';
 import {parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 
@@ -40,13 +40,13 @@ function toRegexAst(pattern, flags) {
 Transpiles an Oniguruma regex pattern and flags and returns a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
 @param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
-@param {import('./compile.js').CompileOptions} [options]
+@param {import('./compile.js').CompileOptions & {allowSubclass?: boolean;}} [options]
 @returns {RegExp}
 */
 function toRegExp(pattern, flags, options) {
-  const result = compile(pattern, flags, options);
+  const result = compileInternal(pattern, flags, options);
   if (result._internal) {
-    return new WrappedRegExp(result._internal.pattern, result.flags, result._internal);
+    return new WrappedRegExp(result.pattern, result.flags, result._internal);
   }
   return new RegExp(result.pattern, result.flags);
 }

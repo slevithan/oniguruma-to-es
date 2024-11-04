@@ -22,19 +22,31 @@ function showOutput(el) {
   const input = el.value;
   const flags = `${state.flags.i ? 'i' : ''}${state.flags.m ? 'm' : ''}${state.flags.x ? 'x' : ''}`;
   const outputEl = document.getElementById('output');
+  const infoEl = document.getElementById('info');
   outputEl.classList.remove('error');
+  infoEl.classList.add('hidden');
+  const opts = {
+    ...state.opts,
+    maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
+  };
   let output = '';
   try {
     // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
-    const re = OnigurumaToES.compile(input, flags, {
-      ...state.opts,
-      maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
-    });
+    const re = OnigurumaToES.compile(input, flags, opts);
     output = `/${getRegExpLiteralPattern(re.pattern)}/${re.flags}`;
-  } catch (e) {
+  } catch (err) {
     outputEl.classList.add('error');
-    output = `Error: ${e.message}`;
+    output = `Error: ${err.message}`;
+    try {
+      const re2 = OnigurumaToES.toRegExp(input, flags, {
+        ...opts,
+        allowSubclass: true,
+      });
+      infoEl.classList.remove('hidden');
+    } catch (err2) {
+      // No-op
+    }
   }
   outputEl.innerHTML = escapeHtml(output);
 }

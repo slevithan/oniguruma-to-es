@@ -9,7 +9,6 @@ import {recursion} from 'regex-recursion';
 /**
 @typedef {{
   allowBestEffort?: boolean;
-  allowSubclass?: boolean;
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
@@ -28,6 +27,23 @@ Transpiles an Oniguruma regex pattern and flags to native JS.
 }}
 */
 function compile(pattern, flags, options) {
+  return compileInternal(pattern, flags, options);
+}
+
+/**
+@param {string} pattern
+@param {import('./tokenize.js').OnigurumaFlags} [flags]
+@param {CompileOptions & {allowSubclass?: boolean;}} [options]
+@returns {{
+  pattern: string;
+  flags: string;
+  _internal?: {
+    strategy: string;
+    subpattern: string | null;
+  };
+}}
+*/
+function compileInternal(pattern, flags, options) {
   const opts = getOptions(options);
   const transformOpts = {
     allowBestEffort: opts.allowBestEffort,
@@ -39,14 +55,13 @@ function compile(pattern, flags, options) {
   const result = getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts);
   if (result._internal) {
     result._internal = {
-      pattern: result.pattern,
       strategy: result._internal.strategy,
-      subpattern: (result._internal.subtree ?
-        getResultFromOnigurumaAst(result._internal.subtree, opts, transformOpts).pattern :
-        null),
+      subpattern: (
+        result._internal.subtree ?
+          getResultFromOnigurumaAst(result._internal.subtree, opts, transformOpts).pattern :
+          null
+      ),
     };
-    // Hide the pattern since it's not accurate unless `toRegExp` constructs it with a subclass
-    result.pattern = null;
   }
   return result;
 }
@@ -58,8 +73,8 @@ function getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts) {
     pattern: atomic(possessive(recursion(generated.pattern))),
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  if (regexAst._strategy) {
-    result._internal = regexAst._strategy;
+  if (regexAst._internal) {
+    result._internal = regexAst._internal;
   }
   return result;
 }
@@ -67,7 +82,7 @@ function getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts) {
 /**
 Returns a complete set of options, with default values set for options that weren't provided.
 @param {CompileOptions} [options]
-@returns {Required<CompileOptions>}
+@returns {Required<CompileOptions & {allowSubclass?: boolean;}>}
 */
 function getOptions(options) {
   if (options?.target !== undefined && !EsVersion[options.target]) {
@@ -99,5 +114,6 @@ function getOptions(options) {
 
 export {
   compile,
+  compileInternal,
   getOptions,
 };

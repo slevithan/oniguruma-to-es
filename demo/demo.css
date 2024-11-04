@@ -113,3 +113,11 @@ pre, code, textarea {
   color: #a9004f;
   background: repeating-linear-gradient(45deg, #fee6ff, #fee6ff 3px, #ffe0f8 3px, #ffe0f8 10px);
 }
+
+#info {
+  font-style: italic;
+}
+
+.hidden {
+  display: none;
+}

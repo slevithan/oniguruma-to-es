@@ -12,6 +12,7 @@ import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './uti
   pattern: Object;
   flags: Object;
   options: Object;
+  _internal?: Object;
 }} RegexAst
 */
 /**
@@ -79,7 +80,7 @@ function transform(ast, options) {
   };
   traverse({node: ast}, thirdPassState, ThirdPassVisitor);
   if (strategy) {
-    ast._strategy = strategy;
+    ast._internal = strategy;
   }
   return ast;
 }

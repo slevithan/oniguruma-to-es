@@ -102,7 +102,9 @@ Transpiles an Oniguruma regex pattern and flags and returns a native JavaScript 
 function toRegExp(
   pattern: string,
   flags?: OnigurumaFlags,
-  options?: CompileOptions
+  options?: (CompileOptions & {
+    allowSubclass?: boolean;
+  })
 ): RegExp;
 ```
 
