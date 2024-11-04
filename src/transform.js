@@ -17,13 +17,6 @@ import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './uti
 /**
 Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator to
 then down-convert to the desired JS target version.
-
-A couple edge cases exist where options `allowBestEffort` and `bestEffortTarget` are used:
-- `VariableLengthCharacterSet` kind `grapheme` (`\X`): An exact representation would require heavy
-  Unicode data; a best-effort approximation requires knowing the target.
-- `CharacterSet` kind `posix` with values `graph` and `print`: Their complex exact representations
-  are hard to change after the fact in the generator to a best-effort approximation based on
-  the target, so produce the appropriate structure here.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   allowBestEffort?: boolean;
@@ -33,10 +26,19 @@ A couple edge cases exist where options `allowBestEffort` and `bestEffortTarget`
 */
 function transform(ast, options) {
   const opts = {
+    // A couple edge cases exist where options `allowBestEffort` and `bestEffortTarget` are used:
+    // - `VariableLengthCharacterSet` kind `grapheme` (`\X`): An exact representation would require
+    //   heavy Unicode data; a best-effort approximation requires knowing the target.
+    // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex exact
+    //   representations are hard to change after the fact in the generator to a best-effort
+    //   approximation based on the target, so produce the appropriate structure here.
     allowBestEffort: true,
+    allowSubclass: false,
     bestEffortTarget: 'ESNext',
     ...options,
   };
+  // Experimental AST changes that work together with a `RegExp` subclass to add advanced emulation
+  const strategy = opts.allowSubclass ? applySubclassStrategies(ast) : null;
   const firstPassState = {
     allowBestEffort: opts.allowBestEffort,
     flagDirectivesByAlt: new Map(),
@@ -76,6 +78,9 @@ function transform(ast, options) {
     reffedNodesByBackreference: secondPassState.reffedNodesByBackreference,
   };
   traverse({node: ast}, thirdPassState, ThirdPassVisitor);
+  if (strategy) {
+    ast._strategy = strategy;
+  }
   return ast;
 }
 
@@ -262,11 +267,18 @@ const FirstPassVisitor = {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
+    const leadingGs = [];
     let hasAltWithLeadG = false;
     let hasAltWithoutLeadG = false;
     for (const alt of node.alternatives) {
-      if (hasLeadingG(alt.elements, supportedGNodes)) {
+      const leadingG = getLeadingG(alt.elements);
+      if (leadingG) {
         hasAltWithLeadG = true;
+        if (Array.isArray(leadingG)) {
+          leadingGs.push(...leadingG);
+        } else {
+          leadingGs.push(leadingG);
+        }
       } else {
         hasAltWithoutLeadG = true;
       }
@@ -274,6 +286,8 @@ const FirstPassVisitor = {
     if (hasAltWithLeadG && hasAltWithoutLeadG) {
       throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
     }
+    // These nodes will be removed when traversed; other `\G` nodes will error
+    leadingGs.forEach(g => supportedGNodes.add(g))
   },
 
   Quantifier({node}) {
@@ -528,6 +542,55 @@ function adoptAndSwapKids(parent, kids) {
   return parent;
 }
 
+function applySubclassStrategies(ast) {
+  // Special case handling for common patterns that are otherwise unsupportable; only one subclass
+  // strategy supported per pattern; see `WrappedRegExp` in `index.js`
+  const alts = ast.pattern.alternatives;
+  const first = alts[0].elements[0];
+  if (alts.length !== 1 || !first) {
+    return null;
+  }
+  const hasWrappingGroup =
+    (first.type === AstTypes.CapturingGroup || first.type === AstTypes.Group) &&
+    first.alternatives.length === 1;
+  const firstIn = hasWrappingGroup ? first.alternatives[0].elements[0] : first;
+  // Strategy `start_of_search_or_line` adds support for leading `(^|\G)` and similar
+  if (
+    (firstIn.type === AstTypes.CapturingGroup || firstIn.type === AstTypes.Group) &&
+    firstIn.alternatives.length === 2 &&
+    firstIn.alternatives[0].elements.length === 1 &&
+    firstIn.alternatives[1].elements.length === 1
+  ) {
+    const el1 = firstIn.alternatives[0].elements[0];
+    const el2 = firstIn.alternatives[1].elements[0];
+    if (
+      (el1.kind === AstAssertionKinds.line_start && el2.kind === AstAssertionKinds.search_start) ||
+      (el1.kind === AstAssertionKinds.search_start && el2.kind === AstAssertionKinds.line_start)
+    ) {
+      // Remove the `\G` and its container alternative
+      if (el1.kind === AstAssertionKinds.line_start) {
+        firstIn.alternatives.pop();
+      } else {
+        firstIn.alternatives.shift();
+      }
+      return 'start_of_search_or_line';
+    }
+  }
+  // Strategy `not_search_start` adds support for leading `(?!\G)`
+  if (
+    isLookaround(first) &&
+    first.negate &&
+    first.alternatives.length === 1 &&
+    first.alternatives[0].elements.length === 1 &&
+    first.alternatives[0].elements[0].kind === AstAssertionKinds.search_start
+  ) {
+    // Remove the negative lookahead
+    alts[0].elements.shift();
+    return 'not_search_start';
+  }
+  return null;
+}
+
 function areFlagsEqual(a, b) {
   return a.dotAll === b.dotAll && a.ignoreCase === b.ignoreCase;
 }
@@ -630,23 +693,12 @@ function getFlagModsFromFlags({dotAll, ignoreCase}) {
   return mods;
 }
 
-// See also `getAllParents`
-function getParentAlternative(node) {
-  while ((node = node.parent)) {
-    // Skip past quantifiers, etc.
-    if (node.type === AstTypes.Alternative) {
-      return node;
-    }
-  }
-  return null;
-}
-
-function hasLeadingG(els, supportedGNodes) {
+function getLeadingG(els) {
   if (!els.length) {
-    return false;
+    return null;
   }
   const first = els[0];
-  // Special case for leading positive lookaround with leading `\G`, else all leading assertions
+  // Special case for leading positive lookaround with leading `\G`; else all leading assertions
   // are ignored when looking for `\G`
   if (
     isLookaround(first) &&
@@ -654,8 +706,7 @@ function hasLeadingG(els, supportedGNodes) {
     first.alternatives.length === 1 &&
     first.alternatives[0].elements[0]?.kind === AstAssertionKinds.search_start
   ) {
-    supportedGNodes.add(first.alternatives[0].elements[0]);
-    return true;
+    return first.alternatives[0].elements[0];
   }
   const firstToConsider = els.find(el => {
     return el.kind === AstAssertionKinds.search_start ?
@@ -666,21 +717,39 @@ function hasLeadingG(els, supportedGNodes) {
       );
   });
   if (!firstToConsider) {
-    return false;
+    return null;
   }
   if (firstToConsider.kind === AstAssertionKinds.search_start) {
-    supportedGNodes.add(firstToConsider);
-    return true;
+    return firstToConsider;
   }
   if (firstToConsider.type === AstTypes.Group || firstToConsider.type === AstTypes.CapturingGroup) {
+    const gNodesForGroup = [];
     for (const alt of firstToConsider.alternatives) {
-      if (!hasLeadingG(alt.elements, supportedGNodes)) {
-        return false;
+      const leadingG = getLeadingG(alt.elements);
+      if (!leadingG) {
+        // Don't return `gNodesForGroup` collected so far since this alt didn't qualify
+        return null;
+      }
+      if (Array.isArray(leadingG)) {
+        gNodesForGroup.push(...leadingG);
+      } else {
+        gNodesForGroup.push(leadingG);
       }
     }
-    return true;
+    return gNodesForGroup;
   }
-  return false;
+  return null;
+}
+
+// See also `getAllParents`
+function getParentAlternative(node) {
+  while ((node = node.parent)) {
+    // Skip past quantifiers, etc.
+    if (node.type === AstTypes.Alternative) {
+      return node;
+    }
+  }
+  return null;
 }
 
 function isValidGroupNameJs(name) {

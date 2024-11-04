@@ -114,6 +114,8 @@ describe('Assertion', () => {
       expect(() => compile(r`(?:(?>a(?<n>\Gb)))`)).toThrow();
       expect('a').toExactlyMatch(r`\Ga|(((\Gb)))`);
       expect(() => compile(r`\Ga|(((b\Gc)))`)).toThrow();
+      expect(['ac', 'bc']).toExactlyMatch(r`((\Ga|\Gb)c)`);
+      expect(() => compile(r`((\Ga|b)c)`)).toThrow();
     });
 
     it('should throw if leading in a non-0-min quantified group', () => {
@@ -136,10 +138,32 @@ describe('Assertion', () => {
       expect(() => compile(r`(?<!\G)a`)).toThrow();
     });
 
-    // Documenting current behavior; supportable
+    // Just documenting current behavior; supportable
     it('should throw for redundant assertions', () => {
       expect(() => compile(r`\G\Ga`)).toThrow();
       expect(() => compile(r`\Ga|\G\Gb`)).toThrow();
+    });
+
+    describe('subclass strategies', () => {
+      const opts = {allowSubclass: true};
+
+      // Leading `(^|\G)` and similar
+      it('should apply start_of_search_or_line', () => {
+        expect(toRegExp(r`(^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
+        // Should match first 3 and last 1
+        expect('aaabaaacaa\na'.match(toRegExp(
+          r`(^|\G)a`, '', {...opts, global: true}
+        ))).toEqual(['a', 'a', 'a', 'a']);
+        expect(toRegExp(r`(?:^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`(\G|^)a`, '', opts).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`(?:(\G|^)a)`, '', opts).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`((\G|^)a)`, '', opts).exec('b\na')?.index).toBe(2); // TODO
+      });
+
+      // Leading `(?!\G)`
+      it('should apply not_search_start', () => {
+        expect(toRegExp(r`(?!\G)a`, '', opts).exec('aba')?.index).toBe(2);
+      });
     });
   });
 

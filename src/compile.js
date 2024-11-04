@@ -9,6 +9,7 @@ import {recursion} from 'regex-recursion';
 /**
 @typedef {{
   allowBestEffort?: boolean;
+  allowSubclass?: boolean;
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
@@ -34,13 +35,23 @@ function compile(pattern, flags, options) {
   });
   const regexAst = transform(onigurumaAst, {
     allowBestEffort: opts.allowBestEffort,
+    allowSubclass: opts.allowSubclass,
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  return {
+  const result = {
     pattern: atomic(possessive(recursion(generated.pattern))),
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
+  if (regexAst._strategy) {
+    result._internal = {
+      pattern: result.pattern,
+      strategy: regexAst._strategy,
+    };
+    // Hide the pattern since it's not accurate unless `toRegExp` constructs it with a subclass
+    result.pattern = null;
+  }
+  return result;
 }
 
 /**
@@ -57,6 +68,8 @@ function getOptions(options) {
     // Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern
     // can't be emulated with identical behavior
     allowBestEffort: true,
+    // Experimental
+    allowSubclass: false,
     // Include JS flag `g` in results
     global: false,
     // Include JS flag `d` in results

@@ -105,6 +105,7 @@ async function onigurumaExec(pattern, str, pos = 0) {
   // See <github.com/microsoft/vscode-oniguruma/blob/main/main.d.ts>
   const re = new oniguruma.OnigScanner([pattern]);
   const match = re.findNextMatchSync(str, pos);
+  re.dispose();
   if (!match) {
     return null;
   }

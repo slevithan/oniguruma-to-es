@@ -45,7 +45,64 @@ Transpiles an Oniguruma regex pattern and flags and returns a native JS RegExp.
 */
 function toRegExp(pattern, flags, options) {
   const result = compile(pattern, flags, options);
+  if (result._internal) {
+    return new WrappedRegExp(result._internal.pattern, result.flags, result._internal.strategy);
+  }
   return new RegExp(result.pattern, result.flags);
+}
+
+class WrappedRegExp extends RegExp {
+  #strategy;
+  /**
+  @param {string | WrappedRegExp} pattern
+  @param {string} [flags]
+  @param {string} [strategy]
+  */
+  constructor(pattern, flags, strategy) {
+    super(pattern, flags);
+    if (strategy) {
+      this.#strategy = strategy;
+    // The third argument `strategy` isn't provided when regexes are copied as part of the internal
+    // handling of string methods `matchAll` and `split`
+    } else if (pattern instanceof WrappedRegExp) {
+      // Can read private properties of the existing object since it was created by this class
+      this.#strategy = pattern.#strategy;
+    }
+  }
+  /**
+  Called internally by all String/RegExp methods that use regexes.
+  @override
+  @param {string} str
+  @returns {RegExpExecArray | null}
+  */
+  exec(str) {
+    const useLastIndex = this.global || this.sticky;
+    const pos = this.lastIndex;
+    const exec = RegExp.prototype.exec;
+    if (this.#strategy === 'start_of_search_or_line' && useLastIndex && this.lastIndex) {
+      this.lastIndex = 0;
+      const match = exec.call(this, str.slice(pos));
+      if (match) {
+        match.input = str;
+        match.index += pos;
+        this.lastIndex += pos;
+      }
+      return match;
+    }
+    if (this.#strategy === 'not_search_start') {
+      let match = exec.call(this, str);
+      if (match?.index === pos) {
+        match = exec.call(this, str.slice(1));
+        if (match) {
+          match.input = str;
+          match.index += 1;
+          this.lastIndex += (useLastIndex ? 1 : 0);
+        }
+      }
+      return match;
+    }
+    return exec.call(this, str);
+  }
 }
 
 export {
