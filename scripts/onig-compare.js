@@ -31,8 +31,8 @@ compare([
   [r`[\O]`, `O`],
   [r`\o`, `o`],
   [r`[\o]`, `o`],
-  [r`\o{1}`, `\u{1}`],
-  [r`[\o{1}]`, `\u{1}`],
+  [r`\o{1}`, `\u{1}`, `Octal code points not yet supported`],
+  [r`[\o{1}]`, `\u{1}`, `Octal code points not yet supported`],
   [r`\p`, `p`],
   [r`[\p]`, `p`],
   [r`\p{`, `p{`],
@@ -69,9 +69,9 @@ compare([
   [r`\x{10FFFF}`, `\u{10FFFF}`],
   [r`\x{0010FFFF}`, `\u{10FFFF}`], // 8 hex digits
   [r`\x{00010FFFF}`, `\u{10FFFF}`], // 9 hex digits
-  [r`\x{13FFFF}`, ``, r`Beyond Unicode range: JS doesn't support`],
+  [r`\x{13FFFF}`, ``, `Beyond Unicode range: JS doesn't support`],
   [r`\x{140000}`, ``],
-  [r`\x{0 1}`, `\u{0}\u{1}`],
+  [r`\x{0 1}`, `\u{0}\u{1}`, `Code point sequences not yet supported`],
   [r`\💖`, '💖'],
   [`\\\u{10000}`, '\u{10000}'],
 ]);

@@ -1,5 +1,5 @@
 import emojiRegex from 'emoji-regex-xs';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createFlags, createGroup, createLookaround, createPattern, createRegex, createUnicodeProperty, isLookaround, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
@@ -543,8 +543,9 @@ function adoptAndSwapKids(parent, kids) {
 }
 
 function applySubclassStrategies(ast) {
-  // Special case handling for common patterns that are otherwise unsupportable; only one subclass
-  // strategy supported per pattern; see `WrappedRegExp` in `index.js`
+  // Special case handling that requires coupling with a `RegExp` subclass (see `WrappedRegExp` in
+  // `index.js`). These changes add emulation support for some common patterns that are otherwise
+  // unsupportable. Only one subclass strategy is supported per pattern
   const alts = ast.pattern.alternatives;
   const first = alts[0].elements[0];
   if (alts.length !== 1 || !first) {
@@ -554,7 +555,7 @@ function applySubclassStrategies(ast) {
     (first.type === AstTypes.CapturingGroup || first.type === AstTypes.Group) &&
     first.alternatives.length === 1;
   const firstIn = hasWrappingGroup ? first.alternatives[0].elements[0] : first;
-  // Strategy `start_of_search_or_line` adds support for leading `(^|\G)` and similar
+  // Subclass strategy `search_or_line_start`: Support leading `(^|\G)` and similar
   if (
     (firstIn.type === AstTypes.CapturingGroup || firstIn.type === AstTypes.Group) &&
     firstIn.alternatives.length === 2 &&
@@ -573,20 +574,50 @@ function applySubclassStrategies(ast) {
       } else {
         firstIn.alternatives.shift();
       }
-      return 'start_of_search_or_line';
+      return {
+        strategy: 'search_or_line_start',
+      };
     }
   }
-  // Strategy `not_search_start` adds support for leading `(?!\G)`
+  // Subclass strategy `not_search_start`: Support leading `(?!\G)`
   if (
-    isLookaround(first) &&
-    first.negate &&
-    first.alternatives.length === 1 &&
-    first.alternatives[0].elements.length === 1 &&
-    first.alternatives[0].elements[0].kind === AstAssertionKinds.search_start
+    isLookaround(firstIn) &&
+    firstIn.negate &&
+    firstIn.alternatives.length === 1 &&
+    firstIn.alternatives[0].elements.length === 1 &&
+    firstIn.alternatives[0].elements[0].kind === AstAssertionKinds.search_start
   ) {
-    // Remove the negative lookahead
-    alts[0].elements.shift();
-    return 'not_search_start';
+    // Remove the lookahead
+    firstIn.parent.elements.shift();
+    return {
+      strategy: 'not_search_start',
+    };
+  }
+  // Subclass strategy `after_search_start_or_subpattern`: Support leading `(?<=\G|…)`
+  // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
+  if (
+    isLookaround(firstIn) &&
+    !firstIn.negate &&
+    firstIn.alternatives.length > 1 &&
+    firstIn.alternatives[0].elements.length === 1 &&
+    firstIn.alternatives[0].elements[0].kind === AstAssertionKinds.search_start
+  ) {
+    const siblingAlts = firstIn.alternatives.slice(1);
+    if (siblingAlts.some(alt => alt.elements.some(el => {
+      // Don't remove capturing groups from the tree because they can affect other nodes; keeping
+      // it simple to avoid recursively checking other group types
+      return isLookaround(el) || el.type === AstTypes.CapturingGroup || el.type === AstTypes.Group;
+    }))) {
+      throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+    }
+    const pattern = adoptAndSwapKids(createPattern(), siblingAlts);
+    const root = createRegex(pattern, createFlags(ast.flags));
+    // Remove the lookbehind
+    firstIn.parent.elements.shift();
+    return {
+      subtree: root,
+      strategy: 'after_search_start_or_subpattern',
+    };
   }
   return null;
 }
@@ -763,7 +794,7 @@ function parseFragment(pattern, {bypassPropertyNameCheck} = {}) {
   const ast = parse(tokenize(pattern), {bypassPropertyNameCheck});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
-    return adoptAndSwapKids(createGroup(), alts);;
+    return adoptAndSwapKids(createGroup(), alts);
   }
   return alts[0].elements[0];
 }

@@ -148,7 +148,7 @@ describe('Assertion', () => {
       const opts = {allowSubclass: true};
 
       // Leading `(^|\G)` and similar
-      it('should apply start_of_search_or_line', () => {
+      it('should apply search_or_line_start', () => {
         expect(toRegExp(r`(^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
         // Should match first 3 and last 1
         expect('aaabaaacaa\na'.match(toRegExp(
@@ -163,6 +163,17 @@ describe('Assertion', () => {
       // Leading `(?!\G)`
       it('should apply not_search_start', () => {
         expect(toRegExp(r`(?!\G)a`, '', opts).exec('aba')?.index).toBe(2);
+        expect(toRegExp(r`(?:(?!\G)a)`, '', opts).exec('aba')?.index).toBe(2);
+        expect(toRegExp(r`((?!\G)a)`, '', opts).exec('aba')?.index).toBe(2);
+      });
+
+      // Leading `(?<=\G|…)`
+      it('should apply after_search_start_or_subpattern', () => {
+        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('ba')?.index).toBe(0);
+        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('aba')?.index).toBe(1);
+        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('aaba')?.index).toBe(2);
+        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('cbbab')?.index).toBe(4);
+        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('cbba')).toBeNull();
       });
     });
   });

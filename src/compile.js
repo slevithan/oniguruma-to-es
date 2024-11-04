@@ -29,27 +29,37 @@ Transpiles an Oniguruma regex pattern and flags to native JS.
 */
 function compile(pattern, flags, options) {
   const opts = getOptions(options);
-  const tokenized = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokenized, {
-    optimize: opts.optimize,
-  });
-  const regexAst = transform(onigurumaAst, {
+  const transformOpts = {
     allowBestEffort: opts.allowBestEffort,
     allowSubclass: opts.allowSubclass,
     bestEffortTarget: opts.target,
-  });
+  };
+  const tokenized = tokenize(pattern, flags);
+  const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
+  const result = getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts);
+  if (result._internal) {
+    result._internal = {
+      pattern: result.pattern,
+      strategy: result._internal.strategy,
+      subpattern: (result._internal.subtree ?
+        getResultFromOnigurumaAst(result._internal.subtree, opts, transformOpts).pattern :
+        null),
+    };
+    // Hide the pattern since it's not accurate unless `toRegExp` constructs it with a subclass
+    result.pattern = null;
+  }
+  return result;
+}
+
+function getResultFromOnigurumaAst(onigurumaAst, opts, transformOpts) {
+  const regexAst = transform(onigurumaAst, transformOpts);
   const generated = generate(regexAst, opts);
   const result = {
     pattern: atomic(possessive(recursion(generated.pattern))),
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
   if (regexAst._strategy) {
-    result._internal = {
-      pattern: result.pattern,
-      strategy: regexAst._strategy,
-    };
-    // Hide the pattern since it's not accurate unless `toRegExp` constructs it with a subclass
-    result.pattern = null;
+    result._internal = regexAst._strategy;
   }
   return result;
 }

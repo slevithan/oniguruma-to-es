@@ -46,27 +46,27 @@ Transpiles an Oniguruma regex pattern and flags and returns a native JS RegExp.
 function toRegExp(pattern, flags, options) {
   const result = compile(pattern, flags, options);
   if (result._internal) {
-    return new WrappedRegExp(result._internal.pattern, result.flags, result._internal.strategy);
+    return new WrappedRegExp(result._internal.pattern, result.flags, result._internal);
   }
   return new RegExp(result.pattern, result.flags);
 }
 
 class WrappedRegExp extends RegExp {
-  #strategy;
+  #data;
   /**
   @param {string | WrappedRegExp} pattern
   @param {string} [flags]
-  @param {string} [strategy]
+  @param {string} [data]
   */
-  constructor(pattern, flags, strategy) {
+  constructor(pattern, flags, data) {
     super(pattern, flags);
-    if (strategy) {
-      this.#strategy = strategy;
-    // The third argument `strategy` isn't provided when regexes are copied as part of the internal
+    if (data) {
+      this.#data = data;
+    // The third argument `data` isn't provided when regexes are copied as part of the internal
     // handling of string methods `matchAll` and `split`
     } else if (pattern instanceof WrappedRegExp) {
       // Can read private properties of the existing object since it was created by this class
-      this.#strategy = pattern.#strategy;
+      this.#data = pattern.#data;
     }
   }
   /**
@@ -76,10 +76,15 @@ class WrappedRegExp extends RegExp {
   @returns {RegExpExecArray | null}
   */
   exec(str) {
+    // Special case handling that requires coupling with changes for the specific strategy in the
+    // transformer. These changes add emulation support for some common patterns that are otherwise
+    // unsupportable. Only one subclass strategy is supported per pattern
     const useLastIndex = this.global || this.sticky;
     const pos = this.lastIndex;
     const exec = RegExp.prototype.exec;
-    if (this.#strategy === 'start_of_search_or_line' && useLastIndex && this.lastIndex) {
+    // Support leading `(^|\G)` and similar
+    if (this.#data.strategy === 'search_or_line_start' && useLastIndex && this.lastIndex) {
+      // Reset since testing on a sliced string that we want to match at the start of
       this.lastIndex = 0;
       const match = exec.call(this, str.slice(pos));
       if (match) {
@@ -89,7 +94,8 @@ class WrappedRegExp extends RegExp {
       }
       return match;
     }
-    if (this.#strategy === 'not_search_start') {
+    // Support leading `(?!\G)`
+    if (this.#data.strategy === 'not_search_start') {
       let match = exec.call(this, str);
       if (match?.index === pos) {
         match = exec.call(this, str.slice(1));
@@ -98,6 +104,29 @@ class WrappedRegExp extends RegExp {
           match.index += 1;
           this.lastIndex += (useLastIndex ? 1 : 0);
         }
+      }
+      return match;
+    }
+    // Support leading `(?<=\G|…)`
+    // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
+    if (this.#data.strategy === 'after_search_start_or_subpattern') {
+      let match = exec.call(this, str);
+      if (!match) {
+        return match;
+      }
+      if (match.index === pos) {
+        // Satisfied `\G` in lookbehind
+        return match;
+      }
+      let globalRe = useLastIndex ? this : new RegExp(this, `g${this.flags}`);
+      const reBehind = new RegExp(`(?:${this.#data.subpattern})$`);
+      while (match) {
+        if (reBehind.exec(str.slice(0, match.index))) {
+          // Satisfied other alternative in lookbehind; return the main pattern's match
+          return match;
+        }
+        globalRe.lastIndex = match.index + 1;
+        match = exec.call(globalRe, str);
       }
       return match;
     }
