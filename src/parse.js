@@ -72,25 +72,28 @@ const AstVariableLengthCharacterSetKinds = {
 /**
 @param {import('./tokenize.js').TokenizerResult} tokenizerResult
 @param {{
-  bypassPropertyNameCheck?: boolean;
   optimize?: boolean;
+  skipBackrefValidation?: boolean;
+  skipPropertyNameValidation?: boolean;
 }} [options]
 @returns {OnigurumaAst}
 */
 function parse({tokens, flags}, options) {
   const opts = {
-    bypassPropertyNameCheck: false,
     optimize: true,
+    skipBackrefValidation: false,
+    skipPropertyNameValidation: false,
     ...options,
   };
   const context = {
-    bypassPropertyNameCheck: opts.bypassPropertyNameCheck,
     capturingGroups: [],
     current: 0,
     hasNumberedRef: false,
     namedGroupsByName: new Map(),
     optimize: opts.optimize,
     parent: null,
+    skipBackrefValidation: opts.skipBackrefValidation,
+    skipPropertyNameValidation: opts.skipPropertyNameValidation,
     subroutines: [],
     token: null,
     tokens,
@@ -190,11 +193,19 @@ function parseBackreference(context) {
   const ref = hasKWrapper ? raw.slice(3, -1) : raw.slice(1);
   const fromNum = (num, isRelative = false) => {
     const numCapturesToLeft = context.capturingGroups.length;
+    let orphan = false;
     if (num > numCapturesToLeft) {
-      throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
+      // [WARNING] Skipping the error messes up a lot of assumptions and edge cases, since backrefs
+      // are required to come after their captures; unfortunately this option is needed for
+      // TextMate grammars
+      if (context.skipBackrefValidation) {
+        orphan = true;
+      } else {
+        throw new Error(`Not enough capturing groups defined to the left "${raw}"`);
+      }
     }
     context.hasNumberedRef = true;
-    return createBackreference(isRelative ? numCapturesToLeft + 1 - num : num);
+    return createBackreference(isRelative ? numCapturesToLeft + 1 - num : num, {orphan});
   };
   if (hasKWrapper) {
     const numberedRef = /^(?<sign>-?)0*(?<num>[1-9]\d*)$/.exec(ref);
@@ -268,7 +279,7 @@ function parseCharacterClassOpen(context, state) {
   return node;
 }
 
-function parseCharacterSet({token, bypassPropertyNameCheck}) {
+function parseCharacterSet({token, skipPropertyNameValidation}) {
   let {kind, negate, value} = token;
   if (kind === TokenCharacterSetKinds.property) {
     const normalized = slug(value);
@@ -278,7 +289,7 @@ function parseCharacterSet({token, bypassPropertyNameCheck}) {
     } else {
       return createUnicodeProperty(value, {
         negate,
-        allowAnyName: bypassPropertyNameCheck,
+        skipPropertyNameValidation,
       });
     }
   }
@@ -434,9 +445,10 @@ function createAssertionFromToken({type, kind, negate}) {
   return node;
 }
 
-function createBackreference(ref) {
+function createBackreference(ref, {orphan} = {}) {
   return {
     type: AstTypes.Backreference,
+    ...(orphan && {orphan}),
     ref,
   };
 }
@@ -591,14 +603,14 @@ function createSubroutine(ref) {
 
 function createUnicodeProperty(value, options) {
   const opts = {
-    allowAnyName: false,
     negate: false,
+    skipPropertyNameValidation: false,
     ...options,
   };
   return {
     type: AstTypes.CharacterSet,
     kind: AstCharacterSetKinds.property,
-    value: opts.allowAnyName ? value : getJsUnicodePropertyName(value),
+    value: opts.skipPropertyNameValidation ? value : getJsUnicodePropertyName(value),
     negate: opts.negate,
   }
 }

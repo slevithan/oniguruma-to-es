@@ -14,6 +14,7 @@ import {recursion} from 'regex-recursion';
   maxRecursionDepth?: number | null;
   optimize?: boolean;
   target?: keyof Target;
+  tmGrammar?: boolean;
 }} CompileOptions
 @typedef {CompileOptions & {
   allowSubclassBasedEmulation?: boolean;
@@ -50,7 +51,10 @@ function compile(pattern, flags, options) {
 function compileInternal(pattern, flags, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, flags);
-  const onigurumaAst = parse(tokenized, {optimize: opts.optimize});
+  const onigurumaAst = parse(tokenized, {
+    optimize: opts.optimize,
+    skipBackrefValidation: opts.tmGrammar,
+  });
   const regexAst = transform(onigurumaAst, {
     allowBestEffort: opts.allowBestEffort,
     allowSubclassBasedEmulation: opts.allowSubclassBasedEmulation,
@@ -104,6 +108,8 @@ function getOptions(options) {
     // Sets the JavaScript language version for generated patterns and flags. Later targets allow
     // faster processing, simpler generated source, and support for additional features
     target: 'ES2024',
+    // Is the regex meant to be used in a TextMate grammar
+    tmGrammar: false,
     ...options,
   };
 }

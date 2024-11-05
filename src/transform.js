@@ -1,5 +1,5 @@
 import emojiRegex from 'emoji-regex-xs';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
@@ -45,6 +45,7 @@ function transform(ast, options) {
     allowBestEffort: opts.allowBestEffort,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
+    numOrphanBackrefs: 0,
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
     supportedGNodes: new Set(),
@@ -138,6 +139,12 @@ const FirstPassVisitor = {
     }
     // Kinds `string_end` and `string_start` don't need transformation since JS flag m isn't used.
     // Kinds `lookahead` and `lookbehind` also don't need transformation
+  },
+
+  Backreference({node}, state) {
+    if (node.orphan) {
+      state.numOrphanBackrefs++;
+    }
   },
 
   CapturingGroup({node}, {subroutineRefMap}) {
@@ -302,6 +309,19 @@ const FirstPassVisitor = {
     }
   },
 
+  Regex: {
+    exit({node}, {numOrphanBackrefs}) {
+      // [HACK] Add as many empty unnamed captures to the end of the regex as there are orphaned
+      // numbered backrefs, since JS with flag u or v doesn't allow having more backrefs than
+      // captures. This could be improved to calculate the number of captures already in the
+      // pattern after subroutine expansion, and only added as many more as needed
+      for (let i = 0; i < numOrphanBackrefs; i++) {
+        const emptyCapture = createCapturingGroup();
+        node.pattern.alternatives.at(-1).elements.push(emptyCapture);
+      }
+    },
+  },
+
   VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
     const {kind} = node;
     if (kind === AstVariableLengthCharacterSetKinds.newline) {
@@ -315,8 +335,8 @@ const FirstPassVisitor = {
       // a valid emoji. That actually makes it more accurate for matching any grapheme
       const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, r`\x{`);
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
-      // Bypass name check to allow `RGI_Emoji` through, which Onig doesn't support
-      replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {bypassPropertyNameCheck: true}));
+      // Skip name check to allow `RGI_Emoji` through, which Onig doesn't support
+      replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}));
     } else {
       throw new Error(`Unexpected varcharset kind "${kind}"`);
     }
@@ -338,10 +358,12 @@ const SecondPassVisitor = {
   },
 
   Backreference({node}, {multiplexCapturesToLeftByRef, reffedNodesByBackreference}) {
-    const {ref} = node;
-    // Copy the current state for later multiplexing expansion. It's done in a subsequent pass
-    // because backref numbers need to be recalculated after subroutine expansion
-    reffedNodesByBackreference.set(node, [...multiplexCapturesToLeftByRef.get(ref).map(({node}) => node)]);
+    const {orphan, ref} = node;
+    if (!orphan) {
+      // Copy the current state for later multiplexing expansion. It's done in a subsequent pass
+      // because backref numbers need to be recalculated after subroutine expansion
+      reffedNodesByBackreference.set(node, [...multiplexCapturesToLeftByRef.get(ref).map(({node}) => node)]);
+    }
   },
 
   CapturingGroup: {
@@ -503,6 +525,10 @@ const SecondPassVisitor = {
 const ThirdPassVisitor = {
   Backreference({node, replaceWith}, {reffedNodesByBackreference}) {
     const refNodes = reffedNodesByBackreference.get(node);
+    if (!refNodes) {
+      // Skip changes for `orphan` backrefs
+      return;
+    }
     const unclosedCaps = getAllParents(node, node => node.type === AstTypes.CapturingGroup);
     // For the backref's `ref`, use `number` rather than `name` because group names might have been
     // removed if they're duplicates within their alternation path, or they might be removed later
@@ -621,9 +647,9 @@ function applySubclassStrategies(ast) {
       // [HACK] Replace the lookbehind with an emulation marker since it isn't easy at this point
       // to acurately extract what will later become the generated subpattern
       const emulationGroup = adoptAndSwapKids(createGroup(), [
-        adoptAndSwapKids(createAlternative(), [createUnicodeProperty('<<', {allowAnyName: true})]),
+        adoptAndSwapKids(createAlternative(), [createUnicodeProperty('<<', {skipPropertyNameValidation: true})]),
         ...siblingAlts,
-        adoptAndSwapKids(createAlternative(), [createUnicodeProperty('>>', {allowAnyName: true})]),
+        adoptAndSwapKids(createAlternative(), [createUnicodeProperty('>>', {skipPropertyNameValidation: true})]),
       ]);
       emulationGroup.parent = firstIn.parent;
       firstIn.parent.elements[0] = emulationGroup;
@@ -799,8 +825,8 @@ function isValidGroupNameJs(name) {
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
-function parseFragment(pattern, {bypassPropertyNameCheck} = {}) {
-  const ast = parse(tokenize(pattern), {bypassPropertyNameCheck});
+function parseFragment(pattern, {skipPropertyNameValidation} = {}) {
+  const ast = parse(tokenize(pattern), {skipPropertyNameValidation});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
     return adoptAndSwapKids(createGroup(), alts);
