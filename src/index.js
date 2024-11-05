@@ -68,8 +68,6 @@ class WrappedRegExp extends RegExp {
       // Can read private properties of the existing object since it was created by this class
       this.#data = pattern.#data;
     }
-    // TODO: Change to getters since values are for tools and won't be read internally
-    this._internal = this.#data;
   }
   /**
   Called internally by all String/RegExp methods that use regexes.

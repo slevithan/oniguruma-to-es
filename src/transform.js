@@ -771,14 +771,15 @@ function getLeadingG(els) {
   const first = els[0];
   // Special case for leading positive lookaround with leading `\G`; else all leading assertions
   // are ignored when looking for `\G`
-  if (
-    isLookaround(first) &&
-    !first.negate &&
-    first.alternatives.length === 1 &&
-    first.alternatives[0].elements[0]?.kind === AstAssertionKinds.search_start
-  ) {
-    return first.alternatives[0].elements[0];
+  if (isLookaround(first) && !first.negate && first.alternatives.length === 1 && first.alternatives[0].elements.length) {
+    const els = first.alternatives[0].elements;
+    const index = first.kind === AstAssertionKinds.lookahead ? 0 : els.length - 1;
+    // `\G` is first node in lookahead or last node in lookbehind
+    if (els[index].kind === AstAssertionKinds.search_start) {
+      return els[index];
+    }
   }
+
   const firstToConsider = els.find(el => {
     return el.kind === AstAssertionKinds.search_start ?
       true :

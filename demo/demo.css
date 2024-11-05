@@ -45,6 +45,10 @@ td {
   padding-right: 3vw;
 }
 
+summary {
+  cursor: pointer;
+}
+
 label, .label {
   margin-right: 0.4em;
 }

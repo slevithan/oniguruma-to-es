@@ -28,7 +28,7 @@ async function exec([pattern, str]) {
     onigMatch = await onigurumaResult(pattern, str, onigMatch.index + (onigMatch.result.length || 1));
   }
 
-  console.log('Pattern:', color('yellow', pattern));
+  console.log('Pattern:', color('yellow', `/${pattern}/`));
   console.log('String:', `${value(str)} ${color('gray', `(len ${str.length})`)}`);
   if (onigMatch.error) {
     err(null, `Oniguruma error: ${onigMatch.error.message}`);

@@ -68,7 +68,7 @@ describe('Assertion', () => {
       expect('abbcbb'.match(toRegExp(r`\G[ab]`, '', {global: true}))).toEqual(['a', 'b', 'b']);
     });
 
-    // Unsupported: not emulatable without RegExp subclass
+    // Unsupported; not emulatable without a subclass
     it('should throw if not used at the start of every top-level alternative', () => {
       expect(() => compile(r`a\G`)).toThrow();
       expect(() => compile(r`\Ga|b`)).toThrow();
@@ -123,14 +123,24 @@ describe('Assertion', () => {
       expect(() => compile(r`(\Ga)+\G`)).toThrow();
     });
 
-    it('should allow if leading in a leading positive lookaround', () => {
+    it('should allow if leading in a leading positive lookahead', () => {
       expect('a').toExactlyMatch(r`(?=\G)a`);
+      expect('a').toExactlyMatch(r`(?=\Ga)a`);
+      expect('aaba'.match(toRegExp(r`(?=\Ga)a`, '', {global: true}))).toEqual(['a', 'a']);
+    });
+
+    it('should allow if trailing in a leading positive lookbehind', () => {
       expect('a').toExactlyMatch(r`(?<=\G)a`);
-      expect(() => compile(r`(?<=a\G)a`)).toThrow();
-      expect(() => compile(r`(?<=\G|)a`)).toThrow();
-      expect(() => compile(r`(?:(?<=\G))?a`)).toThrow();
-      expect('a').toExactlyMatch(r`(?=\G)a|\Gb`);
-      expect(() => compile(r`(?=\G)a|b`)).toThrow();
+      expect(['aa', 'abaa']).not.toFindMatch(r`(?<=a\G)a`);
+      let re = toRegExp(r`(?<=a\G)a`);
+      re.lastIndex = 3;
+      expect(re.exec('abaa')?.index).toBe(3);
+    });
+
+    it('should throw if leading in a leading positive lookbehind', () => {
+      // Matches at index 3 within `abc`, but doesn't match within `aabc`. Emulatable by replacing
+      // `\G` with `^`, slicing the string to `lastIndex`, and doing a non-sticky search
+      expect(() => compile(r`(?<=\Gabc)`)).toThrow();
     });
 
     it('should throw if leading in a leading negative lookaround', () => {
@@ -138,10 +148,26 @@ describe('Assertion', () => {
       expect(() => compile(r`(?<!\G)a`)).toThrow();
     });
 
-    // Just documenting current behavior; supportable
-    it('should throw for redundant assertions', () => {
+    // Just documenting current behavior
+    it('should throw for redundant but otherwise supportable assertions', () => {
       expect(() => compile(r`\G\Ga`)).toThrow();
       expect(() => compile(r`\Ga|\G\Gb`)).toThrow();
+    });
+
+    // Could support by replacing `\G` with `(?!)`
+    it('should throw at unmatchable positions', () => {
+      expect(() => compile(r`a\Gb`)).toThrow();
+      expect(() => compile(r`(?<=a\Gb)`)).toThrow();
+      expect(() => compile(r`(?=a\Gb)`)).toThrow();
+      expect(() => compile(r`(?=ab\G)`)).toThrow();
+    });
+
+    // Unsupported; some or all might be emulatable
+    it('should throw for other unsupported uses', () => {
+      expect(() => compile(r`(?<=\G|)a`)).toThrow();
+      expect(() => compile(r`(?:(?<=\G))?a`)).toThrow();
+      expect('a').toExactlyMatch(r`(?=\G)a|\Gb`);
+      expect(() => compile(r`(?=\G)a|b`)).toThrow();
     });
 
     describe('subclass strategies', () => {

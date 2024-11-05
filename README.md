@@ -213,6 +213,7 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
 
 Following are the supported features by target.
 
+> [!NOTE]
 > Targets `ES2024` and `ESNext` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings.
 
 Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of Oniguruma-To-ES. Unsupported features throw an error.
