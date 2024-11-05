@@ -60,7 +60,7 @@ function escapeHtml(str) {
 
 function getFormattedSubclass(pattern, flags, data) {
   return `new WrappedRegExp('${
-    pattern.replace(/'/g, "\\'")
+    pattern.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
   }', '${
     flags
   }', {\n  strategy: '${data.strategy}',${data.subpattern ? `\n  subpattern: '${data.subpattern}',` : ''}\n})`;

@@ -9,11 +9,11 @@ A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the bro
 Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** and its regexes **run much faster** since they run as native JavaScript.
 
 > [!WARNING]
-> This library is currently in alpha and has known bugs.
+> This library is currently in beta and has known bugs.
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
-Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars via the Shiki library. A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
+Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
 
 ## 📜 Contents
 
@@ -707,6 +707,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Error if named capture used<br>
       ✔ Allows leading 0s<br>
       ✔ Refs the most recent of a capture/subroutine set<br>
+      ✔ <code>\k</code> without <code>&lt;</code>, <code>'</code> is an identity escape<br>
     </td>
   </tr>
   <tr valign="top">
@@ -754,6 +755,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Doesn't alter backref nums<br>
       ✔ Reuses flags from the reffed group (ignores local flags)<br>
       ✔ Replaces most recent captured values (for backrefs)<br>
+      ✔ <code>\g</code> without <code>&lt;</code>, <code>'</code> is an identity escape<br>
       ✔ Error if named capture used<br>
     </td>
   </tr>
