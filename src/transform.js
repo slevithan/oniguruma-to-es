@@ -572,62 +572,72 @@ function applySubclassStrategies(ast) {
   // These changes add emulation support for some common patterns that are otherwise unsupportable.
   // Only one subclass strategy is supported per pattern
   const alts = ast.pattern.alternatives;
-  const first = alts[0].elements[0];
-  if (alts.length !== 1 || !first) {
+  const firstEl = alts[0].elements[0];
+  if (alts.length > 1 || !firstEl) {
+    // These strategies only work if there's no top-level alternation
     return null;
   }
-  const hasWrappingGroup =
-    (first.type === AstTypes.CapturingGroup || first.type === AstTypes.Group) &&
-    first.alternatives.length === 1;
-  const firstIn = hasWrappingGroup ? first.alternatives[0].elements[0] : first;
-  // Subclass strategy `search_or_line_start`: Support leading `(^|\G)` and similar
+  const hasWrapperGroup =
+    (firstEl.type === AstTypes.CapturingGroup || firstEl.type === AstTypes.Group) &&
+    firstEl.alternatives.length === 1;
+  // First element within first group if the group doesn't contain top-level alternation, else just
+  // the first element of the pattern; a wrapper might be used to apply flags to the full pattern
+  const firstElIn = hasWrapperGroup ? firstEl.alternatives[0].elements[0] : firstEl;
+  const singleAltIn = hasWrapperGroup ? firstEl.alternatives[0] : alts[0];
+
+  // ## Subclass strategy `search_or_line_start`: Support leading `(^|\G)` and similar
   if (
-    (firstIn.type === AstTypes.CapturingGroup || firstIn.type === AstTypes.Group) &&
-    firstIn.alternatives.length === 2 &&
-    firstIn.alternatives[0].elements.length === 1 &&
-    firstIn.alternatives[1].elements.length === 1
+    (firstElIn.type === AstTypes.CapturingGroup || firstElIn.type === AstTypes.Group) &&
+    firstElIn.alternatives.length === 2 &&
+    firstElIn.alternatives[0].elements.length === 1 &&
+    firstElIn.alternatives[1].elements.length === 1
   ) {
-    const el1 = firstIn.alternatives[0].elements[0];
-    const el2 = firstIn.alternatives[1].elements[0];
+    const el1 = firstElIn.alternatives[0].elements[0];
+    const el2 = firstElIn.alternatives[1].elements[0];
     if (
       (el1.kind === AstAssertionKinds.line_start && el2.kind === AstAssertionKinds.search_start) ||
       (el1.kind === AstAssertionKinds.search_start && el2.kind === AstAssertionKinds.line_start)
     ) {
       // Remove the `\G` and its container alternative
       if (el1.kind === AstAssertionKinds.line_start) {
-        firstIn.alternatives.pop();
+        firstElIn.alternatives.pop();
       } else {
-        firstIn.alternatives.shift();
+        firstElIn.alternatives.shift();
       }
-      return {
-        name: 'search_or_line_start',
-      };
+      return {name: 'search_or_line_start'};
     }
   }
-  // Subclass strategy `not_search_start`: Support leading `(?!\G)`
-  if (
-    isLookaround(firstIn) &&
-    firstIn.negate &&
-    firstIn.alternatives.length === 1 &&
-    firstIn.alternatives[0].elements.length === 1 &&
-    firstIn.alternatives[0].elements[0].kind === AstAssertionKinds.search_start
-  ) {
-    // Remove the lookahead
-    firstIn.parent.elements.shift();
-    return {
-      name: 'not_search_start',
-    };
+
+  // ## Subclass strategy `not_search_start`: Support leading `(?!\G)` and similar
+  function isNegG(node) {
+    return isLookaround(node) &&
+      node.negate &&
+      node.alternatives.length === 1 &&
+      node.alternatives[0].elements.length === 1 &&
+      node.alternatives[0].elements[0].kind === AstAssertionKinds.search_start;
   }
-  // Subclass strategy `after_search_start_or_subpattern`: Support leading `(?<=\G|…)` and similar
-  // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
+  if (isNegG(firstElIn)) {
+    // Remove the lookaround
+    firstElIn.parent.elements.shift();
+    return {name: 'not_search_start'};
+  }
+  const negGIndex = singleAltIn.elements.findIndex(el => isNegG(el));
+  if (negGIndex > -1 && singleAltIn.elements.every(el => el.type === AstTypes.Assertion)) {
+    // Remove the lookaround
+    singleAltIn.elements.splice(negGIndex, 1);
+    return {name: 'not_search_start'};
+  }
+
+  // ## Subclass strategy `after_search_start_or_subpattern`: Support leading `(?<=\G|…)` and
+  // similar. NB: Leading `(?<=\G)` without other alts is already supported; no need for a subclass
   if (
-    isLookaround(firstIn) &&
-    !firstIn.negate &&
-    firstIn.alternatives.length > 1
+    isLookaround(firstElIn) &&
+    !firstElIn.negate &&
+    firstElIn.alternatives.length > 1
   ) {
     const siblingAlts = [];
     let hasGAlt = false;
-    firstIn.alternatives.forEach(alt => {
+    firstElIn.alternatives.forEach(alt => {
       if (alt.elements.length === 1 && alt.elements[0].kind === AstAssertionKinds.search_start) {
         hasGAlt = true;
       } else {
@@ -641,18 +651,16 @@ function applySubclassStrategies(ast) {
       }))) {
         throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
       }
-      // [HACK] Replace the lookbehind with an emulation marker since it isn't easy at this point
-      // to acurately extract what will later become the generated subpattern
+      // [HACK] Replace the lookbehind with an emulation marker since from here it isn't easy to
+      // acurately extract what will later become the generated subpattern
       const emulationGroup = adoptAndSwapKids(createGroup(), [
         adoptAndSwapKids(createAlternative(), [createUnicodeProperty('<<', {skipPropertyNameValidation: true})]),
         ...siblingAlts,
         adoptAndSwapKids(createAlternative(), [createUnicodeProperty('>>', {skipPropertyNameValidation: true})]),
       ]);
-      emulationGroup.parent = firstIn.parent;
-      firstIn.parent.elements[0] = emulationGroup;
-      return {
-        name: 'after_search_start_or_subpattern',
-      };
+      emulationGroup.parent = firstElIn.parent;
+      firstElIn.parent.elements[0] = emulationGroup;
+      return {name: 'after_search_start_or_subpattern'};
     }
   }
   return null;

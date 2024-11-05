@@ -82,7 +82,9 @@ class WrappedRegExp extends RegExp {
     const useLastIndex = this.global || this.sticky;
     const pos = this.lastIndex;
     const exec = RegExp.prototype.exec;
-    // Support leading `(^|\G)` and similar
+    const globalRe = useLastIndex ? this : new RegExp(this, `g${this.flags}`);
+
+    // ## Support leading `(^|\G)` and similar
     if (this.#data.strategy === 'search_or_line_start' && useLastIndex && this.lastIndex) {
       // Reset since testing on a sliced string that we want to match at the start of
       this.lastIndex = 0;
@@ -94,20 +96,18 @@ class WrappedRegExp extends RegExp {
       }
       return match;
     }
-    // Support leading `(?!\G)`
+
+    // ## Support leading `(?!\G)` and similar
     if (this.#data.strategy === 'not_search_start') {
       let match = exec.call(this, str);
       if (match?.index === pos) {
-        match = exec.call(this, str.slice(1));
-        if (match) {
-          match.input = str;
-          match.index += 1;
-          this.lastIndex += (useLastIndex ? 1 : 0);
-        }
+        globalRe.lastIndex = match.index + 1;
+        match = exec.call(globalRe, str);
       }
       return match;
     }
-    // Support leading `(?<=\G|…)` and similar
+
+    // ## Support leading `(?<=\G|…)` and similar
     // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
     if (this.#data.strategy === 'after_search_start_or_subpattern') {
       let match = exec.call(this, str);
@@ -118,7 +118,6 @@ class WrappedRegExp extends RegExp {
         // Satisfied `\G` in lookbehind
         return match;
       }
-      let globalRe = useLastIndex ? this : new RegExp(this, `g${this.flags}`);
       const reBehind = new RegExp(`(?:${this.#data.subpattern})$`);
       while (match) {
         if (reBehind.exec(str.slice(0, match.index))) {
@@ -130,6 +129,7 @@ class WrappedRegExp extends RegExp {
       }
       return match;
     }
+
     return exec.call(this, str);
   }
 }

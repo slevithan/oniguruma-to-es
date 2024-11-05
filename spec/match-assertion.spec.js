@@ -149,22 +149,30 @@ describe('Assertion', () => {
 
       // Leading `(^|\G)` and similar
       it('should apply search_or_line_start', () => {
+        // Matches with `^` since not global
         expect(toRegExp(r`(^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
-        // Should match first 3 and last 1
+        // Match the first 3 and last 1
         expect('aaabaaacaa\na'.match(toRegExp(
           r`(^|\G)a`, '', {...opts, global: true}
         ))).toEqual(['a', 'a', 'a', 'a']);
         expect(toRegExp(r`(?:^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
         expect(toRegExp(r`(\G|^)a`, '', opts).exec('b\na')?.index).toBe(2);
         expect(toRegExp(r`(?:(\G|^)a)`, '', opts).exec('b\na')?.index).toBe(2);
-        expect(toRegExp(r`((\G|^)a)`, '', opts).exec('b\na')?.index).toBe(2); // TODO
+        expect(toRegExp(r`((\G|^)a)`, '', opts).exec('b\na')?.index).toBe(2);
       });
 
-      // Leading `(?!\G)`
+      // Leading `(?!\G)` and similar
       it('should apply not_search_start', () => {
+        // Leading
         expect(toRegExp(r`(?!\G)a`, '', opts).exec('aba')?.index).toBe(2);
+        expect(toRegExp(r`(?<!\G)a`, '', opts).exec('aba')?.index).toBe(2);
         expect(toRegExp(r`(?:(?!\G)a)`, '', opts).exec('aba')?.index).toBe(2);
         expect(toRegExp(r`((?!\G)a)`, '', opts).exec('aba')?.index).toBe(2);
+        // Only assertions
+        expect(toRegExp(r`(?<=;)(?!\G)`, '', opts).exec(';;')?.index).toBe(1);
+        expect(toRegExp(r`(?!\G)(?=;)^`, '', opts).exec(';;\n;')?.index).toBe(3);
+        expect(toRegExp(r`(?=;)(?!\G)^`, '', opts).exec(';;\n;')?.index).toBe(3);
+        expect(toRegExp(r`(?=;)^(?!\G)`, '', opts).exec(';;\n;')?.index).toBe(3);
       });
 
       // Leading `(?<=\G|…)` and similar

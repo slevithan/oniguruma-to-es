@@ -75,7 +75,10 @@ function getMatchDetails(match) {
 const transpiledRegExpResult = (pattern, str, pos) => {
   let result;
   try {
-    const options = pos ? {global: true} : undefined;
+    const options = {allowSubclassBasedEmulation: true};
+    if (pos) {
+      options.global = true;
+    }
     const re = toRegExp(pattern, '', options);
     if (pos) {
       re.lastIndex = pos;
