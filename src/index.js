@@ -68,6 +68,8 @@ class WrappedRegExp extends RegExp {
       // Can read private properties of the existing object since it was created by this class
       this.#data = pattern.#data;
     }
+    // TODO: Change to getters since values are for tools and won't be read internally
+    this._internal = this.#data;
   }
   /**
   Called internally by all String/RegExp methods that use regexes.
@@ -82,7 +84,6 @@ class WrappedRegExp extends RegExp {
     const useLastIndex = this.global || this.sticky;
     const pos = this.lastIndex;
     const exec = RegExp.prototype.exec;
-    const globalRe = useLastIndex ? this : new RegExp(this, `g${this.flags}`);
 
     // ## Support leading `(^|\G)` and similar
     if (this.#data.strategy === 'search_or_line_start' && useLastIndex && this.lastIndex) {
@@ -98,6 +99,7 @@ class WrappedRegExp extends RegExp {
     }
 
     // ## Support leading `(?!\G)` and similar
+    const globalRe = useLastIndex ? this : new RegExp(this, `g${this.flags}`);
     if (this.#data.strategy === 'not_search_start') {
       let match = exec.call(this, str);
       if (match?.index === pos) {

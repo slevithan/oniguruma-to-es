@@ -6,6 +6,7 @@ const state = {
   },
   opts: {
     allowBestEffort: getValue('option-allow-best-effort'),
+    allowSubclassBasedEmulation: getValue('option-subclass'),
     global: getValue('option-global'),
     hasIndices: getValue('option-has-indices'),
     maxRecursionDepth: getValue('option-max-recursion-depth'),
@@ -31,22 +32,23 @@ function showOutput(el) {
   };
   let output = '';
   try {
-    // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
-    // selected `target` includes features that don't work in the user's browser
-    const re = OnigurumaToES.compile(input, flags, opts);
-    output = `/${getRegExpLiteralPattern(re.pattern)}/${re.flags}`;
+    if (opts.allowSubclassBasedEmulation) {
+      const wrappedRe = OnigurumaToES.toRegExp(input, flags, opts);
+      if (wrappedRe._internal) {
+        infoEl.classList.remove('hidden');
+        output = `new WrappedRegExp('${wrappedRe.source.replace(/'/g, "\\'")}', '${wrappedRe.flags}', {
+  strategy: '${wrappedRe._internal.strategy}',${wrappedRe._internal.subpattern ? `
+  subpattern: '${wrappedRe._internal.subpattern}',` : ''}
+})`;
+      } else {
+        output = getFormattedCompileOutput(input, flags, opts);
+      }
+    } else {
+      output = getFormattedCompileOutput(input, flags, opts);
+    }
   } catch (err) {
     outputEl.classList.add('error');
     output = `Error: ${err.message}`;
-    try {
-      const re2 = OnigurumaToES.toRegExp(input, flags, {
-        ...opts,
-        allowSubclassBasedEmulation: true,
-      });
-      infoEl.classList.remove('hidden');
-    } catch (err2) {
-      // No-op
-    }
   }
   outputEl.innerHTML = escapeHtml(output);
 }
@@ -58,6 +60,13 @@ function autoGrow(el) {
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
+
+function getFormattedCompileOutput(input, flags, opts) {
+  // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
+  // selected `target` includes features that don't work in the user's browser
+  const re = OnigurumaToES.compile(input, flags, opts);
+  return `/${getRegExpLiteralPattern(re.pattern)}/${re.flags}`;
 }
 
 function getRegExpLiteralPattern(str) {

@@ -41,6 +41,10 @@ small {
   font-size: 0.8em;
 }
 
+td {
+  padding-right: 40px;
+}
+
 label, .label {
   margin-right: 0.4em;
 }
@@ -115,7 +119,7 @@ pre, code, textarea {
 }
 
 #info {
-  font-style: italic;
+  font-weight: bold;
 }
 
 .hidden {
