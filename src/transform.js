@@ -45,7 +45,6 @@ function transform(ast, options) {
     allowBestEffort: opts.allowBestEffort,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
-    numOrphanBackrefs: 0,
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
     supportedGNodes: new Set(),
@@ -77,6 +76,7 @@ function transform(ast, options) {
   traverse({node: ast}, secondPassState, SecondPassVisitor);
   const thirdPassState = {
     groupsWithDuplicateNamesToRemove: secondPassState.groupsWithDuplicateNamesToRemove,
+    highestOrphanBackref: 0,
     numCapturesToLeft: 0,
     reffedNodesByBackreference: secondPassState.reffedNodesByBackreference,
   };
@@ -139,12 +139,6 @@ const FirstPassVisitor = {
     }
     // Kinds `string_end` and `string_start` don't need transformation since JS flag m isn't used.
     // Kinds `lookahead` and `lookbehind` also don't need transformation
-  },
-
-  Backreference({node}, state) {
-    if (node.orphan) {
-      state.numOrphanBackrefs++;
-    }
   },
 
   CapturingGroup({node}, {subroutineRefMap}) {
@@ -307,19 +301,6 @@ const FirstPassVisitor = {
       group.parent = node;
       node.element = group;
     }
-  },
-
-  Regex: {
-    exit({node}, {numOrphanBackrefs}) {
-      // [HACK] Add as many empty unnamed captures to the end of the regex as there are orphaned
-      // numbered backrefs, since JS with flag u or v doesn't allow having more backrefs than
-      // captures. This could be improved to calculate the number of captures already in the
-      // pattern after subroutine expansion, and only added as many more as needed
-      for (let i = 0; i < numOrphanBackrefs; i++) {
-        const emptyCapture = createCapturingGroup();
-        node.pattern.alternatives.at(-1).elements.push(emptyCapture);
-      }
-    },
   },
 
   VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
@@ -523,12 +504,12 @@ const SecondPassVisitor = {
 };
 
 const ThirdPassVisitor = {
-  Backreference({node, replaceWith}, {reffedNodesByBackreference}) {
-    const refNodes = reffedNodesByBackreference.get(node);
-    if (!refNodes) {
-      // Skip changes for `orphan` backrefs
+  Backreference({node, replaceWith}, state) {
+    if (node.orphan) {
+      state.highestOrphanBackref = Math.max(state.highestOrphanBackref, node.ref);
       return;
     }
+    const refNodes = state.reffedNodesByBackreference.get(node);
     const unclosedCaps = getAllParents(node, node => node.type === AstTypes.CapturingGroup);
     // For the backref's `ref`, use `number` rather than `name` because group names might have been
     // removed if they're duplicates within their alternation path, or they might be removed later
@@ -561,6 +542,22 @@ const ThirdPassVisitor = {
     if (state.groupsWithDuplicateNamesToRemove.has(node)) {
       delete node.name;
     }
+  },
+
+  Regex: {
+    exit({node}, state) {
+      // [HACK] Add unnamed captures to the end of the regex if needed to allow orphaned backrefs
+      // to be valid in JS. This is needed to support TextMate grammars, which merge `begin` and
+      // `end` patterns. An `end` pattern might therefore have backrefs to a group that doesn't
+      // exist within `end`. This presents a dilemma since both Oniguruma and JS (with flag u or v)
+      // throw for backrefs to missing captures, and the backref can't be removed or changed. So
+      // here's a solution. NB: Orphan backrefs are only allowed if the `tmGrammar` option is used
+      const numCapsNeeded = Math.max(state.highestOrphanBackref - state.numCapturesToLeft, 0);
+      for (let i = 0; i < numCapsNeeded; i++) {
+        const emptyCapture = createCapturingGroup();
+        node.pattern.alternatives.at(-1).elements.push(emptyCapture);
+      }
+    },
   },
 };
 

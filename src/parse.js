@@ -195,9 +195,9 @@ function parseBackreference(context) {
     const numCapturesToLeft = context.capturingGroups.length;
     let orphan = false;
     if (num > numCapturesToLeft) {
-      // [WARNING] Skipping the error messes up a lot of assumptions and edge cases, since backrefs
-      // are required to come after their captures; unfortunately this option is needed for
-      // TextMate grammars
+      // [WARNING] Skipping the error messes up assumptions and probably create edge case issues,
+      // since backrefs are required to come after their captures; unfortunately this option is
+      // needed for TextMate grammars
       if (context.skipBackrefValidation) {
         orphan = true;
       } else {
