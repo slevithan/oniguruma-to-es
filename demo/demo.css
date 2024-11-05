@@ -118,8 +118,16 @@ pre, code, textarea {
   background: repeating-linear-gradient(45deg, #fee6ff, #fee6ff 3px, #ffe0f8 3px, #ffe0f8 10px);
 }
 
+#output.subclass {
+  border-color: #6eeda1;
+  background-color: #6eeda1;
+  color: #0a6709;
+  background: repeating-linear-gradient(45deg, #edfff1, #edfff1 3px, #deffd5 3px, #deffd5 10px);
+}
+
 #info {
-  font-weight: bold;
+  margin-top: -12px;
+  padding: 0.6em;
 }
 
 .hidden {

@@ -124,7 +124,7 @@ const FirstPassVisitor = {
       replaceWith(parseFragment(r`(?<=\A|\n)`));
     } else if (kind === AstAssertionKinds.search_start) {
       if (!supportedGNodes.has(node)) {
-        throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+        throw new Error(r`Uses "\G" in a way that's unsupported; try allowSubclassBasedEmulation`);
       }
       ast.flags.sticky = true;
       remove();
@@ -207,7 +207,7 @@ const FirstPassVisitor = {
       if (parent.parent !== ast.pattern || ast.pattern.alternatives.length > 1) {
         // `\K` is emulatable at least within top-level alternation, but it's tricky. Ex: `ab\Kc|a`
         // is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
-        throw new Error(r`Uses "\K" in a way that's unsupported for conversion to JS`);
+        throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
       replaceWith(prepContainer(createLookaround({behind: true}), removeAllPrevSiblings()));
     }
@@ -287,7 +287,7 @@ const FirstPassVisitor = {
       }
     }
     if (hasAltWithLeadG && hasAltWithoutLeadG) {
-      throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+      throw new Error(r`Uses "\G" in a way that's unsupported; try allowSubclassBasedEmulation`);
     }
     // These nodes will be removed when traversed; other `\G` nodes will error
     leadingGs.forEach(g => supportedGNodes.add(g))
@@ -585,7 +585,7 @@ function applySubclassStrategies(ast) {
   const firstElIn = hasWrapperGroup ? firstEl.alternatives[0].elements[0] : firstEl;
   const singleAltIn = hasWrapperGroup ? firstEl.alternatives[0] : alts[0];
 
-  // ## Subclass strategy `search_or_line_start`: Support leading `(^|\G)` and similar
+  // ## Subclass strategy `line_or_search_start`: Support leading `(^|\G)` and similar
   if (
     (firstElIn.type === AstTypes.CapturingGroup || firstElIn.type === AstTypes.Group) &&
     firstElIn.alternatives.length === 2 &&
@@ -604,7 +604,7 @@ function applySubclassStrategies(ast) {
       } else {
         firstElIn.alternatives.shift();
       }
-      return {name: 'search_or_line_start'};
+      return {name: 'line_or_search_start'};
     }
   }
 
@@ -649,7 +649,7 @@ function applySubclassStrategies(ast) {
         // Check for nodes that are or can include captures
         return el.type === AstTypes.CapturingGroup || el.type === AstTypes.Group || el.type === AstTypes.Subroutine || isLookaround(el);
       }))) {
-        throw new Error(r`Uses "\G" in a way that's unsupported for conversion to JS`);
+        throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
       // [HACK] Replace the lookbehind with an emulation marker since from here it isn't easy to
       // acurately extract what will later become the generated subpattern

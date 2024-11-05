@@ -24,7 +24,7 @@ function showOutput(el) {
   const flags = `${state.flags.i ? 'i' : ''}${state.flags.m ? 'm' : ''}${state.flags.x ? 'x' : ''}`;
   const outputEl = document.getElementById('output');
   const infoEl = document.getElementById('info');
-  outputEl.classList.remove('error');
+  outputEl.classList.remove('error', 'subclass');
   infoEl.classList.add('hidden');
   const opts = {
     ...state.opts,
@@ -32,19 +32,15 @@ function showOutput(el) {
   };
   let output = '';
   try {
-    if (opts.allowSubclassBasedEmulation) {
-      const wrappedRe = OnigurumaToES.toRegExp(input, flags, opts);
-      if (wrappedRe._internal) {
-        infoEl.classList.remove('hidden');
-        output = `new WrappedRegExp('${wrappedRe.source.replace(/'/g, "\\'")}', '${wrappedRe.flags}', {
-  strategy: '${wrappedRe._internal.strategy}',${wrappedRe._internal.subpattern ? `
-  subpattern: '${wrappedRe._internal.subpattern}',` : ''}
-})`;
-      } else {
-        output = getFormattedCompileOutput(input, flags, opts);
-      }
+    // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
+    // selected `target` includes features that don't work in the user's browser
+    const re = OnigurumaToES.compile(input, flags, opts);
+    if (opts.allowSubclassBasedEmulation && re._internal) {
+      infoEl.classList.remove('hidden');
+      outputEl.classList.add('subclass');
+      output = getFormattedSubclass(re.pattern, re.flags, re._internal);
     } else {
-      output = getFormattedCompileOutput(input, flags, opts);
+      output = `/${getRegExpLiteralPattern(re.pattern)}/${re.flags}`;
     }
   } catch (err) {
     outputEl.classList.add('error');
@@ -62,11 +58,12 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedCompileOutput(input, flags, opts) {
-  // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
-  // selected `target` includes features that don't work in the user's browser
-  const re = OnigurumaToES.compile(input, flags, opts);
-  return `/${getRegExpLiteralPattern(re.pattern)}/${re.flags}`;
+function getFormattedSubclass(pattern, flags, data) {
+  return `new WrappedRegExp('${
+    pattern.replace(/'/g, "\\'")
+  }', '${
+    flags
+  }', {\n  strategy: '${data.strategy}',${data.subpattern ? `\n  subpattern: '${data.subpattern}',` : ''}\n})`;
 }
 
 function getRegExpLiteralPattern(str) {

@@ -148,7 +148,7 @@ describe('Assertion', () => {
       const opts = {allowSubclassBasedEmulation: true};
 
       // Leading `(^|\G)` and similar
-      it('should apply search_or_line_start', () => {
+      it('should apply line_or_search_start', () => {
         // Matches with `^` since not global
         expect(toRegExp(r`(^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
         // Match the first 3 and last 1

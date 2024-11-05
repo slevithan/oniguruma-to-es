@@ -93,11 +93,12 @@ function getOptions(options) {
     // Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern
     // can't be emulated with identical behavior
     allowBestEffort: true,
-    // Experimental
+    // Allows advanced emulation strategies that rely on returning a `RegExp` subclass with an
+    // overridden `exec` method. A subclass is only used if needed for the given pattern
     allowSubclassBasedEmulation: false,
-    // Include JS flag `g` in results
+    // Include JS flag `g` in the result
     global: false,
-    // Include JS flag `d` in results
+    // Include JS flag `d` in the result
     hasIndices: false,
     // If `null`, any use of recursion throws. If an integer between `2` and `100` (and
     // `allowBestEffort` is on), common recursion forms are supported and recurse up to the
@@ -108,7 +109,8 @@ function getOptions(options) {
     // Sets the JavaScript language version for generated patterns and flags. Later targets allow
     // faster processing, simpler generated source, and support for additional features
     target: 'ES2024',
-    // Is the regex meant to be used in a TextMate grammar
+    // Leave disabled unless the regex will be used in a TextMate grammar processor that merges
+    // `begin` and `end` patterns
     tmGrammar: false,
     ...options,
   };

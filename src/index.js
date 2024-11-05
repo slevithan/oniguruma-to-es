@@ -86,7 +86,7 @@ class WrappedRegExp extends RegExp {
     const exec = RegExp.prototype.exec;
 
     // ## Support leading `(^|\G)` and similar
-    if (this.#data.strategy === 'search_or_line_start' && useLastIndex && this.lastIndex) {
+    if (this.#data.strategy === 'line_or_search_start' && useLastIndex && this.lastIndex) {
       // Reset since testing on a sliced string that we want to match at the start of
       this.lastIndex = 0;
       const match = exec.call(this, str.slice(pos));
