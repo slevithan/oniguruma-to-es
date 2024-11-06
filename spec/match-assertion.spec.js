@@ -1,4 +1,4 @@
-import {compile, toRegExp} from '../dist/index.mjs';
+import {toDetails, toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {maxTestTargetForPatternMods} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -73,9 +73,9 @@ describe('Assertion', () => {
 
     // Unsupported; not emulatable without a subclass
     it('should throw if not used at the start of every top-level alternative', () => {
-      expect(() => compile(r`a\G`)).toThrow();
-      expect(() => compile(r`\Ga|b`)).toThrow();
-      expect(() => compile(r`a|\Gb`)).toThrow();
+      expect(() => toDetails(r`a\G`)).toThrow();
+      expect(() => toDetails(r`\Ga|b`)).toThrow();
+      expect(() => toDetails(r`a|\Gb`)).toThrow();
     });
 
     it('should allow if following a directive', () => {
@@ -106,24 +106,24 @@ describe('Assertion', () => {
     });
 
     it('should throw if following a non-0-min quantified token', () => {
-      expect(() => compile(r`a+\G`)).toThrow();
-      expect(() => compile(r`a+?\G`)).toThrow();
-      expect(() => compile(r`(a)+\G`)).toThrow();
+      expect(() => toDetails(r`a+\G`)).toThrow();
+      expect(() => toDetails(r`a+?\G`)).toThrow();
+      expect(() => toDetails(r`(a)+\G`)).toThrow();
     });
 
     it('should check within groups to determine validity', () => {
       expect('a').toExactlyMatch(r`(\Ga)`);
       expect('a').toExactlyMatch(r`(?:(?>^(?<n>\Ga)))`);
-      expect(() => compile(r`(?:(?>a(?<n>\Gb)))`)).toThrow();
+      expect(() => toDetails(r`(?:(?>a(?<n>\Gb)))`)).toThrow();
       expect('a').toExactlyMatch(r`\Ga|(((\Gb)))`);
-      expect(() => compile(r`\Ga|(((b\Gc)))`)).toThrow();
+      expect(() => toDetails(r`\Ga|(((b\Gc)))`)).toThrow();
       expect(['ac', 'bc']).toExactlyMatch(r`((\Ga|\Gb)c)`);
-      expect(() => compile(r`((\Ga|b)c)`)).toThrow();
+      expect(() => toDetails(r`((\Ga|b)c)`)).toThrow();
     });
 
     it('should throw if leading in a non-0-min quantified group', () => {
-      expect(() => compile(r`(\Ga)+`)).toThrow();
-      expect(() => compile(r`(\Ga)+\G`)).toThrow();
+      expect(() => toDetails(r`(\Ga)+`)).toThrow();
+      expect(() => toDetails(r`(\Ga)+\G`)).toThrow();
     });
 
     it('should allow if leading in a leading positive lookahead', () => {
@@ -136,7 +136,7 @@ describe('Assertion', () => {
         r`(?:(?=\G))?a`,
         r`(?=\G)a|b`,
       ].forEach(pattern => {
-        expect(() => compile(pattern, {avoidSubclass: true})).toThrow();
+        expect(() => toDetails(pattern, {avoidSubclass: true})).toThrow();
       });
     });
 
@@ -152,7 +152,7 @@ describe('Assertion', () => {
         r`(?:(?<=\G))?a`,
         r`(?<=\G)a|b`,
       ].forEach(pattern => {
-        expect(() => compile(pattern, {avoidSubclass: true})).toThrow();
+        expect(() => toDetails(pattern, {avoidSubclass: true})).toThrow();
       });
     });
 
@@ -160,26 +160,26 @@ describe('Assertion', () => {
       // [Oniguruma] Matches at index 3 within `abc`, but doesn't match within `aabc`
       // [TODO] Emulatable by replacing `\G` with `^`, slicing the string to `lastIndex`, and doing
       // a non-sticky search
-      expect(() => compile(r`(?<=\Gabc)`)).toThrow();
+      expect(() => toDetails(r`(?<=\Gabc)`)).toThrow();
     });
 
     it('should throw if leading in a leading negative lookaround', () => {
-      expect(() => compile(r`(?!\G)a`, {avoidSubclass: true})).toThrow();
-      expect(() => compile(r`(?<!\G)a`, {avoidSubclass: true})).toThrow();
+      expect(() => toDetails(r`(?!\G)a`, {avoidSubclass: true})).toThrow();
+      expect(() => toDetails(r`(?<!\G)a`, {avoidSubclass: true})).toThrow();
     });
 
     // Just documenting current behavior
     it('should throw for redundant but otherwise supportable assertions', () => {
-      expect(() => compile(r`\G\Ga`)).toThrow();
-      expect(() => compile(r`\Ga|\G\Gb`)).toThrow();
+      expect(() => toDetails(r`\G\Ga`)).toThrow();
+      expect(() => toDetails(r`\Ga|\G\Gb`)).toThrow();
     });
 
     // Note: Could support by replacing `\G` with `(?!)`, but these forms aren't useful
     it('should throw at unmatchable positions', () => {
-      expect(() => compile(r`a\Gb`)).toThrow();
-      expect(() => compile(r`(?<=a\Gb)`)).toThrow();
-      expect(() => compile(r`(?=a\Gb)`)).toThrow();
-      expect(() => compile(r`(?=ab\G)`)).toThrow();
+      expect(() => toDetails(r`a\Gb`)).toThrow();
+      expect(() => toDetails(r`(?<=a\Gb)`)).toThrow();
+      expect(() => toDetails(r`(?=a\Gb)`)).toThrow();
+      expect(() => toDetails(r`(?=ab\G)`)).toThrow();
     });
 
     it('should allow unsupported forms if using loose accuracy', () => {
@@ -188,7 +188,7 @@ describe('Assertion', () => {
         r`\G|`,
       ];
       patterns.forEach(pattern => {
-        expect(() => compile(pattern)).toThrow();
+        expect(() => toDetails(pattern)).toThrow();
         expect(toRegExp(pattern, {accuracy: 'loose'}).sticky).toBe(true);
       });
     });

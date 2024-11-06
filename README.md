@@ -30,15 +30,15 @@ npm install oniguruma-to-es
 ```
 
 ```js
-import {compile} from 'oniguruma-to-es';
+import {toRegExp} from 'oniguruma-to-es';
 ```
 
 In browsers:
 
 ```html
 <script type="module">
-  import {compile} from 'https://esm.run/oniguruma-to-es';
-  compile(String.raw`…`);
+  import {toRegExp} from 'https://esm.run/oniguruma-to-es';
+  toRegExp(String.raw`…`);
 </script>
 ```
 
@@ -48,19 +48,19 @@ In browsers:
 ```html
 <script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"></script>
 <script>
-  const {compile} = OnigurumaToES;
+  const {toRegExp} = OnigurumaToES;
 </script>
 ```
 </details>
 
 ## 🔑 API
 
-### `compile`
+### `toDetails`
 
-Transpiles an Oniguruma pattern to native JavaScript.
+Transpiles an Oniguruma pattern to the parts needed to construct a native JavaScript `RegExp`.
 
 ```ts
-function compile(
+function toDetails(
   pattern: string,
   options?: CompileOptions
 ): {
@@ -131,7 +131,7 @@ function toRegexAst(
 
 ## 🔩 Options
 
-These options are shared by functions [`compile`](#compile) and [`toRegExp`](#toregexp).
+These options are shared by functions [`toRegExp`](#toregexp) and [`toDetails`](#todetails).
 
 ### `accuracy`
 

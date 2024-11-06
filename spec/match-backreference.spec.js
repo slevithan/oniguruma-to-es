@@ -1,4 +1,4 @@
-import {compile} from '../dist/index.mjs';
+import {toDetails} from '../dist/index.mjs';
 import {cp, r} from '../src/utils.js';
 import {maxTestTargetForDuplicateNames, maxTestTargetForPatternMods, minTestTargetForPatternMods} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -22,19 +22,19 @@ describe('Backreference', () => {
     });
 
     it('should throw if not enough captures to the left', () => {
-      expect(() => compile(r`\1`)).toThrow();
-      expect(() => compile(r`\1()`)).toThrow();
-      expect(() => compile(r`\2`)).toThrow();
-      expect(() => compile(r`()\2`)).toThrow();
-      expect(() => compile(r`()\2()`)).toThrow();
-      expect(() => compile(r`(()\3)`)).toThrow();
-      expect(() => compile(r`(()\3)()`)).toThrow();
+      expect(() => toDetails(r`\1`)).toThrow();
+      expect(() => toDetails(r`\1()`)).toThrow();
+      expect(() => toDetails(r`\2`)).toThrow();
+      expect(() => toDetails(r`()\2`)).toThrow();
+      expect(() => toDetails(r`()\2()`)).toThrow();
+      expect(() => toDetails(r`(()\3)`)).toThrow();
+      expect(() => toDetails(r`(()\3)()`)).toThrow();
     });
 
     it('should throw if not enough captures to the left even when subroutines add captures', () => {
-      expect(() => compile(r`\g<1>\1()`)).toThrow();
-      expect(() => compile(r`()\g<1>\2`)).toThrow();
-      expect(() => compile(r`\g<1>(()\3)`)).toThrow();
+      expect(() => toDetails(r`\g<1>\1()`)).toThrow();
+      expect(() => toDetails(r`()\g<1>\2`)).toThrow();
+      expect(() => toDetails(r`\g<1>(()\3)`)).toThrow();
     });
 
     it('should treat escaped number as octal if > 1 digit and not enough captures to the left', () => {
@@ -55,7 +55,7 @@ describe('Backreference', () => {
     });
 
     it('should throw for mixed named capture and numbered backrefs', () => {
-      expect(() => compile(r`(?<a>)\1`)).toThrow();
+      expect(() => toDetails(r`(?<a>)\1`)).toThrow();
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
@@ -93,23 +93,23 @@ describe('Backreference', () => {
     });
 
     it('should throw if not enough captures to the left', () => {
-      expect(() => compile(r`\k<1>`)).toThrow();
-      expect(() => compile(r`\k<1>()`)).toThrow();
-      expect(() => compile(r`\k<2>`)).toThrow();
-      expect(() => compile(r`()\k<2>`)).toThrow();
-      expect(() => compile(r`()\k<2>()`)).toThrow();
-      expect(() => compile(r`(()\k<3>)`)).toThrow();
-      expect(() => compile(r`(()\k<3>)()`)).toThrow();
+      expect(() => toDetails(r`\k<1>`)).toThrow();
+      expect(() => toDetails(r`\k<1>()`)).toThrow();
+      expect(() => toDetails(r`\k<2>`)).toThrow();
+      expect(() => toDetails(r`()\k<2>`)).toThrow();
+      expect(() => toDetails(r`()\k<2>()`)).toThrow();
+      expect(() => toDetails(r`(()\k<3>)`)).toThrow();
+      expect(() => toDetails(r`(()\k<3>)()`)).toThrow();
     });
 
     it('should throw if not enough captures to the left even when subroutines add captures', () => {
-      expect(() => compile(r`\g<1>\k<1>()`)).toThrow();
-      expect(() => compile(r`()\g<1>\k<2>`)).toThrow();
-      expect(() => compile(r`\g<1>(()\k<3>)`)).toThrow();
+      expect(() => toDetails(r`\g<1>\k<1>()`)).toThrow();
+      expect(() => toDetails(r`()\g<1>\k<2>`)).toThrow();
+      expect(() => toDetails(r`\g<1>(()\k<3>)`)).toThrow();
     });
 
     it('should throw for group 0', () => {
-      expect(() => compile(r`()\k<0>`)).toThrow();
+      expect(() => toDetails(r`()\k<0>`)).toThrow();
     });
 
     it('should allow leading 0s', () => {
@@ -118,8 +118,8 @@ describe('Backreference', () => {
     });
 
     it('should throw for surrounding whitespace', () => {
-      expect(() => compile(r`()\k< 1 >`)).toThrow();
-      expect(() => compile(r`()\k' 1 '`)).toThrow();
+      expect(() => toDetails(r`()\k< 1 >`)).toThrow();
+      expect(() => toDetails(r`()\k' 1 '`)).toThrow();
     });
 
     it('should allow 3-digit backrefs', () => {
@@ -131,7 +131,7 @@ describe('Backreference', () => {
     });
 
     it('should throw for mixed named capture and numbered backrefs', () => {
-      expect(() => compile(r`(?<a>)\k<1>`)).toThrow();
+      expect(() => toDetails(r`(?<a>)\k<1>`)).toThrow();
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
@@ -169,23 +169,23 @@ describe('Backreference', () => {
     });
 
     it('should throw if not enough captures to the left', () => {
-      expect(() => compile(r`\k<-1>`)).toThrow();
-      expect(() => compile(r`\k<-1>()`)).toThrow();
-      expect(() => compile(r`\k<-2>`)).toThrow();
-      expect(() => compile(r`()\k<-2>`)).toThrow();
-      expect(() => compile(r`()\k<-2>()`)).toThrow();
-      expect(() => compile(r`(()\k<-3>)`)).toThrow();
-      expect(() => compile(r`(()\k<-3>)()`)).toThrow();
+      expect(() => toDetails(r`\k<-1>`)).toThrow();
+      expect(() => toDetails(r`\k<-1>()`)).toThrow();
+      expect(() => toDetails(r`\k<-2>`)).toThrow();
+      expect(() => toDetails(r`()\k<-2>`)).toThrow();
+      expect(() => toDetails(r`()\k<-2>()`)).toThrow();
+      expect(() => toDetails(r`(()\k<-3>)`)).toThrow();
+      expect(() => toDetails(r`(()\k<-3>)()`)).toThrow();
     });
 
     it('should throw if not enough captures to the left even when subroutines add captures', () => {
-      expect(() => compile(r`\g<1>\k<-1>()`)).toThrow();
-      expect(() => compile(r`()\g<1>\k<-2>`)).toThrow();
-      expect(() => compile(r`\g<1>(()\k<-3>)`)).toThrow();
+      expect(() => toDetails(r`\g<1>\k<-1>()`)).toThrow();
+      expect(() => toDetails(r`()\g<1>\k<-2>`)).toThrow();
+      expect(() => toDetails(r`\g<1>(()\k<-3>)`)).toThrow();
     });
 
     it('should throw for negative 0', () => {
-      expect(() => compile(r`()\k<-0>`)).toThrow();
+      expect(() => toDetails(r`()\k<-0>`)).toThrow();
     });
 
     it('should allow leading 0s', () => {
@@ -194,8 +194,8 @@ describe('Backreference', () => {
     });
 
     it('should throw for surrounding whitespace', () => {
-      expect(() => compile(r`()\k< -1 >`)).toThrow();
-      expect(() => compile(r`()\k' -1 '`)).toThrow();
+      expect(() => toDetails(r`()\k< -1 >`)).toThrow();
+      expect(() => toDetails(r`()\k' -1 '`)).toThrow();
     });
 
     it('should allow 3-digit numbers', () => {
@@ -207,12 +207,12 @@ describe('Backreference', () => {
     });
 
     it('should throw for mixed named capture and relative numbered backrefs', () => {
-      expect(() => compile(r`(?<a>)\k<-1>`)).toThrow();
+      expect(() => toDetails(r`(?<a>)\k<-1>`)).toThrow();
     });
 
     it('should throw for forward relative numbers', () => {
-      expect(() => compile(r`()\k<+1>()`)).toThrow();
-      expect(() => compile(r`()\k'+1'()`)).toThrow();
+      expect(() => toDetails(r`()\k<+1>()`)).toThrow();
+      expect(() => toDetails(r`()\k'+1'()`)).toThrow();
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
@@ -272,23 +272,23 @@ describe('Backreference', () => {
     });
 
     it('should throw if capture is not to the left', () => {
-      expect(() => compile(r`\k<n>`)).toThrow();
-      expect(() => compile(r`\k<n>(?<n>)`)).toThrow();
-      expect(() => compile(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
+      expect(() => toDetails(r`\k<n>`)).toThrow();
+      expect(() => toDetails(r`\k<n>(?<n>)`)).toThrow();
+      expect(() => toDetails(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
     });
 
     it('should throw if capture is not to the left even when subroutines add captures', () => {
-      expect(() => compile(r`\g<n>\k<n>(?<n>)`)).toThrow();
+      expect(() => toDetails(r`\g<n>\k<n>(?<n>)`)).toThrow();
     });
 
     it('should throw for surrounding whitespace', () => {
-      expect(() => compile(r`(?<n>)\k< n >`)).toThrow();
-      expect(() => compile(r`(?'n')\k' n '`)).toThrow();
+      expect(() => toDetails(r`(?<n>)\k< n >`)).toThrow();
+      expect(() => toDetails(r`(?'n')\k' n '`)).toThrow();
     });
 
     it('should throw for invalid names', () => {
-      expect(() => compile(r`(?<n-n>)\k<n-n>`)).toThrow();
-      expect(() => compile(r`(?<n+n>)\k<n+n>`)).toThrow();
+      expect(() => toDetails(r`(?<n-n>)\k<n-n>`)).toThrow();
+      expect(() => toDetails(r`(?<n+n>)\k<n+n>`)).toThrow();
     });
 
     it('should reference the group to the left when there are duplicate names to the right', () => {
@@ -377,7 +377,7 @@ describe('Backreference', () => {
     });
     // Throw with strict `accuracy` if target not ESNext
     ['ES2018', 'ES2024'].forEach(target => {
-      expect(() => compile(r`(a)(?i)\1`, {
+      expect(() => toDetails(r`(a)(?i)\1`, {
         accuracy: 'strict',
         target,
       })).toThrow();

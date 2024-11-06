@@ -1,4 +1,4 @@
-import {compile} from '../dist/index.mjs';
+import {toDetails} from '../dist/index.mjs';
 import {cp, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -32,17 +32,17 @@ describe('Character', () => {
 
     // Currently unsupported: control chars other than A-Za-z
     it('should throw for unsupported control char', () => {
-      expect(() => compile(r`\c.`)).toThrow();
-      expect(() => compile(r`\C-.`)).toThrow();
+      expect(() => toDetails(r`\c.`)).toThrow();
+      expect(() => toDetails(r`\C-.`)).toThrow();
     });
 
     it(r`should throw for incomplete \c`, () => {
-      expect(() => compile(r`\c`)).toThrow();
+      expect(() => toDetails(r`\c`)).toThrow();
     });
 
     it(r`should throw for incomplete \C`, () => {
-      expect(() => compile(r`\C`)).toThrow();
-      expect(() => compile(r`\C-`)).toThrow();
+      expect(() => toDetails(r`\C`)).toThrow();
+      expect(() => toDetails(r`\C-`)).toThrow();
     });
   });
 
@@ -70,7 +70,7 @@ describe('Character', () => {
     });
 
     it(`should throw for incomplete \\`, () => {
-      expect(() => compile(`\\`)).toThrow();
+      expect(() => toDetails(`\\`)).toThrow();
     });
   });
 
@@ -96,17 +96,17 @@ describe('Character', () => {
 
   describe('meta', () => {
     it('should throw for unsupported meta', () => {
-      expect(() => compile(r`\M`)).toThrow();
-      expect(() => compile(r`\M-`)).toThrow();
+      expect(() => toDetails(r`\M`)).toThrow();
+      expect(() => toDetails(r`\M-`)).toThrow();
       // Currently unsupported
-      expect(() => compile(r`\M-\1`)).toThrow();
+      expect(() => toDetails(r`\M-\1`)).toThrow();
     });
 
     it('should throw for unsupported meta control char', () => {
-      expect(() => compile(r`\M-\C`)).toThrow();
-      expect(() => compile(r`\M-\C-`)).toThrow();
+      expect(() => toDetails(r`\M-\C`)).toThrow();
+      expect(() => toDetails(r`\M-\C-`)).toThrow();
       // Currently unsupported
-      expect(() => compile(r`\M-\C-A`)).toThrow();
+      expect(() => toDetails(r`\M-\C-A`)).toThrow();
     });
   });
 
@@ -125,7 +125,7 @@ describe('Character', () => {
     it('should throw for invalid backrefs', () => {
       for (let i = 1; i < 10; i++) {
         // Escaped single digit 1-9 outside char classes is always treated as a backref
-        expect(() => compile(`\\${i}`)).toThrow();
+        expect(() => toDetails(`\\${i}`)).toThrow();
       }
     });
 
@@ -177,15 +177,15 @@ describe('Character', () => {
     });
 
     it(r`should throw for invalid UTF-8 encoded byte sequences \xNN (above 7F)`, () => {
-      expect(() => compile(r`\x80`)).toThrow();
-      expect(() => compile(r`\xFF`)).toThrow();
-      expect(() => compile(r`\xEF\xC0\xBB`)).toThrow();
+      expect(() => toDetails(r`\x80`)).toThrow();
+      expect(() => toDetails(r`\xFF`)).toThrow();
+      expect(() => toDetails(r`\xEF\xC0\xBB`)).toThrow();
     });
 
     it(r`should throw for incomplete \x`, () => {
-      expect(() => compile(r`\x`)).toThrow();
-      expect(() => compile(r`\x.`)).toThrow();
-      expect(() => compile(r`[\x]`)).toThrow();
+      expect(() => toDetails(r`\x`)).toThrow();
+      expect(() => toDetails(r`\x.`)).toThrow();
+      expect(() => toDetails(r`[\x]`)).toThrow();
     });
 
     it(r`should match hex char code with \uNNNN`, () => {
@@ -195,12 +195,12 @@ describe('Character', () => {
     });
 
     it(r`should throw for incomplete \u`, () => {
-      expect(() => compile(r`\u`)).toThrow();
-      expect(() => compile(r`\u.`)).toThrow();
-      expect(() => compile(r`[\u]`)).toThrow();
-      expect(() => compile(r`\u0`)).toThrow();
-      expect(() => compile(r`\u00`)).toThrow();
-      expect(() => compile(r`\u000`)).toThrow();
+      expect(() => toDetails(r`\u`)).toThrow();
+      expect(() => toDetails(r`\u.`)).toThrow();
+      expect(() => toDetails(r`[\u]`)).toThrow();
+      expect(() => toDetails(r`\u0`)).toThrow();
+      expect(() => toDetails(r`\u00`)).toThrow();
+      expect(() => toDetails(r`\u000`)).toThrow();
     });
 
     it(r`should match hex char code with \x{N...}`, () => {
@@ -214,19 +214,19 @@ describe('Character', () => {
       expect('\u{1}').toExactlyMatch(r`\x{01}`);
       expect('\u{1}').toExactlyMatch(r`\x{00000001}`);
       expect('\u{10}').toExactlyMatch(r`\x{00000010}`);
-      expect(() => compile(r`\x{000000001}`)).toThrow();
+      expect(() => toDetails(r`\x{000000001}`)).toThrow();
     });
 
     it(r`should throw for incomplete \x{N...}`, () => {
-      expect(() => compile(r`\x{`)).toThrow();
-      expect(() => compile(r`\x{0`)).toThrow();
-      expect(() => compile(r`\x{,2}`)).toThrow();
-      expect(() => compile(r`\x{2,}`)).toThrow();
+      expect(() => toDetails(r`\x{`)).toThrow();
+      expect(() => toDetails(r`\x{0`)).toThrow();
+      expect(() => toDetails(r`\x{,2}`)).toThrow();
+      expect(() => toDetails(r`\x{2,}`)).toThrow();
     });
 
     it(r`should throw for invalid \x{N...}`, () => {
-      expect(() => compile(r`\x{G}`)).toThrow();
-      expect(() => compile(r`\x{110000}`)).toThrow();
+      expect(() => toDetails(r`\x{G}`)).toThrow();
+      expect(() => toDetails(r`\x{110000}`)).toThrow();
     });
   });
 });

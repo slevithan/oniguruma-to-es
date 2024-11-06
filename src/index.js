@@ -34,7 +34,7 @@ import {recursion} from 'regex-recursion';
 */
 
 /**
-Transpiles an Oniguruma pattern to native JS.
+Transpiles an Oniguruma pattern to the parts needed to construct a native JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {CompileOptions} [options]
 @returns {{
@@ -42,7 +42,7 @@ Transpiles an Oniguruma pattern to native JS.
   flags: string;
 }}
 */
-function compile(pattern, options) {
+function toDetails(pattern, options) {
   return compileInternal(pattern, options);
 }
 
@@ -114,7 +114,7 @@ function toRegexAst(pattern, options) {
 }
 
 /**
-Transpiles an Oniguruma pattern and returns a native JS RegExp.
+Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {ToRegExpOptions} [options]
 @returns {RegExp}
@@ -211,7 +211,7 @@ class WrappedRegExp extends RegExp {
 }
 
 export {
-  compile,
+  toDetails,
   toOnigurumaAst,
   toRegexAst,
   toRegExp,

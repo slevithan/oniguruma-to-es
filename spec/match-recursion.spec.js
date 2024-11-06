@@ -1,4 +1,4 @@
-import {compile, toRegExp} from '../dist/index.mjs';
+import {toDetails, toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -8,18 +8,18 @@ beforeEach(() => {
 
 describe('Recursion', () => {
   it('should throw if recursion used with strict accuracy', () => {
-    expect(() => compile(r`a\g<0>?`, {accuracy: 'strict'})).toThrow();
-    expect(() => compile('', {accuracy: 'strict'})).not.toThrow();
+    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict'})).toThrow();
+    expect(() => toDetails('', {accuracy: 'strict'})).not.toThrow();
   });
 
   it('should throw if recursion used with null maxRecursionDepth', () => {
-    expect(() => compile(r`a\g<0>?`, {maxRecursionDepth: null})).toThrow();
-    expect(() => compile('', {maxRecursionDepth: null})).not.toThrow();
+    expect(() => toDetails(r`a\g<0>?`, {maxRecursionDepth: null})).toThrow();
+    expect(() => toDetails('', {maxRecursionDepth: null})).not.toThrow();
   });
 
   it('should throw if maxRecursionDepth is not null or an integer 2-100', () => {
     for (const value of [-2, 0, 1, 2.5, 101, Infinity, '2', '', undefined, NaN, false]) {
-      expect(() => compile('', {maxRecursionDepth: value})).toThrow();
+      expect(() => toDetails('', {maxRecursionDepth: value})).toThrow();
     }
   });
 
@@ -39,11 +39,11 @@ describe('Recursion', () => {
     });
 
     it('should throw for multiple direct, overlapping recursions', () => {
-      expect(() => compile(r`a\g<0>?\g<0>?`)).toThrow();
+      expect(() => toDetails(r`a\g<0>?\g<0>?`)).toThrow();
     });
 
     it('should throw for leading 0s', () => {
-      expect(() => compile(r`a\g<00>?`)).toThrow();
+      expect(() => toDetails(r`a\g<00>?`)).toThrow();
     });
   });
 
@@ -55,7 +55,7 @@ describe('Recursion', () => {
     });
 
     it('should throw for indirect recursion', () => {
-      expect(() => compile(r`(a\g<2>(\g<1>?))`)).toThrow();
+      expect(() => toDetails(r`(a\g<2>(\g<1>?))`)).toThrow();
     });
   });
 
@@ -67,12 +67,12 @@ describe('Recursion', () => {
     });
 
     it('should throw for indirect recursion', () => {
-      expect(() => compile(r`(a\g<+1>(\g<-2>?))`)).toThrow();
+      expect(() => toDetails(r`(a\g<+1>(\g<-2>?))`)).toThrow();
     });
 
     it('should throw for relative 0', () => {
-      expect(() => compile(r`a\g<-0>?`)).toThrow();
-      expect(() => compile(r`a\g<+0>?`)).toThrow();
+      expect(() => toDetails(r`a\g<-0>?`)).toThrow();
+      expect(() => toDetails(r`a\g<+0>?`)).toThrow();
     });
   });
 
@@ -83,24 +83,24 @@ describe('Recursion', () => {
     });
 
     it('should throw for multiple direct, overlapping recursions', () => {
-      expect(() => compile(r`a\g<0>?(?<r>a\g<r>?)`)).toThrow();
-      expect(() => compile(r`(?<r>a\g<r>?\g<r>?)`)).toThrow();
+      expect(() => toDetails(r`a\g<0>?(?<r>a\g<r>?)`)).toThrow();
+      expect(() => toDetails(r`(?<r>a\g<r>?\g<r>?)`)).toThrow();
     });
 
     // Current limitation of `regex-recursion`
     it('should throw for multiple direct, non-overlapping recursions', () => {
-      expect(() => compile(r`(?<r1>a\g<r1>?)(?<r2>a\g<r2>?)`)).toThrow();
+      expect(() => toDetails(r`(?<r1>a\g<r1>?)(?<r2>a\g<r2>?)`)).toThrow();
     });
 
     it('should throw for multiple indirect, overlapping recursions', () => {
-      expect(() => compile(r`(?<a>\g<b>(?<b>a\g<a>?))`)).toThrow();
+      expect(() => toDetails(r`(?<a>\g<b>(?<b>a\g<a>?))`)).toThrow();
     });
 
     // Current limitation of `regex-recursion`
     it('should throw for multiple indirect, non-overlapping recursions', () => {
-      expect(() => compile(r`(?<a>\g<b>)(?<b>a\g<a>?)`)).toThrow();
-      expect(() => compile(r`\g<a>(?<a>\g<b>)(?<b>a\g<a>?)`)).toThrow();
-      expect(() => compile(r`(?<a>\g<b>)(?<b>\g<c>)(?<c>a\g<a>?)`)).toThrow();
+      expect(() => toDetails(r`(?<a>\g<b>)(?<b>a\g<a>?)`)).toThrow();
+      expect(() => toDetails(r`\g<a>(?<a>\g<b>)(?<b>a\g<a>?)`)).toThrow();
+      expect(() => toDetails(r`(?<a>\g<b>)(?<b>\g<c>)(?<c>a\g<a>?)`)).toThrow();
     });
   });
 });

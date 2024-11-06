@@ -1,3 +1,4 @@
+import {toDetails} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {minTestTargetForFlagV} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -56,16 +57,15 @@ describe('CharacterClassRange', () => {
   });
 
   it('should throw for range with set', () => {
-    expect(() => compile(r`[a-\w]`)).toThrow();
-    expect(() => compile(r`[\w-a]`)).toThrow();
-    expect(() => compile(r`[\w-a-z]`)).toThrow();
-    expect(() => compile(r`[a-z-\w]`)).toThrow();
-    expect(() => compile(r`[\w-\s]`)).toThrow();
+    expect(() => toDetails(r`[a-\w]`)).toThrow();
+    expect(() => toDetails(r`[\w-a]`)).toThrow();
+    expect(() => toDetails(r`[\w-a-z]`)).toThrow();
+    expect(() => toDetails(r`[\w-\s]`)).toThrow();
   });
 
   it('should throw for reversed ranges', () => {
-    expect(() => compile(r`[z-a]`)).toThrow();
-    expect(() => compile(r`[\u{1}-\0]`)).toThrow();
-    expect(() => compile(r`[a-0-9]`)).toThrow();
+    expect(() => toDetails(r`[z-a]`)).toThrow();
+    expect(() => toDetails(r`[\u{1}-\0]`)).toThrow();
+    expect(() => toDetails(r`[a-0-9]`)).toThrow();
   });
 });

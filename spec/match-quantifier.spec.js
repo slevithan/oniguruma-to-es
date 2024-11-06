@@ -1,3 +1,4 @@
+import {toDetails} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -29,32 +30,32 @@ describe('Quantifier', () => {
 
   describe('quantifiability', () => {
     it('should throw at start of pattern, group, or alternative', () => {
-      expect(() => compile(r`+`)).toThrow();
-      expect(() => compile(r`(+)`)).toThrow();
-      expect(() => compile(r`|+`)).toThrow();
-      expect(() => compile(r`(|+)`)).toThrow();
-      expect(() => compile(r`(+|)`)).toThrow();
+      expect(() => toDetails(r`+`)).toThrow();
+      expect(() => toDetails(r`(+)`)).toThrow();
+      expect(() => toDetails(r`|+`)).toThrow();
+      expect(() => toDetails(r`(|+)`)).toThrow();
+      expect(() => toDetails(r`(+|)`)).toThrow();
     });
 
     it('should throw if quantifying an assertion', () => {
-      expect(() => compile(r`\A+`)).toThrow();
-      expect(() => compile(r`\z+`)).toThrow();
-      expect(() => compile(r`\Z+`)).toThrow();
-      expect(() => compile(r`^+`)).toThrow();
-      expect(() => compile(r`$+`)).toThrow();
-      expect(() => compile(r`\G+`)).toThrow();
-      expect(() => compile(r`\b+`)).toThrow();
-      expect(() => compile(r`\B+`)).toThrow();
-      expect(() => compile(r`(?=)+`)).toThrow();
-      expect(() => compile(r`(?!)+`)).toThrow();
-      expect(() => compile(r`(?<=)+`)).toThrow();
-      expect(() => compile(r`(?<!)+`)).toThrow();
+      expect(() => toDetails(r`\A+`)).toThrow();
+      expect(() => toDetails(r`\z+`)).toThrow();
+      expect(() => toDetails(r`\Z+`)).toThrow();
+      expect(() => toDetails(r`^+`)).toThrow();
+      expect(() => toDetails(r`$+`)).toThrow();
+      expect(() => toDetails(r`\G+`)).toThrow();
+      expect(() => toDetails(r`\b+`)).toThrow();
+      expect(() => toDetails(r`\B+`)).toThrow();
+      expect(() => toDetails(r`(?=)+`)).toThrow();
+      expect(() => toDetails(r`(?!)+`)).toThrow();
+      expect(() => toDetails(r`(?<=)+`)).toThrow();
+      expect(() => toDetails(r`(?<!)+`)).toThrow();
     });
 
     it('should throw if quantifying a directive', () => {
-      expect(() => compile(r`\K+`)).toThrow();
-      expect(() => compile(r`(?i)+`)).toThrow();
-      expect(() => compile(r`(?-i)+`)).toThrow();
+      expect(() => toDetails(r`\K+`)).toThrow();
+      expect(() => toDetails(r`(?i)+`)).toThrow();
+      expect(() => toDetails(r`(?-i)+`)).toThrow();
     });
   });
 });

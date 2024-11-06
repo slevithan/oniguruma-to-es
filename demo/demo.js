@@ -33,18 +33,18 @@ function showOutput(el) {
   };
   let output = '';
   try {
-    // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
-    // selected `target` includes features that don't work in the user's browser
-    const compiled = OnigurumaToES.compile(input, opts);
-    if (compiled._internal) {
+    // Use `toDetails` but display output as if `toRegExp` was called. This avoids erroring when
+    // the selected `target` includes features that don't work in the user's browser
+    const details = OnigurumaToES.toDetails(input, opts);
+    if (details._internal) {
       infoEl.classList.remove('hidden');
       outputEl.classList.add('subclass');
-      output = getFormattedSubclass(compiled.pattern, compiled.flags, {
-        strategy: compiled._internal.strategy,
-        subpattern: compiled._internal.subpattern,
+      output = getFormattedSubclass(details.pattern, details.flags, {
+        strategy: details._internal.strategy,
+        subpattern: details._internal.subpattern,
       });
     } else {
-      output = `/${getRegExpLiteralPattern(compiled.pattern)}/${compiled.flags}`;
+      output = `/${getRegExpLiteralPattern(details.pattern)}/${details.flags}`;
     }
   } catch (err) {
     outputEl.classList.add('error');
