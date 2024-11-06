@@ -55,6 +55,38 @@ In browsers:
 
 ## 🔑 API
 
+### `toRegExp`
+
+Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
+
+> [!TIP]
+> Try it in the [demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/).
+
+```ts
+function toRegExp(
+  pattern: string,
+  options?: Options
+): RegExp;
+```
+
+#### Type `Options`
+
+```ts
+type Options = {
+  accuracy?: 'strict' | 'default' | 'loose';
+  avoidSubclass?: boolean;
+  flags?: OnigurumaFlags;
+  global?: boolean;
+  hasIndices?: boolean;
+  maxRecursionDepth?: number | null;
+  target?: 'ES2018' | 'ES2024' | 'ESNext';
+  tmGrammar?: boolean;
+  verbose?: boolean;
+};
+```
+
+See [Options](#-options) for more details.
+
 ### `toDetails`
 
 Transpiles an Oniguruma pattern to the parts needed to construct a native JavaScript `RegExp`.
@@ -62,44 +94,37 @@ Transpiles an Oniguruma pattern to the parts needed to construct a native JavaSc
 ```ts
 function toDetails(
   pattern: string,
-  options?: CompileOptions
+  options?: Options
 ): {
   pattern: string;
   flags: string;
+  strategy?: {
+    name: string;
+    subpattern?: string;
+  };
 };
 ```
 
-The returned `pattern` and `flags` can be provided directly to the JavaScript `RegExp` constructor. Various JavaScript flags might have been added or removed compared to the Oniguruma flags provided, as part of the emulation process.
+The returned `pattern` and `flags` might be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `strategy` can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
 
-#### Type `CompileOptions`
+If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case, and any patterns that are emulatable only via `EmulatedRegExp` throw an error.
+
+### `EmulatedRegExp`
+
+Can be provided results from `toDetails` to produce the same result as `toRegExp`.
 
 ```ts
-type CompileOptions = {
-  accuracy?: 'strict' | 'default' | 'loose';
-  flags?: OnigurumaFlags,
-  global?: boolean;
-  hasIndices?: boolean;
-  maxRecursionDepth?: number | null;
-  target?: 'ES2018' | 'ES2024' | 'ESNext';
-  verbose?: boolean;
+class EmulatedRegExp extends RegExp {
+  constructor(
+    pattern: string | EmulatedRegExp,
+    flags?: string,
+    strategy?: {
+      name: string;
+      subpattern?: string;
+    }
+  );
 };
 ```
-
-See [Options](#-options) for more details.
-
-### `toRegExp`
-
-Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
-
-```ts
-function toRegExp(
-  pattern: string,
-  options?: CompileOptions & {avoidSubclass?: boolean}
-): RegExp;
-```
-
-> [!TIP]
-> Try it in the [demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/).
 
 ### `toOnigurumaAst`
 
@@ -157,6 +182,12 @@ Supports all features of `default`, plus the following:
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using `loose` accuracy, if a `\G` assertion is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives.
 </details>
 
+### `avoidSubclass`
+
+*Default: `false`.*
+
+Prevents use of advanced emulation strategies that rely on returning a `RegExp` subclass, resulting in certain patterns not being emulatable.
+
 ### `flags`
 
 Oniguruma flags; a string with `i`, `m`, and `x` in any order (all optional).
@@ -213,6 +244,12 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
   - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
 </details>
+
+### `tmGrammar`
+
+*Default: `false`.*
+
+Leave disabled unless the regex will be used in a TextMate grammar processor that merges backreferences across `begin` and `end` patterns.
 
 ### `verbose`
 

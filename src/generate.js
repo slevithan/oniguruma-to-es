@@ -7,7 +7,7 @@ import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 /**
 Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
 @param {import('./transform.js').RegexAst} ast
-@param {import('.').CompileOptions} [options]
+@param {import('.').Options} [options]
 @returns {{
   pattern: string;
   flags: string;

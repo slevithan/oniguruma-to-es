@@ -577,7 +577,7 @@ function adoptAndSwapKids(parent, kids) {
 }
 
 function applySubclassStrategies(ast, accuracy) {
-  // Special case handling that requires coupling with a `RegExp` subclass (see `WrappedRegExp`).
+  // Special case handling that requires coupling with a `RegExp` subclass (see `EmulatedRegExp`).
   // These changes add emulation support for some common patterns that are otherwise unsupportable.
   // Only one subclass strategy is supported per pattern
   const alts = ast.pattern.alternatives;

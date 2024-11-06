@@ -30,20 +30,20 @@ import {recursion} from 'regex-recursion';
   target?: keyof Target;
   tmGrammar?: boolean;
   verbose?: boolean;
-}} CompileOptions
+}} Options
 */
 
 /**
 Transpiles an Oniguruma pattern to the parts needed to construct a native JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
-@param {CompileOptions} [options]
+@param {Options} [options]
 @returns {{
   pattern: string;
   flags: string;
   strategy?: {
     name: string;
     subpattern?: string;
-  }
+  };
 }}
 */
 function toDetails(pattern, options) {
@@ -98,34 +98,35 @@ function toOnigurumaAst(pattern, options) {
 /**
 Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
-@param {CompileOptions} [options]
+@param {Options} [options]
 @returns {RegExp}
 */
 function toRegExp(pattern, options) {
   const result = toDetails(pattern, options);
   if (result.strategy) {
-    return new WrappedRegExp(result.pattern, result.flags, result.strategy);
+    return new EmulatedRegExp(result.pattern, result.flags, result.strategy);
   }
   return new RegExp(result.pattern, result.flags);
 }
 
-class WrappedRegExp extends RegExp {
+/**
+@class
+@param {string | EmulatedRegExp} pattern
+@param {string} [flags]
+@param {{
+  name: string;
+  subpattern?: string;
+}} [strategy]
+*/
+class EmulatedRegExp extends RegExp {
   #strategy;
-  /**
-  @param {string | WrappedRegExp} pattern
-  @param {string} [flags]
-  @param {{
-    name: string;
-    subpattern?: string;
-  }} [strategy]
-  */
   constructor(pattern, flags, strategy) {
     super(pattern, flags);
     if (strategy) {
       this.#strategy = strategy;
     // The third argument isn't provided when regexes are copied as part of the internal handling
     // of string methods `matchAll` and `split`
-    } else if (pattern instanceof WrappedRegExp) {
+    } else if (pattern instanceof EmulatedRegExp) {
       // Can read private properties of the existing object since it was created by this class
       this.#strategy = pattern.#strategy;
     }
@@ -196,6 +197,7 @@ class WrappedRegExp extends RegExp {
 }
 
 export {
+  EmulatedRegExp,
   toDetails,
   toOnigurumaAst,
   toRegExp,
