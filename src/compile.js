@@ -13,9 +13,9 @@ import {recursion} from 'regex-recursion';
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
-  optimize?: boolean;
   target?: keyof Target;
   tmGrammar?: boolean;
+  verbose?: boolean;
 }} CompileOptions
 @typedef {CompileOptions & {avoidSubclass?: boolean;}} ToRegExpOptions
 */
@@ -49,8 +49,8 @@ function compileInternal(pattern, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, opts.flags);
   const onigurumaAst = parse(tokenized, {
-    optimize: opts.optimize,
     skipBackrefValidation: opts.tmGrammar,
+    verbose: opts.verbose,
   });
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
@@ -102,8 +102,8 @@ function getOptions(options) {
     // Specifies the recursion depth limit. Supported values are integers `2` to `100` and `null`.
     // If `null`, any use of recursion results in an error
     maxRecursionDepth: 6,
-    // Simplify the generated pattern when it doesn't change the meaning
-    optimize: true,
+    // Disables optimizations that simplify the pattern when it doesn't change the meaning
+    verbose: false,
     // Sets the JavaScript language version for generated patterns and flags. Later targets allow
     // faster processing, simpler generated source, and support for additional features
     target: 'ES2024',

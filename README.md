@@ -80,8 +80,8 @@ type CompileOptions = {
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
-  optimize?: boolean;
   target?: 'ES2018' | 'ES2024' | 'ESNext';
+  verbose?: boolean;
 };
 ```
 
@@ -209,12 +209,6 @@ Using a high limit has a (usually tiny) impact on transpilation and regex perfor
 Higher limits have no effect on regexes that don't use recursion, so you should feel free to increase this if helpful.
 </details>
 
-### `optimize`
-
-*Default: `true`.*
-
-Simplify the generated pattern when it doesn't change the meaning.
-
 ### `target`
 
 *Default: `'ES2024'`.*
@@ -234,6 +228,12 @@ Sets the JavaScript language version for generated patterns and flags. Later tar
   - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
 </details>
+
+### `verbose`
+
+*Default: `false`.*
+
+Disables optimizations that simplify the pattern when it doesn't change the meaning.
 
 ## ✅ Supported features
 

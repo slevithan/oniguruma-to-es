@@ -72,17 +72,17 @@ const AstVariableLengthCharacterSetKinds = {
 /**
 @param {import('./tokenize.js').TokenizerResult} tokenizerResult
 @param {{
-  optimize?: boolean;
   skipBackrefValidation?: boolean;
   skipPropertyNameValidation?: boolean;
+  verbose?: boolean;
 }} [options]
 @returns {OnigurumaAst}
 */
 function parse({tokens, flags}, options) {
   const opts = {
-    optimize: true,
     skipBackrefValidation: false,
     skipPropertyNameValidation: false,
+    verbose: false,
     ...options,
   };
   const context = {
@@ -90,13 +90,13 @@ function parse({tokens, flags}, options) {
     current: 0,
     hasNumberedRef: false,
     namedGroupsByName: new Map(),
-    optimize: opts.optimize,
     parent: null,
     skipBackrefValidation: opts.skipBackrefValidation,
     skipPropertyNameValidation: opts.skipPropertyNameValidation,
     subroutines: [],
     token: null,
     tokens,
+    verbose: opts.verbose,
     walk,
   };
   function walk(parent, state) {
@@ -249,7 +249,7 @@ function parseCharacterClassHyphen(context, state) {
 }
 
 function parseCharacterClassOpen(context, state) {
-  const {token, tokens, optimize, walk} = context;
+  const {token, tokens, verbose, walk} = context;
   let node = createCharacterClass({negate: token.negate});
   const intersection = node.elements[0];
   let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
@@ -264,13 +264,13 @@ function parseCharacterClassOpen(context, state) {
     }
     nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
   }
-  if (optimize) {
+  if (!verbose) {
     optimizeCharacterClassIntersection(intersection);
   }
   // Simplify tree if we don't need the intersection wrapper
   if (intersection.classes.length === 1) {
     const cc = intersection.classes[0];
-    // Only needed if `optimize` is on; otherwise an intersection's direct kids are never negated
+    // Only needed if `!verbose`; otherwise an intersection's direct kids are never negated
     cc.negate = node.negate !== cc.negate;
     node = cc;
   }
@@ -313,7 +313,7 @@ function parseCharacterSet({token, skipPropertyNameValidation}) {
 }
 
 function parseGroupOpen(context, state) {
-  const {token, tokens, optimize, capturingGroups, namedGroupsByName, walk} = context;
+  const {token, tokens, capturingGroups, namedGroupsByName, verbose, walk} = context;
   let node = createByGroupKind(token);
   // Track capturing group details for backrefs and subroutines (before parsing the group's
   // contents so nested groups with the same name are tracked in order)
@@ -335,7 +335,7 @@ function parseGroupOpen(context, state) {
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }
-  if (optimize) {
+  if (!verbose) {
     node = getOptimizedGroup(node);
   }
   // Skip the closing parenthesis

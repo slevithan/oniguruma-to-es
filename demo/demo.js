@@ -10,8 +10,8 @@ const state = {
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
     maxRecursionDepth: getValue('option-maxRecursionDepth'),
-    optimize: getValue('option-optimize'),
     target: getValue('option-target'),
+    verbose: getValue('option-verbose'),
   },
 };
 

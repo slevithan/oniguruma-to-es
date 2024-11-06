@@ -67,12 +67,12 @@ function generate(ast, options) {
     inCharClass: false,
     lastNode,
     maxRecursionDepth: rDepth,
-    optimize: opts.optimize,
     useAppliedIgnoreCase: !!(!minTargetEsNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useDuplicateNames: minTargetEsNext,
     useFlagMods: minTargetEsNext,
     useFlagV: minTargetEs2024,
     usePostEs2018Properties: minTargetEs2024,
+    verbose: opts.verbose,
   };
   function gen(node) {
     state.lastNode = lastNode;
@@ -274,11 +274,11 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
   if (
     !negate &&
     ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
-      (!state.useFlagV || state.optimize) &&
+      (!state.useFlagV || !state.verbose) &&
       parent.type === AstTypes.CharacterClass &&
       elements[0].type !== AstTypes.CharacterClassIntersection
     ) ||
-    ( state.optimize &&
+    ( !state.verbose &&
       parent.type === AstTypes.CharacterClassIntersection &&
       elements.length === 1 &&
       elements[0].type !== AstTypes.CharacterClassRange
@@ -378,7 +378,7 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
   }
   const contents = alternatives.map(gen).join('|');
   const result = (
-    state.optimize &&
+    !state.verbose &&
     alternatives.length === 1 &&
     parent.type !== AstTypes.Quantifier &&
     !atomic &&
