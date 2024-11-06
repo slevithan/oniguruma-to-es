@@ -1,7 +1,10 @@
 import {transform} from './transform.js';
-import {compile, compileInternal} from './compile.js';
+import {generate} from './generate.js';
+import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
 import {tokenize} from './tokenize.js';
+import {atomic, possessive} from 'regex/atomic';
+import {recursion} from 'regex-recursion';
 
 // The transformation and error checking for Oniguruma's unique syntax and behavior differences
 // compared to native JS RegExp is layered into all steps of the compilation process:
@@ -15,6 +18,76 @@ import {tokenize} from './tokenize.js';
 //    that aren't native to JS (atomic groups, possessive quantifiers, recursion). `regex` uses a
 //    strict superset of JS RegExp syntax, so using it allows this library to benefit from not
 //    reinventing the wheel for complex features that `regex` already knows how to transpile to JS.
+
+/**
+@typedef {{
+  accuracy?: keyof Accuracy;
+  flags?: import('./tokenize.js').OnigurumaFlags;
+  global?: boolean;
+  hasIndices?: boolean;
+  maxRecursionDepth?: number | null;
+  target?: keyof Target;
+  tmGrammar?: boolean;
+  verbose?: boolean;
+}} CompileOptions
+@typedef {CompileOptions & {avoidSubclass?: boolean;}} ToRegExpOptions
+*/
+
+/**
+Transpiles an Oniguruma pattern to native JS.
+@param {string} pattern Oniguruma regex pattern.
+@param {CompileOptions} [options]
+@returns {{
+  pattern: string;
+  flags: string;
+}}
+*/
+function compile(pattern, options) {
+  return compileInternal(pattern, options);
+}
+
+/**
+@param {string} pattern
+@param {ToRegExpOptions} [options]
+@returns {{
+  pattern: string;
+  flags: string;
+  _internal?: {
+    strategy: string;
+    subpattern: string | null;
+  };
+}}
+*/
+function compileInternal(pattern, options) {
+  const opts = getOptions(options);
+  const tokenized = tokenize(pattern, opts.flags);
+  const onigurumaAst = parse(tokenized, {
+    skipBackrefValidation: opts.tmGrammar,
+    verbose: opts.verbose,
+  });
+  const regexAst = transform(onigurumaAst, {
+    accuracy: opts.accuracy,
+    avoidSubclass: opts.avoidSubclass,
+    bestEffortTarget: opts.target,
+  });
+  const generated = generate(regexAst, opts);
+  const result = {
+    pattern: atomic(possessive(recursion(generated.pattern))),
+    flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
+  };
+  if (regexAst._strategy) {
+    let subpattern = null;
+    result.pattern = result.pattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
+      subpattern = sub;
+      return '';
+    });
+    result._internal = {
+      strategy: regexAst._strategy.name,
+      subpattern,
+    };
+  }
+  return result;
+}
 
 /**
 Generates an Oniguruma AST from an Oniguruma pattern.
@@ -43,7 +116,7 @@ function toRegexAst(pattern, options) {
 /**
 Transpiles an Oniguruma pattern and returns a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./compile.js').ToRegExpOptions} [options]
+@param {ToRegExpOptions} [options]
 @returns {RegExp}
 */
 function toRegExp(pattern, options) {

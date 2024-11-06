@@ -1,23 +1,7 @@
+import {EsVersion, Target} from './options.js';
+
 const cp = String.fromCodePoint;
 const r = String.raw;
-
-const Accuracy = /** @type {const} */ ({
-  strict: 'strict',
-  default: 'default',
-  loose: 'loose',
-});
-
-const EsVersion = {
-  ES2018: 2018,
-  ES2024: 2024,
-  ESNext: 2025,
-};
-
-const Target = /** @type {const} */ ({
-  ES2018: 'ES2018',
-  ES2024: 'ES2024',
-  ESNext: 'ESNext',
-});
 
 function getNewCurrentFlags(current, {enable, disable}) {
   return {
@@ -50,13 +34,10 @@ function throwIfNot(value, msg) {
 }
 
 export {
-  Accuracy,
   cp,
-  EsVersion,
   getNewCurrentFlags,
   getOrCreate,
   isMinTarget,
   r,
-  Target,
   throwIfNot,
 };

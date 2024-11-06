@@ -1,9 +1,10 @@
-import emojiRegex from 'emoji-regex-xs';
+import {Accuracy, Target} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {Accuracy, cp, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './utils.js';
+import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
+import emojiRegex from 'emoji-regex-xs';
 
 /**
 @typedef {{

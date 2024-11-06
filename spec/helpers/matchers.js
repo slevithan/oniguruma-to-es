@@ -1,5 +1,5 @@
 import {toRegExp} from '../../dist/index.mjs';
-import {EsVersion} from '../../src/utils.js';
+import {EsVersion} from '../../src/options.js';
 
 function getArgs(actual, expected) {
   const max = expected.maxTestTarget;

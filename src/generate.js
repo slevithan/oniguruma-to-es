@@ -1,4 +1,4 @@
-import {getOptions} from './compile.js';
+import {getOptions} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, isLookaround} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
@@ -7,7 +7,7 @@ import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 /**
 Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
 @param {import('./transform.js').RegexAst} ast
-@param {import('./compile.js').CompileOptions} [options]
+@param {import('.').CompileOptions} [options]
 @returns {{
   pattern: string;
   flags: string;
