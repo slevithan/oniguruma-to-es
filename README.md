@@ -13,7 +13,7 @@ Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C 
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
-Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can disable the `allowBestEffort` option to throw for such patterns (see details below).
+Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `emulation` option to `strict` and throw for such patterns (see details below).
 
 ## 📜 Contents
 
@@ -83,7 +83,7 @@ A string with `i`, `m`, and `x` in any order (all optional).
 
 ```ts
 type CompileOptions = {
-    allowBestEffort?: boolean;
+    emulation?: 'strict' | 'default' | 'loose';
     global?: boolean;
     hasIndices?: boolean;
     maxRecursionDepth?: number | null;
@@ -139,63 +139,82 @@ function toRegexAst(
 
 These options are shared by functions [`compile`](#compile) and [`toRegExp`](#toregexp).
 
-### `allowBestEffort`
+### `emulation`
 
-Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern can't be emulated with identical behavior for the given `target`.
+One of `'strict'`, `'default'` *(default)*, or `'loose'`.
 
-*Default: `true`.*
+Sets the level of emulation strictness.
+
+- **Strict:** Throw if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given target.
+- **Default:** The best choice in most cases. Permits a few close approximations of Oniguruma in order to support additional features.
+- **Loose:** Useful for non-critical matching like syntax highlighting where having some mismatches is better than not working.
+
+Each level of increased emulation strictness supports a subset of patterns supported by less strict modes. If a given pattern doesn't produce an error for a particular emulation mode, its generated result will be identical with all lower levels of strictness (given the same `target`).
 
 <details>
   <summary>More details</summary>
 
-Specifically, this option enables the following additional features, depending on `target`:
+#### `default` mode
+
+Supports all features of `strict` mode, plus the following additional features, depending on `target`:
 
 - All targets (`ESNext` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
-  - Enables recursion (e.g. via `\g<0>`) using a depth limit specified via option `maxRecursionDepth`.
+  - Enables recursion (e.g. via `\g<0>`) with a depth limit specified by option `maxRecursionDepth`.
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
   - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes are always based on Unicode.
+
+#### `loose` mode
+
+Supports all features of `default`, plus the following:
+
+- Silences errors for unsupported uses of the search-start anchor `\G` (a flexible assertion that doesn’t have a direct equivalent in JavaScript).
+  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using `loose` mode, if a `\G` assertion is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives.
 </details>
 
 ### `global`
 
-Include JavaScript flag `g` (`global`) in the result.
-
 *Default: `false`.*
+
+Include JavaScript flag `g` (`global`) in the result.
 
 ### `hasIndices`
 
-Include JavaScript flag `d` (`hasIndices`) in the result.
-
 *Default: `false`.*
+
+Include JavaScript flag `d` (`hasIndices`) in the result.
 
 ### `maxRecursionDepth`
 
-If `null`, any use of recursion throws. If an integer between `2` and `100` (and `allowBestEffort` is `true`), common recursion forms are supported and recurse up to the specified max depth.
-
 *Default: `6`.*
+
+If an integer between `2` and `100`, common recursion forms are supported and recurse up to the specified depth limit. If set to `null`, any use of recursion results in an error.
+
+Since recursion isn't infinite-depth like in Oniguruma, use of recursion also results in an error if the `emulation` option is set to `'strict'`.
 
 <details>
   <summary>More details</summary>
 
-Using a high limit is not a problem if needed. Although there can be a performance cost (minor unless it's exacerbating an existing issue with runaway backtracking), there is no effect on regexes that don't use recursion.
+Using a high limit has a (usually tiny) impact on transpilation and regex performance. Generally, this is only a problem if the regex has an existing issue with runaway backtracking that recursion exacerbates.
+
+Higher limits have no effect on regexes that don't use recursion, so you should feel free to increase this if helpful.
 </details>
 
 ### `optimize`
 
-Simplify the generated pattern when it doesn't change the meaning.
-
 *Default: `true`.*
+
+Simplify the generated pattern when it doesn't change the meaning.
 
 ### `target`
 
-Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
-
 *Default: `'ES2024'`.*
 
-<details open>
+Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
+
+<details>
   <summary>More details</summary>
 
 - `ES2018`: Uses JS flag `u`.
@@ -887,10 +906,10 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 1. Target `ES2018` doesn't allow Unicode property names added in JavaScript specifications after ES2018 to be used.
 2. Unicode blocks are easily emulatable but their character data would significantly increase library weight. They're also a deeply flawed and arguably-unuseful feature, given the ability to use Unicode scripts and other properties.
-3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` are an error if option `allowBestEffort` is `false`, and they use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later.
+3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` are an error if option `emulation` is `'strict'`, and they use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later.
 4. Target `ES2018` doesn't support nested *negated* character classes.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
-6. The maximum recursion depth is specified by option `maxRecursionDepth`. Use of recursion results in an error if `maxRecursionDepth` is `null` or `allowBestEffort` is `false`. Some forms of recursion (recursion with backreferences, and multiple recursions in the same pattern) aren't yet supported. Note that, because recursion is bounded, patterns that fail due to infinite recursion in Oniguruma might find a match in Oniguruma-To-ES. Future versions will detect this and throw an error.
+6. The recursion depth limit is specified by option `maxRecursionDepth`. Some forms of recursion (multiple recursions in the same pattern, and recursion with backreferences) aren't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
 
 ## ㊗️ Unicode / mixed case-sensitivity
 

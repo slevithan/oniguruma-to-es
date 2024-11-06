@@ -7,12 +7,12 @@ beforeEach(() => {
 });
 
 describe('Recursion', () => {
-  it('should throw if recursion used with allowBestEffort false', () => {
-    expect(() => compile(r`a\g<0>?`, '', {allowBestEffort: false})).toThrow();
-    expect(() => compile('', '', {allowBestEffort: false})).not.toThrow();
+  it('should throw if recursion used with strict emulation', () => {
+    expect(() => compile(r`a\g<0>?`, '', {emulation: 'strict'})).toThrow();
+    expect(() => compile('', '', {emulation: 'strict'})).not.toThrow();
   });
 
-  it('should throw if recursion used with maxRecursionDepth null', () => {
+  it('should throw if recursion used with null maxRecursionDepth', () => {
     expect(() => compile(r`a\g<0>?`, '', {maxRecursionDepth: null})).toThrow();
     expect(() => compile('', '', {maxRecursionDepth: null})).not.toThrow();
   });

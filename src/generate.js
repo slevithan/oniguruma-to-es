@@ -56,13 +56,13 @@ function generate(ast, options) {
   };
   let lastNode = null;
   const state = {
-    allowBestEffort: opts.allowBestEffort,
     appliedGlobalFlags,
     captureFlagIMap: new Map(),
     currentFlags: {
       dotAll: ast.flags.dotAll,
       ignoreCase: ast.flags.ignoreCase,
     },
+    emulation: opts.emulation,
     groupNames: new Set(),
     inCharClass: false,
     lastNode,
@@ -226,11 +226,11 @@ function genBackreference({ref}, state) {
   }
   if (
     !state.useFlagMods &&
-    !state.allowBestEffort &&
+    state.emulation === 'strict' &&
     state.currentFlags.ignoreCase &&
     !state.captureFlagIMap.get(ref)
   ) {
-    throw new Error('Use of case-insensitive backref to case-sensitive group requires option allowBestEffort or target ESNext');
+    throw new Error('Use of case-insensitive backref to case-sensitive group requires target ESNext or non-strict emulation');
   }
   return '\\' + ref;
 }
@@ -342,8 +342,9 @@ function genCharacterSet({kind, negate, value, key}, state) {
       UnicodePropertiesWithSpecificCase.has(value)
     ) {
       // Support for this would require heavy Unicode data. Could change e.g. `\p{Lu}` to `\p{LC}`
-      // if `allowBestEffort` (since it's close but not 100%), but this wouldn't work for e.g.
-      // `\p{Lt}` and in any case it's probably a mistake if using these props case-insensitively
+      // if not using `strict` emulation (since it's close but not 100%), but this wouldn't work
+      // for e.g. `\p{Lt}`, and in any case, it's probably user error if using these case-specific
+      // props case-insensitively
       throw new Error(`Unicode property "${value}" can't be case-insensitive when other chars have specific case`);
     }
     return `${negate ? r`\P` : r`\p`}{${key ? `${key}=` : ''}${value}}`;
@@ -392,8 +393,8 @@ function genRecursion({ref}, state) {
   if (!rDepth) {
     throw new Error('Use of recursion disabled');
   }
-  if (!state.allowBestEffort) {
-    throw new Error('Use of recursion requires option allowBestEffort');
+  if (state.emulation === 'strict') {
+    throw new Error('Use of recursion requires non-strict emulation');
   }
   // Using the syntax supported by `regex-recursion`
   return ref === 0 ? `(?R=${rDepth})` : r`\g<${ref}&R=${rDepth}>`;

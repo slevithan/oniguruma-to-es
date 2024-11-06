@@ -8,7 +8,7 @@ beforeEach(() => {
 });
 
 describe('Backreference', () => {
-  // TODO: Test that case-insensitive backref to case-sensitive group requires allowBestEffort or ESNext
+  // TODO: Test that case-insensitive backref to case-sensitive group requires `ESNext` or non-`strict` emulation
 
   describe('numbered backref', () => {
     it('should rematch the captured text', () => {

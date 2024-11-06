@@ -20,7 +20,7 @@ main {
   border-radius: 0 0 15px 15px;
 }
 
-h1, h2, ul, p, pre, details, summary {
+h1, h2, ul, p, pre, summary {
   margin-bottom: 12px;
 }
 
@@ -37,20 +37,28 @@ code {
   background-color: #f6f6f6;
 }
 
+kbd {
+  padding: 0 3px;
+}
+
 small {
   font-size: 0.8em;
 }
 
-td {
-  padding-right: 3vw;
+.hidden {
+  display: none;
 }
 
 summary {
   cursor: pointer;
 }
 
-label, .label {
-  margin-right: 0.4em;
+label {
+  margin-right: 0.5em;
+}
+
+label img {
+  vertical-align: middle;
 }
 
 input[type='checkbox'] {
@@ -62,20 +70,18 @@ input[type='checkbox'] {
 }
 
 input[type='number'] {
-  border: 1px solid #bbb;
-  height: 1.6em;
-  border-radius: 4px;
-  padding-left: 4px;
   width: 3.5em;
-}
-
-select {
-  padding: 4px 35px 4px 10px;
+  padding: 3px;
   font-size: 0.9em;
   border: 1px solid #bbb;
   border-radius: 4px;
-  appearance: none;
-  background: url(https://upload.wikimedia.org/wikipedia/commons/9/99/Unofficial_JavaScript_logo_2.svg) 96% / 15% no-repeat #f6f6f6;
+}
+
+select {
+  padding: 3px;
+  font-size: 0.9em;
+  border: 1px solid #bbb;
+  border-radius: 4px;
 }
 
 textarea {
@@ -92,10 +98,18 @@ textarea:focus {
   box-shadow: 0 0 8px #80c0ff;
 }
 
-pre, code, textarea {
+pre, code, kbd, textarea {
   font-family: Consolas, "Source Code Pro", Monospace;
   font-size: 0.9em;
   border-radius: 0.375em;
+}
+
+#more-options {
+  display: flex;
+}
+
+#more-options div {
+  margin-right: 3%;
 }
 
 #output, textarea {
@@ -132,8 +146,4 @@ pre, code, textarea {
 #info {
   margin-top: -12px;
   padding: 0.6em;
-}
-
-.hidden {
-  display: none;
 }

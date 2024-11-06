@@ -20,29 +20,29 @@ Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecti
 then down-convert to the desired JS target version.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
-  allowBestEffort?: boolean;
   allowSubclassBasedEmulation?: boolean;
   bestEffortTarget?: keyof Target;
+  emulation?: 'strict' | 'default' | 'loose';
 }} [options]
 @returns {RegexAst}
 */
 function transform(ast, options) {
   const opts = {
-    // A couple edge cases exist where options `allowBestEffort` and `bestEffortTarget` are used:
+    // A couple edge cases exist where options `emulation` and `bestEffortTarget` are used:
     // - `VariableLengthCharacterSet` kind `grapheme` (`\X`): An exact representation would require
     //   heavy Unicode data; a best-effort approximation requires knowing the target.
     // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex exact
     //   representations are hard to change after the fact in the generator to a best-effort
     //   approximation based on the target, so produce the appropriate structure here.
-    allowBestEffort: true,
     allowSubclassBasedEmulation: false,
     bestEffortTarget: 'ESNext',
+    emulation: 'default',
     ...options,
   };
   // AST changes that work together with a `RegExp` subclass to add advanced emulation
   const strategy = opts.allowSubclassBasedEmulation ? applySubclassStrategies(ast) : null;
   const firstPassState = {
-    allowBestEffort: opts.allowBestEffort,
+    emulation: opts.emulation,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
@@ -149,7 +149,7 @@ const FirstPassVisitor = {
     subroutineRefMap.set(name ?? number, node);
   },
 
-  CharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
+  CharacterSet({node, replaceWith}, {emulation, minTargetEs2024}) {
     const {kind, negate, value} = node;
     if (kind === AstCharacterSetKinds.any) {
       replaceWith(createUnicodeProperty('Any'));
@@ -159,8 +159,8 @@ const FirstPassVisitor = {
       replaceWith(parseFragment(r`[^\n]`));
     } else if (kind === AstCharacterSetKinds.posix) {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
-        if (!allowBestEffort) {
-          throw new Error(`POSIX class "${value}" requires option allowBestEffort or min target ES2024`);
+        if (emulation === 'strict') {
+          throw new Error(`POSIX class "${value}" requires min target ES2024 or non-strict emulation`);
         }
         let ascii = {
           graph: '!-~',
@@ -303,13 +303,13 @@ const FirstPassVisitor = {
     }
   },
 
-  VariableLengthCharacterSet({node, replaceWith}, {allowBestEffort, minTargetEs2024}) {
+  VariableLengthCharacterSet({node, replaceWith}, {emulation, minTargetEs2024}) {
     const {kind} = node;
     if (kind === AstVariableLengthCharacterSetKinds.newline) {
       replaceWith(parseFragment('(?>\r\n?|[\n\v\f\x85\u2028\u2029])'));
     } else if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
-      if (!allowBestEffort) {
-        throw new Error(r`Use of "\X" requires option allowBestEffort`);
+      if (emulation === 'strict') {
+        throw new Error(r`Use of "\X" requires non-strict emulation`);
       }
       // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
       // emoji using a general pattern that matches any Unicode sequence following the structure of

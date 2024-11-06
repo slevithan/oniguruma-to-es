@@ -8,7 +8,7 @@ import {recursion} from 'regex-recursion';
 
 /**
 @typedef {{
-  allowBestEffort?: boolean;
+  emulation?: 'strict' | 'default' | 'loose';
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
@@ -56,8 +56,8 @@ function compileInternal(pattern, flags, options) {
     skipBackrefValidation: opts.tmGrammar,
   });
   const regexAst = transform(onigurumaAst, {
-    allowBestEffort: opts.allowBestEffort,
     allowSubclassBasedEmulation: opts.allowSubclassBasedEmulation,
+    emulation: opts.emulation,
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
@@ -90,19 +90,19 @@ function getOptions(options) {
   }
   // Set default values
   return {
-    // Allows results that differ from Oniguruma in rare cases. If `false`, throws if the pattern
-    // can't be emulated with identical behavior
-    allowBestEffort: true,
     // Allows advanced emulation strategies that rely on returning a `RegExp` subclass with an
     // overridden `exec` method. A subclass is only used if needed for the given pattern
     allowSubclassBasedEmulation: false,
+    // Sets the level of emulation strictness; `default` is best in most cases. If `strict`, throws
+    // if the pattern can't be emulated with identical behavior (even in rare edge cases) for the
+    // given target
+    emulation: 'default',
     // Include JS flag `g` in the result
     global: false,
     // Include JS flag `d` in the result
     hasIndices: false,
-    // If `null`, any use of recursion throws. If an integer between `2` and `100` (and
-    // `allowBestEffort` is on), common recursion forms are supported and recurse up to the
-    // specified max depth
+    // If an integer between `2` and `100`, common recursion forms are supported and recurse up to
+    // the specified depth limit. If set to `null`, any use of recursion results in an error
     maxRecursionDepth: 6,
     // Simplify the generated pattern when it doesn't change the meaning
     optimize: true,
@@ -110,7 +110,7 @@ function getOptions(options) {
     // faster processing, simpler generated source, and support for additional features
     target: 'ES2024',
     // Leave disabled unless the regex will be used in a TextMate grammar processor that merges
-    // `begin` and `end` patterns
+    // backreferences across `begin` and `end` patterns
     tmGrammar: false,
     ...options,
   };
