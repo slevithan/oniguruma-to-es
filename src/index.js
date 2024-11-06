@@ -22,6 +22,7 @@ import {recursion} from 'regex-recursion';
 /**
 @typedef {{
   accuracy?: keyof Accuracy;
+  avoidSubclass?: boolean;
   flags?: import('./tokenize.js').OnigurumaFlags;
   global?: boolean;
   hasIndices?: boolean;
@@ -30,7 +31,6 @@ import {recursion} from 'regex-recursion';
   tmGrammar?: boolean;
   verbose?: boolean;
 }} CompileOptions
-@typedef {CompileOptions & {avoidSubclass?: boolean;}} ToRegExpOptions
 */
 
 /**
@@ -40,25 +40,13 @@ Transpiles an Oniguruma pattern to the parts needed to construct a native JavaSc
 @returns {{
   pattern: string;
   flags: string;
+  strategy?: {
+    name: string;
+    subpattern?: string;
+  }
 }}
 */
 function toDetails(pattern, options) {
-  return compileInternal(pattern, options);
-}
-
-/**
-@param {string} pattern
-@param {ToRegExpOptions} [options]
-@returns {{
-  pattern: string;
-  flags: string;
-  _internal?: {
-    strategy: string;
-    subpattern: string | null;
-  };
-}}
-*/
-function compileInternal(pattern, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, opts.flags);
   const onigurumaAst = parse(tokenized, {
@@ -71,20 +59,26 @@ function compileInternal(pattern, options) {
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  const result = {
-    pattern: atomic(possessive(recursion(generated.pattern))),
-    flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
-  };
+  let genPattern = atomic(possessive(recursion(generated.pattern)));
+  let subpattern;
   if (regexAst._strategy) {
-    let subpattern = null;
-    result.pattern = result.pattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
+    // Look for an emulation marker added as part of the strategy. Do this after the pattern has
+    // been passed through `regex` plugins, so they can operate on the full pattern (e.g. backrefs
+    // might be rewritten when using some features)
+    genPattern = genPattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
       subpattern = sub;
       return '';
     });
-    result._internal = {
-      strategy: regexAst._strategy.name,
-      subpattern,
-    };
+  }
+  const result = {
+    pattern: genPattern,
+    flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
+  };
+  if (regexAst._strategy) {
+    result.strategy = {...regexAst._strategy};
+    if (subpattern) {
+      result.strategy.subpattern = subpattern;
+    }
   }
   return result;
 }
@@ -102,47 +96,38 @@ function toOnigurumaAst(pattern, options) {
 }
 
 /**
-Generates a `regex` AST from an Oniguruma pattern.
-@param {string} pattern Oniguruma regex pattern.
-@param {{
-  flags?: import('./tokenize.js').OnigurumaFlags;
-}} [options]
-@returns {import('./transform.js').RegexAst}
-*/
-function toRegexAst(pattern, options) {
-  return transform(toOnigurumaAst(pattern, options));
-}
-
-/**
 Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
-@param {ToRegExpOptions} [options]
+@param {CompileOptions} [options]
 @returns {RegExp}
 */
 function toRegExp(pattern, options) {
-  const result = compileInternal(pattern, options);
-  if (result._internal) {
-    return new WrappedRegExp(result.pattern, result.flags, result._internal);
+  const result = toDetails(pattern, options);
+  if (result.strategy) {
+    return new WrappedRegExp(result.pattern, result.flags, result.strategy);
   }
   return new RegExp(result.pattern, result.flags);
 }
 
 class WrappedRegExp extends RegExp {
-  #data;
+  #strategy;
   /**
   @param {string | WrappedRegExp} pattern
   @param {string} [flags]
-  @param {string} [data]
+  @param {{
+    name: string;
+    subpattern?: string;
+  }} [strategy]
   */
-  constructor(pattern, flags, data) {
+  constructor(pattern, flags, strategy) {
     super(pattern, flags);
-    if (data) {
-      this.#data = data;
-    // The third argument `data` isn't provided when regexes are copied as part of the internal
-    // handling of string methods `matchAll` and `split`
+    if (strategy) {
+      this.#strategy = strategy;
+    // The third argument isn't provided when regexes are copied as part of the internal handling
+    // of string methods `matchAll` and `split`
     } else if (pattern instanceof WrappedRegExp) {
       // Can read private properties of the existing object since it was created by this class
-      this.#data = pattern.#data;
+      this.#strategy = pattern.#strategy;
     }
   }
   /**
@@ -160,7 +145,7 @@ class WrappedRegExp extends RegExp {
     const exec = RegExp.prototype.exec;
 
     // ## Support leading `(^|\G)` and similar
-    if (this.#data.strategy === 'line_or_search_start' && useLastIndex && this.lastIndex) {
+    if (this.#strategy.name === 'line_or_search_start' && useLastIndex && this.lastIndex) {
       // Reset since testing on a sliced string that we want to match at the start of
       this.lastIndex = 0;
       const match = exec.call(this, str.slice(pos));
@@ -174,7 +159,7 @@ class WrappedRegExp extends RegExp {
 
     // ## Support leading `(?!\G)` and similar
     const globalRe = useLastIndex ? this : new RegExp(this, `g${this.flags}`);
-    if (this.#data.strategy === 'not_search_start') {
+    if (this.#strategy.name === 'not_search_start') {
       let match = exec.call(this, str);
       if (match?.index === pos) {
         globalRe.lastIndex = match.index + 1;
@@ -185,7 +170,7 @@ class WrappedRegExp extends RegExp {
 
     // ## Support leading `(?<=\G|…)` and similar
     // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
-    if (this.#data.strategy === 'after_search_start_or_subpattern') {
+    if (this.#strategy.name === 'after_search_start_or_subpattern') {
       let match = exec.call(this, str);
       if (!match) {
         return match;
@@ -194,7 +179,7 @@ class WrappedRegExp extends RegExp {
         // Satisfied `\G` in lookbehind
         return match;
       }
-      const reBehind = new RegExp(`(?:${this.#data.subpattern})$`);
+      const reBehind = new RegExp(`(?:${this.#strategy.subpattern})$`);
       while (match) {
         if (reBehind.exec(str.slice(0, match.index))) {
           // Satisfied other alternative in lookbehind; return the main pattern's match
@@ -213,6 +198,5 @@ class WrappedRegExp extends RegExp {
 export {
   toDetails,
   toOnigurumaAst,
-  toRegexAst,
   toRegExp,
 };

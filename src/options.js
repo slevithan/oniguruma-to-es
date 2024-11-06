@@ -19,7 +19,7 @@ const Target = /** @type {const} */ ({
 /**
 Returns a complete set of options, with default values set for options that weren't provided.
 @param {import('.').CompileOptions} [options]
-@returns {Required<import('.').ToRegExpOptions>}
+@returns {Required<import('.').CompileOptions>}
 */
 function getOptions(options) {
   if (options?.target !== undefined && !EsVersion[options.target]) {

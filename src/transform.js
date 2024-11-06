@@ -13,12 +13,20 @@ import emojiRegex from 'emoji-regex-xs';
   pattern: Object;
   flags: Object;
   options: Object;
-  _strategy?: {name: string;};
+  _strategy?: {
+    name: string;
+  };
 }} RegexAst
 */
 /**
-Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecting the generator to
-then down-convert to the desired JS target version.
+Transforms an Oniguruma AST in-place to a [`regex`](https://github.com/slevithan/regex) AST.
+Targets `ESNext`, expecting the generator to then down-convert to the desired JS target version.
+
+`regex`'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close
+to representing native ESNext `RegExp` but with some added features (atomic groups, possessive
+quantifiers, recursion). The AST doesn't use some of `regex`'s extended features like flag `x` or
+subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The
+AST represents what's needed to precisely reproduce Oniguruma behavior using `regex`.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;

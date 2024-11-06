@@ -36,13 +36,10 @@ function showOutput(el) {
     // Use `toDetails` but display output as if `toRegExp` was called. This avoids erroring when
     // the selected `target` includes features that don't work in the user's browser
     const details = OnigurumaToES.toDetails(input, opts);
-    if (details._internal) {
+    if (details.strategy) {
       infoEl.classList.remove('hidden');
       outputEl.classList.add('subclass');
-      output = getFormattedSubclass(details.pattern, details.flags, {
-        strategy: details._internal.strategy,
-        subpattern: details._internal.subpattern,
-      });
+      output = getFormattedSubclass(details.pattern, details.flags, details.strategy);
     } else {
       output = `/${getRegExpLiteralPattern(details.pattern)}/${details.flags}`;
     }
@@ -62,12 +59,12 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedSubclass(pattern, flags, {strategy, subpattern}) {
+function getFormattedSubclass(pattern, flags, {name, subpattern}) {
   return `new WrappedRegExp('${
     pattern.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
   }', '${
     flags
-  }', {\n  strategy: '${strategy}',${subpattern ? `\n  subpattern: '${subpattern}',` : ''}\n})`;
+  }', {\n  name: '${name}',${subpattern ? `\n  subpattern: '${subpattern}',` : ''}\n})`;
 }
 
 function getRegExpLiteralPattern(str) {

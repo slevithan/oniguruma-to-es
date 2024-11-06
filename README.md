@@ -114,21 +114,6 @@ function toOnigurumaAst(
 ): OnigurumaAst;
 ```
 
-### `toRegexAst`
-
-Generates a [`regex`](https://github.com/slevithan/regex) AST from an Oniguruma pattern.
-
-```ts
-function toRegexAst(
-  pattern: string,
-  options?: {
-    flags?: OnigurumaFlags;
-  }
-): RegexAst;
-```
-
-`regex`'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close to representing native ESNext `RegExp` but with some added features (atomic groups, possessive quantifiers, recursion). The `regex` AST doesn't use some of `regex`'s extended features like flag `x` or subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The AST represents what's needed to precisely reproduce the Oniguruma behavior using `regex`.
-
 ## 🔩 Options
 
 These options are shared by functions [`toRegExp`](#toregexp) and [`toDetails`](#todetails).
