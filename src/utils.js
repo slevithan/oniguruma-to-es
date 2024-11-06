@@ -1,7 +1,7 @@
 const cp = String.fromCodePoint;
 const r = String.raw;
 
-const EmulationMode = /** @type {const} */ ({
+const Accuracy = /** @type {const} */ ({
   strict: 'strict',
   default: 'default',
   loose: 'loose',
@@ -50,8 +50,8 @@ function throwIfNot(value, msg) {
 }
 
 export {
+  Accuracy,
   cp,
-  EmulationMode,
   EsVersion,
   getNewCurrentFlags,
   getOrCreate,

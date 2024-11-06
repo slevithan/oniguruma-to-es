@@ -203,7 +203,7 @@ const LowerToTitleCaseMap = new Map([
 // <github.com/kkos/oniguruma/blob/master/doc/RE> (see: POSIX bracket: Unicode Case)
 // Note: Handling in the transformer assumes all values here are a single, negateable node that's
 // not pre-negated at the top level. It also uses ASCII versions of `graph` and `print` for target
-// `ES2018` (which doesn't allow intersection) if `emulation` is not `strict`
+// `ES2018` (which doesn't allow intersection) if `accuracy` isn't `strict`
 const PosixClassesMap = new Map([
   ['alnum', r`[\p{Alpha}\p{Nd}]`],
   ['alpha', r`\p{Alpha}`],

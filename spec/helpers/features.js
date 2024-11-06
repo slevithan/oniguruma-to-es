@@ -17,6 +17,7 @@ const patternModsSupported = (() => {
   return true;
 })();
 const maxTestTargetForPatternMods = patternModsSupported ? null : 'ES2024';
+const minTestTargetForPatternMods = patternModsSupported ? 'ESNext' : Infinity;
 
 const minTestTargetForFlagV = 'ES2024';
 
@@ -24,4 +25,5 @@ export {
   maxTestTargetForDuplicateNames,
   maxTestTargetForPatternMods,
   minTestTargetForFlagV,
+  minTestTargetForPatternMods,
 };

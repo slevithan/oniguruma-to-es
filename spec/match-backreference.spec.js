@@ -1,6 +1,6 @@
 import {compile} from '../dist/index.mjs';
 import {cp, r} from '../src/utils.js';
-import {maxTestTargetForDuplicateNames} from './helpers/features.js';
+import {maxTestTargetForDuplicateNames, maxTestTargetForPatternMods, minTestTargetForPatternMods} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -8,8 +8,6 @@ beforeEach(() => {
 });
 
 describe('Backreference', () => {
-  // TODO: Test that case-insensitive backref to case-sensitive group requires `ESNext` or non-`strict` emulation
-
   describe('numbered backref', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\1`);
@@ -364,6 +362,33 @@ describe('Backreference', () => {
     it('should track independent captures when used in a group referenced by a subroutine', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`(?<a>(?<b>\w)\k<b>)\g<a>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`(?<a>(?<b>\w)\k<b>)\g<a>`);
+    });
+  });
+
+  it('should match case-insensitive backref to case-sensitive group', () => {
+    // Real support with target ESNext
+    expect(['aa', 'aA']).toExactlyMatch({
+      pattern: r`(a)(?i)\1`,
+      minTestTarget: minTestTargetForPatternMods,
+    });
+    expect(['Aa', 'AA']).not.toFindMatch({
+      pattern: r`(a)(?i)\1`,
+      minTestTarget: minTestTargetForPatternMods,
+    });
+    // Throw with strict `accuracy` if target not ESNext
+    ['ES2018', 'ES2024'].forEach(target => {
+      expect(() => compile(r`(a)(?i)\1`, '', {
+        accuracy: 'strict',
+        target,
+      })).toThrow();
+    });
+    // Matches same case as group with other `accuracy` values
+    ['default', 'loose'].forEach(accuracy => {
+      expect('aa').toExactlyMatch({
+        pattern: r`(a)(?i)\1`,
+        accuracy,
+        maxTestTarget: maxTestTargetForPatternMods,
+      });
     });
   });
 });

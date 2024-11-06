@@ -7,9 +7,9 @@ beforeEach(() => {
 });
 
 describe('Recursion', () => {
-  it('should throw if recursion used with strict emulation', () => {
-    expect(() => compile(r`a\g<0>?`, '', {emulation: 'strict'})).toThrow();
-    expect(() => compile('', '', {emulation: 'strict'})).not.toThrow();
+  it('should throw if recursion used with strict accuracy', () => {
+    expect(() => compile(r`a\g<0>?`, '', {accuracy: 'strict'})).toThrow();
+    expect(() => compile('', '', {accuracy: 'strict'})).not.toThrow();
   });
 
   it('should throw if recursion used with null maxRecursionDepth', () => {

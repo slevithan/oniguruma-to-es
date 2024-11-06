@@ -5,8 +5,8 @@ const state = {
     x: getValue('flag-x'),
   },
   opts: {
+    accuracy: getValue('option-accuracy'),
     allowSubclassBasedEmulation: getValue('option-allowSubclassBasedEmulation'),
-    emulation: getValue('option-emulation'),
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
     maxRecursionDepth: getValue('option-maxRecursionDepth'),

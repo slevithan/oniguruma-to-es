@@ -2,13 +2,13 @@ import {generate} from './generate.js';
 import {parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {transform} from './transform.js';
-import {EmulationMode, EsVersion, Target} from './utils.js';
+import {Accuracy, EsVersion, Target} from './utils.js';
 import {atomic, possessive} from 'regex/atomic';
 import {recursion} from 'regex-recursion';
 
 /**
 @typedef {{
-  emulation?: keyof EmulationMode;
+  accuracy?: keyof Accuracy;
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
@@ -56,8 +56,8 @@ function compileInternal(pattern, flags, options) {
     skipBackrefValidation: opts.tmGrammar,
   });
   const regexAst = transform(onigurumaAst, {
+    accuracy: opts.accuracy,
     allowSubclassBasedEmulation: opts.allowSubclassBasedEmulation,
-    emulation: opts.emulation,
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
@@ -66,14 +66,14 @@ function compileInternal(pattern, flags, options) {
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
   if (regexAst._strategy) {
-    let emulationSubpattern = null;
+    let subpattern = null;
     result.pattern = result.pattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
-      emulationSubpattern = sub;
+      subpattern = sub;
       return '';
     });
     result._internal = {
       strategy: regexAst._strategy.name,
-      subpattern: emulationSubpattern,
+      subpattern,
     };
   }
   return result;
@@ -90,19 +90,17 @@ function getOptions(options) {
   }
   // Set default values
   return {
+    // Sets the level of emulation rigor/strictness
+    accuracy: 'default',
     // Allows advanced emulation strategies that rely on returning a `RegExp` subclass with an
     // overridden `exec` method. A subclass is only used if needed for the given pattern
     allowSubclassBasedEmulation: false,
-    // Sets the level of emulation strictness; `default` is best in most cases. If `strict`, throws
-    // if the pattern can't be emulated with identical behavior (even in rare edge cases) for the
-    // given target
-    emulation: 'default',
     // Include JS flag `g` in the result
     global: false,
     // Include JS flag `d` in the result
     hasIndices: false,
-    // If an integer between `2` and `100`, common recursion forms are supported and recurse up to
-    // the specified depth limit. If set to `null`, any use of recursion results in an error
+    // Specifies the recursion depth limit. Supported values are integers `2` to `100` and `null`.
+    // If `null`, any use of recursion results in an error
     maxRecursionDepth: 6,
     // Simplify the generated pattern when it doesn't change the meaning
     optimize: true,

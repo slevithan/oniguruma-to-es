@@ -178,14 +178,14 @@ describe('Assertion', () => {
       expect(() => compile(r`(?=ab\G)`)).toThrow();
     });
 
-    it('should allow unsupported forms if using loose emulation', () => {
+    it('should allow unsupported forms if using loose accuracy', () => {
       const patterns = [
         r`a\G`,
         r`\G|`,
       ];
       patterns.forEach(pattern => {
         expect(() => compile(pattern)).toThrow();
-        expect(toRegExp(pattern, '', {emulation: 'loose'}).sticky).toBe(true);
+        expect(toRegExp(pattern, '', {accuracy: 'loose'}).sticky).toBe(true);
       });
     });
 

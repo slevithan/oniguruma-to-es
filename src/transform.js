@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, As
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {cp, EmulationMode, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './utils.js';
+import {Accuracy, cp, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './utils.js';
 
 /**
 @typedef {{
@@ -20,29 +20,29 @@ Transforms an Oniguruma AST in-place to a `regex` AST. Targets `ESNext`, expecti
 then down-convert to the desired JS target version.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
+  accuracy?: keyof Accuracy;
   allowSubclassBasedEmulation?: boolean;
   bestEffortTarget?: keyof Target;
-  emulation?: keyof EmulationMode;
 }} [options]
 @returns {RegexAst}
 */
 function transform(ast, options) {
   const opts = {
-    // A couple edge cases exist where options `emulation` and `bestEffortTarget` are used:
+    // A couple edge cases exist where options `accuracy` and `bestEffortTarget` are used:
     // - `VariableLengthCharacterSet` kind `grapheme` (`\X`): An exact representation would require
     //   heavy Unicode data; a best-effort approximation requires knowing the target.
     // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex exact
     //   representations are hard to change after the fact in the generator to a best-effort
     //   approximation based on the target, so produce the appropriate structure here.
+    accuracy: 'default',
     allowSubclassBasedEmulation: false,
     bestEffortTarget: 'ESNext',
-    emulation: 'default',
     ...options,
   };
   // AST changes that work together with a `RegExp` subclass to add advanced emulation
-  const strategy = opts.allowSubclassBasedEmulation ? applySubclassStrategies(ast, opts.emulation) : null;
+  const strategy = opts.allowSubclassBasedEmulation ? applySubclassStrategies(ast, opts.accuracy) : null;
   const firstPassState = {
-    emulation: opts.emulation,
+    accuracy: opts.accuracy,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
@@ -114,7 +114,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {emulation, supportedGNodes}) {
+  Assertion({node, ast, remove, replaceWith}, {accuracy, supportedGNodes}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -123,7 +123,7 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?<=\A|\n)`));
     } else if (kind === AstAssertionKinds.search_start) {
-      if (!supportedGNodes.has(node) && emulation !== 'loose') {
+      if (!supportedGNodes.has(node) && accuracy !== 'loose') {
         throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
       ast.flags.sticky = true;
@@ -149,7 +149,7 @@ const FirstPassVisitor = {
     subroutineRefMap.set(name ?? number, node);
   },
 
-  CharacterSet({node, replaceWith}, {emulation, minTargetEs2024}) {
+  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024}) {
     const {kind, negate, value} = node;
     if (kind === AstCharacterSetKinds.any) {
       replaceWith(createUnicodeProperty('Any'));
@@ -159,8 +159,8 @@ const FirstPassVisitor = {
       replaceWith(parseFragment(r`[^\n]`));
     } else if (kind === AstCharacterSetKinds.posix) {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
-        if (emulation === 'strict') {
-          throw new Error(`POSIX class "${value}" requires min target ES2024 or non-strict emulation`);
+        if (accuracy === 'strict') {
+          throw new Error(`POSIX class "${value}" requires min target ES2024 or non-strict accuracy`);
         }
         let ascii = {
           graph: '!-~',
@@ -266,7 +266,7 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}, {emulation, supportedGNodes}) {
+  Pattern({node}, {accuracy, supportedGNodes}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
@@ -286,7 +286,7 @@ const FirstPassVisitor = {
         hasAltWithoutLeadG = true;
       }
     }
-    if (hasAltWithLeadG && hasAltWithoutLeadG && emulation !== 'loose') {
+    if (hasAltWithLeadG && hasAltWithoutLeadG && accuracy !== 'loose') {
       throw new Error(r`Uses "\G" in a way that's unsupported`);
     }
     // These nodes will be removed when traversed; other `\G` nodes will error
@@ -303,13 +303,13 @@ const FirstPassVisitor = {
     }
   },
 
-  VariableLengthCharacterSet({node, replaceWith}, {emulation, minTargetEs2024}) {
+  VariableLengthCharacterSet({node, replaceWith}, {accuracy, minTargetEs2024}) {
     const {kind} = node;
     if (kind === AstVariableLengthCharacterSetKinds.newline) {
       replaceWith(parseFragment('(?>\r\n?|[\n\v\f\x85\u2028\u2029])'));
     } else if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
-      if (emulation === 'strict') {
-        throw new Error(r`Use of "\X" requires non-strict emulation`);
+      if (accuracy === 'strict') {
+        throw new Error(r`Use of "\X" requires non-strict accuracy`);
       }
       // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
       // emoji using a general pattern that matches any Unicode sequence following the structure of
@@ -567,7 +567,7 @@ function adoptAndSwapKids(parent, kids) {
   return parent;
 }
 
-function applySubclassStrategies(ast, emulation) {
+function applySubclassStrategies(ast, accuracy) {
   // Special case handling that requires coupling with a `RegExp` subclass (see `WrappedRegExp`).
   // These changes add emulation support for some common patterns that are otherwise unsupportable.
   // Only one subclass strategy is supported per pattern
@@ -650,7 +650,7 @@ function applySubclassStrategies(ast, emulation) {
         // Check for nodes that are or can include captures
         return el.type === AstTypes.CapturingGroup || el.type === AstTypes.Group || el.type === AstTypes.Subroutine || isLookaround(el);
       }))) {
-        if (emulation === 'loose') {
+        if (accuracy === 'loose') {
           supported = false;
         } else {
           throw new Error(r`Uses "\G" in a way that's unsupported`);

@@ -2,19 +2,16 @@ import {toRegExp} from '../../dist/index.mjs';
 import {EsVersion} from '../../src/utils.js';
 
 function getArgs(actual, expected) {
-  const opts = {
-    pattern: typeof expected === 'string' ? expected : expected.pattern,
-    flags: expected.flags ?? '',
-    maxTestTarget: expected.maxTestTarget ?? null,
-    minTestTarget: expected.minTestTarget ?? null,
-  };
+  const max = expected.maxTestTarget;
+  const min = expected.minTestTarget;
   const targets = ['ES2018', 'ES2024', 'ESNext'];
   const targeted = targets.
-    filter(target => !opts.maxTestTarget || (EsVersion[target] <= EsVersion[opts.maxTestTarget])).
-    filter(target => !opts.minTestTarget || (EsVersion[target] >= EsVersion[opts.minTestTarget]));
+    filter(target => !max || EsVersion[target] <= EsVersion[max]).
+    filter(target => !min || (min !== Infinity && EsVersion[target] >= EsVersion[min]));
   return {
-    pattern: opts.pattern,
-    flags: opts.flags,
+    pattern: typeof expected === 'string' ? expected : expected.pattern,
+    flags: expected.flags ?? '',
+    accuracy: expected.accuracy ?? 'default',
     strings: Array.isArray(actual) ? actual : [actual],
     targets: targeted,
   };
@@ -27,9 +24,9 @@ function wasFullStrMatch(match, str) {
 // Expects `negate` to be set by `negativeCompare` and doesn't rely on Jasmine's automatic matcher
 // negation because when negated we don't want to early return `true` when looping over the array
 // of strings and one is found to not match; they all need to not match
-function matchWithAllTargets({pattern, flags, strings, targets}, {exact, negate}) {
+function matchWithAllTargets({pattern, flags, strings, targets, accuracy}, {exact, negate}) {
   for (const target of targets) {
-    const re = toRegExp(pattern, flags, {target});
+    const re = toRegExp(pattern, flags, {accuracy, target});
     for (const str of strings) {
       // In case `flags` includes `g` or `y`
       re.lastIndex = 0;
