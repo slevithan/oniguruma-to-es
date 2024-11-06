@@ -21,7 +21,7 @@ then down-convert to the desired JS target version.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
-  allowSubclassBasedEmulation?: boolean;
+  avoidSubclass?: boolean;
   bestEffortTarget?: keyof Target;
 }} [options]
 @returns {RegexAst}
@@ -35,12 +35,12 @@ function transform(ast, options) {
     //   representations are hard to change after the fact in the generator to a best-effort
     //   approximation based on the target, so produce the appropriate structure here.
     accuracy: 'default',
-    allowSubclassBasedEmulation: false,
+    avoidSubclass: false,
     bestEffortTarget: 'ESNext',
     ...options,
   };
   // AST changes that work together with a `RegExp` subclass to add advanced emulation
-  const strategy = opts.allowSubclassBasedEmulation ? applySubclassStrategies(ast, opts.accuracy) : null;
+  const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast, opts.accuracy);
   const firstPassState = {
     accuracy: opts.accuracy,
     flagDirectivesByAlt: new Map(),
@@ -578,6 +578,7 @@ function applySubclassStrategies(ast, accuracy) {
     return null;
   }
   const hasWrapperGroup =
+    alts[0].elements.length === 1 &&
     (firstEl.type === AstTypes.CapturingGroup || firstEl.type === AstTypes.Group) &&
     firstEl.alternatives.length === 1;
   // First element within first group if the group doesn't contain top-level alternation, else just

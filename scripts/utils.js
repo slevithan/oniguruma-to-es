@@ -75,7 +75,7 @@ function getMatchDetails(match) {
 const transpiledRegExpResult = (pattern, str, pos) => {
   let result;
   try {
-    const options = {allowSubclassBasedEmulation: true};
+    const options = {};
     if (pos) {
       options.global = true;
     }

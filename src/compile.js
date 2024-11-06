@@ -17,7 +17,7 @@ import {recursion} from 'regex-recursion';
   tmGrammar?: boolean;
 }} CompileOptions
 @typedef {CompileOptions & {
-  allowSubclassBasedEmulation?: boolean;
+  avoidSubclass?: boolean;
 }} ToRegExpOptions
 */
 
@@ -57,7 +57,7 @@ function compileInternal(pattern, flags, options) {
   });
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
-    allowSubclassBasedEmulation: opts.allowSubclassBasedEmulation,
+    avoidSubclass: opts.avoidSubclass,
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
@@ -92,9 +92,9 @@ function getOptions(options) {
   return {
     // Sets the level of emulation rigor/strictness
     accuracy: 'default',
-    // Allows advanced emulation strategies that rely on returning a `RegExp` subclass with an
-    // overridden `exec` method. A subclass is only used if needed for the given pattern
-    allowSubclassBasedEmulation: false,
+    // Prevents use of advanced emulation strategies that rely on returning a `RegExp` subclass,
+    // resulting in certain patterns not being emulatable
+    avoidSubclass: false,
     // Include JS flag `g` in the result
     global: false,
     // Include JS flag `d` in the result

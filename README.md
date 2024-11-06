@@ -103,7 +103,7 @@ function toRegExp(
   pattern: string,
   flags?: OnigurumaFlags,
   options?: (CompileOptions & {
-    allowSubclassBasedEmulation?: boolean;
+    avoidSubclass?: boolean;
   })
 ): RegExp;
 ```
@@ -478,7 +478,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Scripts<br>
       ✔ Aliases<br>
       ✔ POSIX properties<br>
-      ✔ Negate with <code>\p{^…}</code>, <code>\P{^…}</code><br>
+      ✔ Invert with <code>\p{^…}</code>, <code>\P{^…}</code><br>
       ✔ Insignificant spaces, underscores, and casing in names<br>
       ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is an identity escape<br>
       ✔ Error for key prefixes<br>
@@ -640,7 +640,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Includes all JS forms<br>
-      ✔ Adds form <code>{,n}</code> for implicit min 0<br>
+      ✔ Adds <code>{,n}</code> for min 0<br>
       ✔ Explicit bounds have upper limit of 100,000 (unlimited in JS)<br>
       ✔ Error with assertions (same as JS with flag <code>u</code>, <code>v</code>)<br>
     </td>
@@ -731,7 +731,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Error if named capture used<br>
       ✔ Allows leading 0s<br>
       ✔ Refs the most recent of a capture/subroutine set<br>
-      ✔ <code>\k</code> without <code>&lt;</code>, <code>'</code> is an identity escape<br>
+      ✔ <code>\k</code> without <code>&lt;</code> <code>'</code> is an identity escape<br>
     </td>
   </tr>
   <tr valign="top">
@@ -779,7 +779,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Doesn't alter backref nums<br>
       ✔ Reuses flags from the reffed group (ignores local flags)<br>
       ✔ Replaces most recent captured values (for backrefs)<br>
-      ✔ <code>\g</code> without <code>&lt;</code>, <code>'</code> is an identity escape<br>
+      ✔ <code>\g</code> without <code>&lt;</code> <code>'</code> is an identity escape<br>
       ✔ Error if named capture used<br>
     </td>
   </tr>

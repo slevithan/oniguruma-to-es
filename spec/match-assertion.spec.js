@@ -53,6 +53,9 @@ describe('Assertion', () => {
   });
 
   describe('search_start', () => {
+    // TODO: Consider enabling `avoidSubclass` for all of these except when specifically testing
+    // subclass strategies
+
     it('should match at the start of the search', () => {
       expect('a').toExactlyMatch(r`\Ga`);
       expect([
@@ -133,7 +136,7 @@ describe('Assertion', () => {
         r`(?:(?=\G))?a`,
         r`(?=\G)a|b`,
       ].forEach(pattern => {
-        expect(() => compile(pattern)).toThrow();
+        expect(() => compile(pattern, '', {avoidSubclass: true})).toThrow();
       });
     });
 
@@ -149,19 +152,20 @@ describe('Assertion', () => {
         r`(?:(?<=\G))?a`,
         r`(?<=\G)a|b`,
       ].forEach(pattern => {
-        expect(() => compile(pattern)).toThrow();
+        expect(() => compile(pattern, '', {avoidSubclass: true})).toThrow();
       });
     });
 
     it('should throw if leading in a leading positive lookbehind', () => {
-      // Matches at index 3 within `abc`, but doesn't match within `aabc`. Emulatable by replacing
-      // `\G` with `^`, slicing the string to `lastIndex`, and doing a non-sticky search
+      // [Oniguruma] Matches at index 3 within `abc`, but doesn't match within `aabc`
+      // [TODO] Emulatable by replacing `\G` with `^`, slicing the string to `lastIndex`, and doing
+      // a non-sticky search
       expect(() => compile(r`(?<=\Gabc)`)).toThrow();
     });
 
     it('should throw if leading in a leading negative lookaround', () => {
-      expect(() => compile(r`(?!\G)a`)).toThrow();
-      expect(() => compile(r`(?<!\G)a`)).toThrow();
+      expect(() => compile(r`(?!\G)a`, '', {avoidSubclass: true})).toThrow();
+      expect(() => compile(r`(?<!\G)a`, '', {avoidSubclass: true})).toThrow();
     });
 
     // Just documenting current behavior
@@ -190,44 +194,42 @@ describe('Assertion', () => {
     });
 
     describe('subclass strategies', () => {
-      const opts = {allowSubclassBasedEmulation: true};
-
       // Leading `(^|\G)` and similar
       it('should apply line_or_search_start', () => {
         // Matches with `^` since not global
-        expect(toRegExp(r`(^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`(^|\G)a`).exec('b\na')?.index).toBe(2);
         // Match the first 3 and last 1
         expect('aaabaaacaa\na'.match(toRegExp(
-          r`(^|\G)a`, '', {...opts, global: true}
+          r`(^|\G)a`, '', {global: true}
         ))).toEqual(['a', 'a', 'a', 'a']);
-        expect(toRegExp(r`(?:^|\G)a`, '', opts).exec('b\na')?.index).toBe(2);
-        expect(toRegExp(r`(\G|^)a`, '', opts).exec('b\na')?.index).toBe(2);
-        expect(toRegExp(r`(?:(\G|^)a)`, '', opts).exec('b\na')?.index).toBe(2);
-        expect(toRegExp(r`((\G|^)a)`, '', opts).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`(?:^|\G)a`).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`(\G|^)a`).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`(?:(\G|^)a)`).exec('b\na')?.index).toBe(2);
+        expect(toRegExp(r`((\G|^)a)`).exec('b\na')?.index).toBe(2);
       });
 
       // Leading `(?!\G)` and similar
       it('should apply not_search_start', () => {
         // Leading
-        expect(toRegExp(r`(?!\G)a`, '', opts).exec('aba')?.index).toBe(2);
-        expect(toRegExp(r`(?<!\G)a`, '', opts).exec('aba')?.index).toBe(2);
-        expect(toRegExp(r`(?:(?!\G)a)`, '', opts).exec('aba')?.index).toBe(2);
-        expect(toRegExp(r`((?!\G)a)`, '', opts).exec('aba')?.index).toBe(2);
+        expect(toRegExp(r`(?!\G)a`).exec('aba')?.index).toBe(2);
+        expect(toRegExp(r`(?<!\G)a`).exec('aba')?.index).toBe(2);
+        expect(toRegExp(r`(?:(?!\G)a)`).exec('aba')?.index).toBe(2);
+        expect(toRegExp(r`((?!\G)a)`).exec('aba')?.index).toBe(2);
         // Only assertions
-        expect(toRegExp(r`(?<=;)(?!\G)`, '', opts).exec(';;')?.index).toBe(1);
-        expect(toRegExp(r`(?!\G)(?=;)^`, '', opts).exec(';;\n;')?.index).toBe(3);
-        expect(toRegExp(r`(?=;)(?!\G)^`, '', opts).exec(';;\n;')?.index).toBe(3);
-        expect(toRegExp(r`(?=;)^(?!\G)`, '', opts).exec(';;\n;')?.index).toBe(3);
+        expect(toRegExp(r`(?<=;)(?!\G)`).exec(';;')?.index).toBe(1);
+        expect(toRegExp(r`(?!\G)(?=;)^`).exec(';;\n;')?.index).toBe(3);
+        expect(toRegExp(r`(?=;)(?!\G)^`).exec(';;\n;')?.index).toBe(3);
+        expect(toRegExp(r`(?=;)^(?!\G)`).exec(';;\n;')?.index).toBe(3);
       });
 
       // Leading `(?<=\G|…)` and similar
       it('should apply after_search_start_or_subpattern', () => {
-        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('ba')?.index).toBe(0);
-        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('aba')?.index).toBe(1);
-        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('aaba')?.index).toBe(2);
-        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('cbbab')?.index).toBe(4);
-        expect(toRegExp(r`((?<=xy?|\G|a)b)`, '', opts).exec('cbbab')?.index).toBe(4);
-        expect(toRegExp(r`(?<=\G|a)b`, '', opts).exec('cbba')).toBeNull();
+        expect(toRegExp(r`(?<=\G|a)b`).exec('ba')?.index).toBe(0);
+        expect(toRegExp(r`(?<=\G|a)b`).exec('aba')?.index).toBe(1);
+        expect(toRegExp(r`(?<=\G|a)b`).exec('aaba')?.index).toBe(2);
+        expect(toRegExp(r`(?<=\G|a)b`).exec('cbbab')?.index).toBe(4);
+        expect(toRegExp(r`((?<=xy?|\G|a)b)`).exec('cbbab')?.index).toBe(4);
+        expect(toRegExp(r`(?<=\G|a)b`).exec('cbba')).toBeNull();
       });
     });
   });

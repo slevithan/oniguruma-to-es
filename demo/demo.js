@@ -6,7 +6,7 @@ const state = {
   },
   opts: {
     accuracy: getValue('option-accuracy'),
-    allowSubclassBasedEmulation: getValue('option-allowSubclassBasedEmulation'),
+    avoidSubclass: getValue('option-avoidSubclass'),
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
     maxRecursionDepth: getValue('option-maxRecursionDepth'),
@@ -35,7 +35,7 @@ function showOutput(el) {
     // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
     const compiled = OnigurumaToES.compile(input, flags, opts);
-    if (opts.allowSubclassBasedEmulation && compiled._internal) {
+    if (compiled._internal) {
       infoEl.classList.remove('hidden');
       outputEl.classList.add('subclass');
       output = getFormattedSubclass(compiled.pattern, compiled.flags, {
