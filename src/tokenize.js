@@ -66,8 +66,8 @@ const hexCharPattern = r`u(?:\p{AHex}{4})? | x\{[^\}]*\}? | x\p{AHex}{0,2}`;
 const escapedNumPattern = r`\d{1,3}`;
 const charClassOpenPattern = r`\[\^?\]?`;
 // Even with flag x, Onig doesn't allow whitespace to separate a quantifier from the `?` or `+`
-// that makes it lazy or possessive
-const quantifierRe = /[?*+][?+]?|\{\d+(?:,\d*)?\}\??/;
+// that makes it lazy or possessive. Possessive suffixes don't apply to interval quantifiers
+const quantifierRe = /[?*+][?+]?|\{(?:\d+(?:,\d*)?|,\d+)\}\??/;
 const tokenRe = new RegExp(r`
   \\ (?:
     ${controlCharPattern}
@@ -596,7 +596,7 @@ function createTokenForFlagMod(raw, context) {
 function createTokenForQuantifier(raw) {
   const data = {};
   if (raw[0] === '{') {
-    const {min, max} = /^\{(?<min>\d+)(?:,(?<max>\d*))?/.exec(raw).groups;
+    const {min, max} = /^\{(?<min>\d*)(?:,(?<max>\d*))?/.exec(raw).groups;
     const limit = 100_000;
     if (+min > limit || +max > limit) {
       throw new Error('Quantifier value unsupported in Oniguruma');

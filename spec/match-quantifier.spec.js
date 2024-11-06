@@ -7,26 +7,26 @@ beforeEach(() => {
 });
 
 describe('Quantifier', () => {
-  describe('greedy', () => {
-    // TODO: Add me
-    it('should', () => {
-      expect('').toExactlyMatch(r``);
-    });
-  });
+  // TODO: Add me
+  // describe('greedy', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
 
-  describe('lazy', () => {
-    // TODO: Add me
-    it('should', () => {
-      expect('').toExactlyMatch(r``);
-    });
-  });
+  // TODO: Add me
+  // describe('lazy', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
 
-  describe('possessive', () => {
-    // TODO: Add me
-    it('should', () => {
-      expect('').toExactlyMatch(r``);
-    });
-  });
+  // TODO: Add me
+  // describe('possessive', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
 
   describe('quantifiability', () => {
     it('should throw at start of pattern, group, or alternative', () => {
@@ -56,6 +56,7 @@ describe('Quantifier', () => {
       expect(() => toDetails(r`\K+`)).toThrow();
       expect(() => toDetails(r`(?i)+`)).toThrow();
       expect(() => toDetails(r`(?-i)+`)).toThrow();
+      expect(() => toDetails(r`(?i-m)+`)).toThrow();
     });
   });
 });
