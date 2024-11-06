@@ -28,13 +28,14 @@ function showOutput(el) {
   infoEl.classList.add('hidden');
   const opts = {
     ...state.opts,
+    flags,
     maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
   };
   let output = '';
   try {
     // Use `compile` but display output as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
-    const compiled = OnigurumaToES.compile(input, flags, opts);
+    const compiled = OnigurumaToES.compile(input, opts);
     if (compiled._internal) {
       infoEl.classList.remove('hidden');
       outputEl.classList.add('subclass');

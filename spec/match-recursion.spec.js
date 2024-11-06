@@ -8,18 +8,18 @@ beforeEach(() => {
 
 describe('Recursion', () => {
   it('should throw if recursion used with strict accuracy', () => {
-    expect(() => compile(r`a\g<0>?`, '', {accuracy: 'strict'})).toThrow();
-    expect(() => compile('', '', {accuracy: 'strict'})).not.toThrow();
+    expect(() => compile(r`a\g<0>?`, {accuracy: 'strict'})).toThrow();
+    expect(() => compile('', {accuracy: 'strict'})).not.toThrow();
   });
 
   it('should throw if recursion used with null maxRecursionDepth', () => {
-    expect(() => compile(r`a\g<0>?`, '', {maxRecursionDepth: null})).toThrow();
-    expect(() => compile('', '', {maxRecursionDepth: null})).not.toThrow();
+    expect(() => compile(r`a\g<0>?`, {maxRecursionDepth: null})).toThrow();
+    expect(() => compile('', {maxRecursionDepth: null})).not.toThrow();
   });
 
   it('should throw if maxRecursionDepth is not null or an integer 2-100', () => {
     for (const value of [-2, 0, 1, 2.5, 101, Infinity, '2', '', undefined, NaN, false]) {
-      expect(() => compile('', '', {maxRecursionDepth: value})).toThrow();
+      expect(() => compile('', {maxRecursionDepth: value})).toThrow();
     }
   });
 
@@ -34,7 +34,7 @@ describe('Recursion', () => {
         '<>', '<<>>', '<a<b<c>d>e>', '<<<<<<a>>>bc>>>',
       ]).toExactlyMatch(pattern);
       expect(
-        'test > <balanced <<brackets>>> <> <<a>> < <b>'.match(toRegExp(pattern, '', {global: true}))
+        'test > <balanced <<brackets>>> <> <<a>> < <b>'.match(toRegExp(pattern, {global: true}))
       ).toEqual(['<balanced <<brackets>>>', '<>', '<<a>>', '<b>']);
     });
 

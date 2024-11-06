@@ -377,7 +377,7 @@ describe('Backreference', () => {
     });
     // Throw with strict `accuracy` if target not ESNext
     ['ES2018', 'ES2024'].forEach(target => {
-      expect(() => compile(r`(a)(?i)\1`, '', {
+      expect(() => compile(r`(a)(?i)\1`, {
         accuracy: 'strict',
         target,
       })).toThrow();

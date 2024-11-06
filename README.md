@@ -57,12 +57,11 @@ In browsers:
 
 ### `compile`
 
-Transpiles an Oniguruma regex pattern and flags to native JavaScript.
+Transpiles an Oniguruma pattern to native JavaScript.
 
 ```ts
 function compile(
   pattern: string,
-  flags?: OnigurumaFlags,
   options?: CompileOptions
 ): {
   pattern: string;
@@ -72,23 +71,17 @@ function compile(
 
 The returned `pattern` and `flags` can be provided directly to the JavaScript `RegExp` constructor. Various JavaScript flags might have been added or removed compared to the Oniguruma flags provided, as part of the emulation process.
 
-#### Type `OnigurumaFlags`
-
-A string with `i`, `m`, and `x` in any order (all optional).
-
-> [!IMPORTANT]
-> Oniguruma and JavaScript both have an `m` flag but with different meanings. Oniguruma's `m` is equivalent to JavaScript's `s` (`dotAll`).
-
 #### Type `CompileOptions`
 
 ```ts
 type CompileOptions = {
-    accuracy?: 'strict' | 'default' | 'loose';
-    global?: boolean;
-    hasIndices?: boolean;
-    maxRecursionDepth?: number | null;
-    optimize?: boolean;
-    target?: 'ES2018' | 'ES2024' | 'ESNext';
+  accuracy?: 'strict' | 'default' | 'loose';
+  flags?: OnigurumaFlags,
+  global?: boolean;
+  hasIndices?: boolean;
+  maxRecursionDepth?: number | null;
+  optimize?: boolean;
+  target?: 'ES2018' | 'ES2024' | 'ESNext';
 };
 ```
 
@@ -96,15 +89,12 @@ See [Options](#-options) for more details.
 
 ### `toRegExp`
 
-Transpiles an Oniguruma regex pattern and flags and returns a native JavaScript `RegExp`.
+Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
 
 ```ts
 function toRegExp(
   pattern: string,
-  flags?: OnigurumaFlags,
-  options?: (CompileOptions & {
-    avoidSubclass?: boolean;
-  })
+  options?: CompileOptions & {avoidSubclass?: boolean}
 ): RegExp;
 ```
 
@@ -113,23 +103,27 @@ function toRegExp(
 
 ### `toOnigurumaAst`
 
-Generates an Oniguruma AST from an Oniguruma pattern and flags.
+Generates an Oniguruma AST from an Oniguruma pattern.
 
 ```ts
 function toOnigurumaAst(
   pattern: string,
-  flags?: OnigurumaFlags
+  options?: {
+    flags?: OnigurumaFlags;
+  }
 ): OnigurumaAst;
 ```
 
 ### `toRegexAst`
 
-Generates a [`regex`](https://github.com/slevithan/regex) AST from an Oniguruma pattern and flags.
+Generates a [`regex`](https://github.com/slevithan/regex) AST from an Oniguruma pattern.
 
 ```ts
 function toRegexAst(
   pattern: string,
-  flags?: OnigurumaFlags
+  options?: {
+    flags?: OnigurumaFlags;
+  }
 ): RegexAst;
 ```
 
@@ -177,6 +171,15 @@ Supports all features of `default`, plus the following:
 - Silences errors for unsupported uses of the search-start anchor `\G` (a flexible assertion that doesn’t have a direct equivalent in JavaScript).
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using `loose` accuracy, if a `\G` assertion is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives.
 </details>
+
+### `flags`
+
+Oniguruma flags; a string with `i`, `m`, and `x` in any order (all optional).
+
+Flags can also be specified via modifiers in the pattern.
+
+> [!IMPORTANT]
+> Oniguruma and JavaScript both have an `m` flag but with different meanings. Oniguruma's `m` is equivalent to JavaScript's `s` (`dotAll`).
 
 ### `global`
 

@@ -9,6 +9,7 @@ import {recursion} from 'regex-recursion';
 /**
 @typedef {{
   accuracy?: keyof Accuracy;
+  flags?: import('./tokenize.js').OnigurumaFlags;
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
@@ -16,28 +17,24 @@ import {recursion} from 'regex-recursion';
   target?: keyof Target;
   tmGrammar?: boolean;
 }} CompileOptions
-@typedef {CompileOptions & {
-  avoidSubclass?: boolean;
-}} ToRegExpOptions
+@typedef {CompileOptions & {avoidSubclass?: boolean;}} ToRegExpOptions
 */
 
 /**
-Transpiles an Oniguruma regex pattern and flags to native JS.
+Transpiles an Oniguruma pattern to native JS.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
 @param {CompileOptions} [options]
 @returns {{
   pattern: string;
   flags: string;
 }}
 */
-function compile(pattern, flags, options) {
-  return compileInternal(pattern, flags, options);
+function compile(pattern, options) {
+  return compileInternal(pattern, options);
 }
 
 /**
 @param {string} pattern
-@param {import('./tokenize.js').OnigurumaFlags} [flags]
 @param {ToRegExpOptions} [options]
 @returns {{
   pattern: string;
@@ -48,9 +45,9 @@ function compile(pattern, flags, options) {
   };
 }}
 */
-function compileInternal(pattern, flags, options) {
+function compileInternal(pattern, options) {
   const opts = getOptions(options);
-  const tokenized = tokenize(pattern, flags);
+  const tokenized = tokenize(pattern, opts.flags);
   const onigurumaAst = parse(tokenized, {
     optimize: opts.optimize,
     skipBackrefValidation: opts.tmGrammar,
@@ -95,9 +92,12 @@ function getOptions(options) {
     // Prevents use of advanced emulation strategies that rely on returning a `RegExp` subclass,
     // resulting in certain patterns not being emulatable
     avoidSubclass: false,
-    // Include JS flag `g` in the result
+    // Oniguruma flags; a string with `i`, `m`, and `x` in any order (all optional). Oniguruma's
+    // `m` is equivalent to JavaScript's `s` (`dotAll`)
+    flags: '',
+    // Include JavaScript flag `g` in the result
     global: false,
-    // Include JS flag `d` in the result
+    // Include JavaScript flag `d` in the result
     hasIndices: false,
     // Specifies the recursion depth limit. Supported values are integers `2` to `100` and `null`.
     // If `null`, any use of recursion results in an error

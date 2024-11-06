@@ -79,7 +79,7 @@ const transpiledRegExpResult = (pattern, str, pos) => {
     if (pos) {
       options.global = true;
     }
-    const re = toRegExp(pattern, '', options);
+    const re = toRegExp(pattern, options);
     if (pos) {
       re.lastIndex = pos;
     }

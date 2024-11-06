@@ -17,19 +17,19 @@ describe('compile', () => {
   });
 
   it('should accept and translate supported flags', () => {
-    expect(compile('', 'i').flags).toContain('i');
-    expect(compile('', 'm').flags).toContain('s');
-    expect(compile('', 'm').flags).not.toContain('m');
-    expect(compile('', 'x').flags).not.toContain('x');
+    expect(compile('', {flags: 'i'}).flags).toContain('i');
+    expect(compile('', {flags: 'm'}).flags).toContain('s');
+    expect(compile('', {flags: 'm'}).flags).not.toContain('m');
+    expect(compile('', {flags: 'x'}).flags).not.toContain('x');
   });
 
   it('should throw for unexpected flags', () => {
-    expect(() => compile('', 'd')).toThrow();
-    expect(() => compile('', 'g')).toThrow();
-    expect(() => compile('', 's')).toThrow();
-    expect(() => compile('', 'u')).toThrow();
-    expect(() => compile('', 'v')).toThrow();
-    expect(() => compile('', 'y')).toThrow();
+    expect(() => compile('', {flags: 'd'})).toThrow();
+    expect(() => compile('', {flags: 'g'})).toThrow();
+    expect(() => compile('', {flags: 's'})).toThrow();
+    expect(() => compile('', {flags: 'u'})).toThrow();
+    expect(() => compile('', {flags: 'v'})).toThrow();
+    expect(() => compile('', {flags: 'y'})).toThrow();
   });
 
   it('should add flag v if target unspecified', () => {
@@ -37,16 +37,16 @@ describe('compile', () => {
   });
 
   it('should add flag v for target ES2024+', () => {
-    expect(compile('', '', {target: 'ES2024'}).flags).toBe('v');
-    expect(compile('', '', {target: 'ESNext'}).flags).toBe('v');
+    expect(compile('', {target: 'ES2024'}).flags).toBe('v');
+    expect(compile('', {target: 'ESNext'}).flags).toBe('v');
   });
 
   it('should add flag u for target ES2018', () => {
-    expect(compile('', '', {target: 'ES2018'}).flags).toBe('u');
+    expect(compile('', {target: 'ES2018'}).flags).toBe('u');
   });
 
   it('should throw for unexpected targets', () => {
-    expect(() => compile('', '', {target: 'ES6'})).toThrow();
-    expect(() => compile('', '', {target: 'ES2019'})).toThrow();
+    expect(() => compile('', {target: 'ES6'})).toThrow();
+    expect(() => compile('', {target: 'ES2019'})).toThrow();
   });
 });

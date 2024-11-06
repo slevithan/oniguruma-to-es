@@ -68,7 +68,7 @@ describe('Assertion', () => {
     });
 
     it('should match only at the start of the search when applied repeatedly', () => {
-      expect('abbcbb'.match(toRegExp(r`\G[ab]`, '', {global: true}))).toEqual(['a', 'b', 'b']);
+      expect('abbcbb'.match(toRegExp(r`\G[ab]`, {global: true}))).toEqual(['a', 'b', 'b']);
     });
 
     // Unsupported; not emulatable without a subclass
@@ -129,14 +129,14 @@ describe('Assertion', () => {
     it('should allow if leading in a leading positive lookahead', () => {
       expect('a').toExactlyMatch(r`(?=\G)a`);
       expect('a').toExactlyMatch(r`(?=\Ga)a`);
-      expect('aaba'.match(toRegExp(r`(?=\Ga)a`, '', {global: true}))).toEqual(['a', 'a']);
+      expect('aaba'.match(toRegExp(r`(?=\Ga)a`, {global: true}))).toEqual(['a', 'a']);
       expect(['a', 'b']).toExactlyMatch(r`(?=\G)a|\Gb`);
       // Similar but not covered
       [ r`(?=\G|)a`,
         r`(?:(?=\G))?a`,
         r`(?=\G)a|b`,
       ].forEach(pattern => {
-        expect(() => compile(pattern, '', {avoidSubclass: true})).toThrow();
+        expect(() => compile(pattern, {avoidSubclass: true})).toThrow();
       });
     });
 
@@ -152,7 +152,7 @@ describe('Assertion', () => {
         r`(?:(?<=\G))?a`,
         r`(?<=\G)a|b`,
       ].forEach(pattern => {
-        expect(() => compile(pattern, '', {avoidSubclass: true})).toThrow();
+        expect(() => compile(pattern, {avoidSubclass: true})).toThrow();
       });
     });
 
@@ -164,8 +164,8 @@ describe('Assertion', () => {
     });
 
     it('should throw if leading in a leading negative lookaround', () => {
-      expect(() => compile(r`(?!\G)a`, '', {avoidSubclass: true})).toThrow();
-      expect(() => compile(r`(?<!\G)a`, '', {avoidSubclass: true})).toThrow();
+      expect(() => compile(r`(?!\G)a`, {avoidSubclass: true})).toThrow();
+      expect(() => compile(r`(?<!\G)a`, {avoidSubclass: true})).toThrow();
     });
 
     // Just documenting current behavior
@@ -189,7 +189,7 @@ describe('Assertion', () => {
       ];
       patterns.forEach(pattern => {
         expect(() => compile(pattern)).toThrow();
-        expect(toRegExp(pattern, '', {accuracy: 'loose'}).sticky).toBe(true);
+        expect(toRegExp(pattern, {accuracy: 'loose'}).sticky).toBe(true);
       });
     });
 
@@ -199,9 +199,7 @@ describe('Assertion', () => {
         // Matches with `^` since not global
         expect(toRegExp(r`(^|\G)a`).exec('b\na')?.index).toBe(2);
         // Match the first 3 and last 1
-        expect('aaabaaacaa\na'.match(toRegExp(
-          r`(^|\G)a`, '', {global: true}
-        ))).toEqual(['a', 'a', 'a', 'a']);
+        expect('aaabaaacaa\na'.match(toRegExp(r`(^|\G)a`, {global: true}))).toEqual(['a', 'a', 'a', 'a']);
         expect(toRegExp(r`(?:^|\G)a`).exec('b\na')?.index).toBe(2);
         expect(toRegExp(r`(\G|^)a`).exec('b\na')?.index).toBe(2);
         expect(toRegExp(r`(?:(\G|^)a)`).exec('b\na')?.index).toBe(2);

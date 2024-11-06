@@ -17,34 +17,37 @@ import {tokenize} from './tokenize.js';
 //    reinventing the wheel for complex features that `regex` already knows how to transpile to JS.
 
 /**
-Generates an Oniguruma AST from an Oniguruma pattern and flags.
+Generates an Oniguruma AST from an Oniguruma pattern.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
+@param {{
+  flags?: import('./tokenize.js').OnigurumaFlags;
+}} [options]
 @returns {import('./parse.js').OnigurumaAst}
 */
-function toOnigurumaAst(pattern, flags) {
-  return parse(tokenize(pattern, flags));
+function toOnigurumaAst(pattern, options) {
+  return parse(tokenize(pattern, options?.flags));
 }
 
 /**
-Generates a `regex` AST from an Oniguruma pattern and flags.
+Generates a `regex` AST from an Oniguruma pattern.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
+@param {{
+  flags?: import('./tokenize.js').OnigurumaFlags;
+}} [options]
 @returns {import('./transform.js').RegexAst}
 */
-function toRegexAst(pattern, flags) {
-  return transform(toOnigurumaAst(pattern, flags));
+function toRegexAst(pattern, options) {
+  return transform(toOnigurumaAst(pattern, options));
 }
 
 /**
-Transpiles an Oniguruma regex pattern and flags and returns a native JS RegExp.
+Transpiles an Oniguruma pattern and returns a native JS RegExp.
 @param {string} pattern Oniguruma regex pattern.
-@param {import('./tokenize.js').OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
 @param {import('./compile.js').ToRegExpOptions} [options]
 @returns {RegExp}
 */
-function toRegExp(pattern, flags, options) {
-  const result = compileInternal(pattern, flags, options);
+function toRegExp(pattern, options) {
+  const result = compileInternal(pattern, options);
   if (result._internal) {
     return new WrappedRegExp(result.pattern, result.flags, result._internal);
   }

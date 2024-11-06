@@ -26,9 +26,9 @@ function wasFullStrMatch(match, str) {
 // of strings and one is found to not match; they all need to not match
 function matchWithAllTargets({pattern, flags, strings, targets, accuracy}, {exact, negate}) {
   for (const target of targets) {
-    const re = toRegExp(pattern, flags, {accuracy, target});
+    const re = toRegExp(pattern, {accuracy, flags, target});
     for (const str of strings) {
-      // In case `flags` includes `g` or `y`
+      // In case the regex includes flag g or y
       re.lastIndex = 0;
       const match = re.exec(str);
       const failed = negate ?
