@@ -127,6 +127,14 @@ describe('Assertion', () => {
       expect('a').toExactlyMatch(r`(?=\G)a`);
       expect('a').toExactlyMatch(r`(?=\Ga)a`);
       expect('aaba'.match(toRegExp(r`(?=\Ga)a`, '', {global: true}))).toEqual(['a', 'a']);
+      expect(['a', 'b']).toExactlyMatch(r`(?=\G)a|\Gb`);
+      // Similar but not covered
+      [ r`(?=\G|)a`,
+        r`(?:(?=\G))?a`,
+        r`(?=\G)a|b`,
+      ].forEach(pattern => {
+        expect(() => compile(pattern)).toThrow();
+      });
     });
 
     it('should allow if trailing in a leading positive lookbehind', () => {
@@ -135,6 +143,14 @@ describe('Assertion', () => {
       let re = toRegExp(r`(?<=a\G)a`);
       re.lastIndex = 3;
       expect(re.exec('abaa')?.index).toBe(3);
+      expect(['a', 'b']).toExactlyMatch(r`(?<=\G)a|\Gb`);
+      // Similar but not covered
+      [ r`(?<=\G|)a`,
+        r`(?:(?<=\G))?a`,
+        r`(?<=\G)a|b`,
+      ].forEach(pattern => {
+        expect(() => compile(pattern)).toThrow();
+      });
     });
 
     it('should throw if leading in a leading positive lookbehind', () => {
@@ -154,7 +170,7 @@ describe('Assertion', () => {
       expect(() => compile(r`\Ga|\G\Gb`)).toThrow();
     });
 
-    // Could support by replacing `\G` with `(?!)`
+    // Note: Could support by replacing `\G` with `(?!)`, but these forms aren't useful
     it('should throw at unmatchable positions', () => {
       expect(() => compile(r`a\Gb`)).toThrow();
       expect(() => compile(r`(?<=a\Gb)`)).toThrow();
@@ -162,12 +178,15 @@ describe('Assertion', () => {
       expect(() => compile(r`(?=ab\G)`)).toThrow();
     });
 
-    // Unsupported; some or all might be emulatable
-    it('should throw for other unsupported uses', () => {
-      expect(() => compile(r`(?<=\G|)a`)).toThrow();
-      expect(() => compile(r`(?:(?<=\G))?a`)).toThrow();
-      expect('a').toExactlyMatch(r`(?=\G)a|\Gb`);
-      expect(() => compile(r`(?=\G)a|b`)).toThrow();
+    it('should allow unsupported forms if using loose emulation', () => {
+      const patterns = [
+        r`a\G`,
+        r`\G|`,
+      ];
+      patterns.forEach(pattern => {
+        expect(() => compile(pattern)).toThrow();
+        expect(toRegExp(pattern, '', {emulation: 'loose'}).sticky).toBe(true);
+      });
     });
 
     describe('subclass strategies', () => {

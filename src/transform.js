@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, As
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './utils.js';
+import {cp, EmulationMode, getNewCurrentFlags, getOrCreate, isMinTarget, r, Target} from './utils.js';
 
 /**
 @typedef {{
@@ -22,7 +22,7 @@ then down-convert to the desired JS target version.
 @param {{
   allowSubclassBasedEmulation?: boolean;
   bestEffortTarget?: keyof Target;
-  emulation?: 'strict' | 'default' | 'loose';
+  emulation?: keyof EmulationMode;
 }} [options]
 @returns {RegexAst}
 */
@@ -40,7 +40,7 @@ function transform(ast, options) {
     ...options,
   };
   // AST changes that work together with a `RegExp` subclass to add advanced emulation
-  const strategy = opts.allowSubclassBasedEmulation ? applySubclassStrategies(ast) : null;
+  const strategy = opts.allowSubclassBasedEmulation ? applySubclassStrategies(ast, opts.emulation) : null;
   const firstPassState = {
     emulation: opts.emulation,
     flagDirectivesByAlt: new Map(),
@@ -114,7 +114,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {supportedGNodes}) {
+  Assertion({node, ast, remove, replaceWith}, {emulation, supportedGNodes}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -123,8 +123,8 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?<=\A|\n)`));
     } else if (kind === AstAssertionKinds.search_start) {
-      if (!supportedGNodes.has(node)) {
-        throw new Error(r`Uses "\G" in a way that's unsupported; try allowSubclassBasedEmulation`);
+      if (!supportedGNodes.has(node) && emulation !== 'loose') {
+        throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
       ast.flags.sticky = true;
       remove();
@@ -266,7 +266,7 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}, {supportedGNodes}) {
+  Pattern({node}, {emulation, supportedGNodes}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
@@ -286,8 +286,8 @@ const FirstPassVisitor = {
         hasAltWithoutLeadG = true;
       }
     }
-    if (hasAltWithLeadG && hasAltWithoutLeadG) {
-      throw new Error(r`Uses "\G" in a way that's unsupported; try allowSubclassBasedEmulation`);
+    if (hasAltWithLeadG && hasAltWithoutLeadG && emulation !== 'loose') {
+      throw new Error(r`Uses "\G" in a way that's unsupported`);
     }
     // These nodes will be removed when traversed; other `\G` nodes will error
     leadingGs.forEach(g => supportedGNodes.add(g))
@@ -567,7 +567,7 @@ function adoptAndSwapKids(parent, kids) {
   return parent;
 }
 
-function applySubclassStrategies(ast) {
+function applySubclassStrategies(ast, emulation) {
   // Special case handling that requires coupling with a `RegExp` subclass (see `WrappedRegExp`).
   // These changes add emulation support for some common patterns that are otherwise unsupportable.
   // Only one subclass strategy is supported per pattern
@@ -585,7 +585,7 @@ function applySubclassStrategies(ast) {
   const firstElIn = hasWrapperGroup ? firstEl.alternatives[0].elements[0] : firstEl;
   const singleAltIn = hasWrapperGroup ? firstEl.alternatives[0] : alts[0];
 
-  // ## Subclass strategy `line_or_search_start`: Support leading `(^|\G)` and similar
+  // ## Strategy `line_or_search_start`: Support leading `(^|\G)` and similar
   if (
     (firstElIn.type === AstTypes.CapturingGroup || firstElIn.type === AstTypes.Group) &&
     firstElIn.alternatives.length === 2 &&
@@ -608,7 +608,7 @@ function applySubclassStrategies(ast) {
     }
   }
 
-  // ## Subclass strategy `not_search_start`: Support leading `(?!\G)` and similar
+  // ## Strategy `not_search_start`: Support leading `(?!\G)` and similar
   function isNegG(node) {
     return isLookaround(node) &&
       node.negate &&
@@ -628,8 +628,8 @@ function applySubclassStrategies(ast) {
     return {name: 'not_search_start'};
   }
 
-  // ## Subclass strategy `after_search_start_or_subpattern`: Support leading `(?<=\G|…)` and
-  // similar. NB: Leading `(?<=\G)` without other alts is already supported; no need for a subclass
+  // ## Strategy `after_search_start_or_subpattern`: Support leading `(?<=\G|…)` and similar
+  // Note: Leading `(?<=\G)` without other alts is already supported; no need for a subclass
   if (
     isLookaround(firstElIn) &&
     !firstElIn.negate &&
@@ -645,22 +645,29 @@ function applySubclassStrategies(ast) {
       }
     });
     if (hasGAlt && siblingAlts.length) {
+      let supported = true;
       if (siblingAlts.some(alt => alt.elements.some(el => {
         // Check for nodes that are or can include captures
         return el.type === AstTypes.CapturingGroup || el.type === AstTypes.Group || el.type === AstTypes.Subroutine || isLookaround(el);
       }))) {
-        throw new Error(r`Uses "\G" in a way that's unsupported`);
+        if (emulation === 'loose') {
+          supported = false;
+        } else {
+          throw new Error(r`Uses "\G" in a way that's unsupported`);
+        }
       }
-      // [HACK] Replace the lookbehind with an emulation marker since from here it isn't easy to
-      // acurately extract what will later become the generated subpattern
-      const emulationGroup = adoptAndSwapKids(createGroup(), [
-        adoptAndSwapKids(createAlternative(), [createUnicodeProperty('<<', {skipPropertyNameValidation: true})]),
-        ...siblingAlts,
-        adoptAndSwapKids(createAlternative(), [createUnicodeProperty('>>', {skipPropertyNameValidation: true})]),
-      ]);
-      emulationGroup.parent = firstElIn.parent;
-      firstElIn.parent.elements[0] = emulationGroup;
-      return {name: 'after_search_start_or_subpattern'};
+      if (supported) {
+        // [HACK] Replace the lookbehind with an emulation marker since it isn't easy from here to
+        // acurately extract what will later become the generated subpattern
+        const emulationGroup = adoptAndSwapKids(createGroup(), [
+          adoptAndSwapKids(createAlternative(), [createUnicodeProperty('<<', {skipPropertyNameValidation: true})]),
+          ...siblingAlts,
+          adoptAndSwapKids(createAlternative(), [createUnicodeProperty('>>', {skipPropertyNameValidation: true})]),
+        ]);
+        emulationGroup.parent = firstElIn.parent;
+        firstElIn.parent.elements[0] = emulationGroup;
+        return {name: 'after_search_start_or_subpattern'};
+      }
     }
   }
   return null;

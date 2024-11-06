@@ -1,6 +1,12 @@
 const cp = String.fromCodePoint;
 const r = String.raw;
 
+const EmulationMode = /** @type {const} */ ({
+  strict: 'strict',
+  default: 'default',
+  loose: 'loose',
+});
+
 const EsVersion = {
   ES2018: 2018,
   ES2024: 2024,
@@ -45,6 +51,7 @@ function throwIfNot(value, msg) {
 
 export {
   cp,
+  EmulationMode,
   EsVersion,
   getNewCurrentFlags,
   getOrCreate,
