@@ -45,7 +45,7 @@
         </select>
         <code>target</code>
         <img src="https://upload.wikimedia.org/wikipedia/commons/9/99/Unofficial_JavaScript_logo_2.svg" width="15" height="15">
-        <span class="tip tip-lg">JS version potentially required; ES2024 regexes universally supported since 2023</span>
+        <span class="tip tip-lg"><code>ES2024</code> regexes need Node.js 20 or any 2023-era browser</span>
       </label>
       <label>
         <select id="option-accuracy" onchange="setOption('accuracy', this.value)">
@@ -54,7 +54,7 @@
           <option value="loose">loose</option>
         </select>
         <code>accuracy</code>
-        <span class="tip tip-lg">Default permits a few close approximations to support additional features</span>
+        <span class="tip tip-lg"><code>default</code> permits a few close approximations to support additional features</span>
       </label>
     </p>
     <details>
@@ -81,7 +81,7 @@
             <label>
               <input type="checkbox" id="option-avoidSubclass" onchange="setOption('avoidSubclass', this.checked)">
               <code>avoidSubclass</code>
-              <span class="tip tip-lg">Disables advanced emulation strategies that rely on a <code>RegExp</code> subclass</span>
+              <span class="tip tip-lg">Disables advanced emulation strategies for <code>\G</code> that rely on a <code>RegExp</code> subclass</span>
             </label>
           </p>
           <p>
@@ -97,7 +97,7 @@
             <label>
               <input type="checkbox" id="option-verbose" onchange="setOption('verbose', this.checked)">
               <code>verbose</code>
-              <span class="tip tip-lg">Disables optimizations that simplify the pattern</span>
+              <span class="tip tip-lg">Disables optimizations that simplify the pattern without changing the meaning</span>
             </label>
           </p>
           <p>
