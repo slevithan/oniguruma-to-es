@@ -248,10 +248,10 @@ Sets the JavaScript language version for the generated pattern and flags. Later 
   - Generated regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case). Minimum requirement for any regex is Node.js 6 or a 2016-era browser.
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
-  - Generated regexes require Node.js 20 or a 2023-era browser ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
+  - Generated regexes require Node.js 20 or any 2023-era browser ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
 - `ESNext`: Uses JS flag `v` and allows use of flag groups and duplicate group names.
   - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
-  - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support).
+  - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support for flag groups).
 </details>
 
 ### `tmGrammar`
