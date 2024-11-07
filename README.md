@@ -5,18 +5,18 @@
 
 A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the browser and on your server. Use it to:
 
-- Take advantage of Oniguruma's extended regex capabilities in JavaScript.
+- Take advantage of Oniguruma's extended regex capabilities in JavaScript, with support for many additional features.
 - Run regexes intended for Oniguruma in JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
 - Share regexes across your Ruby and JavaScript code.
 
-Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** and its regexes **run much faster** since they run as native JavaScript.
-
-> [!NOTE]
-> This library is currently in beta and has known bugs.
+Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** (just the WASM binary is > 460 KB) and its regexes **run much faster** since they run as native JavaScript.
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
 Oniguruma-To-ES deeply understands all of the hundreds of large and small differences in Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about precisely following Oniguruma syntax rules and ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `accuracy` option to throw for such patterns (see details below).
+
+> [!NOTE]
+> This library is currently in beta and has several known bugs. However, it's already quite robust and is ready for use. Please report any issues.
 
 ## 📜 Contents
 
@@ -62,7 +62,7 @@ In browsers:
 
 ### `toRegExp`
 
-Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
+Transpiles an Oniguruma pattern and returns a JavaScript `RegExp`.
 
 > [!TIP]
 > Try it in the [demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/).
@@ -94,7 +94,7 @@ See [Options](#-options) for more details.
 
 ### `toDetails`
 
-Transpiles an Oniguruma pattern to the parts needed to construct a native JavaScript `RegExp`.
+Transpiles an Oniguruma pattern to the parts needed to construct a JavaScript `RegExp`.
 
 ```ts
 function toDetails(
@@ -110,13 +110,13 @@ function toDetails(
 };
 ```
 
-The returned `pattern` and `flags` might be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `strategy` can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
+The returned `flags` (as well as the `pattern`, of course) might be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `strategy` can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
 
-If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case, and any patterns that are emulatable only via `EmulatedRegExp` throw an error.
+If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case, and any patterns that rely on `EmulatedRegExp`'s additional handling for emulation throw an error.
 
 ### `EmulatedRegExp`
 
-Can be provided results from `toDetails` to produce the same result as `toRegExp`.
+Works the same as the native JavaScript `RegExp` constructor in all contexts, but can be provided results from `toDetails` to produce the same result as `toRegExp`.
 
 ```ts
 class EmulatedRegExp extends RegExp {
@@ -146,7 +146,7 @@ function toOnigurumaAst(
 
 ## 🔩 Options
 
-These options are shared by functions [`toRegExp`](#toregexp) and [`toDetails`](#todetails).
+The following options are shared by functions [`toRegExp`](#toregexp) and [`toDetails`](#todetails).
 
 ### `accuracy`
 
@@ -938,8 +938,8 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ### Footnotes
 
-1. Target `ES2018` doesn't allow Unicode property names added in JavaScript specifications after ES2018 to be used.
-2. Unicode blocks are easily emulatable but their character data would significantly increase library weight. They're also a deeply flawed and arguably-unuseful feature, given the ability to use Unicode scripts and other properties.
+1. Target `ES2018` doesn't allow using Unicode property names added in JavaScript specifications after ES2018.
+2. Unicode blocks (which in Oniguruma are used with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also a flawed and arguably-unuseful feature, given the ability to use Unicode scripts and other properties.
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 4. Target `ES2018` doesn't support nested *negated* character classes.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
