@@ -9,7 +9,7 @@ A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the bro
 - Run regexes intended for Oniguruma in JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
 - Share regexes across your Ruby and JavaScript code.
 
-Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** (the WASM binary alone is > 460 KB) and its regexes typically **run much faster** since they run as native JavaScript.
+Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** (the WASM binary alone is 460+ KB) and its regexes typically **run much faster** since they run as native JavaScript.
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
@@ -236,7 +236,7 @@ Higher limits have no effect on regexes that don't use recursion, so you should 
 
 ### `target`
 
-*Default: `'ES2024'`.*
+One of `'ES2018'`, `'ES2024'` *(default)*, or `'ESNext'`.
 
 Sets the JavaScript language version for the generated pattern and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
 
@@ -955,7 +955,7 @@ Oniguruma-To-ES fully supports mixed case-sensitivity (and handles the Unicode e
 
 Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a couple of minor/rare restrictions:
 
-- Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` or later if you need support for these Oniguruma features.
+- Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` or later if you need support for these features.
 - With targets before `ESNext`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
   - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
