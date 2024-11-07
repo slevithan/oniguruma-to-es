@@ -268,12 +268,12 @@ Disables optimizations that simplify the pattern when it doesn't change the mean
 
 ## ✅ Supported features
 
-Following are the supported features by target.
+Following are the supported features by target. The official Oniguruma [syntax doc](https://github.com/kkos/oniguruma/blob/master/doc/RE) doesn't cover many of the finer details described here.
 
 > [!NOTE]
 > Targets `ES2024` and `ESNext` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings.
 
-Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of Oniguruma-To-ES. Unsupported features throw an error.
+Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of this library. Unsupported features throw an error.
 
 <table>
   <tr>
