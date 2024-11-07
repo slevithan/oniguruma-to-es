@@ -66,7 +66,7 @@ Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
 function toRegExp(
   pattern: string,
   options?: Options
-): RegExp;
+): RegExp | EmulatedRegExp;
 ```
 
 #### Type `Options`
@@ -186,7 +186,7 @@ Supports all features of `default`, plus the following:
 
 *Default: `false`.*
 
-Prevents use of advanced emulation strategies that rely on returning a `RegExp` subclass, resulting in certain patterns not being emulatable.
+Disables advanced emulation strategies that rely on returning a `RegExp` subclass, resulting in certain patterns not being emulatable.
 
 ### `flags`
 
@@ -229,7 +229,7 @@ Higher limits have no effect on regexes that don't use recursion, so you should 
 
 *Default: `'ES2024'`.*
 
-Sets the JavaScript language version for generated patterns and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
+Sets the JavaScript language version for the generated pattern and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
 
 <details>
   <summary>More details</summary>

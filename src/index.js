@@ -99,7 +99,7 @@ function toOnigurumaAst(pattern, options) {
 Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {Options} [options]
-@returns {RegExp}
+@returns {RegExp | EmulatedRegExp}
 */
 function toRegExp(pattern, options) {
   const result = toDetails(pattern, options);

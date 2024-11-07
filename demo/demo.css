@@ -14,7 +14,7 @@ body {
 main {
   background-color: rgba(255, 255, 255, 0.9);
   max-width: 65rem;
-  padding: 2.8vw 4.5vw;
+  padding: 4vh 4.5vw 3vw 4.5vw;
   margin: 0 auto;
   box-shadow: 0 0 0 10px #80c0ff;
   border-radius: 0 0 15px 15px;
@@ -55,10 +55,67 @@ summary {
 
 label {
   margin-right: 0.5em;
+  position: relative;
+  display: inline-block;
 }
 
 label img {
   vertical-align: middle;
+}
+
+label .tip {
+  visibility: hidden;
+  text-align: center;
+  padding: 4px 8px;
+  background-color: #c9e4ff;
+  border-radius: 6px;
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  z-index: 1;
+}
+
+label:hover .tip {
+  visibility: visible;
+}
+
+label .tip:hover {
+  visibility: hidden;
+}
+
+label .tip::after {
+  content: " ";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #c9e4ff transparent transparent transparent;
+}
+
+label .tip-sm {
+  width: 130px;
+  margin-left: -65px;
+}
+
+label .tip-md {
+  width: 170px;
+  margin-left: -85px;
+}
+
+label .tip-lg {
+  width: 220px;
+  margin-left: -110px;
+}
+
+label .tip-xl {
+  width: 320px;
+  margin-left: -160px;
+}
+
+label .tip :is(code, kbd) {
+  background-color: #dceeff;
 }
 
 input[type='checkbox'] {

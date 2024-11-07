@@ -590,10 +590,13 @@ function applySubclassStrategies(ast, accuracy) {
     alts[0].elements.length === 1 &&
     (firstEl.type === AstTypes.CapturingGroup || firstEl.type === AstTypes.Group) &&
     firstEl.alternatives.length === 1;
-  // First element within first group if the group doesn't contain top-level alternation, else just
-  // the first element of the pattern; a wrapper might be used to apply flags to the full pattern
-  const firstElIn = hasWrapperGroup ? firstEl.alternatives[0].elements[0] : firstEl;
   const singleAltIn = hasWrapperGroup ? firstEl.alternatives[0] : alts[0];
+  // First el within first group if the group doesn't contain top-level alternation, else just the
+  // first el of the pattern; ex: a flag group might enclose the full pattern
+  const firstElIn = hasWrapperGroup ? singleAltIn.elements[0] : firstEl;
+  if (!firstElIn) {
+    return null;
+  }
 
   // ## Strategy `line_or_search_start`: Support leading `(^|\G)` and similar
   if (

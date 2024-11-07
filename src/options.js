@@ -29,8 +29,8 @@ function getOptions(options) {
   return {
     // Sets the level of emulation rigor/strictness.
     accuracy: 'default',
-    // Prevents use of advanced emulation strategies that rely on returning a `RegExp` subclass,
-    // resulting in certain patterns not being emulatable.
+    // Disables advanced emulation strategies that rely on returning a `RegExp` subclass, resulting
+    // in certain patterns not being emulatable.
     avoidSubclass: false,
     // Oniguruma flags; a string with `i`, `m`, and `x` in any order (all optional). Oniguruma's
     // `m` is equivalent to JavaScript's `s` (`dotAll`).
@@ -42,8 +42,8 @@ function getOptions(options) {
     // Specifies the recursion depth limit. Supported values are integers `2` to `100` and `null`.
     // If `null`, any use of recursion results in an error.
     maxRecursionDepth: 6,
-    // Sets the JavaScript language version for generated patterns and flags. Later targets allow
-    // faster processing, simpler generated source, and support for additional features.
+    // Sets the JavaScript language version for the generated pattern and flags. Later targets
+    // allow faster processing, simpler generated source, and support for additional features.
     target: 'ES2024',
     // Leave disabled unless the regex will be used in a TextMate grammar processor that merges
     // backreferences across `begin` and `end` patterns.
