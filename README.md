@@ -1,5 +1,8 @@
 # Oniguruma-To-ES
 
+[![npm version][npm-version-src]][npm-version-href]
+[![bundle][bundle-src]][bundle-href]
+
 A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the browser and on your server. Use it to:
 
 - Take advantage of Oniguruma's extended regex capabilities in JavaScript.
@@ -962,3 +965,10 @@ Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan).
 If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
 
 © 2024–present. MIT License.
+
+<!-- Badges -->
+
+[npm-version-src]: https://img.shields.io/npm/v/oniguruma-to-es?color=2381C2
+[npm-version-href]: https://npmjs.com/package/oniguruma-to-es
+[bundle-src]: https://deno.bundlejs.com/badge?q=oniguruma-to-es&treeshake=%5B%7BtoRegExp%7D%5D
+[bundle-href]: https://bundlejs.com/?q=oniguruma-to-es&treeshake=%5B%7BtoRegExp%7D%5D
