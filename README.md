@@ -968,7 +968,7 @@ If you want to support this project, I'd love your help by contributing improvem
 
 <!-- Badges -->
 
-[npm-version-src]: https://img.shields.io/npm/v/oniguruma-to-es?color=2381C2
+[npm-version-src]: https://img.shields.io/npm/v/oniguruma-to-es?color=78C372
 [npm-version-href]: https://npmjs.com/package/oniguruma-to-es
-[bundle-src]: https://deno.bundlejs.com/badge?q=oniguruma-to-es&treeshake=%5B%7BtoRegExp%7D%5D
-[bundle-href]: https://bundlejs.com/?q=oniguruma-to-es&treeshake=%5B%7BtoRegExp%7D%5D
+[bundle-src]: https://img.shields.io/bundlejs/size/oniguruma-to-es?color=78C372&label=minzip
+[bundle-href]: https://bundlejs.com/?q=oniguruma-to-es&treeshake=[*]
