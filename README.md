@@ -11,7 +11,7 @@ A lightweight **Oniguruma to JavaScript RegExp transpiler** that runs in the bro
 
 Compared to running the actual [Oniguruma](https://github.com/kkos/oniguruma) C library in JavaScript via WASM bindings (e.g. via [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma)), this library is **much lighter weight** and its regexes **run much faster** since they run as native JavaScript.
 
-> [!WARNING]
+> [!NOTE]
 > This library is currently in beta and has known bugs.
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
@@ -36,6 +36,7 @@ npm install oniguruma-to-es
 import {toRegExp} from 'oniguruma-to-es';
 ```
 
+<!--
 In browsers:
 
 ```html
@@ -44,6 +45,7 @@ In browsers:
   toRegExp(String.raw`…`);
 </script>
 ```
+-->
 
 <details>
   <summary>Using a global name (no import)</summary>
