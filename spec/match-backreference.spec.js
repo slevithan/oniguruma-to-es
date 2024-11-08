@@ -13,26 +13,13 @@ describe('Backreference', () => {
       expect('aa').toExactlyMatch(r`(a)\1`);
     });
 
-    it('should not match if it references a not-yet-closed group', () => {
-      expect('').not.toFindMatch(r`(\1)`);
-      expect('').not.toFindMatch(r`(((\2)))`);
-      expect(['a', 'aa']).not.toFindMatch(r`(a\1)`);
-      expect('').not.toFindMatch(r`(\g<2>(\1))`);
-      expect('').not.toFindMatch(r`(\g<2>(\2))`);
-    });
-
-    it('should throw if not enough captures to the left', () => {
+    it('should throw if group not defined', () => {
       expect(() => toDetails(r`\1`)).toThrow();
-      expect(() => toDetails(r`\1()`)).toThrow();
-      expect(() => toDetails(r`\2`)).toThrow();
       expect(() => toDetails(r`()\2`)).toThrow();
-      expect(() => toDetails(r`()\2()`)).toThrow();
       expect(() => toDetails(r`(()\3)`)).toThrow();
-      expect(() => toDetails(r`(()\3)()`)).toThrow();
     });
 
-    it('should throw if not enough captures to the left even when subroutines add captures', () => {
-      expect(() => toDetails(r`\g<1>\1()`)).toThrow();
+    it('should throw if group not defined even when subroutines add captures', () => {
       expect(() => toDetails(r`()\g<1>\2`)).toThrow();
       expect(() => toDetails(r`\g<1>(()\3)`)).toThrow();
     });
@@ -76,6 +63,26 @@ describe('Backreference', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\2)\g<1>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\2)\g<1>`);
     });
+
+    describe('to nonparticipating group', () => {
+      it('should not match if it references a not-yet-closed group', () => {
+        expect('').not.toFindMatch(r`(\1)`);
+        expect('').not.toFindMatch(r`(((\2)))`);
+        expect(['a', 'aa']).not.toFindMatch(r`(a\1)`);
+        expect('').not.toFindMatch(r`(\g<2>(\1))`);
+        expect('').not.toFindMatch(r`(\g<2>(\2))`);
+      });
+
+      it('should throw for forward references to defined groups', () => {
+        expect(() => toDetails(r`\1()`)).toThrow();
+        expect(() => toDetails(r`()\2()`)).toThrow();
+        expect(() => toDetails(r`(()\3)()`)).toThrow();
+      });
+
+      it('should throw for forward references to defined groups even when subroutines add captures', () => {
+        expect(() => toDetails(r`\g<1>\1()`)).toThrow();
+      });
+    });
   });
 
   describe('enclosed numbered backref', () => {
@@ -84,26 +91,13 @@ describe('Backreference', () => {
       expect('aa').toExactlyMatch(r`(a)\k'1'`);
     });
 
-    it('should not match if it references a not-yet-closed group', () => {
-      expect('').not.toFindMatch(r`(\k<1>)`);
-      expect('').not.toFindMatch(r`(((\k<2>)))`);
-      expect(['a', 'aa']).not.toFindMatch(r`(a\k<1>)`);
-      expect('').not.toFindMatch(r`(\g<2>(\k<1>))`);
-      expect('').not.toFindMatch(r`(\g<2>(\k<2>))`);
-    });
-
-    it('should throw if not enough captures to the left', () => {
+    it('should throw if group not defined', () => {
       expect(() => toDetails(r`\k<1>`)).toThrow();
-      expect(() => toDetails(r`\k<1>()`)).toThrow();
-      expect(() => toDetails(r`\k<2>`)).toThrow();
       expect(() => toDetails(r`()\k<2>`)).toThrow();
-      expect(() => toDetails(r`()\k<2>()`)).toThrow();
       expect(() => toDetails(r`(()\k<3>)`)).toThrow();
-      expect(() => toDetails(r`(()\k<3>)()`)).toThrow();
     });
 
-    it('should throw if not enough captures to the left even when subroutines add captures', () => {
-      expect(() => toDetails(r`\g<1>\k<1>()`)).toThrow();
+    it('should throw if group not defined even when subroutines add captures', () => {
       expect(() => toDetails(r`()\g<1>\k<2>`)).toThrow();
       expect(() => toDetails(r`\g<1>(()\k<3>)`)).toThrow();
     });
@@ -152,6 +146,26 @@ describe('Backreference', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\k<2>)\g<1>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\k<2>)\g<1>`);
     });
+
+    describe('to nonparticipating group', () => {
+      it('should not match if it references a not-yet-closed group', () => {
+        expect('').not.toFindMatch(r`(\k<1>)`);
+        expect('').not.toFindMatch(r`(((\k<2>)))`);
+        expect(['a', 'aa']).not.toFindMatch(r`(a\k<1>)`);
+        expect('').not.toFindMatch(r`(\g<2>(\k<1>))`);
+        expect('').not.toFindMatch(r`(\g<2>(\k<2>))`);
+      });
+
+      it('should throw for forward references to defined groups', () => {
+        expect(() => toDetails(r`\k<1>()`)).toThrow();
+        expect(() => toDetails(r`()\k<2>()`)).toThrow();
+        expect(() => toDetails(r`(()\k<3>)()`)).toThrow();
+      });
+
+      it('should throw for forward references to defined groups even when subroutines add captures', () => {
+        expect(() => toDetails(r`\g<1>\k<1>()`)).toThrow();
+      });
+    });
   });
 
   describe('enclosed relative numbered backref', () => {
@@ -160,32 +174,32 @@ describe('Backreference', () => {
       expect('aa').toExactlyMatch(r`(a)\k'-1'`);
     });
 
-    it('should not match if it references a not-yet-closed group', () => {
-      expect('').not.toFindMatch(r`(\k<-1>)`);
-      expect('').not.toFindMatch(r`(((\k<-2>)))`);
-      expect(['a', 'aa']).not.toFindMatch(r`(a\k<-1>)`);
-      expect('').not.toFindMatch(r`(\g<+1>(\k<-2>))`);
-      expect('').not.toFindMatch(r`(\g<+1>(\k<-1>))`);
+    it('should throw for relative 0', () => {
+      expect(() => toDetails(r`()\k<-0>`)).toThrow();
+      expect(() => toDetails(r`()\k<-00>`)).toThrow();
+      expect(() => toDetails(r`()\k<+0>`)).toThrow();
+      expect(() => toDetails(r`()\k<+00>`)).toThrow();
     });
 
-    it('should throw if not enough captures to the left', () => {
+    it('should throw if group not defined', () => {
       expect(() => toDetails(r`\k<-1>`)).toThrow();
-      expect(() => toDetails(r`\k<-1>()`)).toThrow();
-      expect(() => toDetails(r`\k<-2>`)).toThrow();
       expect(() => toDetails(r`()\k<-2>`)).toThrow();
-      expect(() => toDetails(r`()\k<-2>()`)).toThrow();
       expect(() => toDetails(r`(()\k<-3>)`)).toThrow();
+      expect(() => toDetails(r`\k<-1>()`)).toThrow();
+      expect(() => toDetails(r`()\k<-2>()`)).toThrow();
       expect(() => toDetails(r`(()\k<-3>)()`)).toThrow();
     });
 
-    it('should throw if not enough captures to the left even when subroutines add captures', () => {
+    it('should throw if group not defined with forward reference', () => {
+      expect(() => toDetails(r`\k<+1>`)).toThrow();
+      expect(() => toDetails(r`()\k<+1>`)).toThrow();
+      expect(() => toDetails(r`\k<+2>()`)).toThrow();
+    });
+
+    it('should throw if group not defined even when subroutines add captures', () => {
       expect(() => toDetails(r`\g<1>\k<-1>()`)).toThrow();
       expect(() => toDetails(r`()\g<1>\k<-2>`)).toThrow();
       expect(() => toDetails(r`\g<1>(()\k<-3>)`)).toThrow();
-    });
-
-    it('should throw for negative 0', () => {
-      expect(() => toDetails(r`()\k<-0>`)).toThrow();
     });
 
     it('should allow leading 0s', () => {
@@ -210,11 +224,6 @@ describe('Backreference', () => {
       expect(() => toDetails(r`(?<a>)\k<-1>`)).toThrow();
     });
 
-    it('should throw for forward relative numbers', () => {
-      expect(() => toDetails(r`()\k<+1>()`)).toThrow();
-      expect(() => toDetails(r`()\k'+1'()`)).toThrow();
-    });
-
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
       expect('abb').toExactlyMatch(r`(\w)\g<1>\k<-1>`);
       expect('aba').not.toFindMatch(r`(\w)\g<1>\k<-1>`);
@@ -233,6 +242,22 @@ describe('Backreference', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`((\w)\k<-1>)\g<1>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`((\w)\k<-1>)\g<1>`);
     });
+
+    describe('to nonparticipating group', () => {
+      it('should not match if it references a not-yet-closed group', () => {
+        expect('').not.toFindMatch(r`(\k<-1>)`);
+        expect('').not.toFindMatch(r`(((\k<-2>)))`);
+        expect(['a', 'aa']).not.toFindMatch(r`(a\k<-1>)`);
+        expect('').not.toFindMatch(r`(\g<+1>(\k<-2>))`);
+        expect('').not.toFindMatch(r`(\g<+1>(\k<-1>))`);
+      });
+
+      it('should throw for forward references to defined groups', () => {
+        expect(() => toDetails(r`\k<+1>()`)).toThrow();
+        expect(() => toDetails(r`\k'+1'()`)).toThrow();
+        expect(() => toDetails(r`()\k<+1>()`)).toThrow();
+      });
+    });
   });
 
   describe('named backref', () => {
@@ -241,44 +266,10 @@ describe('Backreference', () => {
       expect('aa').toExactlyMatch(r`(?<n>a)\k'n'`);
     });
 
-    it('should not match if it references a not-yet-closed group', () => {
-      expect('').not.toFindMatch(r`(?<a>\k<a>)`);
-      expect('').not.toFindMatch(r`(?<a>(?<b>(?<c>\k<b>)))`);
-      expect(['a', 'aa']).not.toFindMatch(r`(?<a>a\k<a>)`);
-      expect('').not.toFindMatch(r`(?<a>\g<b>(?<b>\k<a>))`);
-      expect('').not.toFindMatch(r`(?<a>\g<b>(?<b>\k<b>))`);
-      expect('').not.toFindMatch(r`(?<a>(?<a>\k<a>))`);
-      expect('aa').toExactlyMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-      expect(['a', 'b', 'ba', 'bb']).not.toFindMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-    });
-
-    it('should preclude not-yet-closed groups when multiplexing', () => {
-      expect('aa').toExactlyMatch(r`(?<a>a)(?<a>\k<a>)`);
-      expect('aba').toExactlyMatch(r`(?<n>a)(?<n>b\k<n>)`);
-      expect(['aa', 'bcb']).toExactlyMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-      expect(['a', 'bc', 'bca', 'bcc']).not.toFindMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-    });
-
-    it('should throw if capture is not to the left', () => {
+    it('should throw if group not defined', () => {
       expect(() => toDetails(r`\k<n>`)).toThrow();
-      expect(() => toDetails(r`\k<n>(?<n>)`)).toThrow();
-      expect(() => toDetails(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
-    });
-
-    it('should throw if capture is not to the left even when subroutines add captures', () => {
-      expect(() => toDetails(r`\g<n>\k<n>(?<n>)`)).toThrow();
+      expect(() => toDetails(r`(?<a>)\k<n>`)).toThrow();
+      expect(() => toDetails(r`\g<n>\k<n>`)).toThrow();
     });
 
     it('should throw for surrounding whitespace', () => {
@@ -338,56 +329,99 @@ describe('Backreference', () => {
       expect(['12301', '12302']).not.toFindMatch(r`(?<a>(?<b>[123]))\g<a>\g<a>(?<b>0)\k<b>`);
     });
 
-    it('should preclude groups not in the alternation path when multiplexing', () => {
-      // This enforces Oniguruma logic where backrefs to nonparticipating groups fail to match
-      // rather than JS logic where they match the empty string
-      expect(['aa', 'bb']).toExactlyMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-      expect(['a', 'b', 'ba']).not.toFindMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-      expect(['aa', 'bcb', 'bcc']).toExactlyMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-      expect(['a', 'bc', 'bca']).not.toFindMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
-    });
-
     it('should track independent captures when used in a group referenced by a subroutine', () => {
       expect(['aaaa', 'aabb', 'bbaa', 'bbbb']).toExactlyMatch(r`(?<a>(?<b>\w)\k<b>)\g<a>`);
       expect(['aaba', 'bbab']).not.toFindMatch(r`(?<a>(?<b>\w)\k<b>)\g<a>`);
     });
+
+    describe('to nonparticipating group', () => {
+      it('should not match if it references a not-yet-closed group', () => {
+        expect('').not.toFindMatch(r`(?<a>\k<a>)`);
+        expect('').not.toFindMatch(r`(?<a>(?<b>(?<c>\k<b>)))`);
+        expect(['a', 'aa']).not.toFindMatch(r`(?<a>a\k<a>)`);
+        expect('').not.toFindMatch(r`(?<a>\g<b>(?<b>\k<a>))`);
+        expect('').not.toFindMatch(r`(?<a>\g<b>(?<b>\k<b>))`);
+        expect('').not.toFindMatch(r`(?<a>(?<a>\k<a>))`);
+        expect('aa').toExactlyMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+        expect(['a', 'b', 'ba', 'bb']).not.toFindMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+      });
+
+      it('should preclude not-yet-closed groups when multiplexing', () => {
+        expect('aa').toExactlyMatch(r`(?<a>a)(?<a>\k<a>)`);
+        expect('aba').toExactlyMatch(r`(?<n>a)(?<n>b\k<n>)`);
+        expect(['aa', 'bcb']).toExactlyMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+        expect(['a', 'bc', 'bca', 'bcc']).not.toFindMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+      });
+
+      it('should throw for forward references to defined groups', () => {
+        expect(() => toDetails(r`\k<n>(?<n>)`)).toThrow();
+        expect(() => toDetails(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
+      });
+
+      it('should throw for forward references to defined groups even when subroutines add captures', () => {
+        expect(() => toDetails(r`\g<n>\k<n>(?<n>)`)).toThrow();
+      });
+
+      it('should preclude groups not in the alternation path when multiplexing', () => {
+        // This enforces Oniguruma logic where backrefs to nonparticipating groups fail to match
+        // rather than JS logic where they match the empty string
+        expect(['aa', 'bb']).toExactlyMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+        expect(['a', 'b', 'ba']).not.toFindMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+        expect(['aa', 'bcb', 'bcc']).toExactlyMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+        expect(['a', 'bc', 'bca']).not.toFindMatch({
+          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
+          maxTestTarget: maxTestTargetForDuplicateNames,
+        });
+      });
+    });
   });
 
-  it('should match case-insensitive backref to case-sensitive group', () => {
-    // Real support with target ESNext
-    expect(['aa', 'aA']).toExactlyMatch({
-      pattern: r`(a)(?i)\1`,
-      minTestTarget: minTestTargetForPatternMods,
-    });
-    expect(['Aa', 'AA']).not.toFindMatch({
-      pattern: r`(a)(?i)\1`,
-      minTestTarget: minTestTargetForPatternMods,
-    });
-    // Throw with strict `accuracy` if target not ESNext
-    ['ES2018', 'ES2024'].forEach(target => {
-      expect(() => toDetails(r`(a)(?i)\1`, {
-        accuracy: 'strict',
-        target,
-      })).toThrow();
-    });
-    // Matches only the same case as the reffed case-sensitive group with other `accuracy` values
-    ['default', 'loose'].forEach(accuracy => {
-      expect('aa').toExactlyMatch({
+  describe('case sensitivity', () => {
+    it('should match case-insensitive backref to case-sensitive group', () => {
+      // Real support with `target` ESNext
+      expect(['aa', 'aA']).toExactlyMatch({
         pattern: r`(a)(?i)\1`,
-        accuracy,
-        maxTestTarget: maxTestTargetForPatternMods,
+        minTestTarget: minTestTargetForPatternMods,
+      });
+      expect(['Aa', 'AA']).not.toFindMatch({
+        pattern: r`(a)(?i)\1`,
+        minTestTarget: minTestTargetForPatternMods,
+      });
+      // Throw with strict `accuracy` if `target` not ESNext
+      ['ES2018', 'ES2024'].forEach(target => {
+        expect(() => toDetails(r`(a)(?i)\1`, {
+          accuracy: 'strict',
+          target,
+        })).toThrow();
+      });
+      // Matches only the same case as the reffed case-sensitive group with other `accuracy` values
+      ['default', 'loose'].forEach(accuracy => {
+        expect('aa').toExactlyMatch({
+          pattern: r`(a)(?i)\1`,
+          accuracy,
+          maxTestTarget: maxTestTargetForPatternMods,
+        });
       });
     });
   });
