@@ -73,6 +73,8 @@ describe('Backreference', () => {
         expect('').not.toFindMatch(r`(\g<2>(\2))`);
       });
 
+      // For 1-9, else it becomes octal if not enough groups defined to the left, even if enough
+      // groups defined to the right
       it('should throw for forward references to defined groups', () => {
         expect(() => toDetails(r`\1()`)).toThrow();
         expect(() => toDetails(r`()\2()`)).toThrow();

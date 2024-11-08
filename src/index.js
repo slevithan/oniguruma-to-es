@@ -10,14 +10,14 @@ import {recursion} from 'regex-recursion';
 // compared to native JS RegExp is layered into all steps of the compilation process:
 // 1. Tokenizer: Understands Oniguruma syntax, with many large and small differences from JS.
 // 2. Parser: Builds an Oniguruma AST from the tokens with understanding of Oniguruma differences.
-// 3. Transformer: Converts the Oniguruma AST to a `regex` AST that preserves all Oniguruma
+// 3. Transformer: Converts the Oniguruma AST to a Regex+ AST that preserves all Oniguruma
 //    behavior. This is true even in cases of non-native-JS features that are supported by both
-//    `regex` and Oniguruma but with subtly different behavior in each (subroutines, flag x).
-// 4. Generator: Converts the `regex` AST to a `regex` pattern, flags, and options.
-// 5. Compiler: Components of the `regex` libray are used to transpile several remaining features
-//    that aren't native to JS (atomic groups, possessive quantifiers, recursion). `regex` uses a
+//    Regex+ and Oniguruma but with subtly different behavior in each (subroutines, flag x).
+// 4. Generator: Converts the Regex+ AST to a Regex+ pattern, flags, and options.
+// 5. Compiler: Components of the Regex+ libray are used to transpile several remaining features
+//    that aren't native to JS (atomic groups, possessive quantifiers, recursion). Regex+ uses a
 //    strict superset of JS RegExp syntax, so using it allows this library to benefit from not
-//    reinventing the wheel for complex features that `regex` already knows how to transpile to JS.
+//    reinventing the wheel for complex features that Regex+ already knows how to transpile to JS.
 
 /**
 @typedef {{
@@ -63,7 +63,7 @@ function toDetails(pattern, options) {
   let subpattern;
   if (regexAst._strategy) {
     // Look for an emulation marker added as part of the strategy. Do this after the pattern has
-    // been passed through `regex` plugins, so they can operate on the full pattern (e.g. backrefs
+    // been passed through Regex+ plugins, so they can operate on the full pattern (e.g. backrefs
     // might be rewritten when using some features)
     genPattern = genPattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
       subpattern = sub;

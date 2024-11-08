@@ -5,7 +5,7 @@ import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertie
 import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 
 /**
-Generates a `regex`-compatible `pattern`, `flags`, and `options` from a `regex` AST.
+Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
 @param {import('./transform.js').RegexAst} ast
 @param {import('.').Options} [options]
 @returns {{
@@ -125,7 +125,7 @@ function generate(ast, options) {
 
   const result = gen(ast);
   if (!minTargetEs2024) {
-    // Switch from flag v to u. By default, `regex` implicitly chooses; control it instead
+    // Switch from flag v to u. By default, Regex+ implicitly chooses; control it instead
     delete result.options.force.v;
     result.options.disable.v = true;
     result.options.unicodeSetsPlugin = null;
@@ -366,7 +366,7 @@ function genFlags(node, state) {
     (state.appliedGlobalFlags.ignoreCase ? 'i' : '') +
     (node.dotAll ? 's' : '') +
     (node.sticky ? 'y' : '')
-    // `regex` doesn't allow explicitly adding flags it handles implicitly, so there are no
+    // Regex+ doesn't allow explicitly adding flags it handles implicitly, so there are no
     // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added separately
   );
 }

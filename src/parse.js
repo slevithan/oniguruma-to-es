@@ -21,7 +21,7 @@ const AstTypes = {
   Regex: 'Regex',
   Subroutine: 'Subroutine',
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
-  // Used only by the transformer for `regex` ASTs
+  // Used only by the transformer for Regex+ ASTs
   Recursion: 'Recursion',
 };
 
@@ -367,7 +367,7 @@ function parseQuantifier({token, parent}) {
 // - Subroutines don't get their own capturing group numbers; ex: `(.)\g<1>\2` is invalid.
 // - Subroutines use the flags that apply to their referenced group, so e.g.
 //   `(?-i)(?<a>a)(?i)\g<a>` is fully case sensitive.
-// - Differences from PCRE/Perl/`regex` subroutines:
+// - Differences from PCRE/Perl/Regex+ subroutines:
 //   - Subroutines can't reference duplicate group names (though duplicate names are valid if no
 //     subroutines reference them).
 //   - Subroutines can't use absolute or relative numbers if named capture is used anywhere.

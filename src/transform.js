@@ -19,14 +19,14 @@ import emojiRegex from 'emoji-regex-xs';
 }} RegexAst
 */
 /**
-Transforms an Oniguruma AST in-place to a [`regex`](https://github.com/slevithan/regex) AST.
+Transforms an Oniguruma AST in-place to a [Regex+](https://github.com/slevithan/regex) AST.
 Targets `ESNext`, expecting the generator to then down-convert to the desired JS target version.
 
-`regex`'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close
+Regex+'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close
 to representing native ESNext `RegExp` but with some added features (atomic groups, possessive
-quantifiers, recursion). The AST doesn't use some of `regex`'s extended features like flag `x` or
+quantifiers, recursion). The AST doesn't use some of Regex+'s extended features like flag `x` or
 subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The
-AST represents what's needed to precisely reproduce Oniguruma behavior using `regex`.
+AST represents what's needed to precisely reproduce Oniguruma behavior using Regex+.
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
@@ -236,17 +236,17 @@ const FirstPassVisitor = {
       multiline: false,
       // JS flag y; no Onig equiv, but used for `\G` emulation
       sticky: node.sticky ?? false,
-      // Note: `regex` doesn't allow explicitly adding flags it handles implicitly, so leave out
+      // Note: Regex+ doesn't allow explicitly adding flags it handles implicitly, so leave out
       // properties `unicode` (JS flag u) and `unicodeSets` (JS flag v). Keep the existing values
       // for `ignoreCase` (flag i) and `dotAll` (JS flag s, but Onig flag m)
     });
-    // Options accepted by `regex`; see <github.com/slevithan/regex#-options>
+    // Options accepted by Regex+; see <github.com/slevithan/regex#-options>
     parent.options = {
       disable: {
-        // Onig uses different rules for flag x than `regex`, so disable the implicit flag
+        // Onig uses different rules for flag x than Regex+, so disable the implicit flag
         x: true,
         // Onig has no flag to control "named capture only" mode but contextually applies its
-        // behavior when named capturing is used, so disable `regex`'s implicit flag for it
+        // behavior when named capturing is used, so disable Regex+'s implicit flag for it
         n: true,
       },
       force: {

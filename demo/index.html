@@ -128,7 +128,7 @@
     const cp = String.fromCodePoint;
     function printAst(ast) {
       if (ast?.type !== 'Regex') {
-        throw new Error('Oniguruma or `regex` AST expected');
+        throw new Error('Oniguruma or Regex+ AST expected');
       }
       const isObject = value => ({}).toString.call(value) === '[object Object]';
       const nodeIds = new Map();
