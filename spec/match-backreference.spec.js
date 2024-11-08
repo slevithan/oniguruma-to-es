@@ -382,7 +382,7 @@ describe('Backreference', () => {
         target,
       })).toThrow();
     });
-    // Matches same case as group with other `accuracy` values
+    // Matches only the same case as the reffed case-sensitive group with other `accuracy` values
     ['default', 'loose'].forEach(accuracy => {
       expect('aa').toExactlyMatch({
         pattern: r`(a)(?i)\1`,

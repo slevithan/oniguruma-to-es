@@ -118,6 +118,19 @@ The returned `flags` (as well as the `pattern`, of course) might be different th
 
 If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case, and any patterns that rely on `EmulatedRegExp`'s additional handling for emulation throw an error.
 
+### `toOnigurumaAst`
+
+Generates an Oniguruma AST from an Oniguruma pattern.
+
+```ts
+function toOnigurumaAst(
+  pattern: string,
+  options?: {
+    flags?: OnigurumaFlags;
+  }
+): OnigurumaAst;
+```
+
 ### `EmulatedRegExp`
 
 Works the same as the native JavaScript `RegExp` constructor in all contexts, but can be provided results from `toDetails` to produce the same result as `toRegExp`.
@@ -133,19 +146,6 @@ class EmulatedRegExp extends RegExp {
     }
   );
 };
-```
-
-### `toOnigurumaAst`
-
-Generates an Oniguruma AST from an Oniguruma pattern.
-
-```ts
-function toOnigurumaAst(
-  pattern: string,
-  options?: {
-    flags?: OnigurumaFlags;
-  }
-): OnigurumaAst;
 ```
 
 ## 🔩 Options
@@ -620,7 +620,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Same as JS <code>^</code> <code>$</code> without flag <code>m</code><br>
+      ✔ Same as JS <code>^</code> <code>$</code> without JS flag <code>m</code><br>
     </td>
   </tr>
   <tr valign="top">

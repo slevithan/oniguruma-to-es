@@ -1,3 +1,9 @@
+const ui = {
+  input: document.getElementById('input'),
+  output: document.getElementById('output'),
+  subclassInfo: document.getElementById('subclass-info'),
+  alternateInfo: document.getElementById('alternate-info'),
+};
 const state = {
   flags: {
     i: getValue('flag-i'),
@@ -15,44 +21,95 @@ const state = {
   },
 };
 
-const inputEl = document.getElementById('input');
-autoGrow(inputEl);
-showOutput(inputEl);
+autoGrow();
+showTranspiled();
 
-function showOutput(el) {
-  const input = el.value;
-  const flags = `${state.flags.i ? 'i' : ''}${state.flags.m ? 'm' : ''}${state.flags.x ? 'x' : ''}`;
-  const outputEl = document.getElementById('output');
-  const infoEl = document.getElementById('info');
-  outputEl.classList.remove('error', 'subclass');
-  infoEl.classList.add('hidden');
-  const opts = {
-    ...state.opts,
-    flags,
-    maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
-  };
-  let output = '';
-  try {
-    // Use `toDetails` but display output as if `toRegExp` was called. This avoids erroring when
-    // the selected `target` includes features that don't work in the user's browser
-    const details = OnigurumaToES.toDetails(input, opts);
-    if (details.strategy) {
-      infoEl.classList.remove('hidden');
-      outputEl.classList.add('subclass');
-      output = getFormattedSubclass(details.pattern, details.flags, details.strategy);
-    } else {
-      output = `/${getRegExpLiteralPattern(details.pattern)}/${details.flags}`;
-    }
-  } catch (err) {
-    outputEl.classList.add('error');
-    output = `Error: ${err.message}`;
-  }
-  outputEl.innerHTML = escapeHtml(output);
+function autoGrow() {
+  ui.input.style.height = '0';
+  ui.input.style.height = (ui.input.scrollHeight + 5) + 'px';
 }
 
-function autoGrow(el) {
-  el.style.height = '0';
-  el.style.height = (el.scrollHeight + 5) + 'px';
+function showTranspiled() {
+  ui.output.classList.remove('error', 'subclass');
+  ui.subclassInfo.classList.add('hidden');
+  const options = {
+    ...state.opts,
+    flags: `${state.flags.i ? 'i' : ''}${state.flags.m ? 'm' : ''}${state.flags.x ? 'x' : ''}`,
+    maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
+  };
+  const errorObj = {error: true};
+  let details;
+  let result = '';
+  try {
+    // Use `toDetails` but display as if `toRegExp` was called. This avoids erroring when the
+    // selected `target` includes features that don't work in the user's browser
+    details = OnigurumaToES.toDetails(ui.input.value, options);
+    if (details.strategy) {
+      result = getFormattedSubclass(details.pattern, details.flags, details.strategy);
+      ui.subclassInfo.classList.remove('hidden');
+      ui.output.classList.add('subclass');
+    } else {
+      result = `/${getRegExpLiteralPattern(details.pattern)}/${details.flags}`;
+    }
+  } catch (err) {
+    details = errorObj;
+    result = `Error: ${err.message}`;
+    ui.output.classList.add('error');
+  }
+  ui.output.innerHTML = escapeHtml(result);
+
+  // ## Compare to all other accuracy/target combinations
+  const otherTargetAccuracyCombinations = ['ES2018', 'ES2024', 'ESNext'].flatMap(
+    t => ['loose', 'default', 'strict'].map(a => ({target: t, accuracy: a}))
+  ).filter(c => c.target !== options.target || c.accuracy !== options.accuracy);
+  const differents = [];
+  // Collect the different results, including differences in error status
+  for (const other of otherTargetAccuracyCombinations) {
+    let otherDetails;
+    try {
+      otherDetails = OnigurumaToES.toDetails(ui.input.value, {...options, ...other});
+    } catch (err) {
+      otherDetails = errorObj;
+    } finally {
+      if (!areDetailsEqual(details, otherDetails)) {
+        differents.push({
+          ...other,
+          error: !!otherDetails.error,
+        });
+      }
+    }
+  }
+  // Compose and display message about differences or lack thereof
+  if (differents.length) {
+    let str = '<p>🔀';
+    const withError = [];
+    const withDiff = [];
+    differents.forEach(d => (d.error ? withError : withDiff).push(d));
+    if (withError.length) {
+      str += ` Can't emulate for ${listDifferents(withError)}.`;
+    }
+    if (withDiff.length) {
+      str += ` Emulation uses different details for ${listDifferents(withDiff)}.`;
+    }
+    ui.alternateInfo.innerHTML = str;
+  } else {
+    ui.alternateInfo.innerHTML = `<p>🟰 Results are the same ${
+      details.error ? '' : '(apart from flag <code>u</code>/<code>v</code>) '
+    }with all other targets and accuracies.</p>`;
+  }
+}
+
+function areDetailsEqual(a, b) {
+  if (a.error && b.error) {
+    return true;
+  }
+  if (a.error !== b.error) {
+    return false;
+  }
+  return a.pattern === b.pattern &&
+    a.flags.replace(/[vu]/, '') === b.flags.replace(/[vu]/, '') &&
+    a.strategy?.name === b.strategy?.name &&
+    a.strategy?.subpattern === b.strategy?.subpattern;
 }
 
 function escapeHtml(str) {
@@ -76,12 +133,25 @@ function getValue(id) {
   return el.type === 'checkbox' ? el.checked : el.value;
 }
 
+function listDifferents(arr) {
+  const target = {};
+  for (const a of arr) {
+    target[a.target] ?? (target[a.target] = []);
+    target[a.target].push(a.accuracy);
+  }
+  return Object.keys(target).map(t => {
+    return `target <code>'${t}'</code> with ${
+      target[t].length > 1 ? 'accuracies' : 'accuracy'
+    } <code>'${target[t].join("'</code>/<code>'")}'</code>`;
+  }).join(', ');
+}
+
 function setFlag(flag, value) {
   state.flags[flag] = value;
-  showOutput(inputEl);
+  showTranspiled();
 }
 
 function setOption(option, value) {
   state.opts[option] = value;
-  showOutput(inputEl);
+  showTranspiled();
 }

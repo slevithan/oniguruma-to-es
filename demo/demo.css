@@ -200,7 +200,6 @@ pre, code, kbd, textarea {
   background: repeating-linear-gradient(45deg, #edfff1, #edfff1 3px, #deffd5 3px, #deffd5 10px);
 }
 
-#info {
-  margin-top: -12px;
-  padding: 0.6em;
+.info {
+  font-size: 0.9em;
 }
