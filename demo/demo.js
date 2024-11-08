@@ -80,8 +80,8 @@ function showTranspiled() {
     }
   }
   // Compose and display message about differences or lack thereof
+  let str = 'Tested all 9 <code>target</code>/<code>accuracy</code> combinations.';
   if (differents.length) {
-    let str = '<p>🔀';
     const withError = [];
     const withDiff = [];
     differents.forEach(d => (d.error ? withError : withDiff).push(d));
@@ -89,13 +89,13 @@ function showTranspiled() {
       str += ` Can't emulate for ${listDifferents(withError)}.`;
     }
     if (withDiff.length) {
-      str += ` Emulation ${details.error ? 'is possible' : 'uses different details'} for ${listDifferents(withDiff)}.`;
+      str += ` Emulation ${details.error ? 'is possible' : 'used different details'} for ${listDifferents(withDiff)}.`;
     }
-    ui.alternateInfo.innerHTML = str;
+    ui.alternateInfo.innerHTML = `<p>🔀 ${str}</p>`;
   } else {
-    ui.alternateInfo.innerHTML = `<p>🟰 Results are the same ${
-      details.error ? '' : '(apart from flag <code>u</code>/<code>v</code>) '
-    }with all other targets and accuracies.</p>`;
+    ui.alternateInfo.innerHTML = `<p>🟰 ${str} Results were the same${
+      details.error ? '' : `, except <code>ES2018</code> used flag <code>u</code>`
+    }.</p>`;
   }
 }
 
@@ -140,9 +140,9 @@ function listDifferents(arr) {
     target[a.target].push(a.accuracy);
   }
   return Object.keys(target).map(t => {
-    return `target <code>'${t}'</code> with ${
+    return `target <code>${t}</code> with ${
       target[t].length > 1 ? 'accuracies' : 'accuracy'
-    } <code>'${target[t].join("'</code>/<code>'")}'</code>`;
+    } <code>${target[t].join('</code>/<code>')}</code>`;
   }).join(', ');
 }
 
