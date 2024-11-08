@@ -89,7 +89,7 @@ function showTranspiled() {
       str += ` Can't emulate for ${listDifferents(withError)}.`;
     }
     if (withDiff.length) {
-      str += ` Emulation uses different details for ${listDifferents(withDiff)}.`;
+      str += ` Emulation ${details.error ? 'is possible' : 'uses different details'} for ${listDifferents(withDiff)}.`;
     }
     ui.alternateInfo.innerHTML = str;
   } else {

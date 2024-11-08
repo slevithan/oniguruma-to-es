@@ -7,6 +7,7 @@ html, body {height: 100%}
 
 body {
   font-family: Calibri, "Helvetica Neue", sans-serif;
+  color: #000;
   background-color: #c9e4ff;
   background: repeating-linear-gradient(45deg, #d6ebff, #d6ebff 3px, #c9e4ff 3px, #c9e4ff 10px);
 }
@@ -202,4 +203,9 @@ pre, code, kbd, textarea {
 
 .info {
   font-size: 0.9em;
+  color: #333;
+}
+
+.info code {
+  background-color: #f3f3f3;
 }
