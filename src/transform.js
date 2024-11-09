@@ -510,6 +510,7 @@ const ThirdPassVisitor = {
   Backreference({node, replaceWith}, state) {
     if (node.orphan) {
       state.highestOrphanBackref = Math.max(state.highestOrphanBackref, node.ref);
+      // Don't renumber; used with option `tmGrammar`
       return;
     }
     const reffedNodes = state.reffedNodesByBackreference.get(node);

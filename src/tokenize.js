@@ -75,8 +75,8 @@ const tokenRe = new RegExp(r`
     | ${encodedByteValuePattern}
     | ${hexCharPattern}
     | ${escapedNumPattern}
-    | [gk]<[^>]*>
-    | [gk]'[^']*'
+    | [gk]<[^>]*>?
+    | [gk]'[^']*'?
     | .
   )
   | \( (?: \? (?:
@@ -217,11 +217,17 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       };
     }
     if (/^\\g[<']/.test(m)) {
+      if (!/^\\g(?:<[^>]+>|'[^']+')$/.test(m)) {
+        throw new Error(`Invalid group name "${m}"`);
+      }
       return {
         token: createToken(TokenTypes.Subroutine, m),
       };
     }
     if (/^\\k[<']/.test(m)) {
+      if (!/^\\k(?:<[^>]+>|'[^']+')$/.test(m)) {
+        throw new Error(`Invalid group name "${m}"`);
+      }
       return {
         token: createToken(TokenTypes.Backreference, m),
       };

@@ -8,6 +8,17 @@ beforeEach(() => {
 });
 
 describe('Backreference', () => {
+  it(r`should match incomplete \k as identity escape`, () => {
+    expect('k').toExactlyMatch(r`\k`);
+  });
+
+  it(r`should throw for incomplete \k< or \k'`, () => {
+    expect(() => toDetails(r`\k<`)).toThrow();
+    expect(() => toDetails(r`\k'`)).toThrow();
+    expect(() => toDetails(r`(?<aa>)\k<aa`)).toThrow();
+    expect(() => toDetails(r`()\k<1`)).toThrow();
+  });
+
   describe('numbered backref', () => {
     it('should rematch the captured text', () => {
       expect('aa').toExactlyMatch(r`(a)\1`);

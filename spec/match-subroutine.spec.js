@@ -9,6 +9,17 @@ beforeEach(() => {
 describe('Subroutine', () => {
   // TODO: Test that subroutines use the flags that apply to their reffed group
 
+  it(r`should match incomplete \g as identity escape`, () => {
+    expect('g').toExactlyMatch(r`\g`);
+  });
+
+  it(r`should throw for incomplete \g< or \g'`, () => {
+    expect(() => toDetails(r`\g<`)).toThrow();
+    expect(() => toDetails(r`\g'`)).toThrow();
+    expect(() => toDetails(r`(?<aa>)\g<aa`)).toThrow();
+    expect(() => toDetails(r`()\g<1`)).toThrow();
+  });
+
   describe('numbered', () => {
     it('should match the expression within the referenced group', () => {
       expect('aa').toExactlyMatch(r`(a)\g<1>`);
