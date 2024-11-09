@@ -34,7 +34,7 @@ import {recursion} from 'regex-recursion';
 */
 
 /**
-Transpiles an Oniguruma pattern to the parts needed to construct a native JavaScript `RegExp`.
+Accepts an Oniguruma pattern and returns the details needed to construct an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {Options} [options]
 @returns {{
@@ -84,7 +84,7 @@ function toDetails(pattern, options) {
 }
 
 /**
-Generates an Oniguruma AST from an Oniguruma pattern.
+Returns an Oniguruma AST generated from an Oniguruma pattern.
 @param {string} pattern Oniguruma regex pattern.
 @param {{
   flags?: import('./tokenize.js').OnigurumaFlags;
@@ -96,7 +96,7 @@ function toOnigurumaAst(pattern, options) {
 }
 
 /**
-Transpiles an Oniguruma pattern and returns a native JavaScript `RegExp`.
+Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {Options} [options]
 @returns {RegExp | EmulatedRegExp}
@@ -110,6 +110,7 @@ function toRegExp(pattern, options) {
 }
 
 /**
+Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given results from `toDetails` to produce the same result as `toRegExp`.
 @class
 @param {string | EmulatedRegExp} pattern
 @param {string} [flags]
