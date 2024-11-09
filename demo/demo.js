@@ -2,7 +2,7 @@ const ui = {
   input: document.getElementById('input'),
   output: document.getElementById('output'),
   subclassInfo: document.getElementById('subclass-info'),
-  alternateInfo: document.getElementById('alternate-info'),
+  comparisonInfo: document.getElementById('comparison-info'),
 };
 const state = {
   flags: {
@@ -19,6 +19,7 @@ const state = {
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),
   },
+  comparison: getValue('comparison'),
 };
 
 autoGrow();
@@ -59,6 +60,11 @@ function showTranspiled() {
   ui.output.innerHTML = escapeHtml(result);
 
   // ## Compare to all other accuracy/target combinations
+  if (!state.comparison) {
+    ui.comparisonInfo.classList.add('hidden');
+    return;
+  }
+  ui.comparisonInfo.classList.remove('hidden');
   const otherTargetAccuracyCombinations = ['ES2018', 'ES2024', 'ESNext'].flatMap(
     t => ['loose', 'default', 'strict'].map(a => ({target: t, accuracy: a}))
   ).filter(c => c.target !== options.target || c.accuracy !== options.accuracy);
@@ -91,9 +97,9 @@ function showTranspiled() {
     if (withDiff.length) {
       str += ` Emulation ${details.error ? 'is possible' : 'used different details'} for ${listDifferents(withDiff)}.`;
     }
-    ui.alternateInfo.innerHTML = `<p>🔀 ${str}</p>`;
+    ui.comparisonInfo.innerHTML = `<p>🔀 ${str}</p>`;
   } else {
-    ui.alternateInfo.innerHTML = `<p>🟰 ${str} Results were the same${
+    ui.comparisonInfo.innerHTML = `<p>🟰 ${str} Results were the same${
       details.error ? '' : `, except <code>ES2018</code> used flag <code>u</code>`
     }.</p>`;
   }
@@ -144,6 +150,11 @@ function listDifferents(arr) {
       target[t].length > 1 ? 'accuracies' : 'accuracy'
     } <code>${target[t].join('</code>/<code>')}</code>`;
   }).join(', ');
+}
+
+function setComparison(value) {
+  state.comparison = value;
+  showTranspiled();
 }
 
 function setFlag(flag, value) {

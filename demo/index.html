@@ -111,8 +111,16 @@
       </section>
     </details>
     <pre id="output"></pre>
-    <div id="subclass-info" class="hidden info"><p>✅ A <code>RegExp</code> subclass instance with a custom execution strategy is used for this pattern. It remains a native JavaScript regex.</p></div>
-    <div id="alternate-info" class="info"><p></p></div>
+    <div id="comparison-control">
+      <p>
+        <label>
+          <input type="checkbox" id="comparison" checked onchange="setComparison(this.checked)">
+          Compare
+        </label>
+      </p>
+    </div>
+    <div id="subclass-info" class="hidden info"><p>✅ A <code>RegExp</code> subclass with a custom execution strategy was used for this pattern. It remains a native JavaScript regex.</p></div>
+    <div id="comparison-info" class="info"><p></p></div>
     <p>See <a href="https://github.com/slevithan/oniguruma-to-es#-options">Readme: Options</a> for more detailed explanations of each option. The output shows the result of calling <code>toRegExp</code>. Functions <code>toDetails</code> and <code>toOnigurumaAst</code> can also be run from the console on this page. Pretty-print ASTs by passing them to <code>printAst</code>.</p>
   </main>
 

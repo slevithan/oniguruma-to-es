@@ -209,3 +209,14 @@ pre, code, kbd, textarea {
 .info code {
   background-color: #f3f3f3;
 }
+
+#comparison-control {
+  float: right;
+  font-size: 0.9em;
+  color: #333;
+}
+
+#comparison-control input[type='checkbox'] {
+  width: 1em;
+  height: 1em;
+}
