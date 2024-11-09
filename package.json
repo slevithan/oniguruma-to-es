@@ -1,6 +1,6 @@
 {
   "name": "oniguruma-to-es",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Convert Oniguruma patterns to native JavaScript regexes",
   "author": "Steven Levithan",
   "license": "MIT",
