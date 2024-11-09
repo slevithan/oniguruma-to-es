@@ -177,7 +177,7 @@ const FirstPassVisitor = {
         }[value];
         if (negate) {
           // POSIX classes are always nested in a char class; manually invert the range rather than
-          // using `[^...]` so it can be unwrapped since ES2018 doesn't support nested classes
+          // using `[^...]` so it can be unwrapped, since ES2018 doesn't support nested classes
           ascii = `\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
         }
         replaceWith(parseFragment(`[${ascii}]`));
@@ -192,7 +192,7 @@ const FirstPassVisitor = {
         node.key = 'sc';
       }
     } else if (kind === AstCharacterSetKinds.space) {
-      // Unlike JS, Onig's `\s` matches only ASCII space, tab, LF, VT, FF, and CR
+      // Unlike JS, Onig's `\s` matches only ASCII tab, space, LF, VT, FF, and CR
       const s = parseFragment('[ \t\n\v\f\r]');
       s.negate = negate;
       replaceWith(s);
@@ -408,26 +408,20 @@ const SecondPassVisitor = {
       // ## Track data for backref multiplexing
       const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, ref, []);
       for (let i = 0; i < multiplexNodes.length; i++) {
-        // Captures added via subroutine expansion (possibly indirectly because they were child
+        // Captures added via subroutine expansion (maybe indirectly because they were descendant
         // captures of the reffed group or in a nested subroutine expansion) form a set with their
         // origin group and any other copies of it added via subroutines. Only the most recently
         // matched within this set is added to backref multiplexing. So search the list of already-
         // tracked multiplexed nodes for this group name or number to see if there's a node being
         // replaced by this capture
         const multiplex = multiplexNodes[i];
-        const mpName = multiplex.node.name;
         if (
           // This group is from subroutine expansion, and there's a multiplex value from either the
           // origin node or a prior subroutine expansion group with the same origin
           (origin === multiplex.node || (origin && origin === multiplex.origin)) ||
           // This group is not from subroutine expansion, and it comes after a subroutine expansion
           // group that refers to this group
-          node === multiplex.origin ||
-          // The multiplex node is a named group that's not in the current alternation path (which
-          // will mean it's nonparticipating for any following backrefs); remove it from
-          // multiplexing since backrefs to nonparticipating groups can't match in Onig but match
-          // the empty string in JS
-          (mpName && !getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map()).has(mpName))
+          node === multiplex.origin
         ) {
           multiplexNodes.splice(i, 1);
           break;
@@ -518,28 +512,25 @@ const ThirdPassVisitor = {
       state.highestOrphanBackref = Math.max(state.highestOrphanBackref, node.ref);
       return;
     }
-    const refNodes = state.reffedNodesByBackreference.get(node);
-    const unclosedCaps = getAllParents(node, node => node.type === AstTypes.CapturingGroup);
+    const reffedNodes = state.reffedNodesByBackreference.get(node);
+    const participants = reffedNodes.filter(reffedNode => canCaptureParticipateForBackref(reffedNode, node));
     // For the backref's `ref`, use `number` rather than `name` because group names might have been
     // removed if they're duplicates within their alternation path, or they might be removed later
     // by the generator (depending on target) if they're duplicates within the overall pattern.
-    // Backrefs must come after groups they ref, so reffed node `number`s are already recalculated.
-    // Also, convert backrefs to not-yet-closed groups to `(?!)`; they can't match in Onig but
-    // match the empty string in JS
-    if (refNodes.length > 1) {
-      const alts = refNodes.map(reffedGroupNode => adoptAndSwapKids(
+    // Backrefs must come after groups they ref, so reffed node `number`s are already recalculated
+    if (!participants.length) {
+      // If no participating capture, convert backref to to `(?!)`; backrefs to nonparticipating
+      // groups can't match in Onig but match the empty string in JS
+      replaceWith(createLookaround({negate: true}));
+    } else if (participants.length > 1) {
+      // Multiplex
+      const alts = participants.map(reffedNode => adoptAndSwapKids(
         createAlternative(),
-        [ unclosedCaps.some(capture => capture.number === reffedGroupNode.number) ?
-            createLookaround({negate: true}) :
-            createBackreference(reffedGroupNode.number)
-        ]
+        [createBackreference(reffedNode.number)]
       ));
       replaceWith(adoptAndSwapKids(createGroup(), alts));
     } else {
-      node.ref = refNodes[0].number;
-      if (unclosedCaps.some(capture => capture.number === node.ref)) {
-        replaceWith(createLookaround({negate: true}));
-      }
+      node.ref = participants[0].number;
     }
   },
 
@@ -559,8 +550,9 @@ const ThirdPassVisitor = {
       // to be valid in JS. This is needed to support TextMate grammars, which merge `begin` and
       // `end` patterns. An `end` pattern might therefore have backrefs to a group that doesn't
       // exist within `end`. This presents a dilemma since both Oniguruma and JS (with flag u or v)
-      // throw for backrefs to missing captures, and the backref can't be removed or changed. So
-      // here's a solution. NB: Orphan backrefs are only allowed if the `tmGrammar` option is used
+      // throw for backrefs to undefined captures, and the backref can't be removed or changed. So
+      // this is a solution that lets it through. Note: Orphan backrefs are only allowed if the
+      // `tmGrammar` option is used
       const numCapsNeeded = Math.max(state.highestOrphanBackref - state.numCapturesToLeft, 0);
       for (let i = 0; i < numCapsNeeded; i++) {
         const emptyCapture = createCapturingGroup();
@@ -572,7 +564,7 @@ const ThirdPassVisitor = {
 
 function adoptAndSwapKids(parent, kids) {
   kids.forEach(kid => kid.parent = parent);
-  parent[getChildContainerAccessor(parent)] = kids;
+  parent[getContainerAccessor(parent)] = kids;
   return parent;
 }
 
@@ -690,6 +682,40 @@ function areFlagsEqual(a, b) {
   return a.dotAll === b.dotAll && a.ignoreCase === b.ignoreCase;
 }
 
+function canCaptureParticipateForBackref(capture, backref) {
+  // Walks to the left (prev siblings), down (sibling descendants), up (parent), then back down
+  // (parent's prev sibling descendants) the tree in a loop
+  let rightmostPoint = backref;
+  do {
+    if (rightmostPoint.type === AstTypes.Pattern) {
+      // End of the line; capture is not in backref's alternation path
+      return false;
+    }
+    if (rightmostPoint.type === AstTypes.Alternative) {
+      // Skip past alts to their parent because we don't want to look at the kids of preceding alts
+      continue;
+    }
+    if (rightmostPoint === capture) {
+      // Capture is ancestor of backref
+      return false;
+    }
+    const kidsOfParent = getKids(rightmostPoint.parent);
+    for (const kid of kidsOfParent) {
+      if (kid === rightmostPoint) {
+        // Reached rightmost node in sibling list that we want to consider; break to parent loop
+        break;
+      }
+      if (kid === capture) {
+        return true;
+      }
+      if (hasDescendant(kid, capture)) {
+        return true;
+      }
+    }
+  } while ((rightmostPoint = rightmostPoint.parent));
+  throw new Error('Unexpected path');
+}
+
 // Creates a deep copy of the provided node, with special handling:
 // - Make `parent` props point to their parent in the copy
 // - Update the provided `originMap` for each cloned capturing group (outer and nested)
@@ -697,7 +723,7 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
   const store = Array.isArray(obj) ? [] : {};
   for (const [key, value] of Object.entries(obj)) {
     if (key === 'parent') {
-      // If the last cloned item was a child container array, use the object above it
+      // If the last cloned item was a container array (for holding kids), use the object above it
       store.parent = Array.isArray(up) ? up2 : up;
     } else if (value && typeof value === 'object') {
       store[key] = cloneCapturingGroup(value, originMap, store, up);
@@ -719,6 +745,7 @@ function createRecursion(ref) {
   };
 }
 
+// See also `getParentAlternative`
 function getAllParents(node, filterFn) {
   const results = [];
   while ((node = node.parent)) {
@@ -729,17 +756,14 @@ function getAllParents(node, filterFn) {
   return results;
 }
 
-function getChildContainerAccessor(node) {
-  if (node.alternatives) {
-    return 'alternatives';
+// Returns the string key for the container that holds the node's kids
+function getContainerAccessor(node) {
+  for (const accessor of ['alternatives', 'classes', 'elements']) {
+    if (node[accessor]) {
+      return accessor;
+    }
   }
-  if (node.elements) {
-    return 'elements';
-  }
-  if (node.classes) {
-    return 'classes';
-  }
-  throw new Error('Accessor for child container unknown');
+  return null;
 }
 
 function getCombinedFlagModsFromFlagNodes(flagNodes) {
@@ -782,6 +806,19 @@ function getFlagModsFromFlags({dotAll, ignoreCase}) {
     !ignoreCase && (mods.disable.ignoreCase = true);
   }
   return mods;
+}
+
+function getKids(node) {
+  if (!node) {
+    throw new Error('Node expected');
+  }
+  // [NOTE] Not handling `Regex` kids (`pattern`, `flags`) and `CharacterClassRange` kids (`min`,
+  // `max`) only because not needed by current callers
+  if (node.type === AstTypes.Quantifier) {
+    return [node.element];
+  }
+  const accessor = getContainerAccessor(node);
+  return accessor && node[accessor];
 }
 
 function getLeadingG(els) {
@@ -844,6 +881,19 @@ function getParentAlternative(node) {
   return null;
 }
 
+function hasDescendant(node, descendant) {
+  const kids = getKids(node) ?? [];
+  for (const kid of kids) {
+    if (
+      kid === descendant ||
+      hasDescendant(kid, descendant)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isValidGroupNameJs(name) {
   // JS group names are more restrictive than Onig; see
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
@@ -861,7 +911,7 @@ function parseFragment(pattern, {skipPropertyNameValidation} = {}) {
 }
 
 function prepContainer(node, kids) {
-  const accessor = getChildContainerAccessor(node);
+  const accessor = getContainerAccessor(node);
   // Set the parent for the default container of a new node
   node[accessor][0].parent = node;
   if (kids) {

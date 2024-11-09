@@ -20,7 +20,7 @@ function generate(ast, options) {
   const minTargetEsNext = isMinTarget(opts.target, 'ESNext');
   const rDepth = opts.maxRecursionDepth;
   if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 100)) {
-    throw new Error('Invalid maxRecursionDepth; use null or 2-100');
+    throw new Error('Invalid maxRecursionDepth; use 2-100 or null');
   }
 
   // If the output can't use flag groups, we need a pre-pass to check for the use of chars with

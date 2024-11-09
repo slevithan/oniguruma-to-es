@@ -73,6 +73,10 @@ describe('Backreference', () => {
         expect('').not.toFindMatch(r`(\g<2>(\2))`);
       });
 
+      it('should not match references to groups not in the alternation path', () => {
+        expect('').not.toFindMatch(r`(a)|\1`);
+      });
+
       // For 1-9, else it becomes octal if not enough groups defined to the left, even if enough
       // groups defined to the right
       it('should throw for forward references to defined groups', () => {
@@ -156,6 +160,10 @@ describe('Backreference', () => {
         expect(['a', 'aa']).not.toFindMatch(r`(a\k<1>)`);
         expect('').not.toFindMatch(r`(\g<2>(\k<1>))`);
         expect('').not.toFindMatch(r`(\g<2>(\k<2>))`);
+      });
+
+      it('should not match references to groups not in the alternation path', () => {
+        expect('').not.toFindMatch(r`(a)|\k<1>`);
       });
 
       it('should throw for forward references to defined groups', () => {
@@ -252,6 +260,10 @@ describe('Backreference', () => {
         expect(['a', 'aa']).not.toFindMatch(r`(a\k<-1>)`);
         expect('').not.toFindMatch(r`(\g<+1>(\k<-2>))`);
         expect('').not.toFindMatch(r`(\g<+1>(\k<-1>))`);
+      });
+
+      it('should not match references to groups not in the alternation path', () => {
+        expect('').not.toFindMatch(r`(a)|\k<-1>`);
       });
 
       it('should throw for forward references to defined groups', () => {
@@ -367,13 +379,8 @@ describe('Backreference', () => {
         });
       });
 
-      it('should throw for forward references to defined groups', () => {
-        expect(() => toDetails(r`\k<n>(?<n>)`)).toThrow();
-        expect(() => toDetails(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
-      });
-
-      it('should throw for forward references to defined groups even when subroutines add captures', () => {
-        expect(() => toDetails(r`\g<n>\k<n>(?<n>)`)).toThrow();
+      it('should not match references to groups not in the alternation path', () => {
+        expect('').not.toFindMatch(r`(?<a>a)|\k<a>`);
       });
 
       it('should preclude groups not in the alternation path when multiplexing', () => {
@@ -395,6 +402,15 @@ describe('Backreference', () => {
           pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
           maxTestTarget: maxTestTargetForDuplicateNames,
         });
+      });
+
+      it('should throw for forward references to defined groups', () => {
+        expect(() => toDetails(r`\k<n>(?<n>)`)).toThrow();
+        expect(() => toDetails(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
+      });
+
+      it('should throw for forward references to defined groups even when subroutines add captures', () => {
+        expect(() => toDetails(r`\g<n>\k<n>(?<n>)`)).toThrow();
       });
     });
   });

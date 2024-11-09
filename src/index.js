@@ -138,9 +138,9 @@ class EmulatedRegExp extends RegExp {
   @returns {RegExpExecArray | null}
   */
   exec(str) {
-    // Special case handling that requires coupling with changes for the specific strategy in the
-    // transformer. These changes add emulation support for some common patterns that are otherwise
-    // unsupportable. Only one subclass strategy is supported per pattern
+    // Special case handling that requires coupling with pattern changes for the specific strategy
+    // in the transformer. These changes add emulation support for some common patterns that are
+    // otherwise unsupportable. Only one subclass strategy is supported per pattern
     const useLastIndex = this.global || this.sticky;
     const pos = this.lastIndex;
     const exec = RegExp.prototype.exec;

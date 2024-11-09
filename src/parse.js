@@ -194,10 +194,22 @@ function parseBackreference(context) {
   const fromNum = (num, isRelative = false) => {
     const numCapturesToLeft = context.capturingGroups.length;
     let orphan = false;
+    // Note: It's not an error for numbered backrefs to come before their referenced group in Onig,
+    // but an error is the best path for this library because:
+    // 1. Most placements are mistakes and can never match (based on the Onig behavior for backrefs
+    //    to nonparticipating groups).
+    // 2. Erroring matches the behavior of named backrefs.
+    // 3. The edge cases where they're matchable rely on rules for backref resetting within
+    //    quantified groups that are different in JS and aren't emulatable. Note that it's not a
+    //    backref in the first place if using `\10` or higher and not as many capturing groups are
+    //    defined to the left (it's an octal or identity escape).
+    // [TODO] Ideally this would be refactored to include the backref in the AST when it's not an
+    // error in Onig (due to the reffed group being defined to the right), and the error handling
+    // would move to the transformer
     if (num > numCapturesToLeft) {
-      // [WARNING] Skipping the error messes up assumptions and probably create edge case issues,
-      // since backrefs are required to come after their captures; unfortunately this option is
-      // needed for TextMate grammars
+      // [WARNING] Skipping the error breaks assumptions and might create edge case issues, since
+      // backrefs are required to come after their captures; unfortunately this option is needed
+      // for TextMate grammars
       if (context.skipBackrefValidation) {
         orphan = true;
       } else {
