@@ -13,7 +13,7 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
-Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `accuracy` option to throw for such patterns (see details below).
+Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `accuracy` option to throw for such patterns (see details below).
 
 ## 📜 Contents
 
@@ -268,7 +268,7 @@ Disables optimizations that simplify the pattern when it doesn't change the mean
 Following are the supported features by target. The official Oniguruma [syntax doc](https://github.com/kkos/oniguruma/blob/master/doc/RE) doesn't cover many of the finer details described here.
 
 > [!NOTE]
-> Targets `ES2024` and `ES2025` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings.
+> Targets `ES2024` and `ES2025` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings. See [`target`](#target).
 
 Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of this library. Unsupported features throw an error.
 
@@ -683,7 +683,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <code>+</code> suffix doesn't make interval <code>{…}</code> quantifiers possessive (creates a quantifier chain)<br>
+      ✔ <code>+</code> suffix doesn't make <code>{…}</code> interval quantifiers possessive (creates a quantifier chain)<br>
     </td>
   </tr>
   <tr valign="top">

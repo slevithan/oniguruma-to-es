@@ -92,10 +92,10 @@ function showTranspiled() {
     const withDiff = [];
     differents.forEach(d => (d.error ? withError : withDiff).push(d));
     if (withError.length) {
-      str += ` Can't emulate for ${listDifferents(withError)}.`;
+      str += ` <b>Can't emulate</b> for ${listDifferents(withError)}.`;
     }
     if (withDiff.length) {
-      str += ` Emulation ${details.error ? 'is possible' : 'used different details'} for ${listDifferents(withDiff)}.`;
+      str += ` Emulation <b>${details.error ? 'is possible' : 'used different details'}</b> for ${listDifferents(withDiff)}.`;
     }
     ui.comparisonInfo.innerHTML = `<p>🔀 ${str}</p>`;
   } else {
