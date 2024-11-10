@@ -65,7 +65,7 @@ function showTranspiled() {
     return;
   }
   ui.comparisonInfo.classList.remove('hidden');
-  const otherTargetAccuracyCombinations = ['ES2018', 'ES2024', 'ESNext'].flatMap(
+  const otherTargetAccuracyCombinations = ['ES2018', 'ES2024', 'ES2025'].flatMap(
     t => ['loose', 'default', 'strict'].map(a => ({target: t, accuracy: a}))
   ).filter(c => c.target !== options.target || c.accuracy !== options.accuracy);
   const differents = [];

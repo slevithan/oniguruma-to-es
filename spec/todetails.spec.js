@@ -38,7 +38,7 @@ describe('toDetails', () => {
 
   it('should add flag v for target ES2024+', () => {
     expect(toDetails('', {target: 'ES2024'}).flags).toBe('v');
-    expect(toDetails('', {target: 'ESNext'}).flags).toBe('v');
+    expect(toDetails('', {target: 'ES2025'}).flags).toBe('v');
   });
 
   it('should add flag u for target ES2018', () => {

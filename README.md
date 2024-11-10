@@ -33,7 +33,7 @@ npm install oniguruma-to-es
 import {toRegExp} from 'oniguruma-to-es';
 const str = '…';
 const pattern = '…';
-// Works with all string/regexp methods since it returns a native JS regexp
+// Works with all string/regexp methods since it returns a native regexp
 str.match(toRegExp(pattern));
 ```
 
@@ -85,7 +85,7 @@ type Options = {
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
-  target?: 'ES2018' | 'ES2024' | 'ESNext';
+  target?: 'ES2018' | 'ES2024' | 'ES2025';
   tmGrammar?: boolean;
   verbose?: boolean;
 };
@@ -172,7 +172,7 @@ Supports slightly fewer features, but the missing features are all relatively un
 
 Supports all features of `strict`, plus the following additional features, depending on `target`:
 
-- All targets (`ESNext` and earlier):
+- All targets (`ES2025` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
   - Enables recursion (e.g. via `\g<0>`) with a depth limit specified by option `maxRecursionDepth`.
 - `ES2024` and earlier:
@@ -233,7 +233,7 @@ Higher limits have no effect on regexes that don't use recursion, so you should 
 
 ### `target`
 
-One of `'ES2018'`, `'ES2024'` *(default)*, or `'ESNext'`.
+One of `'ES2018'`, `'ES2024'` *(default)*, or `'ES2025'`.
 
 Sets the JavaScript language version for the generated pattern and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
 
@@ -246,7 +246,7 @@ Sets the JavaScript language version for the generated pattern and flags. Later 
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
   - Generated regexes require Node.js 20 or any 2023-era browser ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
-- `ESNext`: Uses JS flag `v` and allows use of flag groups and duplicate group names.
+- `ES2025`: Uses JS flag `v` and allows use of flag groups and duplicate group names.
   - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support for flag groups).
 </details>
@@ -268,7 +268,7 @@ Disables optimizations that simplify the pattern when it doesn't change the mean
 Following are the supported features by target. The official Oniguruma [syntax doc](https://github.com/kkos/oniguruma/blob/master/doc/RE) doesn't cover many of the finer details described here.
 
 > [!NOTE]
-> Targets `ES2024` and `ESNext` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings.
+> Targets `ES2024` and `ES2025` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings.
 
 Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of this library. Unsupported features throw an error.
 
@@ -953,7 +953,7 @@ Oniguruma-To-ES fully supports mixed case-sensitivity (and handles the Unicode e
 Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a couple of minor/rare restrictions:
 
 - Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` or later if you need support for these features.
-- With targets before `ESNext`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
+- With targets before `ES2025`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
   - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
 

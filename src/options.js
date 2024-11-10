@@ -7,13 +7,13 @@ const Accuracy = /** @type {const} */ ({
 const EsVersion = {
   ES2018: 2018,
   ES2024: 2024,
-  ESNext: 2025,
+  ES2025: 2025,
 };
 
 const Target = /** @type {const} */ ({
   ES2018: 'ES2018',
   ES2024: 'ES2024',
-  ESNext: 'ESNext',
+  ES2025: 'ES2025',
 });
 
 /**

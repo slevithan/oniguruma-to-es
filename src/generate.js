@@ -17,7 +17,7 @@ Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AS
 function generate(ast, options) {
   const opts = getOptions(options);
   const minTargetEs2024 = isMinTarget(opts.target, 'ES2024');
-  const minTargetEsNext = isMinTarget(opts.target, 'ESNext');
+  const minTargetEs2025 = isMinTarget(opts.target, 'ES2025');
   const rDepth = opts.maxRecursionDepth;
   if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 100)) {
     throw new Error('Invalid maxRecursionDepth; use 2-100 or null');
@@ -30,7 +30,7 @@ function generate(ast, options) {
   // [TODO] Consider gathering this data in the transformer's final traversal to avoid work here
   let hasCaseInsensitiveNode = null;
   let hasCaseSensitiveNode = null;
-  if (!minTargetEsNext) {
+  if (!minTargetEs2025) {
     const iStack = [ast.flags.ignoreCase];
     traverse({node: ast}, {
       getCurrentModI: () => iStack.at(-1),
@@ -51,7 +51,7 @@ function generate(ast, options) {
     // - Turn global flag i on if a case insensitive node was used and no case sensitive nodes were
     //   used (to avoid unnecessary node expansion).
     // - Turn global flag i off if a case sensitive node was used (since case sensitivity can't be
-    //   forced without the use of ESNext flag groups)
+    //   forced without the use of ES2025 flag groups)
     ignoreCase: !!((ast.flags.ignoreCase || hasCaseInsensitiveNode) && !hasCaseSensitiveNode),
   };
   let lastNode = null;
@@ -67,9 +67,9 @@ function generate(ast, options) {
     inCharClass: false,
     lastNode,
     maxRecursionDepth: rDepth,
-    useAppliedIgnoreCase: !!(!minTargetEsNext && hasCaseInsensitiveNode && hasCaseSensitiveNode),
-    useDuplicateNames: minTargetEsNext,
-    useFlagMods: minTargetEsNext,
+    useAppliedIgnoreCase: !!(!minTargetEs2025 && hasCaseInsensitiveNode && hasCaseSensitiveNode),
+    useDuplicateNames: minTargetEs2025,
+    useFlagMods: minTargetEs2025,
     useFlagV: minTargetEs2024,
     usePostEs2018Properties: minTargetEs2024,
     verbose: opts.verbose,
@@ -230,7 +230,7 @@ function genBackreference({ref}, state) {
     state.currentFlags.ignoreCase &&
     !state.captureFlagIMap.get(ref)
   ) {
-    throw new Error('Use of case-insensitive backref to case-sensitive group requires target ESNext or non-strict accuracy');
+    throw new Error('Use of case-insensitive backref to case-sensitive group requires target ES2025 or non-strict accuracy');
   }
   return '\\' + ref;
 }

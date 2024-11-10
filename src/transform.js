@@ -21,10 +21,10 @@ import emojiRegex from 'emoji-regex-xs';
 */
 /**
 Transforms an Oniguruma AST in-place to a [Regex+](https://github.com/slevithan/regex) AST.
-Targets `ESNext`, expecting the generator to then down-convert to the desired JS target version.
+Assumes target ES2025, expecting the generator to down-convert to the desired JS target version.
 
 Regex+'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close
-to representing native ESNext `RegExp` but with some added features (atomic groups, possessive
+to representing native ES2025 `RegExp` but with some added features (atomic groups, possessive
 quantifiers, recursion). The AST doesn't use some of Regex+'s extended features like flag `x` or
 subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The
 AST represents what's needed to precisely reproduce Oniguruma behavior using Regex+.
@@ -46,7 +46,7 @@ function transform(ast, options) {
     //   approximation based on the target, so produce the appropriate structure here.
     accuracy: 'default',
     avoidSubclass: false,
-    bestEffortTarget: 'ESNext',
+    bestEffortTarget: 'ES2025',
     ...options,
   };
   // AST changes that work together with a `RegExp` subclass to add advanced emulation

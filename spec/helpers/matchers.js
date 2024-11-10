@@ -4,7 +4,7 @@ import {EsVersion} from '../../src/options.js';
 function getArgs(actual, expected) {
   const max = expected.maxTestTarget;
   const min = expected.minTestTarget;
-  const targets = ['ES2018', 'ES2024', 'ESNext'];
+  const targets = ['ES2018', 'ES2024', 'ES2025'];
   const targeted = targets.
     filter(target => !max || EsVersion[target] <= EsVersion[max]).
     filter(target => !min || (min !== Infinity && EsVersion[target] >= EsVersion[min]));

@@ -428,7 +428,7 @@ describe('Backreference', () => {
 
   describe('case sensitivity', () => {
     it('should match case-insensitive backref to case-sensitive group', () => {
-      // Real support with `target` ESNext
+      // Real support with `target` ES2025
       expect(['aa', 'aA']).toExactlyMatch({
         pattern: r`(a)(?i)\1`,
         minTestTarget: minTestTargetForPatternMods,
@@ -437,7 +437,7 @@ describe('Backreference', () => {
         pattern: r`(a)(?i)\1`,
         minTestTarget: minTestTargetForPatternMods,
       });
-      // Throw with strict `accuracy` if `target` not ESNext
+      // Throw with strict `accuracy` if `target` not ES2025
       ['ES2018', 'ES2024'].forEach(target => {
         expect(() => toDetails(r`(a)(?i)\1`, {
           accuracy: 'strict',

@@ -17,7 +17,7 @@ const patternModsSupported = (() => {
   return true;
 })();
 const maxTestTargetForPatternMods = patternModsSupported ? null : 'ES2024';
-const minTestTargetForPatternMods = patternModsSupported ? 'ESNext' : Infinity;
+const minTestTargetForPatternMods = patternModsSupported ? 'ES2025' : Infinity;
 
 const minTestTargetForFlagV = 'ES2024';
 
