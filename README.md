@@ -111,7 +111,7 @@ function toDetails(
 };
 ```
 
-The returned `flags` (as well as the `pattern`, of course) might be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `strategy` can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
+Note that the returned `flags` might also be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `strategy` can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
 
 If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case, by throwing an error for any patterns that rely on `EmulatedRegExp`'s additional handling.
 
