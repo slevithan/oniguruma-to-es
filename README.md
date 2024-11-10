@@ -309,7 +309,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Unicode whitespace ignored<br>
       ✔ Line comments with <code>#</code><br>
       ✔ Whitespace/comments allowed between a token and its quantifier<br>
-      ✔ Whitespace/comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a chained quantifier<br>
+      ✔ Whitespace/comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a quantifier chain<br>
       ✔ Whitespace/comments separate tokens (ex: <code>\1 0</code>)<br>
       ✔ Whitespace and <code>#</code> not ignored in char classes<br>
     </td>
@@ -558,6 +558,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Error<br>
+      ✔ Doesn't allow leading unescaped <code>]</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -682,7 +683,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <code>+</code> suffix doesn't make interval (<code>{…}</code>) quantifiers possessive (creates a chained quantifier)<br>
+      ✔ <code>+</code> suffix doesn't make interval <code>{…}</code> quantifiers possessive (creates a quantifier chain)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -842,11 +843,11 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Named, numbered, relative</td>
+    <td>Numbered, relative, named</td>
     <td>
-      <code>(?&lt;a>…\g&lt;a>?…)</code>,<br>
       <code>(…\g&lt;1>?…)</code>,<br>
-      <code>(…\g&lt;-1>?…)</code>, etc.
+      <code>(…\g&lt;-1>?…)</code>,<br>
+      <code>(?&lt;a>…\g&lt;a>?…)</code>, etc.
     </td>
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
@@ -864,7 +865,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Allows escaping <code>\)</code>, <code>\\</code><br>
       ✔ Comments allowed between a token and its quantifier<br>
-      ✔ Comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a chained quantifier<br>
+      ✔ Comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a quantifier chain<br>
     </td>
   </tr>
   <tr valign="top">
@@ -940,7 +941,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 ### Footnotes
 
 1. Target `ES2018` doesn't allow using Unicode property names added in JavaScript specifications after ES2018.
-2. Unicode blocks (which in Oniguruma are used with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also a flawed and arguably-unuseful feature, given the ability to use Unicode scripts and other properties.
+2. Unicode blocks (which in Oniguruma are used with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also a flawed and arguably unuseful feature, given the ability to use Unicode scripts and other properties.
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 4. Target `ES2018` doesn't support nested *negated* character classes.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
