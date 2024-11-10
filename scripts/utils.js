@@ -1,6 +1,7 @@
 import {toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 // vscode-oniguruma 2.0.1 uses Oniguruma 6.9.8
 import oniguruma from 'vscode-oniguruma';
 
@@ -120,7 +121,7 @@ async function onigurumaExec(pattern, str, pos = 0) {
 }
 
 async function loadOniguruma() {
-  const wasmPath = `${import.meta.dirname}/../node_modules/vscode-oniguruma/release/onig.wasm`;
+  const wasmPath = fileURLToPath(new URL('../node_modules/vscode-oniguruma/release/onig.wasm', import.meta.url));
   const wasmBin = readFileSync(wasmPath).buffer;
   await oniguruma.loadWASM(wasmBin);
 }
