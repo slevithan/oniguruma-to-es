@@ -676,9 +676,8 @@ function getValidatedHexCharCode(raw) {
     /^\\x\{\s*(?<hex>\p{AHex}+)/u.exec(raw).groups.hex :
     raw.slice(2);
   const dec = parseInt(hex, 16);
-  if (dec > 0x7F && /^\\x\p{AHex}/u.test(raw)) {
-    throw new Error(r`\xNN above 7F unsupported in Oniguruma "${raw}"`);
-  } else if (dec > 0x13FFFF) {
+  // `\xNN` above 0x7F is handled elsewhere as a UTF-8 encoded byte sequence
+  if (dec > 0x13FFFF) {
     throw new Error(`Invalid out of range "${raw}"`);
   } else if (dec > 0x10FFFF) {
     throw new Error(`Invalid out of range in JS "${raw}"`);
@@ -708,10 +707,17 @@ function splitEscapedNumToken(token, numCaptures) {
   const matches = value.match(/^[0-7]+|\d/g);
   for (let i = 0; i < matches.length; i++) {
     const m = matches[i];
+    let value;
     // Octal digits are 0-7
-    const value = (i === 0 && m !== '8' && m !== '9') ?
-      parseInt(m, 8) :
-      m.codePointAt(0);
+    if (i === 0 && m !== '8' && m !== '9') {
+      value = parseInt(m, 8);
+      if (value > 0o177) {
+        // UTF-8 encoded byte sequence in octal; unsupported
+        throw new Error(r`Octal encoded byte above 177 unsupported "${raw}"`);
+      }
+    } else {
+      value = m.codePointAt(0);
+    }
     tokens.push(createToken(TokenTypes.Character, (i === 0 ? '\\' : '') + m, {
       value,
     }));

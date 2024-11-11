@@ -38,7 +38,12 @@ describe('CharacterClass', () => {
         expect('\u{1}').toExactlyMatch(r`[\01]`);
         expect('\u{1}').toExactlyMatch(r`[\001]`);
         expect(cp(0o17)).toExactlyMatch(r`[\17]`);
-        expect(cp(0o777)).toExactlyMatch(r`[\777]`);
+        expect(cp(0o177)).toExactlyMatch(r`[\177]`);
+      });
+
+      it(r`should throw for UTF-8 encoded byte sequence in octal (above \177)`, () => {
+        expect(() => toDetails(r`[\200]`)).toThrow();
+        expect(() => toDetails(r`[\777]`)).toThrow();
       });
 
       it('should match octals followed by literal digits', () => {
