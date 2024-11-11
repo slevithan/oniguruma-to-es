@@ -384,7 +384,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Allows 1 hex digit<br>
       ✔ Above <code>7F</code>, is UTF-8 encoded byte (unlike JS)<br>
-      ✔ Error for invalid encoded byte/sequence<br>
+      ✔ Error for invalid encoded bytes<br>
     </td>
   </tr>
   <tr valign="top">
@@ -435,7 +435,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ● Non-A-Za-z with <code>\cx</code>, <code>\C-x</code><br>
       ● Meta <code>\M-x</code>, <code>\M-\C-x</code><br>
       ● Octal code point <code>\o{…}</code><br>
-      ● UTF-8 encoded bytes in octal<br>
+      ● Octal UTF-8 encoded bytes<br>
     </td>
   </tr>
 

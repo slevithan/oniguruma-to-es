@@ -58,23 +58,33 @@ const EscapeCharCodes = new Map([
   ['v', 11], // vertical tab
 ]);
 
-const controlCharPattern = 'c.? | C(?:-.?)?';
-// Onig considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and `\p{gc=L}` are invalid
-const unicodePropertyPattern = r`[pP]\{(?:\^?[\x20\w]+\})?`;
-const encodedByteValuePattern = r`x[89A-Fa-f]\p{AHex}(?:\\x[89A-Fa-f]\p{AHex})*`;
-const hexCharPattern = r`u(?:\p{AHex}{4})? | x\{[^\}]*\}? | x\p{AHex}{0,2}`;
-const escapedNumPattern = r`\d{1,3}`;
 const charClassOpenPattern = r`\[\^?\]?`;
+const sharedEscapesPattern = `${
+  // Control char
+  'c.? | C(?:-.?)?'
+}|${
+  // Unicode property; Onig considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and
+  // `\p{gc=L}` are invalid
+  r`[pP]\{(?:\^?[\x20\w]+\})?`
+}|${
+  // Hex encoded byte sequence; attempt match before other `\xNN` hex char
+  r`x[89A-Fa-f]\p{AHex}(?:\\x[89A-Fa-f]\p{AHex})*`
+}|${
+  // Hex char
+  r`u(?:\p{AHex}{4})? | x\{[^\}]*\}? | x\p{AHex}{0,2}`
+}|${
+  // Enclosed octal code point
+  r`o\{[^\}]*\}?`
+}|${
+  // Escaped number
+  r`\d{1,3}`
+}`;
 // Even with flag x, Onig doesn't allow whitespace to separate a quantifier from the `?` or `+`
 // that makes it lazy or possessive. Possessive suffixes don't apply to interval quantifiers
 const quantifierRe = /[?*+][?+]?|\{(?:\d+(?:,\d*)?|,\d+)\}\??/;
 const tokenRe = new RegExp(r`
   \\ (?:
-    ${controlCharPattern}
-    | ${unicodePropertyPattern}
-    | ${encodedByteValuePattern}
-    | ${hexCharPattern}
-    | ${escapedNumPattern}
+    ${sharedEscapesPattern}
     | [gk]<[^>]*>?
     | [gk]'[^']*'?
     | .
@@ -93,11 +103,7 @@ const tokenRe = new RegExp(r`
 `.replace(/\s+/g, ''), 'gsu');
 const charClassTokenRe = new RegExp(r`
   \\ (?:
-    ${controlCharPattern}
-    | ${unicodePropertyPattern}
-    | ${encodedByteValuePattern}
-    | ${hexCharPattern}
-    | ${escapedNumPattern}
+    ${sharedEscapesPattern}
     | .
   )
   | \[:[^:]*:\]
@@ -478,13 +484,16 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   if ('dDhHsSwW'.includes(char1)) {
     return createTokenForShorthandCharClass(raw);
   }
+  if (raw.startsWith(r`\o{`)) {
+    throw new Error(`Incomplete, invalid, or unsupported octal code point "${raw}"`);
+  }
   if (/^\\[pP]\{/.test(raw)) {
     if (raw.length === 3) {
       throw new Error('Incomplete or invalid Unicode property');
     }
     return createTokenForUnicodeProperty(raw);
   }
-  // UTF-8 encoded byte sequence
+  // Hex UTF-8 encoded byte sequence
   if (/^\\x[89A-Fa-f]\p{AHex}/u.test(raw)) {
     try {
       const bytes = raw.split(/\\x/).slice(1).map(hex => parseInt(hex, 16));
@@ -716,7 +725,7 @@ function splitEscapedNumToken(token, numCaptures) {
     if (i === 0 && m !== '8' && m !== '9') {
       value = parseInt(m, 8);
       if (value > 0o177) {
-        // UTF-8 encoded byte sequence in octal; unsupported
+        // Octal UTF-8 encoded byte sequence; not yet supported
         throw new Error(r`Octal encoded byte above 177 unsupported "${raw}"`);
       }
     } else {

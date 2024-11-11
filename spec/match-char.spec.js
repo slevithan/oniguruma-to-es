@@ -30,7 +30,7 @@ describe('Character', () => {
       expect('\x1A').toExactlyMatch(r`\C-z`);
     });
 
-    // Currently unsupported: control chars other than A-Za-z
+    // Not yet supported: control char identifier other than A-Za-z
     it('should throw for unsupported control char', () => {
       expect(() => toDetails(r`\c.`)).toThrow();
       expect(() => toDetails(r`\C-.`)).toThrow();
@@ -95,18 +95,24 @@ describe('Character', () => {
   });
 
   describe('meta', () => {
+    // Not yet supported
     it('should throw for unsupported meta', () => {
-      expect(() => toDetails(r`\M`)).toThrow();
-      expect(() => toDetails(r`\M-`)).toThrow();
-      // Currently unsupported
       expect(() => toDetails(r`\M-\1`)).toThrow();
     });
 
+    it('should throw for incomplete meta', () => {
+      expect(() => toDetails(r`\M`)).toThrow();
+      expect(() => toDetails(r`\M-`)).toThrow();
+    });
+
+    // Not yet supported
     it('should throw for unsupported meta control char', () => {
+      expect(() => toDetails(r`\M-\C-A`)).toThrow();
+    });
+
+    it('should throw for incomplete meta control char', () => {
       expect(() => toDetails(r`\M-\C`)).toThrow();
       expect(() => toDetails(r`\M-\C-`)).toThrow();
-      // Currently unsupported
-      expect(() => toDetails(r`\M-\C-A`)).toThrow();
     });
   });
 
@@ -232,6 +238,36 @@ describe('Character', () => {
     it(r`should throw for invalid \x{N...}`, () => {
       expect(() => toDetails(r`\x{G}`)).toThrow();
       expect(() => toDetails(r`\x{110000}`)).toThrow();
+    });
+  });
+
+  describe('enclosed octal', () => {
+    // Not yet supported
+    it('should throw for unsupported octal code point', () => {
+      expect(() => toDetails(r`\o{0}`)).toThrow();
+      expect(() => toDetails(r`\o{177}`)).toThrow();
+      expect(() => toDetails(r`\o{7777}`)).toThrow();
+    });
+
+    it(r`should match \o without { as identity escape`, () => {
+      expect('o').toExactlyMatch(r`\o`);
+    });
+
+    // Not an error in Onig
+    it(r`should throw for incomplete \o{`, () => {
+      expect(() => toDetails(r`\o{`)).toThrow();
+      expect(() => toDetails(r`\o{-}`)).toThrow();
+      expect(() => toDetails(r`\o{A}`)).toThrow();
+      expect(() => toDetails(r`\o{ 1}`)).toThrow();
+      // Quantified identity escape!
+      expect(() => toDetails(r`\o{,1}`)).toThrow();
+    });
+
+    it(r`should throw for invalid \o{N...}`, () => {
+      expect(() => toDetails(r`\o{1,}`)).toThrow();
+      expect(() => toDetails(r`\o{8}`)).toThrow();
+      expect(() => toDetails(r`\o{18}`)).toThrow();
+      expect(() => toDetails(r`\o{1A}`)).toThrow();
     });
   });
 });
