@@ -260,6 +260,10 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         }),
       };
     }
+    // Grapheme boundaries not yet unsupported; avoid treating as an identity escape
+    if ('yY'.includes(m1)) {
+      throw new Error(`Unsupported grapheme boundary "${m}"`);
+    }
     // Run last since it assumes an identity escape as final condition
     const result = createTokenForSharedEscape(m, {inCharClass: false});
     return Array.isArray(result) ? {tokens: result} : {token: result};
@@ -523,7 +527,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   // Meta `\M-x` and `\M-\C-x` are unsupported; avoid treating as an identity escape
   if (char1 === 'M') {
-    // [TODO] Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
+    // [TODO] Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>, <https://github.com/ammar/regexp_parser/blob/8851030feda68223d74f502335fb254a20d77016/lib/regexp_parser/expression/classes/escape_sequence.rb#L75>
     throw new Error(`Unsupported meta "${raw}"`);
   }
   // Identity escape; count code point length
@@ -663,11 +667,11 @@ function getFlagPropsForToken(flags) {
 function getValidatedHexCharCode(raw) {
   // Note: Onig (tested 6.9.8) has a bug where bare `\u` and `\x` are identity escapes if they
   // appear at the very end of the pattern, so e.g. `\u` matches `u`, but `\u0`, `\u.`, and `[\u]`
-  // are all errors, and `\x.` and `[\x]` are not errors but fail to match anything. Don't emulate
-  // these bugs, and just treat these cases as errors. Also, Onig treats incomplete `\x{` (with the
-  // brace and not immediately followed by a hex digit) as an identity escape, so e.g. `\x{`
-  // matches `x{` and `^\x{,2}$` matches `xx`, but `\x{2,}` and `\x{0,2}` are errors. Don't emulate
-  // this crazy and pointless ambiguity, and just treat incomplete `\x{` as an error
+  // are all errors, and `\x.` and `[\x]` are not errors but seemingly fail to match anything.
+  // Don't emulate these bugs, and just treat these cases as errors. Also, Onig treats incomplete
+  // `\x{` (with the brace and not immediately followed by a hex digit) as an identity escape, so
+  // e.g. `\x{` matches `x{` and `^\x{,2}$` matches `xx`, but `\x{2,}` and `\x{0,2}` are errors.
+  // Don't emulate this nasty/pointless ambiguity; just treat incomplete `\x{` as an error
   if (/^(?:\\u(?!\p{AHex}{4})|\\x(?!\p{AHex}{1,2}|\{\p{AHex}{1,8}\}))/u.test(raw)) {
     throw new Error(`Incomplete or invalid escape "${raw}"`);
   }

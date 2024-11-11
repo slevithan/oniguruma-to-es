@@ -384,7 +384,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Allows 1 hex digit<br>
       ✔ Above <code>7F</code>, is UTF-8 encoded byte (unlike JS)<br>
-      ✔ Error for invalid encoded bytes<br>
+      ✔ Error for invalid encoded byte/sequence<br>
     </td>
   </tr>
   <tr valign="top">
@@ -602,7 +602,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="6">Assertions</th>
+    <th align="left" rowspan="7">Assertions</th>
     <td>Line start, end</td>
     <td><code>^</code>, <code>$</code></td>
     <td align="middle">✅</td>
@@ -640,15 +640,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Word boundary</td>
-    <td><code>\b</code>, <code>\B</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Unicode based (unlike JS)<br>
-    </td>
-  </tr>
-  <tr valign="top">
     <td>Lookaround</td>
     <td>
       <code>(?=…)</code>,<br>
@@ -661,6 +652,24 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Same as JS<br>
       ✔ Allows variable-length quantifiers and alternation within lookbehind<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Word boundary</td>
+    <td><code>\b</code>, <code>\B</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode based (unlike JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Grapheme boundary (extremely rare)</td>
+    <td><code>\y</code>, <code>\Y</code></td>
+    <td align="middle">❌</td>
+    <td align="middle">❌</td>
+    <td>
+      ● Not yet supported<br>
     </td>
   </tr>
 

@@ -8,7 +8,7 @@ beforeEach(() => {
 });
 
 describe('Assertion', () => {
-  // [Note] For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`
+  // [NOTE] For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`
 
   describe('line_end', () => {
     it('should match at the end of the string', () => {
@@ -339,6 +339,14 @@ describe('Assertion', () => {
           'これは日本語です', '0日本語0',
         ]).toFindMatch(r`\B日本語\B`);
       });
+    });
+  });
+
+  describe('grapheme_boundary', () => {
+    // Supportable with close approximation, but extremely rare and not many use cases
+    it('should throw as unsupported', () => {
+      expect(() => toDetails(r`\y`)).toThrow();
+      expect(() => toDetails(r`\Y`)).toThrow();
     });
   });
 });

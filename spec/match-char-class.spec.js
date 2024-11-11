@@ -41,7 +41,7 @@ describe('CharacterClass', () => {
         expect(cp(0o177)).toExactlyMatch(r`[\177]`);
       });
 
-      it(r`should throw for UTF-8 encoded byte sequence in octal (above \177)`, () => {
+      it(r`should throw for octal UTF-8 encoded byte above \177`, () => {
         expect(() => toDetails(r`[\200]`)).toThrow();
         expect(() => toDetails(r`[\777]`)).toThrow();
       });
@@ -72,4 +72,5 @@ describe('CharacterClass', () => {
 
   // TODO: Add remaining
   // TODO: Test that nested negated classes throw for target ES2018
+  // TODO: Test assertions/var-length escapes are identity escapes
 });
