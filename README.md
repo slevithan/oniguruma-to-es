@@ -219,7 +219,7 @@ Include JavaScript flag `d` (`hasIndices`) in the result.
 
 *Default: `6`.*
 
-Specifies the recursion depth limit. Supported values are integers `2` to `100` and `null`. If `null`, any use of recursion results in an error.
+Specifies the recursion depth limit. Supported values are integers `2`–`100` and `null`. If `null`, any use of recursion results in an error.
 
 Since recursion isn't infinite-depth like in Oniguruma, use of recursion also results in an error if using strict `accuracy`.
 

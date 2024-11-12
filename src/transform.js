@@ -49,7 +49,7 @@ function transform(ast, options) {
     bestEffortTarget: 'ES2025',
     ...options,
   };
-  // AST changes that work together with a `RegExp` subclass to add advanced emulation
+  // AST transformations that work together with a `RegExp` subclass to add advanced emulation
   const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast, opts.accuracy);
   const firstPassState = {
     accuracy: opts.accuracy,
@@ -75,9 +75,8 @@ function transform(ast, options) {
     prevFlags: null,
     globalFlags,
     groupOriginByCopy: new Map(),
-    groupsWithDuplicateNamesToRemove: new Set(),
+    groupsByName: new Map(),
     multiplexCapturesToLeftByRef: new Map(),
-    namedGroupsInScopeByAlt: new Map(),
     openDirectCaptures: new Set(),
     openSubroutineRefs: new Set(),
     reffedNodesByBackreference: new Map(),
@@ -85,7 +84,7 @@ function transform(ast, options) {
   };
   traverse({node: ast}, secondPassState, SecondPassVisitor);
   const thirdPassState = {
-    groupsWithDuplicateNamesToRemove: secondPassState.groupsWithDuplicateNamesToRemove,
+    groupsByName: secondPassState.groupsByName,
     highestOrphanBackref: 0,
     numCapturesToLeft: 0,
     reffedNodesByBackreference: secondPassState.reffedNodesByBackreference,
@@ -335,19 +334,6 @@ const FirstPassVisitor = {
 };
 
 const SecondPassVisitor = {
-  Alternative({node}, {namedGroupsInScopeByAlt}) {
-    const parentAlt = getParentAlternative(node);
-    if (parentAlt) {
-      // JS requires group names to be unique per alternation path (which includes alternations in
-      // nested groups), so pull down the names already used within this alternation path to this
-      // nested alternative for handling within the `CapturingGroup` visitor
-      const groups = namedGroupsInScopeByAlt.get(parentAlt);
-      if (groups) {
-        namedGroupsInScopeByAlt.set(node, groups);
-      }
-    }
-  },
-
   Backreference({node}, {multiplexCapturesToLeftByRef, reffedNodesByBackreference}) {
     const {orphan, ref} = node;
     if (!orphan) {
@@ -364,18 +350,15 @@ const SecondPassVisitor = {
         skip,
       },
       { groupOriginByCopy,
-        groupsWithDuplicateNamesToRemove,
+        groupsByName,
         multiplexCapturesToLeftByRef,
-        namedGroupsInScopeByAlt,
         openDirectCaptures,
         openSubroutineRefs,
       }
     ) {
-      const {name, number} = node;
-      const ref = name ?? number;
+      const ref = node.name ?? node.number;
       // Has value if we're within a subroutine expansion
       const origin = groupOriginByCopy.get(node);
-      const parentAlt = getParentAlternative(node);
 
       // ## Handle recursion; runs after subroutine expansion
       if (openSubroutineRefs.has(ref)) {
@@ -431,25 +414,21 @@ const SecondPassVisitor = {
       multiplexNodes.push({node, origin});
 
       // ## Track data for duplicate names within an alternation path
-      // JS requires group names to be unique per alternation path (which includes alternations in
-      // nested groups), so if using a duplicate name for this alternation path, remove the name from
-      // all but the latest instance (also applies to groups added via subroutine expansion)
-      if (name) {
-        const namedGroupsInScope = getOrCreate(namedGroupsInScopeByAlt, parentAlt, new Map());
-        if (namedGroupsInScope.has(name)) {
-          // Will change the earlier instance with this name to an unnamed capture in a later pass
-          groupsWithDuplicateNamesToRemove.add(namedGroupsInScope.get(name));
+      // JS pre-ES2025 doesn't allow any duplicate names, but starting with ES2025 it requires
+      // group names to be unique per alternation path (which includes alternations in nested
+      // groups), so if using a duplicate name for this alternation path, remove the name from all
+      // but the latest instance (also applies to groups added via subroutine expansion)
+      if (node.name) {
+        const groupsWithSameName = getOrCreate(groupsByName, node.name, new Map());
+        for (const groupInfo of groupsWithSameName.values()) {
+          if (!groupInfo.hasDuplicateNameToRemove && canParticipateWithNode(groupInfo.node, node, {
+            ancestorsParticipate: true,
+          })) {
+            // Will change the earlier instance with this name to an unnamed capture in a later pass
+            groupInfo.hasDuplicateNameToRemove = true;
+          }
         }
-        // Track the latest instance of this group name, and pass it up through parent alternatives
-        namedGroupsInScope.set(name, node);
-        // Skip the immediate parent alt because we don't want subsequent sibling alts to consider
-        // named groups from their preceding siblings
-        let upAlt = getParentAlternative(parentAlt);
-        if (upAlt) {
-          do {
-            getOrCreate(namedGroupsInScopeByAlt, upAlt, new Map()).set(name, node);
-          } while ((upAlt = getParentAlternative(upAlt)));
-        }
+        groupsByName.get(node.name).set(node, {node});
       }
     },
     exit({node}, {groupOriginByCopy, openDirectCaptures, openSubroutineRefs}) {
@@ -515,7 +494,9 @@ const ThirdPassVisitor = {
       return;
     }
     const reffedNodes = state.reffedNodesByBackreference.get(node);
-    const participants = reffedNodes.filter(reffedNode => canCaptureParticipateForBackref(reffedNode, node));
+    const participants = reffedNodes.filter(reffed => canParticipateWithNode(reffed, node, {
+      ancestorsParticipate: false,
+    }));
     // For the backref's `ref`, use `number` rather than `name` because group names might have been
     // removed if they're duplicates within their alternation path, or they might be removed later
     // by the generator (depending on target) if they're duplicates within the overall pattern.
@@ -526,9 +507,9 @@ const ThirdPassVisitor = {
       replaceWith(createLookaround({negate: true}));
     } else if (participants.length > 1) {
       // Multiplex
-      const alts = participants.map(reffedNode => adoptAndSwapKids(
+      const alts = participants.map(reffed => adoptAndSwapKids(
         createAlternative(),
-        [createBackreference(reffedNode.number)]
+        [createBackreference(reffed.number)]
       ));
       replaceWith(adoptAndSwapKids(createGroup(), alts));
     } else {
@@ -539,10 +520,12 @@ const ThirdPassVisitor = {
   CapturingGroup({node}, state) {
     // Recalculate the number since the current value might be wrong due to subroutine expansion
     node.number = ++state.numCapturesToLeft;
-    // Removing duplicate names here rather than in an earlier pass avoids extra complexity when
-    // handling subroutine expansion and backref multiplexing
-    if (state.groupsWithDuplicateNamesToRemove.has(node)) {
-      delete node.name;
+    if (node.name) {
+      // Removing duplicate names here rather than in an earlier pass avoids extra complexity when
+      // handling subroutine expansion and backref multiplexing
+      if (state.groupsByName.get(node.name).get(node).hasDuplicateNameToRemove) {
+        delete node.name;
+      }
     }
   },
 
@@ -574,13 +557,13 @@ function areFlagsEqual(a, b) {
   return a.dotAll === b.dotAll && a.ignoreCase === b.ignoreCase;
 }
 
-function canCaptureParticipateForBackref(capture, backref) {
+function canParticipateWithNode(capture, node, {ancestorsParticipate}) {
   // Walks to the left (prev siblings), down (sibling descendants), up (parent), then back down
   // (parent's prev sibling descendants) the tree in a loop
-  let rightmostPoint = backref;
+  let rightmostPoint = node;
   do {
     if (rightmostPoint.type === AstTypes.Pattern) {
-      // End of the line; capture is not in backref's alternation path
+      // End of the line; capture is not in node's alternation path
       return false;
     }
     if (rightmostPoint.type === AstTypes.Alternative) {
@@ -588,8 +571,8 @@ function canCaptureParticipateForBackref(capture, backref) {
       continue;
     }
     if (rightmostPoint === capture) {
-      // Capture is ancestor of backref
-      return false;
+      // Capture is ancestor of node
+      return ancestorsParticipate;
     }
     const kidsOfParent = getKids(rightmostPoint.parent);
     for (const kid of kidsOfParent) {
@@ -637,7 +620,6 @@ function createRecursion(ref) {
   };
 }
 
-// See also `getParentAlternative`
 function getAllParents(node, filterFn) {
   const results = [];
   while ((node = node.parent)) {
@@ -758,17 +740,6 @@ function getLeadingG(els) {
       }
     }
     return gNodesForGroup;
-  }
-  return null;
-}
-
-// See also `getAllParents`
-function getParentAlternative(node) {
-  while ((node = node.parent)) {
-    // Skip past quantifiers, etc.
-    if (node.type === AstTypes.Alternative) {
-      return node;
-    }
   }
   return null;
 }
