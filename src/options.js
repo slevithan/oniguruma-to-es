@@ -41,7 +41,7 @@ function getOptions(options) {
     hasIndices: false,
     // Specifies the recursion depth limit. Supported values are integers `2`–`100` and `null`. If
     // `null`, any use of recursion results in an error.
-    maxRecursionDepth: 6,
+    maxRecursionDepth: 5,
     // Sets the JavaScript language version for the generated pattern and flags. Later targets
     // allow faster processing, simpler generated source, and support for additional features.
     target: 'ES2024',

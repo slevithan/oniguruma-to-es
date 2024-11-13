@@ -9,7 +9,7 @@ async function exec([pattern, str]) {
     err(null, 'pattern and str args expected');
     return;
   }
-  // [Hack] Replace unescaped `\u{...}` with code point value
+  // [Hack] Replace unescaped `\u{…}` with code point value
   str = str.replace(
     /\\u\{([^\}]+)\}|\\?./gsu,
     (m, code) => m.startsWith(r`\u{`) ? String.fromCodePoint(parseInt(code, 16)) : m

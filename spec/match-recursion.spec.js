@@ -38,7 +38,7 @@ describe('Recursion', () => {
 
       const pattern = r`<(?:[^<>]|\g<0>)*>`;
       expect([
-        '<>', '<<>>', '<a<b<c>d>e>', '<<<<<<a>>>bc>>>',
+        '<>', '<<>>', '<a<b<c>d>e>', '<<<<<a>>bc>>>',
       ]).toExactlyMatch(pattern);
       expect(
         'test > <balanced <<brackets>>> <> <<a>> < <b>'.match(toRegExp(pattern, {global: true}))
