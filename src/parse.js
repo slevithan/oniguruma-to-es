@@ -1,7 +1,7 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodePropertiesMap, JsUnicodePropertiesOfStringsMap, PosixProperties, slug} from './unicode.js';
-import {getOrCreate, r, throwIfNot} from './utils.js';
+import {getOrCreate, hasOnlyChild, r, throwIfNot} from './utils.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -661,13 +661,10 @@ function getJsUnicodePropertyName(value) {
 
 // If a direct child group is needlessly nested, return it instead (after modifying it)
 function getOptimizedGroup(node) {
-  const firstAlt = node.alternatives[0];
-  const firstAltFirstEl = firstAlt.elements[0];
+  const firstAltFirstEl = node.alternatives[0].elements[0];
   if (
     node.type === AstTypes.Group &&
-    node.alternatives.length === 1 &&
-    firstAlt.elements.length === 1 &&
-    firstAltFirstEl.type === AstTypes.Group &&
+    hasOnlyChild(node, kid => kid.type === AstTypes.Group) &&
     !(node.atomic && firstAltFirstEl.flags) &&
     !(node.flags && (firstAltFirstEl.atomic || firstAltFirstEl.flags))
   ) {

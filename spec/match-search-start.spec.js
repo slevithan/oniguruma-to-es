@@ -27,7 +27,6 @@ describe('Assertion: Search start', () => {
       expect('abbcbb'.match(toRegExp(r`\G[ab]`, {global: true}))).toEqual(['a', 'b', 'b']);
     });
 
-    // Unsupported; not emulatable without a subclass
     it('should throw if not used at the start of every top-level alternative', () => {
       expect(() => toDetails(r`a\G`)).toThrow();
       expect(() => toDetails(r`\Ga|b`)).toThrow();
@@ -36,11 +35,11 @@ describe('Assertion: Search start', () => {
 
     it('should allow if following a directive', () => {
       expect('a').toExactlyMatch(r`\K\Ga`);
-      expect('a').toExactlyMatch({
+      expect(['a', 'A']).toExactlyMatch({
         pattern: r`(?i)\Ga`,
         maxTestTarget: maxTestTargetForPatternMods,
       });
-      expect('a').toExactlyMatch({
+      expect(['a', 'A']).toExactlyMatch({
         pattern: r`(?i)(?m)\Ga`,
         maxTestTarget: maxTestTargetForPatternMods,
       });
@@ -55,6 +54,27 @@ describe('Assertion: Search start', () => {
       expect('a').toExactlyMatch(r`(?<!a)(?=a)\Ga`);
     });
 
+    it('should allow if an only child of a positive lookaround', () => {
+      expect('a').toExactlyMatch(r`(?=\G)a`);
+      expect('a').toExactlyMatch(r`(?<=\G)a`);
+    });
+
+    it('should throw if not an only child of a positive lookaround', () => {
+      [ r`(?=\Ga)a`,
+        r`(?=a\G)a`,
+        r`(?=\G|)a`,
+        r`(?!\Ga)a`,
+        r`(?!a\G)a`,
+        r`(?!\G|)a`,
+        r`(?<=\Ga)a`,
+        r`(?<=a\G)a`,
+        // r`(?<=\G|)a`, // Supported using subclass
+        r`(?<!\Ga)a`,
+        r`(?<!a\G)a`,
+        r`(?<!\G|)a`,
+      ].forEach(p => expect(() => toDetails(p)).withContext(p).toThrow());
+    });
+
     it('should allow if following a 0-min quantified token', () => {
       expect('a').toExactlyMatch(r`a*\Ga`);
       expect('a').toExactlyMatch(r`(a)*\Ga`);
@@ -67,8 +87,20 @@ describe('Assertion: Search start', () => {
       expect(() => toDetails(r`(a)+\G`)).toThrow();
     });
 
-    it('should check within groups to determine validity', () => {
+    it('should allow if within a wrapper group', () => {
       expect('a').toExactlyMatch(r`(\Ga)`);
+      expect('a').toExactlyMatch(r`(((\Ga)))`);
+      expect('a').toExactlyMatch(r`(?:\Ga)`);
+      expect('a').toExactlyMatch(r`(?>\Ga)`);
+      expect('a').toExactlyMatch(r`(?<a>\Ga)`);
+      expect('a').toExactlyMatch({
+        pattern: r`(?i:\Ga)`,
+        maxTestTarget: maxTestTargetForPatternMods,
+      });
+    });
+
+    it('should check within groups to determine validity', () => {
+      expect('a').toExactlyMatch(r`((?=\G)a)`);
       expect('a').toExactlyMatch(r`(?:(?>^(?<n>\Ga)))`);
       expect(() => toDetails(r`(?:(?>a(?<n>\Gb)))`)).toThrow();
       expect('a').toExactlyMatch(r`\Ga|(((\Gb)))`);
@@ -77,15 +109,15 @@ describe('Assertion: Search start', () => {
       expect(() => toDetails(r`((\Ga|b)c)`)).toThrow();
     });
 
-    it('should throw if leading in a non-0-min quantified group', () => {
-      expect(() => toDetails(r`(\Ga)+`)).toThrow();
-      expect(() => toDetails(r`(\Ga)+\G`)).toThrow();
-    });
-
     // Documenting current behavior
     it('should throw for redundant but otherwise supportable assertions', () => {
       expect(() => toDetails(r`\G\Ga`)).toThrow();
       expect(() => toDetails(r`\Ga|\G\Gb`)).toThrow();
+    });
+
+    it('should throw if leading in a non-0-min quantified group', () => {
+      expect(() => toDetails(r`(\Ga)+`)).toThrow();
+      expect(() => toDetails(r`(\Ga)+\G`)).toThrow();
     });
 
     // Note: Could support by replacing `\G` with `(?!)`, but these forms aren't useful

@@ -1,5 +1,6 @@
 import {AstAssertionKinds, AstTypes, createAlternative, createGroup, createUnicodeProperty, isLookaround} from './parse.js';
 import {adoptAndSwapKids} from './transform.js';
+import {hasOnlyChild} from './utils.js';
 
 // Special case handling that requires coupling with a `RegExp` subclass (see `EmulatedRegExp`).
 // These changes add emulation support for some common patterns that are otherwise unsupportable.
@@ -14,8 +15,9 @@ function applySubclassStrategies(ast, accuracy) {
   }
 
   const hasWrapperGroup =
-    alts[0].elements.length === 1 &&
-    (firstEl.type === AstTypes.CapturingGroup || firstEl.type === AstTypes.Group) &&
+    hasOnlyChild(ast.pattern, kid => (
+      kid.type === AstTypes.CapturingGroup || kid.type === AstTypes.Group
+    )) &&
     firstEl.alternatives.length === 1;
   const singleAltIn = hasWrapperGroup ? firstEl.alternatives[0] : alts[0];
   // First el within first group if the group doesn't contain top-level alternation, else just the
@@ -62,7 +64,7 @@ function applySubclassStrategies(ast, accuracy) {
   }
 
   // ## Strategy `after_search_start_or_subpattern`: Support leading `(?<=\G|…)` and similar
-  // Note: Leading `(?<=\G)` without other alts is already supported; no need for a subclass
+  // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
   if (
     firstElIn.kind === AstAssertionKinds.lookbehind &&
     !firstElIn.negate &&
@@ -109,9 +111,7 @@ function applySubclassStrategies(ast, accuracy) {
 function isNegatedSearchStart(node) {
   return isLookaround(node) &&
     node.negate &&
-    node.alternatives.length === 1 &&
-    node.alternatives[0].elements.length === 1 &&
-    node.alternatives[0].elements[0].kind === AstAssertionKinds.search_start;
+    hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start);
 }
 
 export {

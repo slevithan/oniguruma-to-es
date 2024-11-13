@@ -4,7 +4,7 @@ import {applySubclassStrategies} from './subclass-strategies.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
+import {cp, getNewCurrentFlags, getOrCreate, hasOnlyChild, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
@@ -705,19 +705,27 @@ function getKids(node) {
 }
 
 function getLeadingG(els) {
-  const firstToConsider = els.find(el => {
-    return el.kind === AstAssertionKinds.search_start ?
-      true :
-      ( el.type !== AstTypes.Assertion &&
-        el.type !== AstTypes.Directive &&
-        !(el.type === AstTypes.Quantifier && !el.min)
+  function isSearchStartEquiv(node) {
+    return node.kind === AstAssertionKinds.search_start ||
+      ( isLookaround(node) &&
+        !node.negate &&
+        hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start)
       );
-  });
+  }
+  function isSkippable(node) {
+    return node.type === AstTypes.Assertion ||
+      node.type === AstTypes.Directive ||
+      (node.type === AstTypes.Quantifier && !node.min);
+  }
+  const firstToConsider = els.find(el => isSearchStartEquiv(el) || !isSkippable(el));
   if (!firstToConsider) {
     return null;
   }
   if (firstToConsider.kind === AstAssertionKinds.search_start) {
     return firstToConsider;
+  }
+  if (isLookaround(firstToConsider)) {
+    return firstToConsider.alternatives[0].elements[0];
   }
   if (firstToConsider.type === AstTypes.Group || firstToConsider.type === AstTypes.CapturingGroup) {
     const gNodesForGroup = [];
