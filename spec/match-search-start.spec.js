@@ -82,59 +82,7 @@ describe('Assertion: Search start', () => {
       expect(() => toDetails(r`(\Ga)+\G`)).toThrow();
     });
 
-    it('should allow if leading in a leading positive lookahead', () => {
-      expect('a').toExactlyMatch(r`(?=\G)a`);
-      expect('a').toExactlyMatch(r`(?=\Ga)a`);
-      expect('aaba'.match(toRegExp(r`(?=\Ga)a`, {global: true}))).toEqual(['a', 'a']);
-      expect(['a', 'b']).toExactlyMatch(r`(?=\G)a|\Gb`);
-      expect('a').toExactlyMatch(r`((?=\G)a)`);
-      expect(['a', 'A']).toExactlyMatch({
-        pattern: r`(?i)(?=\G)a`,
-        maxTestTarget: maxTestTargetForPatternMods,
-      });
-      // Similar but not covered
-      [ r`(?=\G|)a`,
-        r`(?:(?=\G))?a`,
-        r`(?=\G)a|b`,
-      ].forEach(pattern => {
-        expect(() => toDetails(pattern, {avoidSubclass: true})).toThrow();
-      });
-    });
-
-    it('should allow if trailing in a leading positive lookbehind', () => {
-      expect('a').toExactlyMatch(r`(?<=\G)a`);
-      expect(['aa', 'abaa']).not.toFindMatch(r`(?<=a\G)a`);
-      let re = toRegExp(r`(?<=a\G)a`);
-      re.lastIndex = 3;
-      expect(re.exec('abaa')?.index).toBe(3);
-      expect(['a', 'b']).toExactlyMatch(r`(?<=\G)a|\Gb`);
-      expect('a').toExactlyMatch(r`((?<=\G)a)`);
-      expect(['a', 'A']).toExactlyMatch({
-        pattern: r`(?i)(?<=\G)a`,
-        maxTestTarget: maxTestTargetForPatternMods,
-      });
-      // Similar but not covered
-      [ r`(?<=\G|)a`,
-        r`(?:(?<=\G))?a`,
-        r`(?<=\G)a|b`,
-      ].forEach(pattern => {
-        expect(() => toDetails(pattern, {avoidSubclass: true})).toThrow();
-      });
-    });
-
-    it('should throw if leading in a leading positive lookbehind', () => {
-      // [Oniguruma] Matches at index 3 within `abc`, but doesn't match within `aabc`
-      // [TODO] Emulatable by replacing `\G` with `^`, slicing the string to `lastIndex`, and doing
-      // a non-sticky search
-      expect(() => toDetails(r`(?<=\Gabc)`)).toThrow();
-    });
-
-    it('should throw if leading in a leading negative lookaround', () => {
-      expect(() => toDetails(r`(?!\G)a`, {avoidSubclass: true})).toThrow();
-      expect(() => toDetails(r`(?<!\G)a`, {avoidSubclass: true})).toThrow();
-    });
-
-    // Just documenting current behavior
+    // Documenting current behavior
     it('should throw for redundant but otherwise supportable assertions', () => {
       expect(() => toDetails(r`\G\Ga`)).toThrow();
       expect(() => toDetails(r`\Ga|\G\Gb`)).toThrow();

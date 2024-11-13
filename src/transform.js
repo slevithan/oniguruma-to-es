@@ -705,27 +705,7 @@ function getKids(node) {
 }
 
 function getLeadingG(els) {
-  let firstToConsider = els.find(el => el.type !== AstTypes.Directive);
-  if (!firstToConsider) {
-    return null;
-  }
-  // Special case for leading positive lookaround with leading `\G`; else all leading assertions
-  // are ignored when looking for `\G`; can be nested within a wrapper group via subsequent
-  // recursion into groups
-  if (
-    isLookaround(firstToConsider) &&
-    !firstToConsider.negate &&
-    firstToConsider.alternatives.length === 1 &&
-    firstToConsider.alternatives[0].elements.length
-  ) {
-    const els = firstToConsider.alternatives[0].elements;
-    const index = firstToConsider.kind === AstAssertionKinds.lookahead ? 0 : els.length - 1;
-    // `\G` is first in lookahead or last in lookbehind
-    if (els[index].kind === AstAssertionKinds.search_start) {
-      return els[index];
-    }
-  }
-  firstToConsider = els.find(el => {
+  const firstToConsider = els.find(el => {
     return el.kind === AstAssertionKinds.search_start ?
       true :
       ( el.type !== AstTypes.Assertion &&
