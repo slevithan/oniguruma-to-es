@@ -1,18 +1,17 @@
-import {r} from "../src/utils.js";
-import {areMatchDetailsEqual, color, err, ok, onigurumaResult, transpiledRegExpResult, value} from "./utils.js";
+import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './utils.js';
 
 exec(process.argv.slice(2));
 
-// Basic Oniguruma tester for the console that also reports a comparison with Oniguruma-to-ES
+// Basic Oniguruma tester for the console; also reports a comparison with Oniguruma-to-ES
 async function exec([pattern, str]) {
   if (!(typeof pattern === 'string' && typeof str === 'string')) {
     err(null, 'pattern and str args expected');
     return;
   }
-  // [Hack] Replace unescaped `\u{…}` with code point value
+  // [HACK] Replace unescaped `\u{…}` in the target string with the referenced code point
   str = str.replace(
     /\\u\{([^\}]+)\}|\\?./gsu,
-    (m, code) => m.startsWith(r`\u{`) ? String.fromCodePoint(parseInt(code, 16)) : m
+    (m, code) => m.startsWith(r`\u{`) ? cp(parseInt(code, 16)) : m
   );
 
   const libMatches = [];

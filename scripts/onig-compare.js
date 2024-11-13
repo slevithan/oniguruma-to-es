@@ -1,5 +1,4 @@
-import {r} from '../src/utils.js';
-import {areMatchDetailsEqual, color, err, ok, onigurumaResult, transpiledRegExpResult, value} from './utils.js';
+import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './utils.js';
 
 // Help with improving this script and/or comparing with Oniguruma automaticlly in Jasmine specs
 // would be very welcome
@@ -13,10 +12,10 @@ compare([
   [r`\0000`, `\u{0}0`],
   [r`[\0000]`, `0`],
   [r`\1`, `\u{1}`],
-  [r`\10`, String.fromCodePoint(0o10)],
+  [r`\10`, cp(0o10)],
   [r`\18`, `\u{1}8`],
-  [r`\177`, String.fromCodePoint(0o177)],
-  [r`\200`, String.fromCodePoint(0o200)], // Multibyte octal not allowed
+  [r`\177`, cp(0o177)],
+  [r`\200`, cp(0o200)],
   [r`\c`, `c`],
   [r`[\c]`, `c`],
   [r`\N`, `\n`],
@@ -56,7 +55,7 @@ compare([
   [r`\x1`, `\u{1}`],
   [r`[\x1]`, `\u{1}`],
   [r`\x7F`, `\u{7F}`],
-  [r`\x80`, `\u{80}`],  // Multibyte `\xNN` not allowed
+  [r`\x80`, `\u{80}`],
   [r`\x{`, `x{`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
   [r`[\x{]`, `x`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
   [r`\x{ 1 }`, `x{ 1 }`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],

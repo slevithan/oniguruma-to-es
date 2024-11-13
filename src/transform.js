@@ -541,12 +541,14 @@ const ThirdPassVisitor = {
   Regex: {
     exit({node}, state) {
       // [HACK] Add unnamed captures to the end of the regex if needed to allow orphaned backrefs
-      // to be valid in JS. This is needed to support TextMate grammars, which merge `begin` and
-      // `end` patterns. An `end` pattern might therefore have backrefs to a group that doesn't
-      // exist within `end`. This presents a dilemma since both Oniguruma and JS (with flag u or v)
-      // throw for backrefs to undefined captures, and the backref can't be removed or changed. So
-      // this is a solution that lets it through. Note: Orphan backrefs are only allowed if the
-      // `tmGrammar` option is used
+      // to be valid in JS with flag u/v. This is needed to support TextMate grammars, which
+      // replace numbered backrefs in their `end` pattern with values matched by captures in their
+      // `begin` pattern! An `end` pattern, prior to this substitution, might have backrefs to a
+      // group that doesn't exist within `end`. This presents a dilemma since both Oniguruma and JS
+      // (with flag u/v) error for backrefs to undefined captures. So adding captures to the end is
+      // a solution that doesn't change what the regex matches, and lets invalid numbered backrefs
+      // through. Note: Orphan backrefs are only allowed if the `tmGrammar` option is used. See
+      // <github.com/microsoft/vscode-textmate/blob/7e0ea282f4f25fef12a6c84fa4fa7266f67b58dc/src/rule.ts#L661-L663>
       const numCapsNeeded = Math.max(state.highestOrphanBackref - state.numCapturesToLeft, 0);
       for (let i = 0; i < numCapsNeeded; i++) {
         const emptyCapture = createCapturingGroup();

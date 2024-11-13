@@ -1,5 +1,5 @@
 import {toRegExp} from '../dist/index.mjs';
-import {r} from '../src/utils.js';
+import {cp, r} from '../src/utils.js';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 // vscode-oniguruma 2.0.1 uses Oniguruma 6.9.8
@@ -158,9 +158,11 @@ function esc(str, restoreEsc = '') {
 export {
   areMatchDetailsEqual,
   color,
+  cp,
   err,
   ok,
   onigurumaResult,
+  r,
   transpiledRegExpResult,
   value,
 };
