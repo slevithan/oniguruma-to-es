@@ -23,6 +23,13 @@ describe('Recursion', () => {
     }
   });
 
+  // Documenting current behavior
+  it('should throw if recursion used with backref', () => {
+    expect(() => toDetails(r`(a)\1\g<0>?`)).toThrow();
+    expect(() => toDetails(r`(a\g<1>?)\k<1>`)).toThrow();
+    expect(() => toDetails(r`(?<a>a\g<a>?)(?<b>)\k<b>`)).toThrow();
+  });
+
   describe('global', () => {
     it('should match direct recursion', () => {
       expect('aaabbb').toExactlyMatch(r`a\g<0>?b`);
@@ -38,12 +45,17 @@ describe('Recursion', () => {
       ).toEqual(['<balanced <<brackets>>>', '<>', '<<a>>', '<b>']);
     });
 
-    it('should throw for multiple direct, overlapping recursions', () => {
-      expect(() => toDetails(r`a\g<0>?\g<0>?`)).toThrow();
-    });
-
     it('should throw for leading 0s', () => {
       expect(() => toDetails(r`a\g<00>?`)).toThrow();
+    });
+
+    it('should throw for relative 0', () => {
+      expect(() => toDetails(r`a\g<-0>?`)).toThrow();
+      expect(() => toDetails(r`a\g<+0>?`)).toThrow();
+    });
+
+    it('should throw for overlapping recursions', () => {
+      expect(() => toDetails(r`a\g<0>?\g<0>?`)).toThrow();
     });
   });
 
@@ -54,7 +66,11 @@ describe('Recursion', () => {
       expect('aaabb').not.toFindMatch(r`\A(a\g<1>?b)\z`);
     });
 
-    it('should throw for indirect recursion', () => {
+    it('should match direct, non-overlapping recursions', () => {
+      expect('aabbcccddd').toExactlyMatch(r`(a\g<1>?b)(c\g<2>?d)`);
+    });
+
+    it('should throw for overlapping recursions', () => {
       expect(() => toDetails(r`(a\g<2>(\g<1>?))`)).toThrow();
     });
   });
@@ -66,13 +82,12 @@ describe('Recursion', () => {
       expect('aaabb').not.toFindMatch(r`\A(a\g<-1>?b)\z`);
     });
 
-    it('should throw for indirect recursion', () => {
-      expect(() => toDetails(r`(a\g<+1>(\g<-2>?))`)).toThrow();
+    it('should match direct, non-overlapping recursions', () => {
+      expect('aabbcccddd').toExactlyMatch(r`(a\g<-1>?b)(c\g<-1>?d)`);
     });
 
-    it('should throw for relative 0', () => {
-      expect(() => toDetails(r`a\g<-0>?`)).toThrow();
-      expect(() => toDetails(r`a\g<+0>?`)).toThrow();
+    it('should throw for overlapping recursions', () => {
+      expect(() => toDetails(r`(a\g<+1>(\g<-2>?))`)).toThrow();
     });
   });
 
@@ -82,25 +97,22 @@ describe('Recursion', () => {
       expect('aaabb').not.toFindMatch(r`\A(?<r>a\g<r>?b)\z`);
     });
 
-    it('should throw for multiple direct, overlapping recursions', () => {
+    it('should match direct, non-overlapping recursions', () => {
+      expect('aabbcccddd').toExactlyMatch(r`(?<a>a\g<a>?b)(?<b>c\g<b>?d)`);
+    });
+
+    it('should match indirect, non-overlapping recursions', () => {
+      expect('aabbaabb').toExactlyMatch(r`(?<a>a\g<a>?b)\g<a>`);
+      expect('aabbaabb').toExactlyMatch(r`\g<a>(?<a>a\g<a>?b)`);
+      expect('acacdbdb1cacabdbd').toExactlyMatch(r`(?<a>a\g<b>?b)1(?<b>c\g<a>?d)`);
+      expect('acacdbdb1acacdbdb2cacabdbd').toExactlyMatch(r`\g<a>1(?<a>a\g<b>?b)2(?<b>c\g<a>?d)`);
+      expect('aceacefdbfdb1ceaceabfdbfd2eaceacdbfdbf').toExactlyMatch(r`(?<a>a\g<b>?b)1(?<b>c\g<c>?d)2(?<c>e\g<a>?f)`);
+    });
+
+    it('should throw for overlapping recursions', () => {
       expect(() => toDetails(r`a\g<0>?(?<r>a\g<r>?)`)).toThrow();
       expect(() => toDetails(r`(?<r>a\g<r>?\g<r>?)`)).toThrow();
-    });
-
-    // Current limitation of `regex-recursion`
-    it('should throw for multiple direct, non-overlapping recursions', () => {
-      expect(() => toDetails(r`(?<r1>a\g<r1>?)(?<r2>a\g<r2>?)`)).toThrow();
-    });
-
-    it('should throw for multiple indirect, overlapping recursions', () => {
       expect(() => toDetails(r`(?<a>\g<b>(?<b>a\g<a>?))`)).toThrow();
-    });
-
-    // Current limitation of `regex-recursion`
-    it('should throw for multiple indirect, non-overlapping recursions', () => {
-      expect(() => toDetails(r`(?<a>\g<b>)(?<b>a\g<a>?)`)).toThrow();
-      expect(() => toDetails(r`\g<a>(?<a>\g<b>)(?<b>a\g<a>?)`)).toThrow();
-      expect(() => toDetails(r`(?<a>\g<b>)(?<b>\g<c>)(?<c>a\g<a>?)`)).toThrow();
     });
   });
 });

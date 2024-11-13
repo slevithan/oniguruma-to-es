@@ -25,7 +25,7 @@ Assumes target ES2025, expecting the generator to down-convert to the desired JS
 
 Regex+'s syntax and behavior is a strict superset of native JavaScript, so the AST is very close
 to representing native ES2025 `RegExp` but with some added features (atomic groups, possessive
-quantifiers, recursion). The AST doesn't use some of Regex+'s extended features like flag `x` or
+quantifiers, recursion). The AST doesn't use some of Regex+'s extended features like flag x or
 subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The
 AST represents what's needed to precisely reproduce Oniguruma behavior using Regex+.
 @param {import('./parse.js').OnigurumaAst} ast
@@ -77,9 +77,8 @@ function transform(ast, options) {
     groupOriginByCopy: new Map(),
     groupsByName: new Map(),
     multiplexCapturesToLeftByRef: new Map(),
-    openDirectCaptures: new Set(),
-    openSubroutineRefs: new Set(),
-    reffedNodesByBackreference: new Map(),
+    openRefs: new Map(),
+    reffedNodesByReferencer: new Map(),
     subroutineRefMap: firstPassState.subroutineRefMap,
   };
   traverse({node: ast}, secondPassState, SecondPassVisitor);
@@ -87,7 +86,7 @@ function transform(ast, options) {
     groupsByName: secondPassState.groupsByName,
     highestOrphanBackref: 0,
     numCapturesToLeft: 0,
-    reffedNodesByBackreference: secondPassState.reffedNodesByBackreference,
+    reffedNodesByReferencer: secondPassState.reffedNodesByReferencer,
   };
   traverse({node: ast}, thirdPassState, ThirdPassVisitor);
   if (strategy) {
@@ -334,13 +333,30 @@ const FirstPassVisitor = {
 };
 
 const SecondPassVisitor = {
-  Backreference({node}, {multiplexCapturesToLeftByRef, reffedNodesByBackreference}) {
+  Backreference({node}, {multiplexCapturesToLeftByRef, reffedNodesByReferencer}) {
     const {orphan, ref} = node;
     if (!orphan) {
       // Copy the current state for later multiplexing expansion. It's done in a subsequent pass
       // because backref numbers need to be recalculated after subroutine expansion
-      reffedNodesByBackreference.set(node, [...multiplexCapturesToLeftByRef.get(ref).map(({node}) => node)]);
+      reffedNodesByReferencer.set(node, [...multiplexCapturesToLeftByRef.get(ref).map(({node}) => node)]);
     }
+  },
+
+  Recursion({node}, {reffedNodesByReferencer}) {
+    // Recursion nodes are created during the current traversal; they're only traversed here if a
+    // recursion node created during traversal is then copied by a subroutine expansion, e.g. with
+    // `(?<a>\g<a>)\g<a>`
+    const {ref} = node;
+    // Immediate parent is an alternative or quantifier; can skip
+    let reffed = node.parent;
+    while ((reffed = reffed.parent)) {
+      if (reffed.type === AstTypes.CapturingGroup && (reffed.name === ref || reffed.number === ref)) {
+        break;
+      }
+    }
+    // Track the referenced node because `ref`s are rewritten in a subsequent pass; capturing group
+    // names and numbers might change due to subroutine expansion and duplicate group names
+    reffedNodesByReferencer.set(node, reffed);
   },
 
   CapturingGroup: {
@@ -352,42 +368,28 @@ const SecondPassVisitor = {
       { groupOriginByCopy,
         groupsByName,
         multiplexCapturesToLeftByRef,
-        openDirectCaptures,
-        openSubroutineRefs,
+        openRefs,
+        reffedNodesByReferencer,
       }
     ) {
-      const ref = node.name ?? node.number;
       // Has value if we're within a subroutine expansion
       const origin = groupOriginByCopy.get(node);
+      const ref = node.name ?? node.number;
 
       // ## Handle recursion; runs after subroutine expansion
-      if (openSubroutineRefs.has(ref)) {
-        // Indirect recursion is supportable at the AST level but would require `regex-recursion`
-        // to allow multiple recursions in a pattern, along with code changes here (after which
-        // `openDirectCaptures` and `openSubroutineRefs` could be combined)
-        throw new Error('Unsupported indirect recursion');
-      }
-      if (origin) {
-        // Name or number; not mixed since can't use numbered subroutines with named capture
-        openSubroutineRefs.add(ref);
-      } else {
-        openDirectCaptures.add(node);
-      }
-      if (openDirectCaptures.has(origin)) {
+      if (origin && openRefs.has(ref)) {
         // Recursion doesn't affect any following backrefs to its `ref` (unlike other subroutines),
-        // so don't wrap with a capture
-        // [TODO] The reffed group might have its name removed due to a later subroutine expansion
-        // (ex: `(?<a>\g<a>)\g<a>`), so use `number` for `ref`, look up the reffed node in
-        // `openDirectCaptures`, and rename `reffedNodesByBackreference` so it can also be used to
-        // track the reffed node. Like with backrefs, can then modify the `ref` in the final pass
-        // to use the recalculated group number. But this relies on `regex-recursion` supporting
-        // multiple non-overlapping recursions. For now, the resulting error is caught by
-        // `regex-recursion`
-        replaceWith(createRecursion(ref));
+        // so don't wrap with a capture. The reffed group might have its name removed due to later
+        // subroutine expansion
+        const recursion = createRecursion(ref);
+        reffedNodesByReferencer.set(recursion, openRefs.get(ref));
+        replaceWith(recursion);
         // This node's kids have been removed from the tree, so no need to traverse them
         skip();
         return;
       }
+      // Name or number; not mixed since can't use numbered subroutines with named capture
+      openRefs.set(ref, node);
 
       // ## Track data for backref multiplexing
       const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, ref, []);
@@ -414,10 +416,10 @@ const SecondPassVisitor = {
       multiplexNodes.push({node, origin});
 
       // ## Track data for duplicate names within an alternation path
-      // JS pre-ES2025 doesn't allow any duplicate names, but starting with ES2025 it requires
-      // group names to be unique per alternation path (which includes alternations in nested
-      // groups), so if using a duplicate name for this alternation path, remove the name from all
-      // but the latest instance (also applies to groups added via subroutine expansion)
+      // Pre-ES2025 doesn't allow duplicate names, but ES2025+ allows duplicate names that are
+      // unique per mutually exclusive alternation path. So if using a duplicate name for this
+      // path, remove the name from all but the latest instance (also applies to groups added via
+      // subroutine expansion)
       if (node.name) {
         const groupsWithSameName = getOrCreate(groupsByName, node.name, new Map());
         for (const groupInfo of groupsWithSameName.values()) {
@@ -431,13 +433,8 @@ const SecondPassVisitor = {
         groupsByName.get(node.name).set(node, {node});
       }
     },
-    exit({node}, {groupOriginByCopy, openDirectCaptures, openSubroutineRefs}) {
-      const {name, number} = node;
-      if (groupOriginByCopy.get(node)) {
-        openSubroutineRefs.delete(name ?? number);
-      } else {
-        openDirectCaptures.delete(node);
-      }
+    exit({node}, {openRefs}) {
+      openRefs.delete(node.name ?? node.number);
     },
   },
 
@@ -493,7 +490,7 @@ const ThirdPassVisitor = {
       // Don't renumber; used with option `tmGrammar`
       return;
     }
-    const reffedNodes = state.reffedNodesByBackreference.get(node);
+    const reffedNodes = state.reffedNodesByReferencer.get(node);
     const participants = reffedNodes.filter(reffed => canParticipateWithNode(reffed, node, {
       ancestorsParticipate: false,
     }));
@@ -527,6 +524,18 @@ const ThirdPassVisitor = {
         delete node.name;
       }
     }
+  },
+
+  Recursion({node}, state) {
+    if (node.ref === 0) {
+      return;
+    }
+    // For the recursion's `ref`, use `number` rather than `name` because group names might have
+    // been removed if they're duplicates within their alternation path, or they might be removed
+    // later by the generator (depending on target) if they're duplicates within the overall
+    // pattern. Since recursion appears within the group it refs, the reffed node's `number` has
+    // already been recalculated
+    node.ref = state.reffedNodesByReferencer.get(node).number;
   },
 
   Regex: {
