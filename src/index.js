@@ -174,22 +174,17 @@ class EmulatedRegExp extends RegExp {
     // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
     if (this.#strategy.name === 'after_search_start_or_subpattern') {
       let match = exec.call(this, str);
-      if (!match) {
-        return match;
-      }
-      if (match.index === pos) {
+      if (
+        !match ||
         // Satisfied `\G` in lookbehind
+        match.index === pos
+      ) {
         return match;
       }
-      const reBehind = new RegExp(`(?:${this.#strategy.subpattern})$`);
-      while (match) {
-        if (reBehind.exec(str.slice(0, match.index))) {
-          // Satisfied other alternative in lookbehind; return the main pattern's match
-          return match;
-        }
-        globalRe.lastIndex = match.index + 1;
-        match = exec.call(globalRe, str);
-      }
+      const assembled = new RegExp(`(?<=${this.#strategy.subpattern})${this.source}`, this.flags);
+      assembled.lastIndex = pos;
+      match = exec.call(assembled, str);
+      this.lastIndex = assembled.lastIndex;
       return match;
     }
 

@@ -7,10 +7,12 @@ import {adoptAndSwapKids} from './transform.js';
 function applySubclassStrategies(ast, accuracy) {
   const alts = ast.pattern.alternatives;
   const firstEl = alts[0].elements[0];
+
   if (alts.length > 1 || !firstEl) {
     // These strategies only work if there's no top-level alternation
     return null;
   }
+
   const hasWrapperGroup =
     alts[0].elements.length === 1 &&
     (firstEl.type === AstTypes.CapturingGroup || firstEl.type === AstTypes.Group) &&
@@ -62,7 +64,7 @@ function applySubclassStrategies(ast, accuracy) {
   // ## Strategy `after_search_start_or_subpattern`: Support leading `(?<=\G|…)` and similar
   // Note: Leading `(?<=\G)` without other alts is already supported; no need for a subclass
   if (
-    isLookaround(firstElIn) &&
+    firstElIn.kind === AstAssertionKinds.lookbehind &&
     !firstElIn.negate &&
     firstElIn.alternatives.length > 1
   ) {
