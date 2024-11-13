@@ -160,10 +160,10 @@ class EmulatedRegExp extends RegExp {
     }
 
     // ## Support leading `(?!\G)` and similar
-    const globalRe = useLastIndex ? this : new RegExp(this, `g${this.flags}`);
     if (this.#strategy.name === 'not_search_start') {
       let match = exec.call(this, str);
       if (match?.index === pos) {
+        const globalRe = useLastIndex ? this : new RegExp(this.source, `g${this.flags}`);
         globalRe.lastIndex = match.index + 1;
         match = exec.call(globalRe, str);
       }
