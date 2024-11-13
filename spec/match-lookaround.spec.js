@@ -4,7 +4,7 @@ beforeEach(() => {
   jasmine.addMatchers(matchers);
 });
 
-describe('Lookaround', () => {
+describe('Assertion: Lookaround', () => {
   describe('lookahead', () => {
     it('should match fixed-length positive lookahead', () => {
       expect('ab').toFindMatch('a(?=b)');

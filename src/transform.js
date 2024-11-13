@@ -285,11 +285,9 @@ const FirstPassVisitor = {
       const leadingG = getLeadingG(alt.elements);
       if (leadingG) {
         hasAltWithLeadG = true;
-        if (Array.isArray(leadingG)) {
-          leadingGs.push(...leadingG);
-        } else {
+        Array.isArray(leadingG) ?
+          leadingGs.push(...leadingG) :
           leadingGs.push(leadingG);
-        }
       } else {
         hasAltWithoutLeadG = true;
       }
@@ -297,7 +295,7 @@ const FirstPassVisitor = {
     if (hasAltWithLeadG && hasAltWithoutLeadG && accuracy !== 'loose') {
       throw new Error(r`Uses "\G" in a way that's unsupported`);
     }
-    // These nodes will be removed when traversed; other `\G` nodes will error
+    // Supported `\G` nodes will be removed when traversed; others will error if not `loose`
     leadingGs.forEach(g => supportedGNodes.add(g))
   },
 
@@ -707,26 +705,31 @@ function getKids(node) {
 }
 
 function getLeadingG(els) {
-  if (!els.length) {
+  let firstToConsider = els.find(el => el.type !== AstTypes.Directive);
+  if (!firstToConsider) {
     return null;
   }
-  const first = els[0];
   // Special case for leading positive lookaround with leading `\G`; else all leading assertions
-  // are ignored when looking for `\G`
-  if (isLookaround(first) && !first.negate && first.alternatives.length === 1 && first.alternatives[0].elements.length) {
-    const els = first.alternatives[0].elements;
-    const index = first.kind === AstAssertionKinds.lookahead ? 0 : els.length - 1;
-    // `\G` is first node in lookahead or last node in lookbehind
+  // are ignored when looking for `\G`; can be nested within a wrapper group via subsequent
+  // recursion into groups
+  if (
+    isLookaround(firstToConsider) &&
+    !firstToConsider.negate &&
+    firstToConsider.alternatives.length === 1 &&
+    firstToConsider.alternatives[0].elements.length
+  ) {
+    const els = firstToConsider.alternatives[0].elements;
+    const index = firstToConsider.kind === AstAssertionKinds.lookahead ? 0 : els.length - 1;
+    // `\G` is first in lookahead or last in lookbehind
     if (els[index].kind === AstAssertionKinds.search_start) {
       return els[index];
     }
   }
-
-  const firstToConsider = els.find(el => {
+  firstToConsider = els.find(el => {
     return el.kind === AstAssertionKinds.search_start ?
       true :
-      ( el.type !== AstTypes.Directive &&
-        el.type !== AstTypes.Assertion &&
+      ( el.type !== AstTypes.Assertion &&
+        el.type !== AstTypes.Directive &&
         !(el.type === AstTypes.Quantifier && !el.min)
       );
   });
@@ -738,17 +741,16 @@ function getLeadingG(els) {
   }
   if (firstToConsider.type === AstTypes.Group || firstToConsider.type === AstTypes.CapturingGroup) {
     const gNodesForGroup = [];
+    // Recursively find `\G` nodes for all alternatives in the group
     for (const alt of firstToConsider.alternatives) {
       const leadingG = getLeadingG(alt.elements);
       if (!leadingG) {
         // Don't return `gNodesForGroup` collected so far since this alt didn't qualify
         return null;
       }
-      if (Array.isArray(leadingG)) {
-        gNodesForGroup.push(...leadingG);
-      } else {
+      Array.isArray(leadingG) ?
+        gNodesForGroup.push(...leadingG) :
         gNodesForGroup.push(leadingG);
-      }
     }
     return gNodesForGroup;
   }
