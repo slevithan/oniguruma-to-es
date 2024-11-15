@@ -14,9 +14,7 @@ import emojiRegex from 'emoji-regex-xs';
   pattern: Object;
   flags: Object;
   options: Object;
-  _strategy?: {
-    name: string;
-  };
+  _strategy?: string;
 }} RegexAst
 */
 /**
