@@ -15,17 +15,19 @@ function getIgnoreCaseMatchChars(char) {
   // Everything else is based on `lower`
   const upper = lower.toUpperCase();
   const title = LowerToTitleCaseMap.get(lower);
-  const special = LowerToAlternativeUpperCaseMap.get(lower);
+  const altLower = LowerToAlternativeLowerCaseMap.get(lower);
+  const altUpper = LowerToAlternativeUpperCaseMap.get(lower);
   // Exclude ucase if multiple chars; count code point length. Excludes ucase versions of German
   // es-zed 'ß', ligatures like 'ﬀ', and chars with no precomposed ucase like 'ŉ'. See
   // <unicode.org/Public/UNIDATA/SpecialCasing.txt>
   if ([...upper].length === 1) {
     set.add(upper);
   }
+  altUpper && set.add(altUpper);
+  title && set.add(title);
   // Lcase of 'İ' is multiple chars, but it's excluded by `CharsWithoutIgnoreCaseExpansion`
   set.add(lower);
-  title && set.add(title);
-  special && set.add(special);
+  altLower && set.add(altLower);
   return [...set];
 }
 
@@ -176,6 +178,11 @@ const JsUnicodePropertiesPostEs2018 = new Set((
   ' Gara Garay Gukh Gurung_Khema Hrkt Katakana_Or_Hiragana Kawi Kirat_Rai Krai Nag_Mundari Nagm Ol_Onal Onao Sunu Sunuwar Todhri Todr Tulu_Tigalari Tutg Unknown Zzzz'
   // ES2024: None, but added `JsUnicodePropertiesOfStrings`
 ).split(' '));
+
+const LowerToAlternativeLowerCaseMap = new Map([
+  ['s', cp(0x17F)], // s, ſ
+  [cp(0x17F), 's'], // ſ, s
+]);
 
 const LowerToAlternativeUpperCaseMap = new Map([
   [cp(0xDF), cp(0x1E9E)], // ß, ẞ

@@ -51,13 +51,13 @@ function applySubclassStrategies(ast, accuracy) {
 
   // ## Strategy `not_search_start`: Support leading `(?!\G)` and similar
   if (isNegatedSearchStart(firstElIn)) {
-    // Remove the negative lookaround
+    // Remove the `\G` and its container lookaround
     firstElIn.parent.elements.shift();
     return 'not_search_start';
   }
   const negGIndex = singleAltIn.elements.findIndex(el => isNegatedSearchStart(el));
   if (negGIndex > -1 && singleAltIn.elements.every(el => el.type === AstTypes.Assertion)) {
-    // Remove the negative lookaround
+    // Remove the `\G` and its container lookaround
     singleAltIn.elements.splice(negGIndex, 1);
     return 'not_search_start';
   }
