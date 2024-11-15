@@ -43,7 +43,7 @@
   ],
   "dependencies": {
     "emoji-regex-xs": "^1.0.0",
-    "regex": "slevithan/regex",
+    "regex": "^5.0.0",
     "regex-recursion": "^4.2.1"
   },
   "devDependencies": {
