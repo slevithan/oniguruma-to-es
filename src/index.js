@@ -3,7 +3,7 @@ import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
 import {tokenize} from './tokenize.js';
-import {atomic, possessive} from 'regex/atomic';
+import {atomic, possessive, RegExpSubclass} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
 // The transformation and error checking for Oniguruma's unique syntax and behavior differences
@@ -31,6 +31,11 @@ import {recursion} from 'regex-recursion';
   tmGrammar?: boolean;
   verbose?: boolean;
 }} Options
+@typedef {{
+  useEmulationGroups: boolean;
+  strategy?: string;
+  subpattern?: string;
+}} SubclassOptions
 */
 
 /**
@@ -40,10 +45,7 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
 @returns {{
   pattern: string;
   flags: string;
-  strategy?: {
-    name: string;
-    subpattern?: string;
-  };
+  subclass?: SubclassOptions;
 }}
 */
 function toDetails(pattern, options) {
@@ -59,25 +61,32 @@ function toDetails(pattern, options) {
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  let genPattern = atomic(possessive(recursion(generated.pattern)));
+  pattern = possessive(recursion(generated.pattern));
+  const atomized = atomic(pattern, {useEmulationGroups: !opts.avoidSubclass});
+  const useEmulationGroups = atomized !== pattern && !opts.avoidSubclass;
+  pattern = atomized;
   let subpattern;
   if (regexAst._strategy) {
     // Look for an emulation marker added as part of the strategy. Do this after the pattern has
-    // been passed through Regex+ plugins, so they can operate on the full pattern (e.g. backrefs
-    // might be rewritten when using some features)
-    genPattern = genPattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
+    // been passed through Regex+ plugins, so they can operate on the full pattern
+    pattern = pattern.replace(/\(\?:\\p{sc=<<}\|(.*?)\|\\p{sc=>>}\)/s, (_, sub) => {
       subpattern = sub;
       return '';
     });
   }
   const result = {
-    pattern: genPattern,
+    pattern,
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  if (regexAst._strategy) {
-    result.strategy = {...regexAst._strategy};
-    if (subpattern) {
-      result.strategy.subpattern = subpattern;
+  if (useEmulationGroups || regexAst._strategy) {
+    result.subclass = {
+      useEmulationGroups,
+    };
+    if (regexAst._strategy) {
+      result.subclass.strategy = regexAst._strategy.name;
+      if (subpattern) {
+        result.subclass.subpattern = subpattern;
+      }
     }
   }
   return result;
@@ -103,33 +112,40 @@ Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 */
 function toRegExp(pattern, options) {
   const result = toDetails(pattern, options);
-  if (result.strategy) {
-    return new EmulatedRegExp(result.pattern, result.flags, result.strategy);
+  if (result.subclass) {
+    return new EmulatedRegExp(result.pattern, result.flags, result.subclass);
   }
   return new RegExp(result.pattern, result.flags);
 }
 
 /**
-Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given results from `toDetails` to produce the same result as `toRegExp`.
+Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given
+results from `toDetails` to produce the same result as `toRegExp`.
 @class
 @param {string | EmulatedRegExp} pattern
 @param {string} [flags]
-@param {{
-  name: string;
-  subpattern?: string;
-}} [strategy]
+@param {SubclassOptions} [options]
 */
-class EmulatedRegExp extends RegExp {
+class EmulatedRegExp extends RegExpSubclass {
   #strategy;
-  constructor(pattern, flags, strategy) {
-    super(pattern, flags);
-    if (strategy) {
-      this.#strategy = strategy;
-    // The third argument isn't provided when regexes are copied as part of the internal handling
-    // of string methods `matchAll` and `split`
+  #subpattern;
+  constructor(pattern, flags, options) {
+    const opts = {
+      useEmulationGroups: false,
+      strategy: null,
+      subpattern: null,
+      ...options,
+    };
+    super(pattern, flags, {useEmulationGroups: opts.useEmulationGroups});
+    if (opts.strategy) {
+      this.#strategy = opts.strategy;
+      this.#subpattern = opts.subpattern;
+    // The third argument `options` isn't provided when regexes are copied as part of the internal
+    // handling of string methods `matchAll` and `split`
     } else if (pattern instanceof EmulatedRegExp) {
       // Can read private properties of the existing object since it was created by this class
       this.#strategy = pattern.#strategy;
+      this.#subpattern = pattern.#subpattern;
     }
   }
   /**
@@ -144,10 +160,12 @@ class EmulatedRegExp extends RegExp {
     // otherwise unsupportable. Only one subclass strategy is supported per pattern
     const useLastIndex = this.global || this.sticky;
     const pos = this.lastIndex;
-    const exec = RegExp.prototype.exec;
+    const exec = super.exec;
+    const strategy = this.#strategy;
+    const subpattern = this.#subpattern;
 
     // ## Support leading `(^|\G)` and similar
-    if (this.#strategy.name === 'line_or_search_start' && useLastIndex && this.lastIndex) {
+    if (strategy === 'line_or_search_start' && useLastIndex && this.lastIndex) {
       // Reset since testing on a sliced string that we want to match at the start of
       this.lastIndex = 0;
       const match = exec.call(this, str.slice(pos));
@@ -160,7 +178,7 @@ class EmulatedRegExp extends RegExp {
     }
 
     // ## Support leading `(?!\G)` and similar
-    if (this.#strategy.name === 'not_search_start') {
+    if (strategy === 'not_search_start') {
       let match = exec.call(this, str);
       if (match?.index === pos) {
         const globalRe = useLastIndex ? this : new RegExp(this.source, `g${this.flags}`);
@@ -172,7 +190,7 @@ class EmulatedRegExp extends RegExp {
 
     // ## Support leading `(?<=\G|…)` and similar
     // Note: Leading `(?<=\G)` without other alts is supported without the need for a subclass
-    if (this.#strategy.name === 'after_search_start_or_subpattern') {
+    if (strategy === 'after_search_start_or_subpattern') {
       let match = exec.call(this, str);
       if (
         !match ||
@@ -181,7 +199,7 @@ class EmulatedRegExp extends RegExp {
       ) {
         return match;
       }
-      const assembled = new RegExp(`(?<=${this.#strategy.subpattern})${this.source}`, this.flags);
+      const assembled = new RegExp(`(?<=${subpattern})${this.source}`, this.flags);
       assembled.lastIndex = pos;
       match = exec.call(assembled, str);
       this.lastIndex = assembled.lastIndex;

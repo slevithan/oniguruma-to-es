@@ -45,8 +45,8 @@ function showTranspiled() {
     // Use `toDetails` but display as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
     details = OnigurumaToES.toDetails(ui.input.value, options);
-    if (details.strategy) {
-      result = getFormattedSubclass(details.pattern, details.flags, details.strategy);
+    if (details.subclass) {
+      result = getFormattedSubclass(details.pattern, details.flags, details.subclass);
       ui.subclassInfo.classList.remove('hidden');
       ui.output.classList.add('subclass');
     } else {
@@ -112,22 +112,27 @@ function areDetailsEqual(a, b) {
   if (a.error !== b.error) {
     return false;
   }
-  return a.pattern === b.pattern &&
+  return (
+    a.pattern === b.pattern &&
     a.flags.replace(/[vu]/, '') === b.flags.replace(/[vu]/, '') &&
-    a.strategy?.name === b.strategy?.name &&
-    a.strategy?.subpattern === b.strategy?.subpattern;
+    a.subclass?.strategy === b.subclass?.strategy &&
+    a.subclass?.subpattern === b.subclass?.subpattern &&
+    a.subclass?.useEmulationGroups === b.subclass?.useEmulationGroups
+  );
 }
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedSubclass(pattern, flags, {name, subpattern}) {
-  return `new EmulatedRegExp('${
-    pattern.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-  }', '${
-    flags
-  }', {\n  name: '${name}',${subpattern ? `\n  subpattern: '${subpattern}',` : ''}\n})`;
+function getFormattedSubclass(pattern, flags, {strategy, subpattern, useEmulationGroups}) {
+  const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const subclassStrs = [];
+  strategy && subclassStrs.push(`strategy: '${strategy}'`);
+  subpattern && subclassStrs.push(`subpattern: '${escStr(subpattern)}'`);
+  useEmulationGroups && subclassStrs.push(`useEmulationGroups: ${useEmulationGroups}`);
+  const subclass = subclassStrs.join(',\n  ');
+  return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${subclass},\n})`;
 }
 
 function getRegExpLiteralPattern(str) {
