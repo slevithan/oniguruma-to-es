@@ -218,7 +218,7 @@ Using a high limit has a small impact on performance. Generally, this is only a 
 
 One of `'auto'` *(default)*, `'ES2025'`, `'ES2024'`, or `'ES2018'`.
 
-JavaScript version support needed for generated regexes. `'auto'` sets the value based on your env. Later targets allow faster processing, simpler generated source, and support for additional features.
+JavaScript version support needed for generated regexes. `auto` sets the value based on your environment. Later targets allow faster processing, simpler generated source, and support for additional features.
 
 <details>
   <summary>More details</summary>
