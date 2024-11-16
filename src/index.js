@@ -32,8 +32,8 @@ import {recursion} from 'regex-recursion';
   verbose?: boolean;
 }} OnigurumaToEsOptions
 @typedef {{
-  useEmulationGroups: boolean;
-  strategy: string;
+  useEmulationGroups?: boolean;
+  strategy?: string;
 }} EmulatedRegExpOptions
 */
 

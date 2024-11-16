@@ -50,27 +50,44 @@ function applySubclassStrategies(ast) {
   }
 
   // ## Strategy `not_search_start`: Support leading `(?!\G)` and similar
-  if (isNegatedSearchStart(firstElIn)) {
-    // Remove the `\G` and its container lookaround
+  if (isLoneGLookaround(firstElIn, {negate: true})) {
+    // Remove the `\G` and its containing negative lookaround
     firstElIn.parent.elements.shift();
     return 'not_search_start';
   }
-  const negGIndex = singleAltIn.elements.findIndex(el => isNegatedSearchStart(el));
-  if (negGIndex > -1 && singleAltIn.elements.every(el => el.type === AstTypes.Assertion)) {
-    // Remove the `\G` and its container lookaround
-    singleAltIn.elements.splice(negGIndex, 1);
-    return 'not_search_start';
+  for (let i = 0; i < singleAltIn.elements.length; i++) {
+    const el = singleAltIn.elements[i];
+    if (!isZeroLengthNode(el)) {
+      break;
+    }
+    if (isLoneGLookaround(el, {negate: true})) {
+      // Remove the `\G` and its containing negative lookaround
+      singleAltIn.elements.splice(i, 1);
+      return 'not_search_start';
+    }
   }
 
   return null;
 }
 
-function isNegatedSearchStart(node) {
-  return isLookaround(node) &&
-    node.negate &&
-    hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start);
+function isLoneGLookaround(node, options) {
+  return (
+    isLookaround(node) &&
+    node.negate === options.negate &&
+    hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start)
+  );
+}
+
+function isZeroLengthNode(node) {
+  return (
+    node.type === AstTypes.Assertion ||
+    node.type === AstTypes.Directive ||
+    (node.type === AstTypes.Quantifier && !node.min)
+  );
 }
 
 export {
   applySubclassStrategies,
+  isLoneGLookaround,
+  isZeroLengthNode,
 };

@@ -1,6 +1,6 @@
 import {Accuracy, Target} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
-import {applySubclassStrategies} from './subclass-strategies.js';
+import {applySubclassStrategies, isLoneGLookaround, isZeroLengthNode} from './subclass-strategies.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
@@ -703,19 +703,11 @@ function getKids(node) {
 }
 
 function getLeadingG(els) {
-  function isSearchStartEquiv(node) {
-    return node.kind === AstAssertionKinds.search_start ||
-      ( isLookaround(node) &&
-        !node.negate &&
-        hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start)
-      );
-  }
-  function isSkippable(node) {
-    return node.type === AstTypes.Assertion ||
-      node.type === AstTypes.Directive ||
-      (node.type === AstTypes.Quantifier && !node.min);
-  }
-  const firstToConsider = els.find(el => isSearchStartEquiv(el) || !isSkippable(el));
+  const firstToConsider = els.find(el => (
+    el.kind === AstAssertionKinds.search_start ||
+    isLoneGLookaround(el, {negate: false}) ||
+    !isZeroLengthNode(el)
+  ));
   if (!firstToConsider) {
     return null;
   }

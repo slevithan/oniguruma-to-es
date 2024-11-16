@@ -160,11 +160,15 @@ describe('Assertion: Search start', () => {
       expect(toRegExp(r`(?<!\G)a`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`(?:(?!\G)a)`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`((?!\G)a)`).exec('aba')?.index).toBe(2);
-      // Only assertions
+      // Preceding zero-length nodes
       expect(toRegExp(r`(?<=;)(?!\G)`).exec(';;')?.index).toBe(1);
       expect(toRegExp(r`(?!\G)(?=;)^`).exec(';;\n;')?.index).toBe(3);
       expect(toRegExp(r`(?=;)(?!\G)^`).exec(';;\n;')?.index).toBe(3);
       expect(toRegExp(r`(?=;)^(?!\G)`).exec(';;\n;')?.index).toBe(3);
+      expect(toRegExp(r`a*(?!\G)a`).exec('abcaaa')?.[0]).toBe('aaa');
+      // Preceding non-zero-length nodes
+      expect(() => toDetails(r`a+(?!\G)a`)).toThrow();
+      expect(() => toDetails(r`a(?!\G)a`)).toThrow();
     });
   });
 });
