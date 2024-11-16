@@ -763,7 +763,8 @@ function isValidGroupNameJs(name) {
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
-function parseFragment(pattern, {skipPropertyNameValidation} = {}) {
+function parseFragment(pattern, options) {
+  const skipPropertyNameValidation = !!options?.skipPropertyNameValidation;
   const ast = parse(tokenize(pattern), {skipPropertyNameValidation});
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {

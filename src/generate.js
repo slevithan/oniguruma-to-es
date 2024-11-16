@@ -404,7 +404,8 @@ function genRecursion({ref}, state) {
 Given a `CharacterClassRange` node, returns an array of chars that are a case variant of a char in
 the range, and aren't already in the range.
 */
-function getCasesOutsideCharClassRange(node, {firstOnly} = {}) {
+function getCasesOutsideCharClassRange(node, options) {
+  const firstOnly = !!options?.firstOnly;
   const min = node.min.value;
   const max = node.max.value;
   const found = [];

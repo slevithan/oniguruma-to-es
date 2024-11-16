@@ -457,7 +457,8 @@ function createAssertionFromToken({type, kind, negate}) {
   return node;
 }
 
-function createBackreference(ref, {orphan} = {}) {
+function createBackreference(ref, options) {
+  const orphan = !!options?.orphan;
   return {
     type: AstTypes.Backreference,
     ...(orphan && {orphan}),
@@ -556,7 +557,9 @@ function createFlags({ignoreCase, dotAll, extended}) {
   };
 }
 
-function createGroup({atomic, flags} = {}) {
+function createGroup(options) {
+  const atomic = options?.atomic;
+  const flags = options?.flags;
   return {
     type: AstTypes.Group,
     ...(atomic && {atomic}),
@@ -565,11 +568,16 @@ function createGroup({atomic, flags} = {}) {
   };
 }
 
-function createLookaround({behind = false, negate = false} = {}) {
+function createLookaround(options) {
+  const opts = {
+    behind: false,
+    negate: false,
+    ...options,
+  };
   return {
     type: AstTypes.Assertion,
-    kind: behind ? AstAssertionKinds.lookbehind : AstAssertionKinds.lookahead,
-    negate,
+    kind: opts.behind ? AstAssertionKinds.lookbehind : AstAssertionKinds.lookahead,
+    negate: opts.negate,
     alternatives: [createAlternative()],
   };
 }
