@@ -1,6 +1,7 @@
 # Oniguruma-To-ES
 
 [![npm version][npm-version-src]][npm-version-href]
+[![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![bundle][bundle-src]][bundle-href]
 
 An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex transpiler** that runs in the browser and on your server. Use it to:
@@ -981,5 +982,7 @@ If you want to support this project, I'd love your help by contributing improvem
 
 [npm-version-src]: https://img.shields.io/npm/v/oniguruma-to-es?color=78C372
 [npm-version-href]: https://npmjs.com/package/oniguruma-to-es
+[npm-downloads-src]: https://img.shields.io/npm/dm/oniguruma-to-es?color=78C372
+[npm-downloads-href]: https://npmjs.com/package/oniguruma-to-es
 [bundle-src]: https://img.shields.io/bundlejs/size/oniguruma-to-es?color=78C372&label=minzip
 [bundle-href]: https://bundlejs.com/?q=oniguruma-to-es&treeshake=[*]

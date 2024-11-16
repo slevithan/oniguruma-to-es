@@ -4,7 +4,7 @@ import {hasOnlyChild} from './utils.js';
 // Special case handling that requires coupling with a `RegExp` subclass (see `EmulatedRegExp`).
 // These changes add emulation support for some common patterns that are otherwise unsupportable.
 // Only one subclass strategy is supported per pattern
-function applySubclassStrategies(ast, accuracy) {
+function applySubclassStrategies(ast) {
   const alts = ast.pattern.alternatives;
   const firstEl = alts[0].elements[0];
 

@@ -48,7 +48,7 @@ function transform(ast, options) {
     ...options,
   };
   // AST transformations that work together with a `RegExp` subclass to add advanced emulation
-  const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast, opts.accuracy);
+  const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast);
   const firstPassState = {
     accuracy: opts.accuracy,
     flagDirectivesByAlt: new Map(),
