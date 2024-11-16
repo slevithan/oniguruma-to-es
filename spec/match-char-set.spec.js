@@ -1,5 +1,5 @@
 import {r} from '../src/utils.js';
-import {maxTestTargetForPatternMods} from './helpers/features.js';
+import {maxTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -17,7 +17,7 @@ describe('CharacterSet', () => {
     it('should match line feed with flag m disabled', () => {
       expect('\n').toExactlyMatch({
         pattern: r`(?-m)\O`,
-        maxTestTarget: maxTestTargetForPatternMods,
+        maxTestTarget: maxTestTargetForFlagGroups,
       });
     });
 

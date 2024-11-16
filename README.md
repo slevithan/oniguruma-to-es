@@ -86,7 +86,7 @@ type Options = {
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
-  target?: 'ES2018' | 'ES2024' | 'ES2025';
+  target?: 'auto' | 'ES2025' | 'ES2024' | 'ES2018';
   tmGrammar?: boolean;
   verbose?: boolean;
 };
@@ -156,7 +156,7 @@ One of `'strict'`, `'default'` *(default)*, or `'loose'`.
 
 Sets the level of emulation rigor/strictness.
 
-- **Strict:** Throw if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given target.
+- **Strict:** Throw if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given `target`.
 - **Default:** The best choice in most cases. Permits a few close approximations of Oniguruma in order to support additional features.
 - **Loose:** Useful for non-critical matching like syntax highlighting where having some mismatches is better than not working.
 
@@ -232,9 +232,9 @@ Using a high limit has a small impact on performance. Generally, this is only a 
 
 ### `target`
 
-One of `'ES2018'`, `'ES2024'` *(default)*, or `'ES2025'`.
+One of `'auto'` *(default)*, `'ES2025'`, `'ES2024'`, or `'ES2018'`.
 
-Sets the JavaScript language version for the generated pattern and flags. Later targets allow faster processing, simpler generated source, and support for additional features.
+JavaScript version support needed for generated regexes. `'auto'` sets the value based on your env. Later targets allow faster processing, simpler generated source, and support for additional features.
 
 <details>
   <summary>More details</summary>

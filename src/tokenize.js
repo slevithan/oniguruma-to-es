@@ -510,7 +510,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
         });
       });
       return tokens;
-    } catch (err) {
+    } catch {
       throw new Error(`Too short or invalid multibyte code "${raw}"`);
     }
   }

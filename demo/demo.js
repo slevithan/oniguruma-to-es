@@ -1,4 +1,5 @@
 const ui = {
+  autoTargetOption: document.getElementById('auto-target-option'),
   input: document.getElementById('input'),
   output: document.getElementById('output'),
   subclassInfo: document.getElementById('subclass-info'),
@@ -22,6 +23,36 @@ const state = {
   comparison: getValue('comparison'),
 };
 
+const envSupportsDuplicateNames = (() => {
+  try {
+    new RegExp('(?<n>)|(?<n>)');
+  } catch {
+    return false;
+  }
+  return true;
+})();
+const envSupportsFlagGroups = (() => {
+  try {
+    new RegExp('(?i:)');
+  } catch {
+    return false;
+  }
+  return true;
+})();
+const envSupportsFlagV = (() => {
+  try {
+    new RegExp('', 'v');
+  } catch {
+    return false;
+  }
+  return true;
+})();
+// Logic from `src/options.js`
+const autoTarget = (envSupportsDuplicateNames && envSupportsFlagGroups) ?
+  'ES2025' :
+  (envSupportsFlagV ? 'ES2024' : 'ES2018');
+
+ui.autoTargetOption.innerHTML += ` [${autoTarget}]`;
 autoGrow();
 showTranspiled();
 
@@ -37,6 +68,7 @@ function showTranspiled() {
     ...state.opts,
     flags: `${state.flags.i ? 'i' : ''}${state.flags.m ? 'm' : ''}${state.flags.x ? 'x' : ''}`,
     maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
+    target: state.opts.target === 'auto' ? autoTarget : state.opts.target,
   };
   const errorObj = {error: true};
   let details;
@@ -74,7 +106,7 @@ function showTranspiled() {
     let otherDetails;
     try {
       otherDetails = OnigurumaToES.toDetails(ui.input.value, {...options, ...other});
-    } catch (err) {
+    } catch {
       otherDetails = errorObj;
     } finally {
       if (!areDetailsEqual(details, otherDetails)) {

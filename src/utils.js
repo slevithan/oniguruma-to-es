@@ -3,6 +3,33 @@ import {EsVersion, Target} from './options.js';
 const cp = String.fromCodePoint;
 const r = String.raw;
 
+const envSupportsDuplicateNames = (() => {
+  try {
+    new RegExp('(?<n>)|(?<n>)');
+  } catch {
+    return false;
+  }
+  return true;
+})();
+
+const envSupportsFlagGroups = (() => {
+  try {
+    new RegExp('(?i:)');
+  } catch {
+    return false;
+  }
+  return true;
+})();
+
+const envSupportsFlagV = (() => {
+  try {
+    new RegExp('', 'v');
+  } catch {
+    return false;
+  }
+  return true;
+})();
+
 function getNewCurrentFlags(current, {enable, disable}) {
   return {
     dotAll: !disable?.dotAll && !!(enable?.dotAll || current.dotAll),
@@ -41,6 +68,9 @@ function throwIfNot(value, msg) {
 
 export {
   cp,
+  envSupportsDuplicateNames,
+  envSupportsFlagGroups,
+  envSupportsFlagV,
   getNewCurrentFlags,
   getOrCreate,
   hasOnlyChild,

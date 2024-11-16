@@ -1,6 +1,6 @@
 import {toDetails} from '../dist/index.mjs';
 import {cp, r} from '../src/utils.js';
-import {maxTestTargetForDuplicateNames, maxTestTargetForPatternMods, minTestTargetForPatternMods} from './helpers/features.js';
+import {maxTestTargetForDuplicateNames, maxTestTargetForFlagGroups, minTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -431,11 +431,11 @@ describe('Backreference', () => {
       // Real support with `target` ES2025
       expect(['aa', 'aA']).toExactlyMatch({
         pattern: r`(a)(?i)\1`,
-        minTestTarget: minTestTargetForPatternMods,
+        minTestTarget: minTestTargetForFlagGroups,
       });
       expect(['Aa', 'AA']).not.toFindMatch({
         pattern: r`(a)(?i)\1`,
-        minTestTarget: minTestTargetForPatternMods,
+        minTestTarget: minTestTargetForFlagGroups,
       });
       // Throw with strict `accuracy` if `target` not ES2025
       ['ES2018', 'ES2024'].forEach(target => {
@@ -449,7 +449,7 @@ describe('Backreference', () => {
         expect('aa').toExactlyMatch({
           pattern: r`(a)(?i)\1`,
           accuracy,
-          maxTestTarget: maxTestTargetForPatternMods,
+          maxTestTarget: maxTestTargetForFlagGroups,
         });
       });
     });

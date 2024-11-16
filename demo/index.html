@@ -39,13 +39,14 @@
     <p>
       <label>
         <select id="option-target" onchange="setOption('target', this.value)">
-          <option value="ES2018">ES2018</option>
-          <option value="ES2024" selected>ES2024</option>
+          <option value="auto" selected id="auto-target-option">auto</option>
           <option value="ES2025">ES2025</option>
+          <option value="ES2024">ES2024</option>
+          <option value="ES2018">ES2018</option>
         </select>
         <code>target</code>
         <img src="https://upload.wikimedia.org/wikipedia/commons/9/99/Unofficial_JavaScript_logo_2.svg" width="15" height="15">
-        <span class="tip tip-lg"><code>ES2024</code> regexes need Node.js 20 or any 2023-era browser</span>
+        <span class="tip tip-lg">JS version support needed for generated regexes. <code>auto</code> sets the value based on your env.</span>
       </label>
       <label>
         <select id="option-accuracy" onchange="setOption('accuracy', this.value)">

@@ -1,3 +1,5 @@
+import {envSupportsDuplicateNames, envSupportsFlagGroups, envSupportsFlagV} from './utils.js';
+
 const Accuracy = /** @type {const} */ ({
   strict: 'strict',
   default: 'default',
@@ -11,6 +13,7 @@ const EsVersion = {
 };
 
 const Target = /** @type {const} */ ({
+  auto: 'auto',
   ES2018: 'ES2018',
   ES2024: 'ES2024',
   ES2025: 'ES2025',
@@ -22,11 +25,11 @@ Returns a complete set of options, with default values set for options that were
 @returns {Required<import('.').Options>}
 */
 function getOptions(options) {
-  if (options?.target !== undefined && !EsVersion[options.target]) {
+  if (options?.target !== undefined && !Target[options.target]) {
     throw new Error(`Unexpected target "${options.target}"`)
   }
   // Set default values
-  return {
+  const opts = {
     // Sets the level of emulation rigor/strictness.
     accuracy: 'default',
     // Disables advanced emulation strategies that rely on returning a `RegExp` subclass, resulting
@@ -42,9 +45,10 @@ function getOptions(options) {
     // Specifies the recursion depth limit. Supported values are integers `2`–`100` and `null`. If
     // `null`, any use of recursion results in an error.
     maxRecursionDepth: 5,
-    // Sets the JavaScript language version for the generated pattern and flags. Later targets
-    // allow faster processing, simpler generated source, and support for additional features.
-    target: 'ES2024',
+    // JavaScript version support needed for generated regexes. `'auto'` sets the value based on
+    // your env. Later targets allow faster processing, simpler generated source, and support for
+    // additional features.
+    target: 'auto',
     // Leave disabled unless the regex will be used in a TextMate grammar processor that merges
     // backreferences across `begin` and `end` patterns.
     tmGrammar: false,
@@ -52,6 +56,12 @@ function getOptions(options) {
     verbose: false,
     ...options,
   };
+  if (opts.target === 'auto') {
+    opts.target = (envSupportsDuplicateNames && envSupportsFlagGroups) ?
+      'ES2025' :
+      (envSupportsFlagV ? 'ES2024' : 'ES2018');
+  }
+  return opts;
 }
 
 export {

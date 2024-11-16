@@ -1,29 +1,13 @@
-const duplicateCaptureNamesSupported = (() => {
-  try {
-    new RegExp('(?<n>)|(?<n>)');
-  } catch (e) {
-    return false;
-  }
-  return true;
-})();
-const maxTestTargetForDuplicateNames = duplicateCaptureNamesSupported ? null : 'ES2024';
+import {envSupportsDuplicateNames, envSupportsFlagGroups} from '../../src/utils.js';
 
-const patternModsSupported = (() => {
-  try {
-    new RegExp('(?i:)');
-  } catch (e) {
-    return false;
-  }
-  return true;
-})();
-const maxTestTargetForPatternMods = patternModsSupported ? null : 'ES2024';
-const minTestTargetForPatternMods = patternModsSupported ? 'ES2025' : Infinity;
-
+const maxTestTargetForDuplicateNames = envSupportsDuplicateNames ? null : 'ES2024';
+const maxTestTargetForFlagGroups = envSupportsFlagGroups ? null : 'ES2024';
+const minTestTargetForFlagGroups = envSupportsFlagGroups ? 'ES2025' : Infinity;
 const minTestTargetForFlagV = 'ES2024';
 
 export {
   maxTestTargetForDuplicateNames,
-  maxTestTargetForPatternMods,
+  maxTestTargetForFlagGroups,
+  minTestTargetForFlagGroups,
   minTestTargetForFlagV,
-  minTestTargetForPatternMods,
 };

@@ -1,6 +1,6 @@
 import {toDetails, toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
-import {maxTestTargetForPatternMods} from './helpers/features.js';
+import {maxTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -37,11 +37,11 @@ describe('Assertion: Search start', () => {
       expect('a').toExactlyMatch(r`\K\Ga`);
       expect(['a', 'A']).toExactlyMatch({
         pattern: r`(?i)\Ga`,
-        maxTestTarget: maxTestTargetForPatternMods,
+        maxTestTarget: maxTestTargetForFlagGroups,
       });
       expect(['a', 'A']).toExactlyMatch({
         pattern: r`(?i)(?m)\Ga`,
-        maxTestTarget: maxTestTargetForPatternMods,
+        maxTestTarget: maxTestTargetForFlagGroups,
       });
     });
 
@@ -95,7 +95,7 @@ describe('Assertion: Search start', () => {
       expect('a').toExactlyMatch(r`(?<a>\Ga)`);
       expect('a').toExactlyMatch({
         pattern: r`(?i:\Ga)`,
-        maxTestTarget: maxTestTargetForPatternMods,
+        maxTestTarget: maxTestTargetForFlagGroups,
       });
     });
 
