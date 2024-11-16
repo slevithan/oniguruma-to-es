@@ -21,8 +21,8 @@ const Target = /** @type {const} */ ({
 
 /**
 Returns a complete set of options, with default values set for options that weren't provided.
-@param {import('.').Options} [options]
-@returns {Required<import('.').Options>}
+@param {import('.').OnigurumaToEsOptions} [options]
+@returns {Required<import('.').OnigurumaToEsOptions>}
 */
 function getOptions(options) {
   if (options?.target !== undefined && !Target[options.target]) {
@@ -32,8 +32,8 @@ function getOptions(options) {
   const opts = {
     // Sets the level of emulation rigor/strictness.
     accuracy: 'default',
-    // Disables advanced emulation strategies that rely on returning a `RegExp` subclass, resulting
-    // in certain patterns not being emulatable.
+    // Disables advanced emulation that relies on returning a `RegExp` subclass, resulting in
+    // certain patterns not being emulatable.
     avoidSubclass: false,
     // Oniguruma flags; a string with `i`, `m`, and `x` in any order (all optional). Oniguruma's
     // `m` is equivalent to JavaScript's `s` (`dotAll`).

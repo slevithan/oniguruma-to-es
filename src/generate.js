@@ -7,7 +7,7 @@ import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
 @param {import('./transform.js').RegexAst} ast
-@param {import('.').Options} [options]
+@param {import('.').OnigurumaToEsOptions} [options]
 @returns {{
   pattern: string;
   flags: string;

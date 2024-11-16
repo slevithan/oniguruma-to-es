@@ -30,21 +30,21 @@ import {recursion} from 'regex-recursion';
   target?: keyof Target;
   tmGrammar?: boolean;
   verbose?: boolean;
-}} Options
+}} OnigurumaToEsOptions
 @typedef {{
   useEmulationGroups: boolean;
   strategy: string;
-}} SubclassOptions
+}} EmulatedRegExpOptions
 */
 
 /**
 Accepts an Oniguruma pattern and returns the details needed to construct an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
-@param {Options} [options]
+@param {OnigurumaToEsOptions} [options]
 @returns {{
   pattern: string;
   flags: string;
-  subclass?: SubclassOptions;
+  subclass?: EmulatedRegExpOptions;
 }}
 */
 function toDetails(pattern, options) {
@@ -92,7 +92,7 @@ function toOnigurumaAst(pattern, options) {
 /**
 Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
-@param {Options} [options]
+@param {OnigurumaToEsOptions} [options]
 @returns {RegExp | EmulatedRegExp}
 */
 function toRegExp(pattern, options) {
@@ -110,7 +110,7 @@ results from `toDetails` to produce the same result as `toRegExp`.
 @augments RegExp
 @param {string | EmulatedRegExp} pattern
 @param {string} [flags]
-@param {SubclassOptions} [options]
+@param {EmulatedRegExpOptions} [options]
 */
 class EmulatedRegExp extends RegExpSubclass {
   #strategy;

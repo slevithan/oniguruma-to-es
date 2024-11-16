@@ -32,22 +32,12 @@ npm install oniguruma-to-es
 
 ```js
 import {toRegExp} from 'oniguruma-to-es';
+
 const str = '…';
 const pattern = '…';
 // Works with all string/regexp methods since it returns a native regexp
 str.match(toRegExp(pattern));
 ```
-
-<!--
-In browsers:
-
-```html
-<script type="module">
-  import {toRegExp} from 'https://esm.run/oniguruma-to-es';
-  toRegExp(String.raw`…`);
-</script>
-```
--->
 
 <details>
   <summary>Using a global name (no import)</summary>
@@ -72,14 +62,14 @@ Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 ```ts
 function toRegExp(
   pattern: string,
-  options?: Options
+  options?: OnigurumaToEsOptions
 ): RegExp | EmulatedRegExp;
 ```
 
-#### Type `Options`
+#### Type `OnigurumaToEsOptions`
 
 ```ts
-type Options = {
+type OnigurumaToEsOptions = {
   accuracy?: 'strict' | 'default' | 'loose';
   avoidSubclass?: boolean;
   flags?: OnigurumaFlags;
@@ -101,18 +91,15 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
 ```ts
 function toDetails(
   pattern: string,
-  options?: Options
+  options?: OnigurumaToEsOptions
 ): {
   pattern: string;
   flags: string;
-  strategy?: {
-    name: string;
-    subpattern?: string;
-  };
+  subclass?: EmulatedRegExpOptions;
 };
 ```
 
-Note that the returned `flags` might also be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `strategy` can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
+Note that the returned `flags` might also be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `subclass` properties can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
 
 If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case, by throwing an error for any patterns that rely on `EmulatedRegExp`'s additional handling.
 
@@ -138,10 +125,7 @@ class EmulatedRegExp extends RegExp {
   constructor(
     pattern: string | EmulatedRegExp,
     flags?: string,
-    strategy?: {
-      name: string;
-      subpattern?: string;
-    }
+    options?: EmulatedRegExpOptions
   );
 };
 ```
@@ -193,7 +177,7 @@ Supports all features of `default`, plus the following:
 
 *Default: `false`.*
 
-Disables advanced emulation strategies that rely on returning a `RegExp` subclass, resulting in certain patterns not being emulatable.
+Disables advanced emulation that relies on returning a `RegExp` subclass, resulting in certain patterns not being emulatable.
 
 ### `flags`
 
