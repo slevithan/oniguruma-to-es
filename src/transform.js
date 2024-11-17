@@ -318,7 +318,7 @@ const FirstPassVisitor = {
       // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
       // emoji using a general pattern that matches any Unicode sequence following the structure of
       // a valid emoji. That actually makes it more accurate for matching any grapheme
-      const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, r`\x{`);
+      const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, `\\x{`);
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
       // Skip name check to allow `RGI_Emoji` through, which Onig doesn't support
       replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}));

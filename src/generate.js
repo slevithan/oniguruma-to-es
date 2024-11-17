@@ -449,8 +449,8 @@ function getCharEscape(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
   ) {
     // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
     return codePoint > 0xFF ?
-      r`\u{${codePoint.toString(16).toUpperCase()}}` :
-      r`\x${codePoint.toString(16).toUpperCase().padStart(2, '0')}`;
+      `\\u{${codePoint.toString(16).toUpperCase()}}` :
+      `\\x${codePoint.toString(16).toUpperCase().padStart(2, '0')}`;
   }
   const escapeChars = inCharClass ?
     (useFlagV ? CharClassEscapeCharsFlagV : CharClassEscapeChars) :
