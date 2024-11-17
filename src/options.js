@@ -45,9 +45,9 @@ function getOptions(options) {
     // Specifies the recursion depth limit. Supported values are integers `2`–`100` and `null`. If
     // `null`, any use of recursion results in an error.
     maxRecursionDepth: 5,
-    // JavaScript version support needed for generated regexes. `auto` sets the value based on your
-    // environment. Later targets allow faster processing, simpler generated source, and support
-    // for additional features.
+    // JavaScript version used for generated regexes. Using `auto` detects the best value based on
+    // your environment. Later targets allow faster processing, simpler generated source, and
+    // support for additional features.
     target: 'auto',
     // Leave disabled unless the regex will be used in a TextMate grammar processor that merges
     // backreferences across `begin` and `end` patterns.

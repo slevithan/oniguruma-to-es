@@ -4,7 +4,7 @@ import {applySubclassStrategies, isLoneGLookaround, isZeroLengthNode} from './su
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {cp, getNewCurrentFlags, getOrCreate, hasOnlyChild, isMinTarget, r} from './utils.js';
+import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
