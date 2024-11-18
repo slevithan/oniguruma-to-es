@@ -6,7 +6,7 @@
 
 An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex transpiler** that runs in the browser and on your server. Use it to:
 
-- Take advantage of Oniguruma's many extended regex featrures in JavaScript.
+- Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
 - Share regexes across your Ruby and JavaScript code.
 
