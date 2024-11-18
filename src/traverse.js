@@ -1,5 +1,6 @@
-import {AstTypes, getAstTypeAliases, isLookaround} from './parse.js';
+import {AstTypes} from './parse.js';
 import {throwIfNot} from './utils.js';
+import {isLookaround} from './utils-node.js';
 
 function traverse(path, state, visitor) {
   let ast = path.node;
@@ -97,6 +98,21 @@ function traverse(path, state, visitor) {
     return keyShift;
   }
   traverseNode(path.node, path.parent, path.key, path.container);
+}
+
+const AstTypeAliases = {
+  AnyGroup: 'AnyGroup',
+  AnyNode: 'AnyNode',
+};
+
+function getAstTypeAliases(node) {
+  const {type} = node;
+  const types = [AstTypeAliases.AnyNode];
+  if (type === AstTypes.CapturingGroup || type === AstTypes.Group || isLookaround(node)) {
+    types.push(AstTypeAliases.AnyGroup);
+  }
+  types.push(type);
+  return types;
 }
 
 function setParent(node, parent) {

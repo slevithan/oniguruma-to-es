@@ -1,7 +1,8 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodePropertiesMap, JsUnicodePropertiesOfStringsMap, PosixProperties, slug} from './unicode.js';
-import {getOrCreate, hasOnlyChild, r, throwIfNot} from './utils.js';
+import {getOrCreate, r, throwIfNot} from './utils.js';
+import {hasOnlyChild} from './utils-node.js';
 
 const AstTypes = {
   Alternative: 'Alternative',
@@ -24,21 +25,6 @@ const AstTypes = {
   // Used only by the transformer for Regex+ ASTs
   Recursion: 'Recursion',
 };
-
-const AstTypeAliases = {
-  AnyGroup: 'AnyGroup',
-  AnyNode: 'AnyNode',
-};
-
-function getAstTypeAliases(node) {
-  const {type} = node;
-  const types = [AstTypeAliases.AnyNode];
-  if (isLookaround(node) || type === AstTypes.CapturingGroup || type === AstTypes.Group) {
-    types.push(AstTypeAliases.AnyGroup);
-  }
-  types.push(type);
-  return types;
-}
 
 const AstAssertionKinds = {
   line_end: 'line_end',
@@ -686,11 +672,6 @@ function getOptimizedGroup(node) {
   return node;
 }
 
-function isLookaround({type, kind}) {
-  return type === AstTypes.Assertion &&
-    (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind);
-}
-
 function isValidGroupNameOniguruma(name) {
   return !/^(?:[-\d]|$)/.test(name);
 }
@@ -737,7 +718,5 @@ export {
   createSubroutine,
   createUnicodeProperty,
   createVariableLengthCharacterSet,
-  getAstTypeAliases,
-  isLookaround,
   parse,
 };

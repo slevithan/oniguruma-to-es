@@ -1,8 +1,9 @@
 import {getOptions} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, isLookaround} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
+import {isLookaround} from './utils-node.js';
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.

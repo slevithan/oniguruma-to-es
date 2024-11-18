@@ -1,10 +1,11 @@
 import {Accuracy, Target} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
-import {applySubclassStrategies, isLoneGLookaround, isZeroLengthNode} from './subclass.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
+import {applySubclassStrategies, isLoneGLookaround} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
+import {isLookaround, isZeroLengthNode} from './utils-node.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
@@ -338,13 +339,13 @@ const SecondPassVisitor = {
     }
   },
 
-  Recursion({node}, {reffedNodesByReferencer}) {
+  Recursion({node, parent}, {reffedNodesByReferencer}) {
     // Recursion nodes are created during the current traversal; they're only traversed here if a
     // recursion node created during traversal is then copied by a subroutine expansion, e.g. with
     // `(?<a>\g<a>)\g<a>`
     const {ref} = node;
     // Immediate parent is an alternative or quantifier; can skip
-    let reffed = node.parent;
+    let reffed = parent;
     while ((reffed = reffed.parent)) {
       if (reffed.type === AstTypes.CapturingGroup && (reffed.name === ref || reffed.number === ref)) {
         break;

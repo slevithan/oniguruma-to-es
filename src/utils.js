@@ -44,12 +44,6 @@ function getOrCreate(map, key, defaultValue) {
   return map.get(key);
 }
 
-function hasOnlyChild(node, kidFn) {
-  return node.alternatives.length === 1 &&
-    node.alternatives[0].elements.length === 1 &&
-    (!kidFn || kidFn(node.alternatives[0].elements[0]));
-}
-
 /**
 @param {keyof Target} target
 @param {keyof Target} min
@@ -73,7 +67,6 @@ export {
   envSupportsFlagV,
   getNewCurrentFlags,
   getOrCreate,
-  hasOnlyChild,
   isMinTarget,
   r,
   throwIfNot,

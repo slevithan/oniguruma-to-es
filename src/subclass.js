@@ -1,5 +1,5 @@
-import {AstAssertionKinds, AstTypes, isLookaround} from './parse.js';
-import {hasOnlyChild} from './utils.js';
+import {AstAssertionKinds, AstTypes} from './parse.js';
+import {hasOnlyChild, isLookaround, isZeroLengthNode} from './utils-node.js';
 import {RegExpSubclass} from 'regex/internals';
 
 // Special case AST transformation handling that requires coupling with a `RegExp` subclass (see
@@ -157,17 +157,8 @@ function isLoneGLookaround(node, options) {
   );
 }
 
-function isZeroLengthNode(node) {
-  return (
-    node.type === AstTypes.Assertion ||
-    node.type === AstTypes.Directive ||
-    (node.type === AstTypes.Quantifier && !node.min)
-  );
-}
-
 export {
   applySubclassStrategies,
   EmulatedRegExp,
   isLoneGLookaround,
-  isZeroLengthNode,
 };
