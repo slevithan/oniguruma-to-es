@@ -106,14 +106,14 @@ function toRegExp(pattern, options) {
 /**
 Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given
 results from `toDetails` to produce the same result as `toRegExp`.
-@class
-@augments RegExp
-@param {string | EmulatedRegExp} pattern
-@param {string} [flags]
-@param {EmulatedRegExpOptions} [options]
 */
 class EmulatedRegExp extends RegExpSubclass {
   #strategy;
+  /**
+  @param {string | EmulatedRegExp} pattern
+  @param {string} [flags]
+  @param {EmulatedRegExpOptions} [options]
+  */
   constructor(pattern, flags, options) {
     const opts = {
       useEmulationGroups: false,
