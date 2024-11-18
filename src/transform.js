@@ -1,6 +1,6 @@
 import {Accuracy, Target} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createGroup, createLookaround, createUnicodeProperty, isLookaround, parse} from './parse.js';
-import {applySubclassStrategies, isLoneGLookaround, isZeroLengthNode} from './subclass-strategies.js';
+import {applySubclassStrategies, isLoneGLookaround, isZeroLengthNode} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
