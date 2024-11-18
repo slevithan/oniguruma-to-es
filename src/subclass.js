@@ -81,6 +81,7 @@ function applySubclassStrategies(ast) {
 /**
 Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given
 results from `toDetails` to produce the same result as `toRegExp`.
+@augments RegExp
 */
 class EmulatedRegExp extends RegExpSubclass {
   #strategy;
