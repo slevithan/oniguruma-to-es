@@ -10,6 +10,7 @@ const state = {
     i: getValue('flag-i'),
     m: getValue('flag-m'),
     x: getValue('flag-x'),
+    W: getValue('flag-W'),
   },
   opts: {
     accuracy: getValue('option-accuracy'),
@@ -66,7 +67,15 @@ function showTranspiled() {
   ui.subclassInfo.classList.add('hidden');
   const options = {
     ...state.opts,
-    flags: `${state.flags.i ? 'i' : ''}${state.flags.m ? 'm' : ''}${state.flags.x ? 'x' : ''}`,
+    flags: `${
+      state.flags.i ? 'i' : ''
+    }${
+      state.flags.m ? 'm' : ''
+    }${
+      state.flags.x ? 'x' : ''
+    }${
+      state.flags.W ? 'W' : ''
+    }`,
     maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
     target: state.opts.target === 'auto' ? autoTarget : state.opts.target,
   };

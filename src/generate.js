@@ -216,8 +216,12 @@ function genAssertion(node, _, gen) {
   if (kind === AstAssertionKinds.string_start) {
     return '^';
   }
-  // Kinds `line_end`, `line_start`, `search_start`, `string_end_newline`, and `word_boundary` are
-  // never included in transformer output
+  // If a word boundary came through the transformer unaltered, that means `wordIsAscii` is enabled
+  if (kind === AstAssertionKinds.word_boundary) {
+    return negate ? r`\B` : r`\b`;
+  }
+  // Kinds `line_end`, `line_start`, `search_start`, and `string_end_newline` are never included in
+  // transformer output
   throw new Error(`Unexpected assertion kind "${kind}"`);
 }
 

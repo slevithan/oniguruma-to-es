@@ -136,8 +136,8 @@ function tokenize(pattern, flags = '') {
   if (typeof pattern !== 'string') {
     throw new Error('String expected as pattern');
   }
-  if (!/^[imx]*$/.test(flags)) {
-    throw new Error(`Flags "${flags}" unsupported in Oniguruma`);
+  if (!/^[imxW]*$/.test(flags)) {
+    throw new Error(`Flags "${flags}" unsupported`);
   }
   const xStack = [flags.includes('x')];
   const context = {
@@ -191,10 +191,13 @@ function tokenize(pattern, flags = '') {
     tokens,
     flags: {
       ignoreCase: flags.includes('i'),
-      // Onig flag m is equivalent to JS flag s
+      // Flag m is called `multiline` in Onig, but that has a different meaning in JS. Onig flag m
+      // is equivalent to JS flag s
       dotAll: flags.includes('m'),
       // Flag x is fully handled during tokenization
       extended: flags.includes('x'),
+      // Flag W is currently only supported as a top-level flag
+      wordIsAscii: flags.includes('W'),
     },
   };
 }

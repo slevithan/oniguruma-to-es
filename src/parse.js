@@ -291,23 +291,15 @@ function parseCharacterSet({token, skipPropertyNameValidation}) {
       });
     }
   }
-  const node = {
-    type: AstTypes.CharacterSet,
-    kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
-  };
-  if (
-    kind === TokenCharacterSetKinds.digit ||
-    kind === TokenCharacterSetKinds.hex ||
-    kind === TokenCharacterSetKinds.posix ||
-    kind === TokenCharacterSetKinds.space ||
-    kind === TokenCharacterSetKinds.word
-  ) {
-    node.negate = negate;
-    if (kind === TokenCharacterSetKinds.posix) {
-      node.value = value;
-    }
+  if (kind === TokenCharacterSetKinds.posix) {
+    return {
+      type: AstTypes.CharacterSet,
+      kind: AstCharacterSetKinds.posix,
+      negate,
+      value,
+    };
   }
-  return node;
+  return createCharacterSet(kind, {negate});
 }
 
 function parseGroupOpen(context, state) {
@@ -520,6 +512,22 @@ function createCharacterClassRange(min, max) {
   };
 }
 
+function createCharacterSet(kind, {negate}) {
+  const node = {
+    type: AstTypes.CharacterSet,
+    kind: throwIfNot(AstCharacterSetKinds[kind], `Unexpected character set kind "${kind}"`),
+  };
+  if (
+    kind === TokenCharacterSetKinds.digit ||
+    kind === TokenCharacterSetKinds.hex ||
+    kind === TokenCharacterSetKinds.space ||
+    kind === TokenCharacterSetKinds.word
+  ) {
+    node.negate = negate;
+  }
+  return node;
+}
+
 function createDirectiveFromToken({kind, flags}) {
   const node = {
     type: AstTypes.Directive,
@@ -534,12 +542,13 @@ function createDirectiveFromToken({kind, flags}) {
   return node;
 }
 
-function createFlags({ignoreCase, dotAll, extended}) {
+function createFlags({ignoreCase, dotAll, extended, wordIsAscii}) {
   return {
     type: AstTypes.Flags,
     ignoreCase,
     dotAll,
     extended,
+    wordIsAscii,
   };
 }
 
@@ -709,6 +718,7 @@ export {
   createCharacterClass,
   createCharacterClassIntersection,
   createCharacterClassRange,
+  createCharacterSet,
   createFlags,
   createGroup,
   createLookaround,

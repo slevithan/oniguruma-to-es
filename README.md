@@ -265,7 +265,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="3">Flags</th>
+    <th align="left" rowspan="4">Flags</th>
     <td><code>i</code></td>
     <td><code>i</code></td>
     <td align="middle">✅</td>
@@ -295,6 +295,17 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Whitespace/comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a quantifier chain<br>
       ✔ Whitespace/comments separate tokens (ex: <code>\1 0</code>)<br>
       ✔ Whitespace and <code>#</code> not ignored in char classes<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td><code>W</code></td>
+    <td><code>W</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ● Currently supported only as a top-level flag<br>
+      ✔ POSIX <code>[[:word:]]</code> and <code>\p{Word}</code> are ASCII based<br>
+      ✔ <code>\b</code> is ASCII based<br>
     </td>
   </tr>
 

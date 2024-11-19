@@ -1,5 +1,5 @@
 import {Accuracy, Target} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
 import {applySubclassStrategies, isLoneGLookaround} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
@@ -57,6 +57,7 @@ function transform(ast, options) {
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
     supportedGNodes: new Set(),
+    wordIsAscii: ast.flags.wordIsAscii,
   };
   traverse({node: ast}, firstPassState, FirstPassVisitor);
   // Global flags modified by the first pass
@@ -121,7 +122,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {accuracy, supportedGNodes}) {
+  Assertion({node, ast, remove, replaceWith}, {accuracy, supportedGNodes, wordIsAscii}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -137,8 +138,8 @@ const FirstPassVisitor = {
       remove();
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
-    } else if (kind === AstAssertionKinds.word_boundary) {
-      // Onig's word char definition for `\b` is different than for `\w`
+    } else if (kind === AstAssertionKinds.word_boundary && !wordIsAscii) {
+      // Onig's `\b` is Unicode-aware by default, though `\w` is ASCII-only
       const wordChar = r`[\p{L}\p{N}\p{Pc}]`;
       const b = `(?:(?<=${wordChar})(?!${wordChar})|(?<!${wordChar})(?=${wordChar}))`;
       const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
@@ -156,7 +157,7 @@ const FirstPassVisitor = {
     subroutineRefMap.set(name ?? number, node);
   },
 
-  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024}) {
+  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, wordIsAscii}) {
     const {kind, negate, value} = node;
     if (kind === AstCharacterSetKinds.any) {
       replaceWith(createUnicodeProperty('Any'));
@@ -179,6 +180,8 @@ const FirstPassVisitor = {
           ascii = `\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
         }
         replaceWith(parseFragment(`[${ascii}]`));
+      } else if (value === 'word' && wordIsAscii) {
+        replaceWith(createCharacterSet(AstCharacterSetKinds.word, {negate}));
       } else {
         const negateableNode = parseFragment(PosixClassesMap.get(value));
         negateableNode.negate = negate;
@@ -221,8 +224,9 @@ const FirstPassVisitor = {
   },
 
   Flags({node, parent}) {
-    // Onig's flag x (`extended`) isn't available in JS
-    delete node.extended;
+    // Remove Onig flags that aren't available in JS
+    delete node.extended; // Flag x
+    delete node.wordIsAscii; // Flag W
     Object.assign(node, {
       // JS flag g; no Onig equiv
       global: false,
