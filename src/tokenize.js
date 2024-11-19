@@ -113,10 +113,6 @@ const charClassTokenRe = new RegExp(r`
 `.replace(/\s+/g, ''), 'gsu');
 
 /**
-@typedef {'i' | ''} FlagI
-@typedef {'m' | ''} FlagM
-@typedef {'x' | ''} FlagX
-@typedef {`${FlagI}${FlagM}${FlagX}` | `${FlagI}${FlagX}${FlagM}` | `${FlagM}${FlagI}${FlagX}` | `${FlagM}${FlagX}${FlagI}` | `${FlagX}${FlagI}${FlagM}` | `${FlagX}${FlagM}${FlagI}`} OnigurumaFlags
 @typedef {{
   type: keyof TokenTypes;
   raw: string;
@@ -133,7 +129,7 @@ const charClassTokenRe = new RegExp(r`
 */
 /**
 @param {string} pattern
-@param {OnigurumaFlags} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
+@param {string} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
 @returns {TokenizerResult}
 */
 function tokenize(pattern, flags = '') {

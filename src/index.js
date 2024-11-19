@@ -24,7 +24,7 @@ import {recursion} from 'regex-recursion';
 @typedef {{
   accuracy?: keyof Accuracy;
   avoidSubclass?: boolean;
-  flags?: import('./tokenize.js').OnigurumaFlags;
+  flags?: string;
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
@@ -78,7 +78,7 @@ function toDetails(pattern, options) {
 Returns an Oniguruma AST generated from an Oniguruma pattern.
 @param {string} pattern Oniguruma regex pattern.
 @param {{
-  flags?: import('./tokenize.js').OnigurumaFlags;
+  flags?: string;
 }} [options]
 @returns {import('./parse.js').OnigurumaAst}
 */

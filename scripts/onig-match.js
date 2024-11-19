@@ -1,5 +1,10 @@
 import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './utils.js';
 
+// To run this script:
+// - npm run onig:match '\w' 'a'
+// - npm run onig:match '\n' '\u{A}'
+// Don't use pnpm because it auto-escapes backslashes in string args
+
 exec(process.argv.slice(2));
 
 // Basic Oniguruma tester for the console; also reports a comparison with Oniguruma-to-ES

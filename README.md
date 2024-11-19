@@ -72,7 +72,7 @@ function toRegExp(
 type OnigurumaToEsOptions = {
   accuracy?: 'strict' | 'default' | 'loose';
   avoidSubclass?: boolean;
-  flags?: OnigurumaFlags;
+  flags?: string;
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
@@ -111,7 +111,7 @@ Returns an Oniguruma AST generated from an Oniguruma pattern.
 function toOnigurumaAst(
   pattern: string,
   options?: {
-    flags?: OnigurumaFlags;
+    flags?: string;
   }
 ): OnigurumaAst;
 ```
