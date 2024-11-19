@@ -181,7 +181,7 @@ Disables advanced emulation that relies on returning a `RegExp` subclass, result
 
 ### `flags`
 
-Oniguruma flags; a string with `i`, `m`, and `x` in any order (all optional).
+Oniguruma flags; a string with `i`, `m`, `x`, and `W` in any order (all optional).
 
 Flags can also be specified via modifiers in the pattern.
 
