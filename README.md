@@ -304,8 +304,8 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ● Currently supported only as a top-level flag<br>
-      ✔ POSIX <code>[[:word:]]</code> and <code>\p{Word}</code> are ASCII based<br>
-      ✔ <code>\b</code> is ASCII based<br>
+      ✔ ASCII <code>[[:word:]]</code>, <code>\p{Word}</code><br>
+      ✔ ASCII <code>\b</code><br>
     </td>
   </tr>
 
