@@ -7,7 +7,7 @@
 An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex transpiler** that runs in the browser and on your server. Use it to:
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
-- Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.matsu.io/) syntax highlighter, etc.).
+- Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.style/) syntax highlighter, etc.).
 - Share regexes across your Ruby and JavaScript code.
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **less than 4% of the size** and its regexes often run much faster since they run as native JavaScript.
@@ -304,8 +304,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ● Currently supported only as a top-level flag<br>
-      ✔ ASCII <code>[[:word:]]</code>, <code>\p{Word}</code><br>
-      ✔ ASCII <code>\b</code><br>
+      ✔ ASCII <code>\b</code>, <code>\w</code>, <code>[[:word:]]</code>, <code>\p{Word}</code><br>
     </td>
   </tr>
 
@@ -377,7 +376,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Allows 1 hex digit<br>
-      ✔ Above <code>7F</code>, is UTF-8 encoded byte (unlike JS)<br>
+      ✔ Above <code>7F</code>, is UTF-8 encoded byte (≠ JS)<br>
       ✔ Error for invalid encoded bytes<br>
     </td>
   </tr>
@@ -458,7 +457,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ ASCII (unlike JS)<br>
+      ✔ ASCII (≠ JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -467,7 +466,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Excludes only <code>\n</code> (unlike JS)<br>
+      ✔ Excludes only <code>\n</code> (≠ JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -654,7 +653,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Unicode based (unlike JS)<br>
+      ✔ Unicode based (≠ JS)<br>
     </td>
   </tr>
   <tr valign="top">
