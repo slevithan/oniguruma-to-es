@@ -542,12 +542,13 @@ function createDirectiveFromToken({kind, flags}) {
   return node;
 }
 
-function createFlags({ignoreCase, dotAll, extended, wordIsAscii}) {
+function createFlags({ignoreCase, dotAll, extended, digitIsAscii, wordIsAscii}) {
   return {
     type: AstTypes.Flags,
     ignoreCase,
     dotAll,
     extended,
+    digitIsAscii,
     wordIsAscii,
   };
 }

@@ -5,6 +5,7 @@ const CharsWithoutIgnoreCaseExpansion = new Set([
   cp(0x131), // ı
 ]);
 
+// Different than `PosixClassesMap`'s `word`
 const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
 
 function getIgnoreCaseMatchChars(char) {
@@ -241,14 +242,15 @@ const PosixProperties = new Set([
   'word',
   'xdigit',
   // The following are available with the same name in JS (see `JsUnicodeProperties`)
-  // - alpha (JS: Alpha)
-  // - ascii (JS: ASCII)
-  // - cntrl (JS: cntrl)
-  // - digit (JS: digit)
-  // - lower (JS: Lower)
-  // - punct (JS: punct)
-  // - space (JS: space)
-  // - upper (JS: Upper)
+  // Explicitly include `digit` for the sake of flag D (`digitIsAscii`) handling as POSIX
+  'digit', // (JS: digit)
+  // 'alpha', // (JS: Alpha)
+  // 'ascii', // (JS: ASCII)
+  // 'cntrl', // (JS: cntrl)
+  // 'lower', // (JS: Lower)
+  // 'punct', // (JS: punct)
+  // 'space', // (JS: space)
+  // 'upper', // (JS: Upper)
 ]);
 
 function range(start, end) {

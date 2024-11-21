@@ -136,8 +136,8 @@ function tokenize(pattern, flags = '') {
   if (typeof pattern !== 'string') {
     throw new Error('String expected as pattern');
   }
-  if (!/^[imxW]*$/.test(flags)) {
-    throw new Error(`Flags "${flags}" unsupported`);
+  if (!/^[imxDW]*$/.test(flags)) {
+    throw new Error(`Flags "${flags}" includes unsupported value`);
   }
   const xStack = [flags.includes('x')];
   const context = {
@@ -196,6 +196,8 @@ function tokenize(pattern, flags = '') {
       dotAll: flags.includes('m'),
       // Flag x is fully handled during tokenization
       extended: flags.includes('x'),
+      // Flag D is currently only supported as a top-level flag
+      digitIsAscii: flags.includes('D'),
       // Flag W is currently only supported as a top-level flag
       wordIsAscii: flags.includes('W'),
     },

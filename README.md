@@ -265,7 +265,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="6">Flags</th>
+    <th align="left" rowspan="7">Flags</th>
     <td colspan="5"><i>Supported in top-level flags and pattern modifiers</i></td>
   </tr>
   <tr valign="top">
@@ -304,12 +304,21 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td colspan="5"><i>Currently supported only in top-level flags</i></td>
   </tr>
   <tr valign="top">
+    <td>Digit is ASCII</td>
+    <td><code>D</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ ASCII <code>\d</code>, <code>\p{Digit}</code>, <code>[[:digit:]]</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
     <td>Word is ASCII</td>
     <td><code>W</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ ASCII <code>\b</code>, <code>\w</code>, <code>[[:word:]]</code>, <code>\p{Word}</code><br>
+      ✔ ASCII <code>\b</code>, <code>\w</code>, <code>\p{Word}</code>, <code>[[:word:]]</code><br>
     </td>
   </tr>
 
@@ -438,13 +447,13 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="7">Character sets</th>
-    <td>Digit, word</td>
-    <td><code>\d</code>, <code>\w</code>, etc.</td>
+    <th align="left" rowspan="8">Character sets</th>
+    <td>Digit</td>
+    <td><code>\d</code>, <code>\D</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Same as JS (ASCII)<br>
+      ✔ Unicode by default (≠ JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -463,6 +472,15 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ ASCII (≠ JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Word</td>
+    <td><code>\w</code>, <code>\W</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode by default (≠ JS)<br>
     </td>
   </tr>
   <tr valign="top">

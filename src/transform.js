@@ -57,6 +57,7 @@ function transform(ast, options) {
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
     supportedGNodes: new Set(),
+    digitIsAscii: ast.flags.digitIsAscii,
     wordIsAscii: ast.flags.wordIsAscii,
   };
   traverse({node: ast}, firstPassState, FirstPassVisitor);
@@ -155,10 +156,12 @@ const FirstPassVisitor = {
     subroutineRefMap.set(name ?? number, node);
   },
 
-  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, wordIsAscii}) {
+  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, wordIsAscii}) {
     const {kind, negate, value} = node;
     if (kind === AstCharacterSetKinds.any) {
       replaceWith(createUnicodeProperty('Any'));
+    } else if (kind === AstCharacterSetKinds.digit && !digitIsAscii) {
+      replaceWith(createUnicodeProperty('Nd', {negate}));
     } else if (kind === AstCharacterSetKinds.hex) {
       replaceWith(createUnicodeProperty('AHex', {negate}));
     } else if (kind === AstCharacterSetKinds.non_newline) {
@@ -178,6 +181,8 @@ const FirstPassVisitor = {
           ascii = `\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
         }
         replaceWith(parseFragment(`[${ascii}]`));
+      } else if (value === 'digit' && digitIsAscii) {
+        replaceWith(createCharacterSet(AstCharacterSetKinds.digit, {negate}));
       } else if (value === 'word' && wordIsAscii) {
         replaceWith(createCharacterSet(AstCharacterSetKinds.word, {negate}));
       } else {
@@ -228,6 +233,7 @@ const FirstPassVisitor = {
   Flags({node, parent}) {
     // Remove Onig flags that aren't available in JS
     delete node.extended; // Flag x
+    delete node.digitIsAscii; // Flag D
     delete node.wordIsAscii; // Flag W
     Object.assign(node, {
       // JS flag g; no Onig equiv
