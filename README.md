@@ -265,8 +265,11 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="4">Flags</th>
-    <td><code>i</code></td>
+    <th align="left" rowspan="6">Flags</th>
+    <td colspan="5"><i>Supported in top-level flags and pattern modifiers</i></td>
+  </tr>
+  <tr valign="top">
+    <td>Ignore case</td>
     <td><code>i</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -275,16 +278,16 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td><code>m</code></td>
+    <td>Dot all</td>
     <td><code>m</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Equivalent to JS flag <code>s</code> (<code>dotAll</code>)<br>
+      ✔ Equivalent to JS flag <code>s</code><br>
     </td>
   </tr>
   <tr valign="top">
-    <td><code>x</code></td>
+    <td>Extended</td>
     <td><code>x</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -298,18 +301,20 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td><code>W</code></td>
+    <td colspan="5"><i>Currently supported only in top-level flags</i></td>
+  </tr>
+  <tr valign="top">
+    <td>Word is ASCII</td>
     <td><code>W</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ● Currently supported only as a top-level flag<br>
       ✔ ASCII <code>\b</code>, <code>\w</code>, <code>[[:word:]]</code>, <code>\p{Word}</code><br>
     </td>
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="2" valign="top">Flag modifiers</th>
+    <th align="left" rowspan="2" valign="top">Pattern modifiers</th>
     <td>Group</td>
     <td><code>(?im-x:…)</code></td>
     <td align="middle">✅</td>
@@ -361,7 +366,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Shorthand</td>
+    <td>Control code escape</td>
     <td><code>\t</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -907,7 +912,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Char sequence</td>
+    <td>Code point sequence</td>
     <td>
       <code>\x{1 2 …N}</code>,<br>
       <code>\o{1 2 …N}</code><br>
