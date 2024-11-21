@@ -29,6 +29,11 @@ async function exec([pattern, str]) {
   let onigMatch = await onigurumaResult(pattern, str, 0);
   while (onigMatch.result !== null) {
     onigMatches.push(onigMatch);
+    if (onigMatch.index === str.length) {
+      // Guard against zero-length match at the end of the string, since setting the search `pos`
+      // beyond the string's length doesn't prevent a search
+      break;
+    }
     onigMatch = await onigurumaResult(pattern, str, onigMatch.index + (onigMatch.result.length || 1));
   }
 
