@@ -22,6 +22,7 @@ Oniguruma-To-ES deeply understands the hundreds of large and small differences b
 - [API](#-api)
 - [Options](#-options)
 - [Supported features](#-supported-features)
+- [Unsupported features](#-unsupported-features)
 - [Unicode / mixed case-sensitivity](#️-unicode--mixed-case-sensitivity)
 
 ## 🕹️ Install and use
@@ -253,7 +254,7 @@ Following are the supported features by target. The official Oniguruma [syntax d
 > [!NOTE]
 > Targets `ES2024` and `ES2025` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings. See [`target`](#target).
 
-Notice that nearly every feature below has at least subtle differences from JavaScript. Some features and subfeatures listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of this library. Unsupported features throw an error.
+Notice that nearly every feature below has at least subtle differences from JavaScript. Some features listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of this library. Unsupported features throw an error.
 
 <table>
   <tr>
@@ -354,7 +355,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="10">Characters</th>
+    <th align="left" rowspan="9">Characters</th>
     <td>Literal</td>
     <td><code>E</code>, <code>!</code></td>
     <td align="middle">✅</td>
@@ -440,18 +441,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ With A-Za-z (JS: only <code>\c</code> form)<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td colspan="2">Other (extremely rare)</td>
-    <td align="middle">❌</td>
-    <td align="middle">❌</td>
-    <td>
-      Not yet supported:<br>
-      ● Non-A-Za-z with <code>\cx</code>, <code>\C-x</code><br>
-      ● Meta <code>\M-x</code>, <code>\M-\C-x</code><br>
-      ● Octal code point <code>\o{…}</code><br>
-      ● Octal UTF-8 encoded bytes<br>
     </td>
   </tr>
 
@@ -628,7 +617,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="7">Assertions</th>
+    <th align="left" rowspan="6">Assertions</th>
     <td>Line start, end</td>
     <td><code>^</code>, <code>$</code></td>
     <td align="middle">✅</td>
@@ -687,15 +676,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Unicode based (≠ JS)<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Grapheme boundary (extremely rare)</td>
-    <td><code>\y</code>, <code>\Y</code></td>
-    <td align="middle">❌</td>
-    <td align="middle">❌</td>
-    <td>
-      ● Not yet supported<br>
     </td>
   </tr>
 
@@ -892,7 +872,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="8">Other</th>
+    <th align="left" rowspan="5">Other</th>
     <td>Comment group</td>
     <td><code>(?#…)</code></td>
     <td align="middle">✅</td>
@@ -919,36 +899,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td>
       ● Supported if at top level and no top-level alternation is used<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Absence operator</td>
-    <td><code>(?~…)</code></td>
-    <td align="middle">❌</td>
-    <td align="middle">❌</td>
-    <td>
-      ● Some forms are supportable<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Conditional</td>
-    <td><code>(?(1)…)</code></td>
-    <td align="middle">❌</td>
-    <td align="middle">❌</td>
-    <td>
-      ● Some forms are supportable<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Code point sequence</td>
-    <td>
-      <code>\x{1 2 …N}</code>,<br>
-      <code>\o{1 2 …N}</code><br>
-    </td>
-    <td align="middle">❌</td>
-    <td align="middle">❌</td>
-    <td>
-      ● Not yet supported<br>
     </td>
   </tr>
   <tr valign="top">
@@ -981,6 +931,24 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 4. Target `ES2018` doesn't support nested *negated* character classes.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 6. The recursion depth limit is specified by option `maxRecursionDepth`. Use of backreferences with recursion isn't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
+
+## ❌ Unsupported features
+
+The following features don't yet have any support, and throw errors. They're all uncommonly used, with most being *extremely* rare.
+
+- ASCII mode for POSIX classes (flag <code>P</code>).
+- Grapheme boundaries: <code>\y</code>, <code>\Y</code>.
+- Grapheme boundary options (flags <code>y{g}</code>, <code>y{w}</code>).
+- Whole-pattern options: don't capture <code>(?C)</code>, ignore-care is ASCII <code>(?I)</code>, find longest <code>(?L)</code>.
+- Absent repeater <code>(?~…)</code>, expression <code>(?~|…|…)</code>, and range cutter <code>(?~|…)</code>.
+- Conditionals: <code>(?(…)…)</code>, <code>(?(…)…|…)</code>.
+- Code point sequences: <code>\x{H H …H}</code>, <code>\o{O O …O}</code>.
+- Additional, extremely rare ways to specify characters.
+  - Non-A-Za-z with <code>\cx</code>, <code>\C-x</code>.
+  - Meta: <code>\M-x</code>, <code>\M-\C-x</code>.
+  - Octal code points: <code>\o{…}</code>.
+  - Octal UTF-8 encoded bytes (<code>\200</code>+).
+- Callout functions: <code>(?{…})</code>, etc.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
