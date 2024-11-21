@@ -139,7 +139,7 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
     } else if (kind === AstAssertionKinds.word_boundary && !wordIsAscii) {
-      const wordChar = r`[\p{L}\p{N}\p{Pc}]`;
+      const wordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
       const b = `(?:(?<=${wordChar})(?!${wordChar})|(?<!${wordChar})(?=${wordChar}))`;
       const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
       replaceWith(parseFragment(negate ? B : b));
