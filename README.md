@@ -181,7 +181,7 @@ Disables advanced emulation that relies on returning a `RegExp` subclass, result
 
 ### `flags`
 
-Oniguruma flags; a string with `i`, `m`, `x`, and `W` in any order (all optional).
+Oniguruma flags; a string with `i`, `m`, `x`, `D`, `S`, and `W` in any order (all optional).
 
 Flags can also be specified via modifiers in the pattern.
 
@@ -265,7 +265,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="7">Flags</th>
+    <th align="left" rowspan="8">Flags</th>
     <td colspan="5"><i>Supported in top-level flags and pattern modifiers</i></td>
   </tr>
   <tr valign="top">
@@ -310,6 +310,15 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ ASCII <code>\d</code>, <code>\p{Digit}</code>, <code>[[:digit:]]</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Space is ASCII</td>
+    <td><code>S</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ ASCII <code>\s</code>, <code>\p{Space}</code>, <code>[[:space:]]</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -471,7 +480,8 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ ASCII (≠ JS)<br>
+      ✔ Unicode by default<br>
+      ✔ Compared to JS's Unicode <code>\s</code>: excludes <code>\uFEFF</code>, includes <code>\x85</code><br>
     </td>
   </tr>
   <tr valign="top">

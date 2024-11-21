@@ -11,6 +11,7 @@ const state = {
     m: getValue('flag-m'),
     x: getValue('flag-x'),
     D: getValue('flag-D'),
+    S: getValue('flag-S'),
     W: getValue('flag-W'),
   },
   opts: {
@@ -76,6 +77,8 @@ function showTranspiled() {
       state.flags.x ? 'x' : ''
     }${
       state.flags.D ? 'D' : ''
+    }${
+      state.flags.S ? 'S' : ''
     }${
       state.flags.W ? 'W' : ''
     }`,

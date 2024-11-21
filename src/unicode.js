@@ -5,9 +5,6 @@ const CharsWithoutIgnoreCaseExpansion = new Set([
   cp(0x131), // ı
 ]);
 
-// Different than `PosixClassesMap`'s `word`
-const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
-
 function getIgnoreCaseMatchChars(char) {
   // Some chars should not match the chars they case swap to
   if (CharsWithoutIgnoreCaseExpansion.has(char)) {
@@ -241,12 +238,12 @@ const PosixProperties = new Set([
   'print',
   'word',
   'xdigit',
-  // The following are available with the same name in JS (see `JsUnicodeProperties`)
-  // Explicitly include `digit` for the sake of flag D (`digitIsAscii`) handling as POSIX
-  'digit', // (JS: digit)
+  // The following are available with the same name in JS (see `JsUnicodeProperties`), so can be
+  // handled as standard Unicode properties
   // 'alpha', // (JS: Alpha)
   // 'ascii', // (JS: ASCII)
   // 'cntrl', // (JS: cntrl)
+  // 'digit', // (JS: digit)
   // 'lower', // (JS: Lower)
   // 'punct', // (JS: punct)
   // 'space', // (JS: space)
@@ -290,7 +287,6 @@ const UnicodePropertiesWithSpecificCase = new Set([
 ]);
 
 export {
-  defaultWordChar,
   getIgnoreCaseMatchChars,
   JsUnicodeProperties,
   JsUnicodePropertiesMap,

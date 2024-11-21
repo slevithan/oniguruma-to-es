@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, As
 import {applySubclassStrategies, isLoneGLookaround} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
-import {defaultWordChar, JsUnicodeProperties, PosixClassesMap} from './unicode.js';
+import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
 import {isLookaround, isZeroLengthNode} from './utils-node.js';
 import emojiRegex from 'emoji-regex-xs';
@@ -58,6 +58,7 @@ function transform(ast, options) {
     subroutineRefMap: new Map(),
     supportedGNodes: new Set(),
     digitIsAscii: ast.flags.digitIsAscii,
+    spaceIsAscii: ast.flags.spaceIsAscii,
     wordIsAscii: ast.flags.wordIsAscii,
   };
   traverse({node: ast}, firstPassState, FirstPassVisitor);
@@ -156,16 +157,42 @@ const FirstPassVisitor = {
     subroutineRefMap.set(name ?? number, node);
   },
 
-  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, wordIsAscii}) {
+  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
     const {kind, negate, value} = node;
+    // Flag D with `\d`, `\p{Digit}`, `[[:digit:]]``
+    if (digitIsAscii && (kind === AstCharacterSetKinds.digit || value === 'digit')) {
+      replaceWith(createCharacterSet(AstCharacterSetKinds.digit, {negate}));
+      return;
+    }
+    // Flag S with `\s`, `\p{Space}`, `[[:space:]]``
+    if (spaceIsAscii && (kind === AstCharacterSetKinds.space || value === 'space')) {
+      replaceWith(setNegate(parseFragment(asciiSpaceChar), negate));
+      return;
+    }
+    // Flag W with `\w`, `\p{Word}`, `[[:word:]]``
+    if (wordIsAscii && (kind === AstCharacterSetKinds.word || value === 'word')) {
+      replaceWith(createCharacterSet(AstCharacterSetKinds.word, {negate}));
+      return;
+    }
     if (kind === AstCharacterSetKinds.any) {
       replaceWith(createUnicodeProperty('Any'));
-    } else if (kind === AstCharacterSetKinds.digit && !digitIsAscii) {
+    } else if (kind === AstCharacterSetKinds.digit) {
       replaceWith(createUnicodeProperty('Nd', {negate}));
     } else if (kind === AstCharacterSetKinds.hex) {
       replaceWith(createUnicodeProperty('AHex', {negate}));
     } else if (kind === AstCharacterSetKinds.non_newline) {
       replaceWith(parseFragment(r`[^\n]`));
+    } else if (kind === AstCharacterSetKinds.space) {
+      // Can't use JS's Unicode-based `\s` since unlike Onig it includes `\uFEFF`, excludes `\x85`
+      replaceWith(createUnicodeProperty('space', {negate}));
+    } else if (kind === AstCharacterSetKinds.word) {
+      replaceWith(setNegate(parseFragment(defaultWordChar), negate));
+    } else if (kind === AstCharacterSetKinds.property) {
+      if (!JsUnicodeProperties.has(value)) {
+        // Assume it's a script; no error checking is the price for avoiding heavyweight Unicode
+        // data for all script names
+        node.key = 'sc';
+      }
     } else if (kind === AstCharacterSetKinds.posix) {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (accuracy === 'strict') {
@@ -177,33 +204,13 @@ const FirstPassVisitor = {
         }[value];
         if (negate) {
           // POSIX classes are always nested in a char class; manually invert the range rather than
-          // using `[^...]` so it can be unwrapped, since ES2018 doesn't support nested classes
+          // using `[^…]` so it can be unwrapped since ES2018 doesn't support nested classes
           ascii = `\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
         }
         replaceWith(parseFragment(`[${ascii}]`));
-      } else if (value === 'digit' && digitIsAscii) {
-        replaceWith(createCharacterSet(AstCharacterSetKinds.digit, {negate}));
-      } else if (value === 'word' && wordIsAscii) {
-        replaceWith(createCharacterSet(AstCharacterSetKinds.word, {negate}));
       } else {
-        const negateableNode = parseFragment(PosixClassesMap.get(value));
-        negateableNode.negate = negate;
-        replaceWith(negateableNode);
+        replaceWith(setNegate(parseFragment(PosixClassesMap.get(value)), negate));
       }
-    } else if (kind === AstCharacterSetKinds.property) {
-      if (!JsUnicodeProperties.has(value)) {
-        // Assume it's a script
-        node.key = 'sc';
-      }
-    } else if (kind === AstCharacterSetKinds.space) {
-      // Unlike JS, Onig's `\s` matches only ASCII tab, space, LF, VT, FF, and CR
-      const s = parseFragment('[ \t\n\v\f\r]');
-      s.negate = negate;
-      replaceWith(s);
-    } else if (kind === AstCharacterSetKinds.word && !wordIsAscii) {
-      const w = parseFragment(defaultWordChar);
-      w.negate = negate;
-      replaceWith(w);
     }
   },
 
@@ -232,9 +239,11 @@ const FirstPassVisitor = {
 
   Flags({node, parent}) {
     // Remove Onig flags that aren't available in JS
-    delete node.extended; // Flag x
-    delete node.digitIsAscii; // Flag D
-    delete node.wordIsAscii; // Flag W
+    [ 'digitIsAscii', // Flag D
+      'extended', // Flag x
+      'spaceIsAscii', // Flag S
+      'wordIsAscii', // Flag W
+    ].forEach(f => delete node[f]);
     Object.assign(node, {
       // JS flag g; no Onig equiv
       global: false,
@@ -567,6 +576,11 @@ const ThirdPassVisitor = {
   },
 };
 
+// `\t\n\v\f\r\x20`
+const asciiSpaceChar = '[\t-\r ]';
+// Different than `PosixClassesMap`'s `word`
+const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
+
 function adoptAndSwapKids(parent, kids) {
   kids.forEach(kid => kid.parent = parent);
   parent[getContainerAccessor(parent)] = kids;
@@ -785,6 +799,11 @@ function prepContainer(node, kids) {
   if (kids) {
     adoptAndSwapKids(node[accessor][0], kids);
   }
+  return node;
+}
+
+function setNegate(node, negate) {
+  node.negate = negate;
   return node;
 }
 
