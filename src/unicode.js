@@ -5,6 +5,8 @@ const CharsWithoutIgnoreCaseExpansion = new Set([
   cp(0x131), // ı
 ]);
 
+const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
+
 function getIgnoreCaseMatchChars(char) {
   // Some chars should not match the chars they case swap to
   if (CharsWithoutIgnoreCaseExpansion.has(char)) {
@@ -286,6 +288,7 @@ const UnicodePropertiesWithSpecificCase = new Set([
 ]);
 
 export {
+  defaultWordChar,
   getIgnoreCaseMatchChars,
   JsUnicodeProperties,
   JsUnicodePropertiesMap,

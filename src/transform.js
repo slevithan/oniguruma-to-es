@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, As
 import {applySubclassStrategies, isLoneGLookaround} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
-import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
+import {defaultWordChar, JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
 import {isLookaround, isZeroLengthNode} from './utils-node.js';
 import emojiRegex from 'emoji-regex-xs';
@@ -139,9 +139,8 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
     } else if (kind === AstAssertionKinds.word_boundary && !wordIsAscii) {
-      const wordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
-      const b = `(?:(?<=${wordChar})(?!${wordChar})|(?<!${wordChar})(?=${wordChar}))`;
-      const B = `(?:(?<=${wordChar})(?=${wordChar})|(?<!${wordChar})(?!${wordChar}))`;
+      const b = `(?:(?<=${defaultWordChar})(?!${defaultWordChar})|(?<!${defaultWordChar})(?=${defaultWordChar}))`;
+      const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
       replaceWith(parseFragment(negate ? B : b));
     }
     // Kinds `string_end` and `string_start` don't need transformation since JS flag m isn't used.
@@ -196,6 +195,10 @@ const FirstPassVisitor = {
       const s = parseFragment('[ \t\n\v\f\r]');
       s.negate = negate;
       replaceWith(s);
+    } else if (kind === AstCharacterSetKinds.word && !wordIsAscii) {
+      const w = parseFragment(defaultWordChar);
+      w.negate = negate;
+      replaceWith(w);
     }
   },
 
