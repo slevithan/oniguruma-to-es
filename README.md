@@ -145,8 +145,8 @@ One of `'default'` *(default)* or `'strict'`.
 
 Sets the level of emulation rigor/strictness.
 
-- `default`: Permits a few close approximations in order to support additional features.
-- `strict`: Throw if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given `target`.
+- **Default:** Permits a few close approximations in order to support additional features.
+- **Strict:** Error if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given `target`.
 
 <details>
   <summary>More details</summary>

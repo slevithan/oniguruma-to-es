@@ -296,8 +296,13 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
   if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {
     throw new Error('Use of nested character class requires min target ES2024');
   }
+  const genClass = () => `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;
+  if (state.inCharClass) {
+    return genClass();
+  }
+  // For the outermost char class, set state
   state.inCharClass = true;
-  const result = `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;
+  const result = genClass();
   state.inCharClass = false;
   return result;
 }
