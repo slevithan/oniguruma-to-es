@@ -110,20 +110,27 @@
         <div>
           <p>
             <label>
-              <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setOverride('allowOrphanBackrefs', this.checked)">
-              <code>allowOrphanBackrefs</code>
-              <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
-            </label>
-          </p>
-          <p>
-            <label>
               <input type="checkbox" id="option-allowAllSearchStartAnchors" onchange="setOverride('allowAllSearchStartAnchors', this.checked)">
               <code>allowAllSearchStartAnchors</code>
               <span class="tip tip-lg">Silences errors for unsupported uses of <code>\G</code></span>
             </label>
           </p>
+          <p>
+            <label>
+              <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setOverride('allowOrphanBackrefs', this.checked)">
+              <code>allowOrphanBackrefs</code>
+              <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
+            </label>
+          </p>
         </div>
         <div>
+          <p>
+            <label>
+              <input type="checkbox" id="option-asciiWordBoundaries" onchange="setOverride('asciiWordBoundaries', this.checked)">
+              <code>asciiWordBoundaries</code>
+              <span class="tip tip-lg">ASCII-only <code>\b</code> and <code>\B</code></span>
+            </label>
+          </p>
           <p>
             <label>
               <input type="checkbox" id="option-verbose" onchange="setOption('verbose', this.checked)">

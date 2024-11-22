@@ -51,12 +51,14 @@ function getOptions(options) {
     // Disables optimizations that simplify the pattern when it doesn't change the meaning.
     verbose: false,
     ...options,
-    // Advanced options that take precedence over standard error checking and flags.
+    // Advanced options that take precedence over standard error checking and flags when enabled.
     overrides: {
-      // Useful with TextMate grammars that merge backreferences across `begin` and `end` patterns.
-      allowOrphanBackrefs: false,
       // Silences errors for unsupported uses of the search-start anchor `\G`.
       allowAllSearchStartAnchors: false,
+      // Useful with TextMate grammars that merge backreferences across `begin` and `end` patterns.
+      allowOrphanBackrefs: false,
+      // ASCII-only `\b` and `\B`.
+      asciiWordBoundaries: false,
       ...(options?.overrides),
     },
   };

@@ -21,8 +21,9 @@ const state = {
     hasIndices: getValue('option-hasIndices'),
     maxRecursionDepth: getValue('option-maxRecursionDepth'),
     overrides: {
-      allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
       allowAllSearchStartAnchors: getValue('option-allowAllSearchStartAnchors'),
+      allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
+      asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
     },
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),

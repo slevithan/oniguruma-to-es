@@ -31,6 +31,7 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
 @param {{
   accuracy?: keyof Accuracy;
   allowAllSearchStartAnchors?: boolean;
+  asciiWordBoundaries?: boolean;
   avoidSubclass?: boolean;
   bestEffortTarget?: keyof Target;
 }} [options]
@@ -46,6 +47,7 @@ function transform(ast, options) {
     //   based on `target`/`accuracy`, so produce the appropriate structure here.
     accuracy: 'default',
     allowAllSearchStartAnchors: false,
+    asciiWordBoundaries: false,
     avoidSubclass: false,
     bestEffortTarget: 'ES2025',
     ...options,
@@ -55,6 +57,7 @@ function transform(ast, options) {
   const firstPassState = {
     accuracy: opts.accuracy,
     allowAllSearchStartAnchors: opts.allowAllSearchStartAnchors,
+    asciiWordBoundaries: opts.asciiWordBoundaries,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
@@ -127,7 +130,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {allowAllSearchStartAnchors, supportedGNodes, wordIsAscii}) {
+  Assertion({node, ast, remove, replaceWith}, {allowAllSearchStartAnchors, asciiWordBoundaries, supportedGNodes, wordIsAscii}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -143,7 +146,7 @@ const FirstPassVisitor = {
       remove();
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
-    } else if (kind === AstAssertionKinds.word_boundary && !wordIsAscii) {
+    } else if (kind === AstAssertionKinds.word_boundary && !wordIsAscii && !asciiWordBoundaries) {
       const b = `(?:(?<=${defaultWordChar})(?!${defaultWordChar})|(?<!${defaultWordChar})(?=${defaultWordChar}))`;
       const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
       replaceWith(parseFragment(negate ? B : b));

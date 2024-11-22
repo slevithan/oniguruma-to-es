@@ -29,8 +29,9 @@ import {recursion} from 'regex-recursion';
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
   overrides?: {
+    allowAllSearchStartAnchors?: boolean;
     allowOrphanBackrefs?: boolean;
-    allowAllSearchStartAnchors: boolean;
+    asciiWordBoundaries?: boolean;
   };
   target?: keyof Target;
   verbose?: boolean;
@@ -57,6 +58,7 @@ function toDetails(pattern, options) {
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
     allowAllSearchStartAnchors: opts.overrides.allowAllSearchStartAnchors,
+    asciiWordBoundaries: opts.overrides.asciiWordBoundaries,
     avoidSubclass: opts.avoidSubclass,
     bestEffortTarget: opts.target,
   });
