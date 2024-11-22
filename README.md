@@ -210,7 +210,7 @@ Advanced pattern options that override standard error checking and flags when en
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
 - `allowUnhandledGAnchors`: Applies flag `y` for unsupported uses of `\G`, rather than erroring.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
-- `asciiWordBoundaries`: ASCII-based `\b` and `\B`.
+- `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases performance.
 
 ### `target`
 
@@ -461,7 +461,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Unicode by default<br>
-      ✔ Compared to JS's Unicode <code>\s</code>: excludes <code>\uFEFF</code>, includes <code>\x85</code><br>
+      ✔ No JS adjustments to Unicode set (−<code>\uFEFF</code>, +<code>\x85</code>)<br>
     </td>
   </tr>
   <tr valign="top">

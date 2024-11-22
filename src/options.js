@@ -57,7 +57,7 @@ function getOptions(options) {
       allowOrphanBackrefs: false,
       // Applies flag `y` for unsupported uses of `\G`, rather than erroring.
       allowUnhandledGAnchors: false,
-      // ASCII-based `\b` and `\B`.
+      // Use ASCII-based `\b` and `\B`, which increases performance.
       asciiWordBoundaries: false,
       ...(options?.rules),
     },
