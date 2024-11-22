@@ -65,9 +65,8 @@
       </label>
       <label>
         <select id="option-accuracy" onchange="setOption('accuracy', this.value)">
-          <option value="strict">strict</option>
           <option value="default" selected>default</option>
-          <option value="loose">loose</option>
+          <option value="strict">strict</option>
         </select>
         <code>accuracy</code>
         <span class="tip tip-lg"><code>default</code> permits a few close approximations to support additional features</span>
@@ -111,16 +110,25 @@
         <div>
           <p>
             <label>
-              <input type="checkbox" id="option-verbose" onchange="setOption('verbose', this.checked)">
-              <code>verbose</code>
-              <span class="tip tip-lg">Disables optimizations that simplify the pattern without changing the meaning</span>
+              <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setOverride('allowOrphanBackrefs', this.checked)">
+              <code>allowOrphanBackrefs</code>
+              <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
             </label>
           </p>
           <p>
             <label>
-              <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setOverride('allowOrphanBackrefs', this.checked)">
-              <code>allowOrphanBackrefs</code>
-              <span class="tip tip-xl">Useful with TextMate grammar processors that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
+              <input type="checkbox" id="option-allowAllSearchStartAnchors" onchange="setOverride('allowAllSearchStartAnchors', this.checked)">
+              <code>allowAllSearchStartAnchors</code>
+              <span class="tip tip-lg">Silences errors for unsupported uses of <code>\G</code></span>
+            </label>
+          </p>
+        </div>
+        <div>
+          <p>
+            <label>
+              <input type="checkbox" id="option-verbose" onchange="setOption('verbose', this.checked)">
+              <code>verbose</code>
+              <span class="tip tip-lg">Disables optimizations that simplify the pattern without changing the meaning</span>
             </label>
           </p>
         </div>

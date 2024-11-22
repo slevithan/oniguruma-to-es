@@ -30,6 +30,7 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
+  allowAllSearchStartAnchors?: boolean;
   avoidSubclass?: boolean;
   bestEffortTarget?: keyof Target;
 }} [options]
@@ -40,10 +41,11 @@ function transform(ast, options) {
     // A couple edge cases exist where options `accuracy` and `bestEffortTarget` are used:
     // - `VariableLengthCharacterSet` kind `grapheme` (`\X`): An exact representation would require
     //   heavy Unicode data; a best-effort approximation requires knowing the target.
-    // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex exact
-    //   representations are hard to change after the fact in the generator to a best-effort
-    //   approximation based on the target, so produce the appropriate structure here.
+    // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex Unicode-based
+    //   representations would be hard to change to ASCII-based after the fact in the generator
+    //   based on `target`/`accuracy`, so produce the appropriate structure here.
     accuracy: 'default',
+    allowAllSearchStartAnchors: false,
     avoidSubclass: false,
     bestEffortTarget: 'ES2025',
     ...options,
@@ -52,6 +54,7 @@ function transform(ast, options) {
   const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast);
   const firstPassState = {
     accuracy: opts.accuracy,
+    allowAllSearchStartAnchors: opts.allowAllSearchStartAnchors,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
@@ -124,7 +127,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {accuracy, supportedGNodes, wordIsAscii}) {
+  Assertion({node, ast, remove, replaceWith}, {allowAllSearchStartAnchors, supportedGNodes, wordIsAscii}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -133,7 +136,7 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?<=\A|\n)`));
     } else if (kind === AstAssertionKinds.search_start) {
-      if (!supportedGNodes.has(node) && accuracy !== 'loose') {
+      if (!supportedGNodes.has(node) && !allowAllSearchStartAnchors) {
         throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
       ast.flags.sticky = true;
@@ -294,7 +297,7 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}, {accuracy, supportedGNodes}) {
+  Pattern({node}, {allowAllSearchStartAnchors, supportedGNodes}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
@@ -312,10 +315,10 @@ const FirstPassVisitor = {
         hasAltWithoutLeadG = true;
       }
     }
-    if (hasAltWithLeadG && hasAltWithoutLeadG && accuracy !== 'loose') {
+    if (hasAltWithLeadG && hasAltWithoutLeadG && !allowAllSearchStartAnchors) {
       throw new Error(r`Uses "\G" in a way that's unsupported`);
     }
-    // Supported `\G` nodes will be removed when traversed; others will error if not `loose`
+    // Supported `\G` nodes will be removed when traversed; others will error
     leadingGs.forEach(g => supportedGNodes.add(g))
   },
 

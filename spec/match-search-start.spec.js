@@ -128,14 +128,14 @@ describe('Assertion: Search start', () => {
       expect(() => toDetails(r`(?=ab\G)`)).toThrow();
     });
 
-    it('should allow unsupported forms if using loose accuracy', () => {
+    it('should allow unsupported forms if allowing all search start anchors', () => {
       const patterns = [
         r`a\G`,
         r`\G|`,
       ];
       patterns.forEach(pattern => {
         expect(() => toDetails(pattern)).toThrow();
-        expect(toRegExp(pattern, {accuracy: 'loose'}).sticky).toBe(true);
+        expect(toRegExp(pattern, {overrides: {allowAllSearchStartAnchors: true}}).sticky).toBe(true);
       });
     });
   });

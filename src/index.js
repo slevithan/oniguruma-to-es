@@ -30,6 +30,7 @@ import {recursion} from 'regex-recursion';
   maxRecursionDepth?: number | null;
   overrides?: {
     allowOrphanBackrefs?: boolean;
+    allowAllSearchStartAnchors: boolean;
   };
   target?: keyof Target;
   verbose?: boolean;
@@ -55,6 +56,7 @@ function toDetails(pattern, options) {
   });
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
+    allowAllSearchStartAnchors: opts.overrides.allowAllSearchStartAnchors,
     avoidSubclass: opts.avoidSubclass,
     bestEffortTarget: opts.target,
   });

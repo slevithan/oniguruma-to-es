@@ -22,6 +22,7 @@ const state = {
     maxRecursionDepth: getValue('option-maxRecursionDepth'),
     overrides: {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
+      allowAllSearchStartAnchors: getValue('option-allowAllSearchStartAnchors'),
     },
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),
@@ -116,7 +117,7 @@ function showTranspiled() {
   }
   ui.comparisonInfo.classList.remove('hidden');
   const otherTargetAccuracyCombinations = ['ES2018', 'ES2024', 'ES2025'].flatMap(
-    t => ['loose', 'default', 'strict'].map(a => ({target: t, accuracy: a}))
+    t => ['default', 'strict'].map(a => ({target: t, accuracy: a}))
   ).filter(c => c.target !== options.target || c.accuracy !== options.accuracy);
   const differents = [];
   // Collect the different results, including differences in error status
@@ -136,7 +137,7 @@ function showTranspiled() {
     }
   }
   // Compose and display message about differences or lack thereof
-  let str = 'Tested all 9 <code>target</code>/<code>accuracy</code> combinations.';
+  let str = 'Tested all 6 <code>target</code>/<code>accuracy</code> combinations.';
   if (differents.length) {
     const withError = [];
     const withDiff = [];

@@ -437,20 +437,17 @@ describe('Backreference', () => {
         pattern: r`(a)(?i)\1`,
         minTestTarget: minTestTargetForFlagGroups,
       });
-      // Throw with strict `accuracy` if `target` not ES2025
+      // Throw with strict `accuracy` if `target` below ES2025
       ['ES2018', 'ES2024'].forEach(target => {
         expect(() => toDetails(r`(a)(?i)\1`, {
           accuracy: 'strict',
           target,
         })).toThrow();
       });
-      // Matches only the same case as the reffed case-sensitive group with other `accuracy` values
-      ['default', 'loose'].forEach(accuracy => {
-        expect('aa').toExactlyMatch({
-          pattern: r`(a)(?i)\1`,
-          accuracy,
-          maxTestTarget: maxTestTargetForFlagGroups,
-        });
+      // With default `accuracy` and `target` below ES2025, matches only the same case as the reffed case-sensitive group
+      expect('aa').toExactlyMatch({
+        pattern: r`(a)(?i)\1`,
+        maxTestTarget: maxTestTargetForFlagGroups,
       });
     });
   });

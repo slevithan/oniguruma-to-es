@@ -1,22 +1,21 @@
 import {envSupportsDuplicateNames, envSupportsFlagGroups, envSupportsFlagV} from './utils.js';
 
 const Accuracy = /** @type {const} */ ({
-  strict: 'strict',
   default: 'default',
-  loose: 'loose',
+  strict: 'strict',
 });
 
 const EsVersion = {
-  ES2018: 2018,
-  ES2024: 2024,
   ES2025: 2025,
+  ES2024: 2024,
+  ES2018: 2018,
 };
 
 const Target = /** @type {const} */ ({
   auto: 'auto',
-  ES2018: 'ES2018',
-  ES2024: 'ES2024',
   ES2025: 'ES2025',
+  ES2024: 'ES2024',
+  ES2018: 'ES2018',
 });
 
 /**
@@ -54,9 +53,10 @@ function getOptions(options) {
     ...options,
     // Advanced options that take precedence over standard error checking and flags.
     overrides: {
-      // Useful with TextMate grammar processors that merge backreferences across `begin` and `end`
-      // patterns.
+      // Useful with TextMate grammars that merge backreferences across `begin` and `end` patterns.
       allowOrphanBackrefs: false,
+      // Silences errors for unsupported uses of the search-start anchor `\G`.
+      allowAllSearchStartAnchors: false,
       ...(options?.overrides),
     },
   };

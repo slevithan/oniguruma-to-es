@@ -71,7 +71,7 @@ function toRegExp(
 
 ```ts
 type OnigurumaToEsOptions = {
-  accuracy?: 'strict' | 'default' | 'loose';
+  accuracy?: 'default' | 'strict';
   avoidSubclass?: boolean;
   flags?: string;
   global?: boolean;
@@ -139,15 +139,12 @@ The following options are shared by functions [`toRegExp`](#toregexp) and [`toDe
 
 ### `accuracy`
 
-One of `'strict'`, `'default'` *(default)*, or `'loose'`.
+One of `'default'` *(default)* or `'strict'`.
 
 Sets the level of emulation rigor/strictness.
 
+- **Default:** The best choice in most cases. Permits a few close approximations in order to support additional features.
 - **Strict:** Throw if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given `target`.
-- **Default:** The best choice in most cases. Permits a few close approximations of Oniguruma in order to support additional features.
-- **Loose:** Useful for non-critical matching like syntax highlighting where having some mismatches is better than not working.
-
-Each level of increased accuracy supports a subset of patterns supported by lower accuracies. If a given pattern doesn't produce an error for a particular accuracy, its generated result will be identical with all lower levels of accuracy (given the same `target`).
 
 <details>
   <summary>More details</summary>
@@ -162,18 +159,11 @@ Supports all features of `strict`, plus the following additional features, depen
 
 - All targets (`ES2025` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
-  - Enables recursion (e.g. via `\g<0>`) with a depth limit specified by option `maxRecursionDepth`.
+  - Enables recursion (ex: `\g<0>`) with a depth limit specified by option `maxRecursionDepth`.
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
-  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes are always based on Unicode.
-
-#### `loose`
-
-Supports all features of `default`, plus the following:
-
-- Silences errors for unsupported uses of the search-start anchor `\G` (a flexible assertion that doesn’t have a direct equivalent in JavaScript).
-  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using `loose` accuracy, if a `\G` assertion is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives.
+  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes are always Unicode-based.
 </details>
 
 ### `avoidSubclass`
@@ -221,7 +211,9 @@ Using a high limit has a small impact on performance. Generally, this is only a 
 
 Advanced options that take precedence over standard error checking and flags.
 
-- `allowOrphanBackrefs`: Useful with TextMate grammar processors that merge backreferences across `begin` and `end` patterns.
+- `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across `begin` and `end` patterns.
+- `allowAllSearchStartAnchors`: Silences errors for unsupported uses of the search-start anchor `\G`.
+  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives, but is useful for non-critical matching like syntax highlighting when having some mismatches is better than not working.
 
 ### `target`
 
@@ -938,18 +930,13 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 The following features don't yet have any support, and throw errors. They're all uncommonly used, with most being *extremely* rare.
 
-- ASCII mode for POSIX classes (flag <code>P</code>).
 - Grapheme boundaries: <code>\y</code>, <code>\Y</code>.
-- Grapheme boundary options (flags <code>y{g}</code>, <code>y{w}</code>).
-- Whole-pattern options: don't capture <code>(?C)</code>, ignore-care is ASCII <code>(?I)</code>, find longest <code>(?L)</code>.
+- Flags <code>P</code> (ASCII-only POSIX classes), <code>y{g}</code>/<code>y{w}</code> (grapheme boundary options).
+- Whole-pattern modifiers: Don't capture <code>(?C)</code>, ignore-care is ASCII <code>(?I)</code>, find longest <code>(?L)</code>.
 - Absent repeater <code>(?\~…)</code>, expression <code>(?\~|…|…)</code>, and range cutter <code>(?\~|…)</code>.
-- Conditionals: <code>(?(…)…)</code>, <code>(?(…)…|…)</code>.
+- If-then-else conditionals: <code>(?(…)…)</code>, <code>(?(…)…|…)</code>.
+- Rarely used character specifiers: Non-A-Za-z with <code>\cx</code>, <code>\C-x</code>. Meta: <code>\M-x</code>, <code>\M-\C-x</code>. Bracketed octals: <code>\o{…}</code>. Octal UTF-8 encoded bytes (<code>\200</code>+).
 - Code point sequences: <code>\x{H H …H}</code>, <code>\o{O O …O}</code>.
-- Additional, extremely rare ways to specify characters.
-  - Non-A-Za-z with <code>\cx</code>, <code>\C-x</code>.
-  - Meta: <code>\M-x</code>, <code>\M-\C-x</code>.
-  - Octal code points: <code>\o{…}</code>.
-  - Octal UTF-8 encoded bytes (<code>\200</code>+).
 - Callout functions: <code>(?{…})</code>, etc.
 
 ## ㊗️ Unicode / mixed case-sensitivity
