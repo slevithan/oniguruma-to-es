@@ -145,13 +145,13 @@ One of `'default'` *(default)* or `'strict'`.
 
 Sets the level of emulation rigor/strictness.
 
-- **Default:** The best choice in most cases. Permits a few close approximations in order to support additional features.
-- **Strict:** Throw if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given `target`.
+- `default`: Permits a few close approximations in order to support additional features.
+- `strict`: Throw if the pattern can't be emulated with identical behavior (even in rare edge cases) for the given `target`.
 
 <details>
   <summary>More details</summary>
 
-Using default `accuracy` adds support for the following, depending on `target`:
+Using default `accuracy` adds support for the following features, depending on `target`:
 
 - All targets (`ES2025` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
@@ -170,7 +170,7 @@ Disables advanced emulation that relies on returning a `RegExp` subclass, result
 
 ### `flags`
 
-Oniguruma flags; a string with `i`, `m`, `x`, `D`, `S`, and `W` in any order (all optional).
+Oniguruma flags; a string with `i`, `m`, `x`, `D`, `S`, `W` in any order (all optional).
 
 Flags can also be specified via modifiers in the pattern.
 
@@ -210,7 +210,7 @@ Advanced options that take precedence over standard error checking and flags whe
 - `allowAllSearchStartAnchors`: Silences errors for unsupported uses of the search-start anchor `\G`.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
-- `asciiWordBoundaries`: ASCII-only `\b` and `\B`.
+- `asciiWordBoundaries`: ASCII-based `\b` and `\B`.
 
 ### `target`
 
@@ -925,15 +925,15 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ## ❌ Unsupported features
 
-The following features don't yet have any support, and throw errors. They're all uncommonly used, with most being *extremely* rare.
+The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare.
 
 - Grapheme boundaries: <code>\y</code>, <code>\Y</code>.
-- Flags <code>P</code> (ASCII-only POSIX classes), <code>y{g}</code>/<code>y{w}</code> (grapheme boundary options).
-- Whole-pattern modifiers: Don't capture <code>(?C)</code>, ignore-care is ASCII <code>(?I)</code>, find longest <code>(?L)</code>.
-- Absent repeater <code>(?\~…)</code>, expression <code>(?\~|…|…)</code>, and range cutter <code>(?\~|…)</code>.
-- If-then-else conditionals: <code>(?(…)…)</code>, <code>(?(…)…|…)</code>.
-- Rarely used character specifiers: Non-A-Za-z with <code>\cx</code>, <code>\C-x</code>. Meta: <code>\M-x</code>, <code>\M-\C-x</code>. Bracketed octals: <code>\o{…}</code>. Octal UTF-8 encoded bytes (<code>\200</code>+).
-- Code point sequences: <code>\x{H H …H}</code>, <code>\o{O O …O}</code>.
+- Flags <code>P</code> (ASCII-based POSIX classes) and <code>y{g}</code>/<code>y{w}</code> (grapheme boundary modes).
+- Whole-pattern modifiers: Don't capture <code>(?C)</code>, ignore-case is ASCII <code>(?I)</code>, find longest <code>(?L)</code>.
+- Absence functions: <code>(?\~…)</code>, etc.
+- Conditionals: <code>(?(…)…)</code>, etc.
+- Rarely-used character specifiers: Non-A-Za-z with <code>\cx</code>, <code>\C-x</code>; meta <code>\M-x</code>, <code>\M-\C-x</code>; bracketed octals <code>\o{…}</code>; octal UTF-8 encoded bytes (≥ <code>\200</code>).
+- Code point sequences: <code>\x{H H …}</code>, <code>\o{O O …}</code>.
 - Callout functions: <code>(?{…})</code>, etc.
 
 ## ㊗️ Unicode / mixed case-sensitivity
