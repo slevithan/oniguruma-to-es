@@ -276,17 +276,27 @@ function genCharacter({value}, state) {
 }
 
 function genCharacterClass({negate, parent, elements}, state, gen) {
+  const genClass = () => `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;
+  if (!state.inCharClass) {
+    // For the outermost char class, set state
+    state.inCharClass = true;
+    const result = genClass();
+    state.inCharClass = false;
+    return result;
+  }
+  const firstType = elements[0].type;
   if (
     !negate &&
     ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
       (!state.useFlagV || !state.verbose) &&
       parent.type === AstTypes.CharacterClass &&
-      elements[0].type !== AstTypes.CharacterClassIntersection
+      firstType !== AstTypes.CharacterClassIntersection
     ) ||
     ( !state.verbose &&
       parent.type === AstTypes.CharacterClassIntersection &&
       elements.length === 1 &&
-      elements[0].type !== AstTypes.CharacterClassRange
+      firstType !== AstTypes.CharacterClass &&
+      firstType !== AstTypes.CharacterClassRange
     )
   ) {
     // Remove unnecessary nesting; unwrap kids into the parent char class. Some basic char class
@@ -296,15 +306,7 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
   if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {
     throw new Error('Use of nested character class requires min target ES2024');
   }
-  const genClass = () => `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;
-  if (state.inCharClass) {
-    return genClass();
-  }
-  // For the outermost char class, set state
-  state.inCharClass = true;
-  const result = genClass();
-  state.inCharClass = false;
-  return result;
+  return genClass();
 }
 
 function genCharacterClassRange(node, state) {
