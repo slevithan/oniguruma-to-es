@@ -118,9 +118,9 @@
           </p>
           <p>
             <label>
-              <input type="checkbox" id="option-tmGrammar" onchange="setOption('tmGrammar', this.checked)">
-              <code>tmGrammar</code>
-              <span class="tip tip-xl">Leave disabled unless the regex will be used in a TextMate grammar processor that merges backrefs across <code>begin</code> and <code>end</code> patterns</span>
+              <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setOverride('allowOrphanBackrefs', this.checked)">
+              <code>allowOrphanBackrefs</code>
+              <span class="tip tip-xl">Useful with TextMate grammar processors that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
             </label>
           </p>
         </div>

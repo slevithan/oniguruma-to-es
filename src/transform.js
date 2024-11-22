@@ -505,7 +505,7 @@ const ThirdPassVisitor = {
   Backreference({node, replaceWith}, state) {
     if (node.orphan) {
       state.highestOrphanBackref = Math.max(state.highestOrphanBackref, node.ref);
-      // Don't renumber; used with option `tmGrammar`
+      // Don't renumber; used with `allowOrphanBackrefs`
       return;
     }
     const reffedNodes = state.reffedNodesByReferencer.get(node);
@@ -566,7 +566,7 @@ const ThirdPassVisitor = {
       // exist within `end`. This presents a dilemma since both Oniguruma and JS (with flag u/v)
       // error for backrefs to undefined captures. So adding captures to the end is a solution that
       // doesn't change what the regex matches, and lets invalid numbered backrefs through. Note:
-      // Orphan backrefs are only allowed if the `tmGrammar` option is used
+      // Orphan backrefs are only allowed if `allowOrphanBackrefs` is enabled
       const numCapsNeeded = Math.max(state.highestOrphanBackref - state.numCapturesToLeft, 0);
       for (let i = 0; i < numCapsNeeded; i++) {
         const emptyCapture = createCapturingGroup();

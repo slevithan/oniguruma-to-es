@@ -28,8 +28,10 @@ import {recursion} from 'regex-recursion';
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
+  overrides?: {
+    allowOrphanBackrefs?: boolean;
+  };
   target?: keyof Target;
-  tmGrammar?: boolean;
   verbose?: boolean;
 }} OnigurumaToEsOptions
 */
@@ -48,7 +50,7 @@ function toDetails(pattern, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, opts.flags);
   const onigurumaAst = parse(tokenized, {
-    skipBackrefValidation: opts.tmGrammar,
+    skipBackrefValidation: opts.overrides.allowOrphanBackrefs,
     verbose: opts.verbose,
   });
   const regexAst = transform(onigurumaAst, {

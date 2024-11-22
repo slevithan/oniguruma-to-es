@@ -111,8 +111,8 @@ label .tip-lg {
 }
 
 label .tip-xl {
-  width: 320px;
-  margin-left: -160px;
+  width: 300px;
+  margin-left: -150px;
 }
 
 label .tip :is(code, kbd) {

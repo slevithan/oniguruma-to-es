@@ -49,12 +49,16 @@ function getOptions(options) {
     // your environment. Later targets allow faster processing, simpler generated source, and
     // support for additional features.
     target: 'auto',
-    // Leave disabled unless the regex will be used in a TextMate grammar processor that merges
-    // backreferences across `begin` and `end` patterns.
-    tmGrammar: false,
     // Disables optimizations that simplify the pattern when it doesn't change the meaning.
     verbose: false,
     ...options,
+    // Advanced options that take precedence over standard error checking and flags.
+    overrides: {
+      // Useful with TextMate grammar processors that merge backreferences across `begin` and `end`
+      // patterns.
+      allowOrphanBackrefs: false,
+      ...(options?.overrides),
+    },
   };
   if (opts.target === 'auto') {
     opts.target = (envSupportsDuplicateNames && envSupportsFlagGroups) ?

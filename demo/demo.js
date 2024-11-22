@@ -20,6 +20,9 @@ const state = {
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
     maxRecursionDepth: getValue('option-maxRecursionDepth'),
+    overrides: {
+      allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
+    },
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),
   },
@@ -216,5 +219,10 @@ function setFlag(flag, value) {
 
 function setOption(option, value) {
   state.opts[option] = value;
+  showTranspiled();
+}
+
+function setOverride(option, value) {
+  state.opts.overrides[option] = value;
   showTranspiled();
 }

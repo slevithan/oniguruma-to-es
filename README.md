@@ -77,8 +77,10 @@ type OnigurumaToEsOptions = {
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
+  overrides?: {
+    allowOrphanBackrefs?: boolean;
+  };
   target?: 'auto' | 'ES2025' | 'ES2024' | 'ES2018';
-  tmGrammar?: boolean;
   verbose?: boolean;
 };
 ```
@@ -215,6 +217,12 @@ Since recursion isn't infinite-depth like in Oniguruma, use of recursion also re
 Using a high limit has a small impact on performance. Generally, this is only a problem if the regex has an existing issue with runaway backtracking that recursion exacerbates. Higher limits have no effect on regexes that don't use recursion, so you should feel free to increase this if helpful.
 </details>
 
+### `overrides`
+
+Advanced options that take precedence over standard error checking and flags.
+
+- `allowOrphanBackrefs`: Useful with TextMate grammar processors that merge backreferences across `begin` and `end` patterns.
+
 ### `target`
 
 One of `'auto'` *(default)*, `'ES2025'`, `'ES2024'`, or `'ES2018'`.
@@ -234,12 +242,6 @@ JavaScript version used for generated regexes. Using `auto` detects the best val
   - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support for flag groups).
 </details>
-
-### `tmGrammar`
-
-*Default: `false`.*
-
-Leave disabled unless the regex will be used in a TextMate grammar processor that merges backreferences across `begin` and `end` patterns.
 
 ### `verbose`
 
@@ -940,7 +942,7 @@ The following features don't yet have any support, and throw errors. They're all
 - Grapheme boundaries: <code>\y</code>, <code>\Y</code>.
 - Grapheme boundary options (flags <code>y{g}</code>, <code>y{w}</code>).
 - Whole-pattern options: don't capture <code>(?C)</code>, ignore-care is ASCII <code>(?I)</code>, find longest <code>(?L)</code>.
-- Absent repeater <code>(?~…)</code>, expression <code>(?~|…|…)</code>, and range cutter <code>(?~|…)</code>.
+- Absent repeater <code>(?\~…)</code>, expression <code>(?\~|…|…)</code>, and range cutter <code>(?\~|…)</code>.
 - Conditionals: <code>(?(…)…)</code>, <code>(?(…)…|…)</code>.
 - Code point sequences: <code>\x{H H …H}</code>, <code>\o{O O …O}</code>.
 - Additional, extremely rare ways to specify characters.
