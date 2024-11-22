@@ -512,7 +512,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
       });
       return tokens;
     } catch {
-      throw new Error(`Too short or invalid multibyte code "${raw}"`);
+      throw new Error(`Multibyte code "${raw}" incomplete or invalid in Oniguruma`);
     }
   }
   if (char1 === 'u' || char1 === 'x') {
