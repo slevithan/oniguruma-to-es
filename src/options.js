@@ -55,7 +55,7 @@ function getOptions(options) {
     overrides: {
       // Silences errors for unsupported uses of the search-start anchor `\G`.
       allowAllSearchStartAnchors: false,
-      // Useful with TextMate grammars that merge backreferences across `begin` and `end` patterns.
+      // Useful with TextMate grammars that merge backreferences across patterns.
       allowOrphanBackrefs: false,
       // ASCII-only `\b` and `\B`.
       asciiWordBoundaries: false,
