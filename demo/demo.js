@@ -20,9 +20,9 @@ const state = {
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
     maxRecursionDepth: getValue('option-maxRecursionDepth'),
-    overrides: {
-      allowAllSearchStartAnchors: getValue('option-allowAllSearchStartAnchors'),
+    rules: {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
+      allowUnhandledGAnchors: getValue('option-allowUnhandledGAnchors'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
     },
     target: getValue('option-target'),
@@ -224,7 +224,7 @@ function setOption(option, value) {
   showTranspiled();
 }
 
-function setOverride(option, value) {
-  state.opts.overrides[option] = value;
+function setRule(rule, value) {
+  state.opts.rules[rule] = value;
   showTranspiled();
 }

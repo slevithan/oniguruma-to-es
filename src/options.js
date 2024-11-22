@@ -51,15 +51,15 @@ function getOptions(options) {
     // Disables optimizations that simplify the pattern when it doesn't change the meaning.
     verbose: false,
     ...options,
-    // Advanced options that take precedence over standard error checking and flags when enabled.
-    overrides: {
-      // Silences errors for unsupported uses of the search-start anchor `\G`.
-      allowAllSearchStartAnchors: false,
+    // Advanced pattern options that override standard error checking and flags when enabled.
+    rules: {
       // Useful with TextMate grammars that merge backreferences across patterns.
       allowOrphanBackrefs: false,
+      // Applies flag `y` for unsupported uses of `\G`, rather than erroring.
+      allowUnhandledGAnchors: false,
       // ASCII-based `\b` and `\B`.
       asciiWordBoundaries: false,
-      ...(options?.overrides),
+      ...(options?.rules),
     },
   };
   if (opts.target === 'auto') {

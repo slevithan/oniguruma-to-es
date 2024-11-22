@@ -28,9 +28,9 @@ import {recursion} from 'regex-recursion';
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
-  overrides?: {
-    allowAllSearchStartAnchors?: boolean;
+  rules?: {
     allowOrphanBackrefs?: boolean;
+    allowUnhandledGAnchors?: boolean;
     asciiWordBoundaries?: boolean;
   };
   target?: keyof Target;
@@ -52,13 +52,13 @@ function toDetails(pattern, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, opts.flags);
   const onigurumaAst = parse(tokenized, {
-    skipBackrefValidation: opts.overrides.allowOrphanBackrefs,
+    skipBackrefValidation: opts.rules.allowOrphanBackrefs,
     verbose: opts.verbose,
   });
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
-    allowAllSearchStartAnchors: opts.overrides.allowAllSearchStartAnchors,
-    asciiWordBoundaries: opts.overrides.asciiWordBoundaries,
+    allowUnhandledGAnchors: opts.rules.allowUnhandledGAnchors,
+    asciiWordBoundaries: opts.rules.asciiWordBoundaries,
     avoidSubclass: opts.avoidSubclass,
     bestEffortTarget: opts.target,
   });

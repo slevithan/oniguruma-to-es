@@ -30,7 +30,7 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
-  allowAllSearchStartAnchors?: boolean;
+  allowUnhandledGAnchors?: boolean;
   asciiWordBoundaries?: boolean;
   avoidSubclass?: boolean;
   bestEffortTarget?: keyof Target;
@@ -46,7 +46,7 @@ function transform(ast, options) {
     //   representations would be hard to change to ASCII-based after the fact in the generator
     //   based on `target`/`accuracy`, so produce the appropriate structure here.
     accuracy: 'default',
-    allowAllSearchStartAnchors: false,
+    allowUnhandledGAnchors: false,
     asciiWordBoundaries: false,
     avoidSubclass: false,
     bestEffortTarget: 'ES2025',
@@ -56,7 +56,7 @@ function transform(ast, options) {
   const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast);
   const firstPassState = {
     accuracy: opts.accuracy,
-    allowAllSearchStartAnchors: opts.allowAllSearchStartAnchors,
+    allowUnhandledGAnchors: opts.allowUnhandledGAnchors,
     asciiWordBoundaries: opts.asciiWordBoundaries,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
@@ -130,7 +130,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {allowAllSearchStartAnchors, asciiWordBoundaries, supportedGNodes, wordIsAscii}) {
+  Assertion({node, ast, remove, replaceWith}, {allowUnhandledGAnchors, asciiWordBoundaries, supportedGNodes, wordIsAscii}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -139,7 +139,7 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?<=\A|\n)`));
     } else if (kind === AstAssertionKinds.search_start) {
-      if (!supportedGNodes.has(node) && !allowAllSearchStartAnchors) {
+      if (!supportedGNodes.has(node) && !allowUnhandledGAnchors) {
         throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
       ast.flags.sticky = true;
@@ -300,7 +300,7 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}, {allowAllSearchStartAnchors, supportedGNodes}) {
+  Pattern({node}, {allowUnhandledGAnchors, supportedGNodes}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
@@ -318,7 +318,7 @@ const FirstPassVisitor = {
         hasAltWithoutLeadG = true;
       }
     }
-    if (hasAltWithLeadG && hasAltWithoutLeadG && !allowAllSearchStartAnchors) {
+    if (hasAltWithLeadG && hasAltWithoutLeadG && !allowUnhandledGAnchors) {
       throw new Error(r`Uses "\G" in a way that's unsupported`);
     }
     // Supported `\G` nodes will be removed when traversed; others will error

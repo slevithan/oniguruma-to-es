@@ -77,9 +77,9 @@ type OnigurumaToEsOptions = {
   global?: boolean;
   hasIndices?: boolean;
   maxRecursionDepth?: number | null;
-  overrides?: {
-    allowAllSearchStartAnchors?: boolean;
+  rules?: {
     allowOrphanBackrefs?: boolean;
+    allowUnhandledGAnchors?: boolean;
     asciiWordBoundaries?: boolean;
   };
   target?: 'auto' | 'ES2025' | 'ES2024' | 'ES2018';
@@ -203,13 +203,13 @@ Since recursion isn't infinite-depth like in Oniguruma, use of recursion also re
 Using a high limit has a small impact on performance. Generally, this is only a problem if the regex has an existing issue with runaway backtracking that recursion exacerbates. Higher limits have no effect on regexes that don't use recursion, so you should feel free to increase this if helpful.
 </details>
 
-### `overrides`
+### `rules`
 
-Advanced options that take precedence over standard error checking and flags when enabled.
+Advanced pattern options that override standard error checking and flags when enabled.
 
-- `allowAllSearchStartAnchors`: Silences errors for unsupported uses of the search-start anchor `\G`.
-  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
+- `allowUnhandledGAnchors`: Applies flag `y` for unsupported uses of `\G`, rather than erroring.
+  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
 - `asciiWordBoundaries`: ASCII-based `\b` and `\B`.
 
 ### `target`
