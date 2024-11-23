@@ -554,7 +554,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Unescaped <code>-</code> outside of range is literal in some contexts (different than JS rules in any mode)<br>
       ✔ Fewer chars require escaping than JS<br>
-      ✔ Error for reversed range (same as JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -927,14 +926,14 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare.
 
-- Grapheme boundaries: <code>\y</code>, <code>\Y</code>.
-- Flags <code>P</code> (ASCII-based POSIX classes) and <code>y{g}</code>/<code>y{w}</code> (grapheme boundary modes).
-- Whole-pattern modifiers: Don't capture <code>(?C)</code>, ignore-case is ASCII <code>(?I)</code>, find longest <code>(?L)</code>.
-- Absence functions: <code>(?\~…)</code>, etc.
-- Conditionals: <code>(?(…)…)</code>, etc.
-- Rarely-used character specifiers: Non-A-Za-z with <code>\cx</code>, <code>\C-x</code>; meta <code>\M-x</code>, <code>\M-\C-x</code>; bracketed octals <code>\o{…}</code>; octal UTF-8 encoded bytes (≥ <code>\200</code>).
-- Code point sequences: <code>\x{H H …}</code>, <code>\o{O O …}</code>.
-- Callout functions: <code>(?{…})</code>, etc.
+- Grapheme boundaries: `\y`, `\Y`.
+- Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
+- Whole-pattern modifiers: Don't capture `(?C)`, ignore-case is ASCII `(?I)`, find longest `(?L)`.
+- Absence functions: `(?~…)`, etc.
+- Conditionals: `(?(…)…)`, etc.
+- Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
+- Code point sequences: `\x{H H …}`, `\o{O O …}`.
+- Callout functions: `(?{…})`, etc.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
