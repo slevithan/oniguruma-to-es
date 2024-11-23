@@ -180,6 +180,9 @@ const BaseEscapeChars = new Set([
 ]);
 const CharClassEscapeChars = new Set([
   '-', '\\', ']', '^',
+  // Literal `[` doesn't require escaping with flag u, but this can help work around regex source
+  // linters and regex syntax processors that expect unescaped `[` to create a nested class
+  '[',
 ]);
 const CharClassEscapeCharsFlagV = new Set([
   '(', ')', '-', '/', '[', '\\', ']', '^', '{', '|', '}',

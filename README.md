@@ -553,6 +553,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Unescaped <code>-</code> outside of range is literal in some contexts (different than JS rules in any mode)<br>
+      ✔ Error for unescaped <code>[</code> that doesn't form nested class<br>
       ✔ Fewer chars require escaping than JS<br>
     </td>
   </tr>
