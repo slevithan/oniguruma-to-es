@@ -58,7 +58,7 @@ const EscapeCharCodes = new Map([
   ['v', 11], // vertical tab
 ]);
 
-const charClassOpenPattern = r`\[\^?\]?`;
+const charClassOpenPattern = r`\[\^?`;
 const sharedEscapesPattern = `${
   // Control char
   'c.? | C(?:-.?)?'
@@ -408,7 +408,6 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
 }
 
 function getAllTokensForCharClass(pattern, opener, lastIndex) {
-  assertNonEmptyCharClass(opener);
   const tokens = [createToken(TokenTypes.CharacterClassOpen, opener, {
     negate: opener[1] === '^',
   })];
@@ -420,16 +419,22 @@ function getAllTokensForCharClass(pattern, opener, lastIndex) {
     // Start of nested char class
     // POSIX classes are handled as a single token; not as a nested char class
     if (m[0] === '[' && m[1] !== ':') {
-      assertNonEmptyCharClass(m);
       numCharClassesOpen++;
       tokens.push(createToken(TokenTypes.CharacterClassOpen, m, {
         negate: m[1] === '^',
       }));
     } else if (m === ']') {
-      numCharClassesOpen--;
-      tokens.push(createToken(TokenTypes.CharacterClassClose, m));
-      if (!numCharClassesOpen) {
-        break;
+      if (tokens.at(-1).type === TokenTypes.CharacterClassOpen) {
+        // Allow unescaped `]` as leading char
+        tokens.push(createToken(TokenTypes.Character, m, {
+          value: 93,
+        }));
+      } else {
+        numCharClassesOpen--;
+        tokens.push(createToken(TokenTypes.CharacterClassClose, m));
+        if (!numCharClassesOpen) {
+          break;
+        }
       }
     } else {
       const result = createTokenForAnyTokenWithinCharClass(m);
@@ -737,12 +742,6 @@ function splitEscapedNumToken(token, numCaptures) {
     }));
   }
   return tokens;
-}
-
-function assertNonEmptyCharClass(raw) {
-  if (raw.endsWith(']')) {
-    throw new Error(`Empty character class "${raw}" unsupported in Oniguruma`);
-  }
 }
 
 function assertSingleCodePoint(raw) {

@@ -248,9 +248,10 @@ function parseCharacterClassHyphen(context, state) {
 
 function parseCharacterClassOpen(context, state) {
   const {token, tokens, verbose, walk} = context;
+  const firstClassToken = tokens[context.current];
   let node = createCharacterClass({negate: token.negate});
   const intersection = node.elements[0];
-  let nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
+  let nextToken = throwIfUnclosedCharacterClass(firstClassToken);
   while (nextToken.type !== TokenTypes.CharacterClassClose) {
     if (nextToken.type === TokenTypes.CharacterClassIntersector) {
       intersection.classes.push(createCharacterClass({negate: false, baseOnly: true}));
@@ -260,7 +261,7 @@ function parseCharacterClassOpen(context, state) {
       const cc = intersection.classes.at(-1);
       cc.elements.push(walk(cc, state));
     }
-    nextToken = throwIfUnclosedCharacterClass(tokens[context.current]);
+    nextToken = throwIfUnclosedCharacterClass(tokens[context.current], firstClassToken);
   }
   if (!verbose) {
     optimizeCharacterClassIntersection(intersection);
@@ -699,8 +700,12 @@ function optimizeCharacterClassIntersection(intersection) {
   }
 }
 
-function throwIfUnclosedCharacterClass(token) {
-  return throwIfNot(token, 'Unclosed character class');
+function throwIfUnclosedCharacterClass(token, firstClassToken) {
+  return throwIfNot(
+    token,
+    // Easier to understand error when applicable
+    `${firstClassToken?.value === 93 ? 'Empty' : 'Unclosed'} character class`
+  );
 }
 
 function throwIfUnclosedGroup(token) {
