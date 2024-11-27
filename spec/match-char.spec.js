@@ -189,8 +189,11 @@ describe('Character', () => {
 
     it(r`should throw for invalid UTF-8 encoded byte sequences \xNN (above 7F)`, () => {
       expect(() => toDetails(r`\x80`)).toThrow();
-      expect(() => toDetails(r`\xFF`)).toThrow();
+      expect(() => toDetails(r`\xF4`)).toThrow();
       expect(() => toDetails(r`\xEF\xC0\xBB`)).toThrow();
+      // In Onig, the unused encoded UTF-8 bytes F5-FF don't throw, but they don't match anything
+      // (likely a bug in Onig)
+      expect(() => toDetails(r`\xFF`)).toThrow();
     });
 
     it(r`should throw for incomplete \x`, () => {

@@ -68,4 +68,19 @@ describe('CharacterClassRange', () => {
     expect(() => toDetails(r`[\u{1}-\0]`)).toThrow();
     expect(() => toDetails(r`[a-0-9]`)).toThrow();
   });
+
+  it(r`should match UTF-8 encoded byte sequences with \xNN above 7F`, () => {
+    // Encoded byte sequence `\xE2\x82\xAC` is € U+20AC
+    expect(['\u1000', '\u1001', '\u{20AC}']).toExactlyMatch(r`[\u1000-\xE2\x82\xAC]`);
+    expect(['\0', '\u0FFF', '\xE2', '\x82', '\xAC', '\u{20AD}']).not.toFindMatch(r`[\u1000-\xE2\x82\xAC]`);
+  });
+
+  it(r`should throw for invalid UTF-8 encoded byte sequences with \xNN above 7F`, () => {
+    expect(() => toDetails(r`[\0-\x80]`)).toThrow();
+    expect(() => toDetails(r`[\0-\xF4]`)).toThrow();
+    expect(() => toDetails(r`[\0-\xEF\xC0\xBB]`)).toThrow();
+    // In Onig, the unused encoded UTF-8 bytes F5-FF don't throw, but they don't match anything and
+    // cause buggy, undesirable behavior in ranges
+    expect(() => toDetails(r`[\0-\xFF]`)).toThrow();
+  });
 });
