@@ -24,10 +24,16 @@ describe('Recursion', () => {
   });
 
   // Documenting current behavior
-  it('should throw if recursion used with backref', () => {
+  it('should throw if backref used with recursion when the recursed subpattern contains captures', () => {
     expect(() => toDetails(r`(a)\1\g<0>?`)).toThrow();
-    expect(() => toDetails(r`(a\g<1>?)\k<1>`)).toThrow();
-    expect(() => toDetails(r`(?<a>a\g<a>?)(?<b>)\k<b>`)).toThrow();
+    expect(() => toDetails(r`((a)\g<1>?)\k<1>`)).toThrow();
+    expect(() => toDetails(r`((a)\g<1>?)()\k<3>`)).toThrow();
+  });
+
+  it('should match backref used with recursion when the recursed subpattern contains no captures', () => {
+    expect('aaabaaa').toExactlyMatch(r`(a\g<1>?)b\k<1>`);
+    expect('aaabaaa').toExactlyMatch(r`(?<a>a\g<a>?)b\k<a>`);
+    expect('aaabb').toExactlyMatch(r`(?<a>a\g<a>?)(?<b>b)\k<b>`);
   });
 
   describe('global', () => {

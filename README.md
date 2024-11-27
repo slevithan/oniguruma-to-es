@@ -554,6 +554,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Unescaped <code>-</code> outside of range is literal in some contexts (different than JS rules in any mode)<br>
       ✔ Error for unescaped <code>[</code> that doesn't form nested class<br>
+      ✔ Allows leading unescaped <code>]</code><br>
       ✔ Fewer chars require escaping than JS<br>
     </td>
   </tr>
@@ -564,7 +565,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Error<br>
-      ✔ Doesn't allow leading unescaped <code>]</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -921,7 +921,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 4. Target `ES2018` doesn't support nested *negated* character classes.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
-6. The recursion depth limit is specified by option `maxRecursionDepth`. Use of backreferences with recursion isn't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
+6. The recursion depth limit is specified by option `maxRecursionDepth`. Use of backreferences when the recursed subpattern contains captures isn't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
 
 ## ❌ Unsupported features
 
