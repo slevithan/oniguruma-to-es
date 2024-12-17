@@ -554,7 +554,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Unescaped <code>-</code> outside of range is literal in some contexts (different than JS rules in any mode)<br>
       ✔ Error for unescaped <code>[</code> that doesn't form nested class<br>
-      ✔ Allows leading unescaped <code>]</code><br>
+      ✔ Leading unescaped <code>]</code> OK<br>
       ✔ Fewer chars require escaping than JS<br>
     </td>
   </tr>
@@ -616,6 +616,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Always "multiline"<br>
       ✔ Only <code>\n</code> as newline<br>
+      ✔ No match after string-terminating <code>\n</code><br>
     </td>
   </tr>
   <tr valign="top">

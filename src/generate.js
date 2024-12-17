@@ -219,7 +219,8 @@ function genAssertion(node, _, gen) {
   if (kind === AstAssertionKinds.string_start) {
     return '^';
   }
-  // If a word boundary came through the transformer unaltered, that means `wordIsAscii` is enabled
+  // If a word boundary came through the transformer unaltered, that means `wordIsAscii` or
+  // `asciiWordBoundaries` is enabled
   if (kind === AstAssertionKinds.word_boundary) {
     return negate ? r`\B` : r`\b`;
   }

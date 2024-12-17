@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/index.mjs';
+import {toDetails, toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -49,6 +49,12 @@ describe('Assertion', () => {
 
     it('should not match at positions other than the start of the string or after a line feed', () => {
       expect('ba').not.toFindMatch('^a');
+    });
+
+    it('should not match after a string-terminating line feed', () => {
+      expect(''.match(toRegExp('^', {global: true}))).toHaveSize(1);
+      expect('\n'.match(toRegExp('^', {global: true}))).toHaveSize(1);
+      expect('\n\n'.match(toRegExp('^', {global: true}))).toHaveSize(2);
     });
   });
 

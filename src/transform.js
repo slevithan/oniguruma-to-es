@@ -136,8 +136,9 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?=\z|\n)`));
     } else if (kind === AstAssertionKinds.line_start) {
-      // Onig's only line break char is line feed, unlike JS
-      replaceWith(parseFragment(r`(?<=\A|\n)`));
+      // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
+      // string-terminating line feed
+      replaceWith(parseFragment(r`(?<=\A|\n(?!\z))`));
     } else if (kind === AstAssertionKinds.search_start) {
       if (!supportedGNodes.has(node) && !allowUnhandledGAnchors) {
         throw new Error(r`Uses "\G" in a way that's unsupported`);
