@@ -81,6 +81,7 @@ type OnigurumaToEsOptions = {
     allowOrphanBackrefs?: boolean;
     allowUnhandledGAnchors?: boolean;
     asciiWordBoundaries?: boolean;
+    captureGroup?: boolean;
   };
   target?: 'auto' | 'ES2025' | 'ES2024' | 'ES2018';
   verbose?: boolean;
@@ -117,6 +118,9 @@ function toOnigurumaAst(
   pattern: string,
   options?: {
     flags?: string;
+    rules?: {
+      captureGroup?: boolean;
+    };
   }
 ): OnigurumaAst;
 ```
@@ -210,7 +214,8 @@ Advanced pattern options that override standard error checking and flags when en
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
 - `allowUnhandledGAnchors`: Applies flag `y` for unsupported uses of `\G`, rather than erroring.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
-- `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases performance.
+- `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
+- `captureGroup`: Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`. Unnamed captures and numbered calls allowed when using named capture.
 
 ### `target`
 
@@ -616,7 +621,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Always "multiline"<br>
       ✔ Only <code>\n</code> as newline<br>
-      ✔ No match after string-terminating <code>\n</code><br>
+      ✔ <code>^</code> doesn't match after string-terminating <code>\n</code><br>
     </td>
   </tr>
   <tr valign="top">
@@ -911,6 +916,17 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Error<br>
     </td>
   </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="1">Compile-time options</th>
+    <td colspan="2"><code>ONIG_OPTION_CAPTURE_GROUP</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unnamed captures and numbered calls allowed when using named capture<br>
+      ✔ Allows numbered subroutine refs to duplicate group names<br>
+    </td>
+  </tr>
 </table>
 
 The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them).
@@ -928,14 +944,20 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare.
 
-- Grapheme boundaries: `\y`, `\Y`.
-- Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
-- Whole-pattern modifiers: Don't capture `(?C)`, ignore-case is ASCII `(?I)`, find longest `(?L)`.
-- Absence functions: `(?~…)`, etc.
-- Conditionals: `(?(…)…)`, etc.
-- Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
-- Code point sequences: `\x{H H …}`, `\o{O O …}`.
-- Callout functions: `(?{…})`, etc.
+- Supportable:
+  - Grapheme boundaries: `\y`, `\Y`.
+  - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
+  - Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
+  - Code point sequences: `\x{H H …}`, `\o{O O …}`.
+  - Whole-pattern modifiers: Don't capture `(?C)`, ignore-case is ASCII `(?I)`.
+- Supportable for some uses:
+  - Absence functions: `(?~…)`, etc.
+  - Conditionals: `(?(…)…)`, etc.
+  - Whole-pattern modifiers: Find longest `(?L)`.
+- Not supportable:
+  - Callout functions: `(?{…})`, etc.
+
+Despite the current omissions, Oniguruma-To-ES handles more than 99.9% of real-world Oniguruma regexes, based on patterns used in a large [collection](https://github.com/shikijs/textmate-grammars-themes/tree/main/packages/tm-grammars/grammars) of TextMate grammars.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 

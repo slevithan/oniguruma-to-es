@@ -64,7 +64,7 @@ const AstVariableLengthCharacterSetKinds = {
 }} [options]
 @returns {OnigurumaAst}
 */
-function parse({tokens, flags}, options) {
+function parse({tokens, flags, rules}, options) {
   const opts = {
     skipBackrefValidation: false,
     skipPropertyNameValidation: false,
@@ -135,7 +135,7 @@ function parse({tokens, flags}, options) {
   // `context` updated by preceding `walk` loop
   const {capturingGroups, hasNumberedRef, namedGroupsByName, subroutines} = context;
   // Validation that requires knowledge about the complete pattern
-  if (hasNumberedRef && namedGroupsByName.size) {
+  if (hasNumberedRef && namedGroupsByName.size && !rules.captureGroup) {
     throw new Error('Numbered backref/subroutine not allowed when using named capture');
   }
   for (const {ref} of subroutines) {

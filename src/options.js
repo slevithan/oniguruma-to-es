@@ -57,8 +57,11 @@ function getOptions(options) {
       allowOrphanBackrefs: false,
       // Applies flag `y` for unsupported uses of `\G`, rather than erroring.
       allowUnhandledGAnchors: false,
-      // Use ASCII-based `\b` and `\B`, which increases performance.
+      // Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
       asciiWordBoundaries: false,
+      // Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`. Unnamed captures and numbered calls allowed
+      // when using named capture.
+      captureGroup: false,
       ...(options?.rules),
     },
   };

@@ -162,12 +162,12 @@ pre, code, kbd, textarea {
   border-radius: 0.375em;
 }
 
-#more-options {
+#more-options-cols {
   display: flex;
 }
 
-#more-options div {
-  margin-right: 3%;
+#more-options-cols div {
+  margin-right: 5%;
 }
 
 #output, textarea {

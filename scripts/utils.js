@@ -76,7 +76,9 @@ function getMatchDetails(match) {
 const transpiledRegExpResult = (pattern, str, pos) => {
   let result;
   try {
-    const options = {};
+    // `vscode-oniguruma` uses option `ONIG_OPTION_CAPTURE_GROUP` by default; see
+    // <github.com/microsoft/vscode-oniguruma/blob/1970c417eb0ebcaf8c6607774934ab2f89549c92/src/index.ts#L380>
+    const options = {rules: {captureGroup: true}};
     if (pos) {
       options.global = true;
     }

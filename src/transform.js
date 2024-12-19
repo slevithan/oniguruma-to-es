@@ -161,7 +161,10 @@ const FirstPassVisitor = {
     if (name && !isValidGroupNameJs(name)) {
       throw new Error(`Group name "${name}" invalid in JS`);
     }
-    subroutineRefMap.set(name ?? number, node);
+    subroutineRefMap.set(number, node);
+    if (name) {
+      subroutineRefMap.set(name, node);
+    }
   },
 
   CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
@@ -361,7 +364,7 @@ const SecondPassVisitor = {
   Backreference({node}, {multiplexCapturesToLeftByRef, reffedNodesByReferencer}) {
     const {orphan, ref} = node;
     if (!orphan) {
-      // Copy the current state for later multiplexing expansion. It's done in a subsequent pass
+      // Copy the current state for later multiplexing expansion. That's done in a subsequent pass
       // because backref numbers need to be recalculated after subroutine expansion
       reffedNodesByReferencer.set(node, [...multiplexCapturesToLeftByRef.get(ref).map(({node}) => node)]);
     }
@@ -399,25 +402,27 @@ const SecondPassVisitor = {
     ) {
       // Has value if we're within a subroutine expansion
       const origin = groupOriginByCopy.get(node);
-      const ref = node.name ?? node.number;
 
       // ## Handle recursion; runs after subroutine expansion
-      if (origin && openRefs.has(ref)) {
+      if (origin && openRefs.has(node.number)) {
         // Recursion doesn't affect any following backrefs to its `ref` (unlike other subroutines),
         // so don't wrap with a capture. The reffed group might have its name removed due to later
         // subroutine expansion
-        const recursion = createRecursion(ref);
-        reffedNodesByReferencer.set(recursion, openRefs.get(ref));
+        const recursion = createRecursion(node.number);
+        reffedNodesByReferencer.set(recursion, openRefs.get(node.number));
         replaceWith(recursion);
         // This node's kids have been removed from the tree, so no need to traverse them
         skip();
         return;
       }
-      // Name or number; not mixed since can't use numbered subroutines with named capture
-      openRefs.set(ref, node);
+      openRefs.set(node.number, node);
 
       // ## Track data for backref multiplexing
-      const multiplexNodes = getOrCreate(multiplexCapturesToLeftByRef, ref, []);
+      multiplexCapturesToLeftByRef.set(node.number, []);
+      if (node.name) {
+        getOrCreate(multiplexCapturesToLeftByRef, node.name, []);
+      }
+      const multiplexNodes = multiplexCapturesToLeftByRef.get(node.name ?? node.number);
       for (let i = 0; i < multiplexNodes.length; i++) {
         // Captures added via subroutine expansion (maybe indirectly because they were descendant
         // captures of the reffed group or in a nested subroutine expansion) form a set with their
@@ -438,7 +443,10 @@ const SecondPassVisitor = {
           break;
         }
       }
-      multiplexNodes.push({node, origin});
+      multiplexCapturesToLeftByRef.get(node.number).push({node, origin});
+      if (node.name) {
+        multiplexCapturesToLeftByRef.get(node.name).push({node, origin});
+      }
 
       // ## Track data for duplicate names within an alternation path
       // Pre-ES2025 doesn't allow duplicate names, but ES2025+ allows duplicate names that are
@@ -459,7 +467,7 @@ const SecondPassVisitor = {
       }
     },
     exit({node}, {openRefs}) {
-      openRefs.delete(node.name ?? node.number);
+      openRefs.delete(node.number);
     },
   },
 
@@ -483,7 +491,7 @@ const SecondPassVisitor = {
     // Other forms of recursion are handled by the `CapturingGroup` visitor
     const isGlobalRecursion = ref === 0;
     const expandedSubroutine = isGlobalRecursion ?
-      createRecursion(ref) :
+      createRecursion(0) :
       // The reffed group might itself contain subroutines, which are expanded during sub-traversal
       cloneCapturingGroup(reffedGroupNode, state.groupOriginByCopy, null);
     let replacement = expandedSubroutine;
@@ -790,8 +798,11 @@ function isValidGroupNameJs(name) {
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 function parseFragment(pattern, options) {
-  const skipPropertyNameValidation = !!options?.skipPropertyNameValidation;
-  const ast = parse(tokenize(pattern), {skipPropertyNameValidation});
+  const opts = {
+    skipPropertyNameValidation: false,
+    ...options,
+  };
+  const ast = parse(tokenize(pattern), opts);
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
     return adoptAndSwapKids(createGroup(), alts);

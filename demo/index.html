@@ -74,68 +74,79 @@
     </p>
     <details>
       <summary>More options</summary>
-      <section id="more-options">
-        <div>
-          <p>
-            <label>
-              <input type="checkbox" id="option-global" onchange="setOption('global', this.checked)">
-              <code>global</code>
-              <span class="tip tip-md">Add JS flag <kbd>g</kbd> to result</span>
-            </label>
-          </p>
-          <p>
-            <label>
-              <input type="checkbox" id="option-hasIndices" onchange="setOption('hasIndices', this.checked)">
-              <code>hasIndices</code>
-              <span class="tip tip-md">Add JS flag <kbd>d</kbd> to result</span>
-            </label>
-          </p>
+      <section>
+        <div id="more-options-cols">
+          <div>
+            <p>
+              <label>
+                <input type="checkbox" id="option-global" onchange="setOption('global', this.checked)">
+                <code>global</code>
+                <span class="tip tip-md">Add JS flag <kbd>g</kbd> to result</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="option-hasIndices" onchange="setOption('hasIndices', this.checked)">
+                <code>hasIndices</code>
+                <span class="tip tip-md">Add JS flag <kbd>d</kbd> to result</span>
+              </label>
+            </p>
+          </div>
+          <div>
+            <p>
+              <label>
+                <input type="checkbox" id="option-avoidSubclass" onchange="setOption('avoidSubclass', this.checked)">
+                <code>avoidSubclass</code>
+                <span class="tip tip-lg">Disables advanced emulation that relies on a <code>RegExp</code> subclass</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="option-verbose" onchange="setOption('verbose', this.checked)">
+                <code>verbose</code>
+                <span class="tip tip-lg">Disables optimizations that simplify the pattern without changing the meaning</span>
+              </label>
+            </p>
+          </div>
+          <div>
+            <p>
+              <label>
+                <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setRule('allowOrphanBackrefs', this.checked)">
+                <code>allowOrphanBackrefs</code>
+                <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="option-allowUnhandledGAnchors" onchange="setRule('allowUnhandledGAnchors', this.checked)">
+                <code>allowUnhandledGAnchors</code>
+                <span class="tip tip-xl">Applies flag <code>y</code> for unsupported uses of <code>\G</code>, rather than erroring</span>
+              </label>
+            </p>
+          </div>
+          <div>
+            <p>
+              <label>
+                <input type="checkbox" id="option-asciiWordBoundaries" onchange="setRule('asciiWordBoundaries', this.checked)">
+                <code>asciiWordBoundaries</code>
+                <span class="tip tip-lg">Use ASCII-based <code>\b</code> and <code>\B</code></span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="option-captureGroup" onchange="setRule('captureGroup', this.checked)">
+                <code>captureGroup</code>
+                <span class="tip tip-xl">Unnamed captures and numbered calls allowed when using named capture</span>
+              </label>
+            </p>
+          </div>
         </div>
         <div>
-          <p>
-            <label>
-              <input type="checkbox" id="option-avoidSubclass" onchange="setOption('avoidSubclass', this.checked)">
-              <code>avoidSubclass</code>
-              <span class="tip tip-lg">Disables advanced emulation that relies on a <code>RegExp</code> subclass</span>
-            </label>
-          </p>
           <p>
             <label>
               <input type="number" id="option-maxRecursionDepth" value="5" min="2" max="100" onchange="setOption('maxRecursionDepth', this.value)" onkeyup="setOption('maxRecursionDepth', this.value)">
               <code>maxRecursionDepth</code>
               <span class="tip tip-lg">Use <code>2</code> to <code>100</code>, or <code>null</code> to disable recursion</span>
-            </label>
-          </p>
-        </div>
-        <div>
-          <p>
-            <label>
-              <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setRule('allowOrphanBackrefs', this.checked)">
-              <code>allowOrphanBackrefs</code>
-              <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
-            </label>
-          </p>
-          <p>
-            <label>
-              <input type="checkbox" id="option-allowUnhandledGAnchors" onchange="setRule('allowUnhandledGAnchors', this.checked)">
-              <code>allowUnhandledGAnchors</code>
-              <span class="tip tip-xl">Applies flag <code>y</code> for unsupported uses of <code>\G</code>, rather than erroring</span>
-            </label>
-          </p>
-        </div>
-        <div>
-          <p>
-            <label>
-              <input type="checkbox" id="option-asciiWordBoundaries" onchange="setRule('asciiWordBoundaries', this.checked)">
-              <code>asciiWordBoundaries</code>
-              <span class="tip tip-lg">Use ASCII-based <code>\b</code> and <code>\B</code></span>
-            </label>
-          </p>
-          <p>
-            <label>
-              <input type="checkbox" id="option-verbose" onchange="setOption('verbose', this.checked)">
-              <code>verbose</code>
-              <span class="tip tip-lg">Disables optimizations that simplify the pattern without changing the meaning</span>
             </label>
           </p>
         </div>

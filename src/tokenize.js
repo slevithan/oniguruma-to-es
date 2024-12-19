@@ -125,22 +125,33 @@ const charClassTokenRe = new RegExp(r`
     extended: boolean;
     ignoreCase: boolean;
   };
+  rules: {
+    captureGroup: boolean;
+  };
 }} TokenizerResult
 */
 /**
-@param {string} pattern
-@param {string} [flags] Oniguruma flags. Flag `m` is equivalent to JS flag `s`.
+@param {string} pattern Oniguruma pattern.
+@param {string} [flags] Oniguruma flags.
+@param {{captureGroup?: boolean;}} [rules] Oniguruma compile-time options.
 @returns {TokenizerResult}
 */
-function tokenize(pattern, flags = '') {
+function tokenize(pattern, flags = '', rules) {
+  rules = {
+    // `ONIG_OPTION_CAPTURE_GROUP`
+    captureGroup: false,
+    ...rules,
+  };
   if (typeof pattern !== 'string') {
     throw new Error('String expected as pattern');
   }
   if (!/^[imxDSW]*$/.test(flags)) {
     throw new Error(`Flags "${flags}" includes unsupported value`);
   }
-  const xStack = [flags.includes('x')];
+  const extended = flags.includes('x');
+  const xStack = [extended];
   const context = {
+    captureGroup: rules.captureGroup,
     getCurrentModX: () => xStack.at(-1),
     numOpenGroups: 0,
     popModX() {xStack.pop()},
@@ -163,25 +174,24 @@ function tokenize(pattern, flags = '') {
   }
 
   const potentialUnnamedCaptureTokens = [];
-  let numNamedCaptures = 0;
+  let numNamedAndOptInUnnamedCaptures = 0;
   tokens.forEach(t => {
     if (t.type === TokenTypes.GroupOpen) {
       if (t.kind === TokenGroupKinds.capturing) {
-        numNamedCaptures++;
-        t.number = numNamedCaptures;
+        t.number = ++numNamedAndOptInUnnamedCaptures;
       } else if (t.raw === '(') {
         potentialUnnamedCaptureTokens.push(t);
       }
     }
   });
-  // Enable unnamed capturing groups if no named captures
-  if (!numNamedCaptures) {
+  // Enable unnamed capturing groups if no named captures (when `captureGroup` not enabled)
+  if (!numNamedAndOptInUnnamedCaptures) {
     potentialUnnamedCaptureTokens.forEach((t, i) => {
       t.kind = TokenGroupKinds.capturing;
       t.number = i + 1;
     });
   }
-  const numCaptures = numNamedCaptures || potentialUnnamedCaptureTokens.length;
+  const numCaptures = numNamedAndOptInUnnamedCaptures || potentialUnnamedCaptureTokens.length;
   // Can now split escaped nums accurately, accounting for number of captures
   tokens = tokens.map(
     t => t.type === TokenTypes.EscapedNumber ? splitEscapedNumToken(t, numCaptures) : t
@@ -195,12 +205,13 @@ function tokenize(pattern, flags = '') {
       // is equivalent to JS flag s
       dotAll: flags.includes('m'),
       // Flag x is fully handled during tokenization
-      extended: flags.includes('x'),
+      extended,
       // Flags D, S, W are currently only supported as top-level flags
       digitIsAscii: flags.includes('D'),
       spaceIsAscii: flags.includes('S'),
       wordIsAscii: flags.includes('W'),
     },
+    rules,
   };
 }
 
@@ -296,8 +307,9 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     context.pushModX(context.getCurrentModX());
     context.numOpenGroups++;
     if (
-      // Unnamed capture if no named captures, else noncapturing group
-      m === '(' ||
+      // Unnamed capture if no named captures present and `captureGroup` not enabled, else
+      // noncapturing group
+      (m === '(' && !context.captureGroup) ||
       // Noncapturing group
       m === '(?:'
     ) {
@@ -325,14 +337,18 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         }),
       };
     }
-    // Named capture (checked after lookbehind due to similar syntax)
-    if (m2 === '<' || m2 === "'") {
+    // Named capture (checked after lookbehind due to similar syntax), or unnamed capture when
+    // `captureGroup` enabled
+    if (m2 === '<' || m2 === "'" || (m === '(' && context.captureGroup)) {
+      const token = createToken(TokenTypes.GroupOpen, m, {
+        kind: TokenGroupKinds.capturing,
+        // Will add `number` in a second pass
+      });
+      if (m !== '(') {
+        token.name = m.slice(3, -1);
+      }
       return {
-        token: createToken(TokenTypes.GroupOpen, m, {
-          kind: TokenGroupKinds.capturing,
-          name: m.slice(3, -1),
-          // Will add `number` in a second pass
-        }),
+        token,
       }
     }
     if (m2 === '(') {

@@ -24,6 +24,7 @@ const state = {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
       allowUnhandledGAnchors: getValue('option-allowUnhandledGAnchors'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
+      captureGroup: getValue('option-captureGroup'),
     },
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),
