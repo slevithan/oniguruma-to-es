@@ -367,7 +367,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Different allowed set than JS<br>
+      ✔ Different set than JS<br>
       ✔ Allows multibyte chars<br>
     </td>
   </tr>
@@ -431,7 +431,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Control</td>
+    <td>Caret notation</td>
     <td><code>\cA</code>, <code>\C-A</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -937,11 +937,11 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 4. Target `ES2018` doesn't support nested *negated* character classes.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
-6. The recursion depth limit is specified by option `maxRecursionDepth`. Use of backreferences when the recursed subpattern contains captures isn't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
+6. The recursion depth limit is specified by option `maxRecursionDepth`. Overlapping recursions and the use of backreferences when the recursed subpattern contains captures aren't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
 
 ## ❌ Unsupported features
 
-The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare.
+The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle 99.9% of real-world Oniguruma regexes, based on patterns used in a large [collection](https://github.com/shikijs/textmate-grammars-themes/tree/main/packages/tm-grammars/grammars) of TextMate grammars.
 
 - Supportable:
   - Grapheme boundaries: `\y`, `\Y`.
@@ -952,11 +952,9 @@ The following don't yet have any support, and throw errors. They're all infreque
 - Supportable for some uses:
   - Absence functions: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
-  - Whole-pattern modifiers: Find longest `(?L)`.
+  - Whole-pattern modifier: Find longest `(?L)`.
 - Not supportable:
   - Callout functions: `(?{…})`, etc.
-
-Despite the current omissions, Oniguruma-To-ES handles more than 99.9% of real-world Oniguruma regexes, based on patterns used in a large [collection](https://github.com/shikijs/textmate-grammars-themes/tree/main/packages/tm-grammars/grammars) of TextMate grammars.
 
 ## ㊗️ Unicode / mixed case-sensitivity
 
