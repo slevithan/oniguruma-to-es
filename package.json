@@ -44,11 +44,11 @@
   "dependencies": {
     "emoji-regex-xs": "^1.0.0",
     "regex": "^5.0.2",
-    "regex-recursion": "^4.3.0"
+    "regex-recursion": "^5.0.0"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",
-    "jasmine": "^5.4.0",
+    "jasmine": "^5.5.0",
     "typescript": "^5.7.2",
     "vscode-oniguruma": "^2.0.1"
   }
