@@ -323,11 +323,14 @@ const FirstPassVisitor = {
         hasAltWithoutLeadG = true;
       }
     }
-    if (hasAltWithLeadG && hasAltWithoutLeadG && !allowUnhandledGAnchors) {
-      throw new Error(r`Uses "\G" in a way that's unsupported`);
+    if (hasAltWithLeadG) {
+      if (!hasAltWithoutLeadG) {
+        // Supported `\G` nodes will be removed (and add flag y) when traversed; others will error
+        leadingGs.forEach(g => supportedGNodes.add(g));
+      } else if (!allowUnhandledGAnchors) {
+        throw new Error(r`Uses "\G" in a way that's unsupported`);
+      }
     }
-    // Supported `\G` nodes will be removed when traversed; others will error
-    leadingGs.forEach(g => supportedGNodes.add(g))
   },
 
   Quantifier({node}) {
