@@ -212,8 +212,8 @@ Using a high limit has a small impact on performance. Generally, this is only a 
 Advanced pattern options that override standard error checking and flags when enabled.
 
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
-- `allowUnhandledGAnchors`: Applies flag `y` for unsupported uses of `\G`, rather than erroring.
-  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed and JavaScript's `y` (`sticky`) flag is added. This might lead to some false positives and negatives, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
+- `allowUnhandledGAnchors`: Removes unsupported uses of `\G`, rather than erroring.
+  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed. This might lead to some false positive matches, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
 - `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
 - `captureGroup`: Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`. Unnamed captures and numbered calls allowed when using named capture.
 

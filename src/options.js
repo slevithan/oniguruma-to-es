@@ -55,7 +55,7 @@ function getOptions(options) {
     rules: {
       // Useful with TextMate grammars that merge backreferences across patterns.
       allowOrphanBackrefs: false,
-      // Applies flag `y` for unsupported uses of `\G`, rather than erroring.
+      // Removes unsupported uses of `\G`, rather than erroring.
       allowUnhandledGAnchors: false,
       // Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
       asciiWordBoundaries: false,

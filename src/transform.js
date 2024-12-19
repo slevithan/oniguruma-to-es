@@ -140,10 +140,11 @@ const FirstPassVisitor = {
       // string-terminating line feed
       replaceWith(parseFragment(r`(?<=\A|\n(?!\z))`));
     } else if (kind === AstAssertionKinds.search_start) {
-      if (!supportedGNodes.has(node) && !allowUnhandledGAnchors) {
+      if (supportedGNodes.has(node)) {
+        ast.flags.sticky = true;
+      } else if (!allowUnhandledGAnchors) {
         throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
-      ast.flags.sticky = true;
       remove();
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
