@@ -151,6 +151,13 @@ describe('Assertion: Search start', () => {
       expect(toRegExp(r`(\G|^)a`).exec('b\na')?.index).toBe(2);
       expect(toRegExp(r`(?:(\G|^)a)`).exec('b\na')?.index).toBe(2);
       expect(toRegExp(r`((\G|^)a)`).exec('b\na')?.index).toBe(2);
+
+      // Updates match indices accurately
+      const re = toRegExp(r`(?<n>^|\G)a`, {global: true, hasIndices: true});
+      re.lastIndex = 2;
+      expect(re.exec('12a').indices[0][0]).toBe(2);
+      re.lastIndex = 2;
+      expect(re.exec('12a').indices.groups.n[0]).toBe(2);
     });
 
     // Leading `(?!\G)` and similar

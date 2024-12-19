@@ -2,6 +2,105 @@ import {AstAssertionKinds, AstTypes} from './parse.js';
 import {hasOnlyChild, isLookaround, isZeroLengthNode} from './utils-node.js';
 import {RegExpSubclass} from 'regex/internals';
 
+/**
+@typedef {{
+  useEmulationGroups?: boolean;
+  strategy?: string;
+}} EmulatedRegExpOptions
+*/
+
+/**
+Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given
+results from `toDetails` to produce the same result as `toRegExp`.
+@augments RegExp
+*/
+class EmulatedRegExp extends RegExpSubclass {
+  #strategy;
+  /**
+  @param {string | EmulatedRegExp} pattern
+  @param {string} [flags]
+  @param {EmulatedRegExpOptions} [options]
+  */
+  constructor(pattern, flags, options) {
+    const opts = {
+      useEmulationGroups: false,
+      strategy: null,
+      ...options,
+    };
+    super(pattern, flags, {useEmulationGroups: opts.useEmulationGroups});
+    if (opts.strategy) {
+      this.#strategy = opts.strategy;
+    // The third argument `options` isn't provided when regexes are copied as part of the internal
+    // handling of string methods `matchAll` and `split`
+    } else if (pattern instanceof EmulatedRegExp) {
+      // Can read private properties of the existing object since it was created by this class
+      this.#strategy = pattern.#strategy;
+    }
+  }
+  /**
+  Called internally by all String/RegExp methods that use regexes.
+  @override
+  @param {string} str
+  @returns {RegExpExecArray | null}
+  */
+  exec(str) {
+    // Special case handling that requires coupling with pattern changes for the specific strategy
+    // in the transformer. These changes add emulation support for some common patterns that are
+    // otherwise unsupportable. Only one subclass strategy is supported per pattern
+    const exec = super.exec;
+    const useLastIndex = this.global || this.sticky;
+    const pos = this.lastIndex;
+    const strategy = this.#strategy;
+
+    // ## Support leading `(^|\G)` and similar
+    if (strategy === 'line_or_search_start' && useLastIndex && this.lastIndex) {
+      // Reset since testing on a sliced string that we want to match at the start of
+      this.lastIndex = 0;
+      const match = exec.call(this, str.slice(pos));
+      if (match) {
+        adjustMatchDetails(str, this, match, pos);
+      }
+      return match;
+    }
+
+    // ## Support leading `(?!\G)` and similar
+    if (strategy === 'not_search_start') {
+      let match = exec.call(this, str);
+      if (match?.index === pos) {
+        const globalRe = useLastIndex ? this : new RegExp(this.source, `g${this.flags}`);
+        globalRe.lastIndex = match.index + 1;
+        match = exec.call(globalRe, str);
+      }
+      return match;
+    }
+
+    return exec.call(this, str);
+  }
+}
+
+function adjustMatchDetails(str, re, match, offset) {
+  match.input = str;
+  match.index += offset;
+  re.lastIndex += offset;
+  if (re.hasIndices) {
+    const matchIndices = match.indices;
+    for (let i = 0; i < matchIndices.length; i++) {
+      const arr = matchIndices[i];
+      // Replace the array rather than updating values since the keys of `match.indices` and
+      // `match.indices.groups` share their value arrays by reference. Need to be precise in case
+      // they were previously altered separately
+      matchIndices[i] = [arr[0] + offset, arr[1] + offset];
+    }
+    const groupIndices = matchIndices.groups;
+    if (groupIndices) {
+      Object.keys(groupIndices).forEach(key => {
+        const arr = groupIndices[key];
+        groupIndices[key] = [arr[0] + offset, arr[1] + offset];
+      });
+    }
+  }
+}
+
 // Special case AST transformation handling that requires coupling with a `RegExp` subclass (see
 // `EmulatedRegExp`). These changes add emulation support for some common patterns that are
 // otherwise unsupportable. Only one subclass strategy is supported per pattern
@@ -69,84 +168,6 @@ function applySubclassStrategies(ast) {
   }
 
   return null;
-}
-
-/**
-@typedef {{
-  useEmulationGroups?: boolean;
-  strategy?: string;
-}} EmulatedRegExpOptions
-*/
-
-/**
-Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given
-results from `toDetails` to produce the same result as `toRegExp`.
-@augments RegExp
-*/
-class EmulatedRegExp extends RegExpSubclass {
-  #strategy;
-  /**
-  @param {string | EmulatedRegExp} pattern
-  @param {string} [flags]
-  @param {EmulatedRegExpOptions} [options]
-  */
-  constructor(pattern, flags, options) {
-    const opts = {
-      useEmulationGroups: false,
-      strategy: null,
-      ...options,
-    };
-    super(pattern, flags, {useEmulationGroups: opts.useEmulationGroups});
-    if (opts.strategy) {
-      this.#strategy = opts.strategy;
-    // The third argument `options` isn't provided when regexes are copied as part of the internal
-    // handling of string methods `matchAll` and `split`
-    } else if (pattern instanceof EmulatedRegExp) {
-      // Can read private properties of the existing object since it was created by this class
-      this.#strategy = pattern.#strategy;
-    }
-  }
-  /**
-  Called internally by all String/RegExp methods that use regexes.
-  @override
-  @param {string} str
-  @returns {RegExpExecArray | null}
-  */
-  exec(str) {
-    // Special case handling that requires coupling with pattern changes for the specific strategy
-    // in the transformer. These changes add emulation support for some common patterns that are
-    // otherwise unsupportable. Only one subclass strategy is supported per pattern
-    const exec = super.exec;
-    const useLastIndex = this.global || this.sticky;
-    const pos = this.lastIndex;
-    const strategy = this.#strategy;
-
-    // ## Support leading `(^|\G)` and similar
-    if (strategy === 'line_or_search_start' && useLastIndex && this.lastIndex) {
-      // Reset since testing on a sliced string that we want to match at the start of
-      this.lastIndex = 0;
-      const match = exec.call(this, str.slice(pos));
-      if (match) {
-        match.input = str;
-        match.index += pos;
-        this.lastIndex += pos;
-      }
-      return match;
-    }
-
-    // ## Support leading `(?!\G)` and similar
-    if (strategy === 'not_search_start') {
-      let match = exec.call(this, str);
-      if (match?.index === pos) {
-        const globalRe = useLastIndex ? this : new RegExp(this.source, `g${this.flags}`);
-        globalRe.lastIndex = match.index + 1;
-        match = exec.call(globalRe, str);
-      }
-      return match;
-    }
-
-    return exec.call(this, str);
-  }
 }
 
 function isLoneGLookaround(node, options) {
