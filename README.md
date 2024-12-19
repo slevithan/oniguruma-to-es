@@ -924,7 +924,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Unnamed captures and numbered calls allowed when using named capture<br>
-      ✔ Allows numbered subroutine refs to duplicate group names<br>
     </td>
   </tr>
 </table>

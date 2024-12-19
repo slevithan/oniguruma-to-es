@@ -64,14 +64,14 @@ function toDetails(pattern, options) {
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  pattern = possessive(recursion(generated.pattern));
-  const atomized = atomic(pattern, {useEmulationGroups: !opts.avoidSubclass});
-  const useEmulationGroups = atomized !== pattern && !opts.avoidSubclass;
-  pattern = atomized;
+  const pluginData = {useEmulationGroups: !opts.avoidSubclass};
   const result = {
-    pattern,
+    pattern: atomic(possessive(recursion(generated.pattern, pluginData)), pluginData),
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
+  // See <github.com/slevithan/regex/blob/main/src/subclass.js>
+  const emulationGroupMarker = '$E$';
+  const useEmulationGroups = result.pattern.includes(emulationGroupMarker) && !opts.avoidSubclass;
   if (useEmulationGroups || regexAst._strategy) {
     result.subclass = {
       useEmulationGroups,
