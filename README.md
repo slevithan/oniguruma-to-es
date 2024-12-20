@@ -948,11 +948,11 @@ The following don't yet have any support, and throw errors. They're all infreque
   - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
   - Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
   - Code point sequences: `\x{H H …}`, `\o{O O …}`.
-  - Whole-pattern modifiers: Don't capture `(?C)`, ignore-case is ASCII `(?I)`.
+  - Whole-pattern modifier: Don't capture `(?C)`.
 - Supportable for some uses:
   - Absence functions: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
-  - Whole-pattern modifier: Find longest `(?L)`.
+  - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
 - Not supportable:
   - Callout functions: `(?{…})`, etc.
 
