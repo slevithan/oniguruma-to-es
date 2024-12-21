@@ -1,7 +1,7 @@
 import {getOptions} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
-import {getIgnoreCaseMatchChars, JsUnicodePropertiesPostEs2018, UnicodePropertiesWithSpecificCase} from './unicode.js';
+import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-node.js';
 
@@ -72,7 +72,6 @@ function generate(ast, options) {
     useDuplicateNames: minTargetEs2025,
     useFlagMods: minTargetEs2025,
     useFlagV: minTargetEs2024,
-    usePostEs2018Properties: minTargetEs2024,
     verbose: opts.verbose,
   };
   function gen(node) {
@@ -349,9 +348,6 @@ function genCharacterSet({kind, negate, value, key}, state) {
     return negate ? r`\D` : r`\d`;
   }
   if (kind === AstCharacterSetKinds.property) {
-    if (!state.usePostEs2018Properties && JsUnicodePropertiesPostEs2018.has(value)) {
-      throw new Error(`Unicode property "${value}" unavailable in target ES2018`);
-    }
     if (
       state.useAppliedIgnoreCase &&
       state.currentFlags.ignoreCase &&

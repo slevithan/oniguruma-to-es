@@ -1,4 +1,4 @@
-# Oniguruma-To-ES (鬼車➜ES)
+# Oniguruma-To-ES (鬼車➡️ES)
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
@@ -230,7 +230,7 @@ JavaScript version used for generated regexes. Using `auto` detects the best val
   <summary>More details</summary>
 
 - `ES2018`: Uses JS flag `u`.
-  - Emulation restrictions: Character class intersection, nested negated character classes, and Unicode properties added after ES2018 are not allowed.
+  - Emulation restrictions: Character class intersection and nested negated character classes are not allowed.
   - Generated regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case). Minimum requirement for any regex is Node.js 6 or a 2016-era browser.
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
@@ -515,7 +515,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       <code>\p{L}</code>,<br>
       <code>\P{L}</code>
     </td>
-    <td align="middle">✅<sup>[1]</sup></td>
+    <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
       ✔ Binary properties<br>
@@ -528,7 +528,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is an identity escape<br>
       ✔ Error for key prefixes<br>
       ✔ Error for props of strings<br>
-      ❌ Blocks (wontfix<sup>[2]</sup>)<br>
+      ❌ Blocks (wontfix<sup>[1]</sup>)<br>
     </td>
   </tr>
 
@@ -590,7 +590,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       <code>[[:word:]]</code>,<br>
       <code>[[:^word:]]</code>
     </td>
-    <td align="middle">☑️<sup>[3]</sup></td>
+    <td align="middle">☑️<sup>[2]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ All use Unicode definitions<br>
@@ -599,7 +599,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   <tr valign="top">
     <td>Nested class</td>
     <td><code>[…[…]]</code></td>
-    <td align="middle">☑️<sup>[4]</sup></td>
+    <td align="middle">☑️<sup>[3]</sup></td>
     <td align="middle">✅</td>
     <td>
       ✔ Same as JS with flag <code>v</code><br>
@@ -800,7 +800,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ✔ Error if group to the right<sup>[5]</sup><br>
+      ✔ Error if group to the right<sup>[4]</sup><br>
       ✔ Duplicate names (and subroutines) to the right not included in multiplex<br>
       ✔ Fail to match (or don't include in multiplex) ancestor groups and groups in preceding alternation paths<br>
       ❌ Some rare cases are indeterminable at compile time and use the JS behavior of matching an empty string<br>
@@ -854,7 +854,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Has depth limit<sup>[6]</sup><br>
+      ● Has depth limit<sup>[5]</sup><br>
     </td>
   </tr>
   <tr valign="top">
@@ -867,7 +867,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Has depth limit<sup>[6]</sup><br>
+      ● Has depth limit<sup>[5]</sup><br>
     </td>
   </tr>
 
@@ -935,12 +935,11 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ### Footnotes
 
-1. Target `ES2018` doesn't allow using Unicode property names added in JavaScript specifications after ES2018.
-2. Unicode blocks (which in Oniguruma are used with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also a flawed and arguably unuseful feature, given the ability to use Unicode scripts and other properties.
-3. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
-4. Target `ES2018` doesn't support nested *negated* character classes.
-5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
-6. The recursion depth limit is specified by option `maxRecursionDepth`. Overlapping recursions and the use of backreferences when the recursed subpattern contains captures aren't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
+1. Unicode blocks (which in Oniguruma are used with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also a flawed and arguably unuseful feature, given the ability to use Unicode scripts and other properties.
+2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
+3. Target `ES2018` doesn't support nested *negated* character classes.
+4. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
+5. The recursion depth limit is specified by option `maxRecursionDepth`. Overlapping recursions and the use of backreferences when the recursed subpattern contains captures aren't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
 
 ## ❌ Unsupported features
 
