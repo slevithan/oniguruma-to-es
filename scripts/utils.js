@@ -116,6 +116,7 @@ async function onigurumaExec(pattern, str, pos = 0) {
     return null;
   }
 
+  // Uncomment to see subpattern match details
   // for (const obj of match.captureIndices) {
   //   obj.match = str.slice(obj.start, obj.end);
   // }
