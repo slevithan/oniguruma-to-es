@@ -1,4 +1,4 @@
-# Oniguruma-To-ES
+# Oniguruma-To-ES (鬼車➜ES)
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
