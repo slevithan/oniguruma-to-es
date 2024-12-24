@@ -1,4 +1,4 @@
-# Oniguruma-To-ES ⸱ 鬼車 ⇨ <img alt="ECMAScript logo" width="22" height="22" src="https://cdn.jsdelivr.net/gh/wingsuitist/ecmascript-logo/es-ecmascript-logo.png">
+# Oniguruma-To-ES (鬼車➟ES)
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
