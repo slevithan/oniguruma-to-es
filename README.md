@@ -1,10 +1,10 @@
-# Oniguruma-To-ES (鬼車➡️ES)
+# Oniguruma-To-ES ⸱ 鬼車 ⇨ <img alt="ECMAScript logo" width="22" height="22" src="https://cdn.jsdelivr.net/gh/wingsuitist/ecmascript-logo/es-ecmascript-logo.png">
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![bundle][bundle-src]][bundle-href]
 
-An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex transpiler** that runs in the browser and on your server. Use it to:
+An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translator** that runs in the browser and on your server. Use it to:
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.style/) syntax highlighter, etc.).
@@ -14,7 +14,9 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
-Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `accuracy` option to throw for such patterns (see details below).
+Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library).
+
+Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `accuracy` option to throw for such patterns (see details below).
 
 ## 📜 Contents
 
@@ -23,7 +25,7 @@ Oniguruma-To-ES deeply understands the hundreds of large and small differences b
 - [Options](#-options)
 - [Supported features](#-supported-features)
 - [Unsupported features](#-unsupported-features)
-- [Unicode / mixed case-sensitivity](#️-unicode--mixed-case-sensitivity)
+- [Unicode](#️-unicode)
 
 ## 🕹️ Install and use
 
@@ -944,7 +946,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ## ❌ Unsupported features
 
-The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle 99.9% of real-world Oniguruma regexes, based on patterns used in a large [collection](https://github.com/shikijs/textmate-grammars-themes/tree/main/packages/tm-grammars/grammars) of TextMate grammars.
+The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle ~99.9% of real-world Oniguruma regexes, based on patterns used in a large [collection](https://github.com/shikijs/textmate-grammars-themes/tree/main/packages/tm-grammars/grammars) of TextMate grammars.
 
 - Supportable:
   - Grapheme boundaries: `\y`, `\Y`.
@@ -960,11 +962,11 @@ The following don't yet have any support, and throw errors. They're all infreque
   - Callout functions: `(?{…})`, etc.
 
 <a name="unicode"></a>
-## ㊗️ Unicode / mixed case-sensitivity
+## ㊗️ Unicode
 
-Oniguruma-To-ES fully supports mixed case-sensitivity (and handles the Unicode edge cases) regardless of JavaScript [target](#target). It also restricts Unicode properties to those supported by Oniguruma and the target JavaScript version.
+Oniguruma-To-ES fully supports mixed case-sensitivity (through the use of pattern modifiers) and handles the Unicode edge cases regardless of JavaScript [target](#target).
 
-Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes some minor/rare restrictions:
+Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a few minor/rare restrictions:
 
 - Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` (supported by Node.js 20 and 2023-era browsers) or later if you need support for these features.
 - With targets before `ES2025`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
