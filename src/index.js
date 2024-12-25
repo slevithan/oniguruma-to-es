@@ -10,7 +10,7 @@ import {recursion} from 'regex-recursion';
 // The transformation and error checking for Oniguruma's unique syntax and behavior differences
 // compared to native JS RegExp is layered into all steps of the compilation process:
 // 1. Tokenizer: Understands Oniguruma syntax, with many large and small differences from JS.
-// 2. Parser: Builds an Oniguruma AST from the tokens with understanding of Oniguruma differences.
+// 2. Parser: Builds an Oniguruma AST from the tokens, with understanding of Oniguruma differences.
 // 3. Transformer: Converts the Oniguruma AST to a Regex+ AST that preserves all Oniguruma
 //    behavior. This is true even in cases of non-native-JS features that are supported by both
 //    Regex+ and Oniguruma but with subtly different behavior in each (subroutines, flag x).
@@ -98,6 +98,11 @@ function toOnigurumaAst(pattern, options) {
   return parse(tokenize(pattern, flags, {captureGroup}));
 }
 
+// // Returns a Regex+ AST generated from an Oniguruma pattern
+// function toRegexAst(pattern, options) {
+//   return transform(toOnigurumaAst(pattern, options));
+// }
+
 /**
 Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
@@ -116,5 +121,6 @@ export {
   EmulatedRegExp,
   toDetails,
   toOnigurumaAst,
+  // toRegexAst,
   toRegExp,
 };

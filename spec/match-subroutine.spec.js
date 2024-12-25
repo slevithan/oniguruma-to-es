@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/index.mjs';
+import {toDetails, toRegExp} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -118,6 +118,16 @@ describe('Subroutine', () => {
       expect('ababa').toExactlyMatch(r`(?<a>a)\g<b>(?<b>b\g<a>)`);
       expect('baaba').toExactlyMatch(r`\g<b>(?<a>a)(?<b>b\g<a>)`);
       expect('abcbcc').toExactlyMatch(r`(?<a>a\g<b>)(?<b>b\g<c>)(?<c>c)`);
+    });
+
+    it('should not use duplicate names for subroutines', () => {
+      expect(toRegExp(r`(?<n>[ab])\g<n>`).exec('ab').groups.n).toBe('a');
+      expect(toRegExp(r`\g<n>(?<n>[ab])`).exec('ab').groups.n).toBe('b');
+    });
+
+    it('should not use duplicate names for subroutine child captures', () => {
+      expect(toRegExp(r`(?<n1>(?<n2>[ab]))\g<n1>`).exec('ab').groups.n2).toBe('a');
+      expect(toRegExp(r`\g<n1>(?<n1>(?<n2>[ab]))`).exec('ab').groups.n2).toBe('b');
     });
   });
 });

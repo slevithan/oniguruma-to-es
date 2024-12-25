@@ -964,7 +964,7 @@ The following don't yet have any support, and throw errors. They're all infreque
 <a name="unicode"></a>
 ## ㊗️ Unicode
 
-Oniguruma-To-ES fully supports mixed case-sensitivity (through the use of pattern modifiers) and handles the Unicode edge cases regardless of JavaScript [target](#target).
+Oniguruma-To-ES fully supports mixed case-sensitivity (ex: `(?i)a(?-i)a`) and handles the Unicode edge cases regardless of JavaScript [target](#target).
 
 Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a few minor/rare restrictions:
 

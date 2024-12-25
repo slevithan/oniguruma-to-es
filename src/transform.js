@@ -374,23 +374,6 @@ const SecondPassVisitor = {
     }
   },
 
-  Recursion({node, parent}, {reffedNodesByReferencer}) {
-    // Recursion nodes are created during the current traversal; they're only traversed here if a
-    // recursion node created during traversal is then copied by a subroutine expansion, e.g. with
-    // `(?<a>\g<a>)\g<a>`
-    const {ref} = node;
-    // Immediate parent is an alternative or quantifier; can skip
-    let reffed = parent;
-    while ((reffed = reffed.parent)) {
-      if (reffed.type === AstTypes.CapturingGroup && (reffed.name === ref || reffed.number === ref)) {
-        break;
-      }
-    }
-    // Track the referenced node because `ref`s are rewritten in a subsequent pass; capturing group
-    // names and numbers might change due to subroutine expansion and duplicate group names
-    reffedNodesByReferencer.set(node, reffed);
-  },
-
   CapturingGroup: {
     enter(
       { node,
@@ -459,15 +442,22 @@ const SecondPassVisitor = {
       // subroutine expansion)
       if (node.name) {
         const groupsWithSameName = getOrCreate(groupsByName, node.name, new Map());
-        for (const groupInfo of groupsWithSameName.values()) {
-          if (!groupInfo.hasDuplicateNameToRemove && canParticipateWithNode(groupInfo.node, node, {
-            ancestorsParticipate: true,
-          })) {
-            // Will change the earlier instance with this name to an unnamed capture in a later pass
-            groupInfo.hasDuplicateNameToRemove = true;
+        let hasDuplicateNameToRemove = false;
+        if (origin) {
+          // Subroutines and their child captures shouldn't hold duplicate names in the final state
+          hasDuplicateNameToRemove = true;
+        } else {
+          for (const groupInfo of groupsWithSameName.values()) {
+            if (!groupInfo.hasDuplicateNameToRemove && canParticipateWithNode(groupInfo.node, node, {
+              ancestorsParticipate: true,
+            })) {
+              // Will change to an unnamed capture in a later pass
+              hasDuplicateNameToRemove = true;
+              break;
+            }
           }
         }
-        groupsByName.get(node.name).set(node, {node});
+        groupsByName.get(node.name).set(node, {node, hasDuplicateNameToRemove});
       }
     },
     exit({node}, {openRefs}) {
@@ -486,6 +476,23 @@ const SecondPassVisitor = {
     exit(_, state) {
       state.currentFlags = state.prevFlags;
     },
+  },
+
+  Recursion({node, parent}, {reffedNodesByReferencer}) {
+    // Recursion nodes are created during the current traversal; they're only traversed here if a
+    // recursion node created during traversal is then copied by a subroutine expansion, e.g. with
+    // `(?<a>\g<a>)\g<a>`
+    const {ref} = node;
+    // Immediate parent is an alternative or quantifier; can skip
+    let reffed = parent;
+    while ((reffed = reffed.parent)) {
+      if (reffed.type === AstTypes.CapturingGroup && (reffed.name === ref || reffed.number === ref)) {
+        break;
+      }
+    }
+    // Track the referenced node because `ref`s are rewritten in a subsequent pass; capturing group
+    // names and numbers might change due to subroutine expansion and duplicate group names
+    reffedNodesByReferencer.set(node, reffed);
   },
 
   Subroutine(path, state) {
