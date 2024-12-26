@@ -49,6 +49,24 @@ describe('Subroutine', () => {
       expect('baaba').toExactlyMatch(r`\g<2>(a)(b\g<1>)`);
       expect('abcbcc').toExactlyMatch(r`(a\g<2>)(b\g<3>)(c)`);
     });
+
+    it('should transfer captured values on match results', () => {
+      expect(toRegExp(r`([ab])\g<1>`).exec('ab')[1]).toBe('b');
+      expect(toRegExp(r`\g<1>([ab])`).exec('ab')[1]).toBe('b');
+    });
+
+    it('should transfer captured values on match results for child captures', () => {
+      expect(toRegExp(r`(([ab]))\g<1>`).exec('ab')[2]).toBe('b');
+      expect(toRegExp(r`\g<1>(([ab]))`).exec('ab')[2]).toBe('b');
+    });
+
+    it('should transfer subpattern match indices', () => {
+      const match = toRegExp(r`\g<1>(\g<2>)\g<1>(.)`, {hasIndices: true}).exec('abcd');
+      expect(match[1]).toBe('c');
+      expect(match[2]).toBe('d');
+      expect(match.indices[1]).toEqual([2, 3]);
+      expect(match.indices[2]).toEqual([3, 4]);
+    });
   });
 
   describe('relative numbered', () => {
@@ -120,14 +138,26 @@ describe('Subroutine', () => {
       expect('abcbcc').toExactlyMatch(r`(?<a>a\g<b>)(?<b>b\g<c>)(?<c>c)`);
     });
 
-    it('should not use duplicate names for subroutines', () => {
-      expect(toRegExp(r`(?<n>[ab])\g<n>`).exec('ab').groups.n).toBe('a');
+    it('should transfer captured values on match results', () => {
+      expect(toRegExp(r`(?<n>[ab])\g<n>`).exec('ab').groups.n).toBe('b');
       expect(toRegExp(r`\g<n>(?<n>[ab])`).exec('ab').groups.n).toBe('b');
     });
 
-    it('should not use duplicate names for subroutine child captures', () => {
-      expect(toRegExp(r`(?<n1>(?<n2>[ab]))\g<n1>`).exec('ab').groups.n2).toBe('a');
+    it('should transfer captured values on match results for child captures', () => {
+      expect(toRegExp(r`(?<n1>(?<n2>[ab]))\g<n1>`).exec('ab').groups.n2).toBe('b');
       expect(toRegExp(r`\g<n1>(?<n1>(?<n2>[ab]))`).exec('ab').groups.n2).toBe('b');
+    });
+
+    it('should transfer subpattern match indices', () => {
+      const match = toRegExp(r`\g<a>(?<a>\g<b>)\g<a>(?<b>.)`, {hasIndices: true}).exec('abcd');
+      expect(match[1]).toBe('c');
+      expect(match[2]).toBe('d');
+      expect(match.indices[1]).toEqual([2, 3]);
+      expect(match.indices[2]).toEqual([3, 4]);
+      expect(match.groups.a).toBe('c');
+      expect(match.groups.b).toBe('d');
+      expect(match.indices.groups.a).toEqual([2, 3]);
+      expect(match.indices.groups.b).toEqual([3, 4]);
     });
   });
 });

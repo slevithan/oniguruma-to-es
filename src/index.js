@@ -4,8 +4,7 @@ import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
 import {EmulatedRegExp} from './subclass.js';
 import {tokenize} from './tokenize.js';
-import {emulationGroupMarker} from './utils.js';
-import {atomic, possessive} from 'regex/internals';
+import {atomic, emulationGroupMarker, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
 // The transformation and error checking for Oniguruma's unique syntax and behavior differences
@@ -71,7 +70,7 @@ function toDetails(pattern, options) {
     pattern: atomic(possessive(recursion(generated.pattern, pluginData)), pluginData),
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  const useEmulationGroups = result.pattern.includes(emulationGroupMarker) && !avoidSubclass;
+  const useEmulationGroups = !avoidSubclass && result.pattern.includes(emulationGroupMarker);
   if (useEmulationGroups || regexAst._strategy) {
     result.subclass = {
       useEmulationGroups,

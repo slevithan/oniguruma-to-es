@@ -2,8 +2,9 @@ import {getOptions} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, emulationGroupMarker, getNewCurrentFlags, isMinTarget, r} from './utils.js';
+import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-node.js';
+import {emulationGroupMarker} from 'regex/internals';
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
@@ -60,7 +61,7 @@ function generate(ast, options) {
     accuracy: opts.accuracy,
     appliedGlobalFlags,
     avoidSubclass: opts.avoidSubclass,
-    captureFlagIMap: new Map(),
+    captureMap: new Map(),
     currentFlags: {
       dotAll: ast.flags.dotAll,
       ignoreCase: ast.flags.ignoreCase,
@@ -237,30 +238,37 @@ function genBackreference({ref}, state) {
     !state.useFlagMods &&
     state.accuracy === 'strict' &&
     state.currentFlags.ignoreCase &&
-    !state.captureFlagIMap.get(ref)
+    !state.captureMap.get(ref).ignoreCase
   ) {
     throw new Error('Use of case-insensitive backref to case-sensitive group requires target ES2025 or non-strict accuracy');
   }
   return '\\' + ref;
 }
 
-function genCapturingGroup({name, number, alternatives, _isFromSubroutine}, state, gen) {
+function genCapturingGroup({name, number, alternatives, _originNumber}, state, gen) {
   if (name) {
     if (state.groupNames.has(name)) {
       if (!state.useDuplicateNames) {
         // Keep the name only in the first alternation path that used it; the transformer already
-        // stripped all but the last duplicate name per alternation path
+        // stripped all but the first duplicate name per alternation path
         name = null;
       }
     } else {
       state.groupNames.add(name);
     }
   }
-  state.captureFlagIMap.set(number, state.currentFlags.ignoreCase);
+  state.captureMap.set(number, {ignoreCase: state.currentFlags.ignoreCase});
   return `(${
     name ? `?<${name}>` : ''
   }${
-    !state.avoidSubclass && _isFromSubroutine ? emulationGroupMarker : ''
+    !state.avoidSubclass && _originNumber ?
+      // All captures from/within expanded subroutines are marked as emulation groups, and some are
+      // specially marked as emulation groups with transfer. `number` is based on the pattern after
+      // subroutine expansion, whereas `_originNumber` points to the origin capture of an expanded
+      // subroutine (or child capture) *prior* to subroutine expansion. `_originNumber` is
+      // `undefined` if the current capture isn't from an expanded subroutine
+      `${_originNumber < number ? `$${_originNumber}` : ''}${emulationGroupMarker}` :
+      ''
   }${
     alternatives.map(gen).join('|')
   })`;

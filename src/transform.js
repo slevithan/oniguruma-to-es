@@ -460,8 +460,8 @@ const SecondPassVisitor = {
         groupsByName.get(node.name).set(node, {node, hasDuplicateNameToRemove});
       }
       if (origin) {
-        // Used by the generator to treat subroutines and their child captures as emulation groups
-        node._isFromSubroutine = true;
+        // Used by the generator to handle subroutines and their child captures as emulation groups
+        node._originNumber = origin.number;
       }
     },
     exit({node}, {openRefs}) {

@@ -144,5 +144,12 @@ describe('Recursion', () => {
       expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\z`).exec('aa')).toHaveSize(3);
       expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\g<a>\z`).exec('aaaa')).toHaveSize(3);
     });
+
+    it('should transfer subroutine captures on match results', () => {
+      expect(toRegExp(r`(?<r>[aA]\g<r>?[bB]) \g<r>`).exec('aaabbb AAABBB').groups.r).toBe('AAABBB');
+      expect(toRegExp(r`\g<r> (?<r>[aA]\g<r>?[bB])`).exec('aaabbb AAABBB').groups.r).toBe('AAABBB');
+      expect(toRegExp(r`(?<r>[aA]([xX])\g<r>?[bB]) \g<r>`, {rules: {captureGroup: true}}).exec('axaxbb AXAXBB')[2]).toBe('X');
+      expect(toRegExp(r`\g<r> (?<r>[aA]([xX])\g<r>?[bB])`, {rules: {captureGroup: true}}).exec('axaxbb AXAXBB')[2]).toBe('X');
+    });
   });
 });
