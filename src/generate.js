@@ -2,7 +2,7 @@ import {getOptions} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
+import {cp, emulationGroupMarker, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-node.js';
 
 /**
@@ -59,6 +59,7 @@ function generate(ast, options) {
   const state = {
     accuracy: opts.accuracy,
     appliedGlobalFlags,
+    avoidSubclass: opts.avoidSubclass,
     captureFlagIMap: new Map(),
     currentFlags: {
       dotAll: ast.flags.dotAll,
@@ -243,7 +244,7 @@ function genBackreference({ref}, state) {
   return '\\' + ref;
 }
 
-function genCapturingGroup({name, number, alternatives}, state, gen) {
+function genCapturingGroup({name, number, alternatives, _isFromSubroutine}, state, gen) {
   if (name) {
     if (state.groupNames.has(name)) {
       if (!state.useDuplicateNames) {
@@ -256,7 +257,13 @@ function genCapturingGroup({name, number, alternatives}, state, gen) {
     }
   }
   state.captureFlagIMap.set(number, state.currentFlags.ignoreCase);
-  return `(${name ? `?<${name}>` : ''}${alternatives.map(gen).join('|')})`;
+  return `(${
+    name ? `?<${name}>` : ''
+  }${
+    !state.avoidSubclass && _isFromSubroutine ? emulationGroupMarker : ''
+  }${
+    alternatives.map(gen).join('|')
+  })`;
 }
 
 function genCharacter({value}, state) {

@@ -15,8 +15,8 @@ importers:
         specifier: ^5.0.2
         version: 5.0.2
       regex-recursion:
-        specifier: ^5.0.0
-        version: 5.0.0
+        specifier: slevithan/regex-recursion
+        version: https://codeload.github.com/slevithan/regex-recursion/tar.gz/a63a802374d5dc4deecc4f92cd325705c0dbf738
     devDependencies:
       esbuild:
         specifier: ^0.24.0
@@ -282,8 +282,9 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
-  regex-recursion@5.0.0:
-    resolution: {integrity: sha512-UwyOqeobrCCqTXPcsSqH4gDhOjD5cI/b8kjngWgSZbxYh5yVjAwTjO5+hAuPRNiuR70+5RlWSs+U9PVcVcW9Lw==}
+  regex-recursion@https://codeload.github.com/slevithan/regex-recursion/tar.gz/a63a802374d5dc4deecc4f92cd325705c0dbf738:
+    resolution: {tarball: https://codeload.github.com/slevithan/regex-recursion/tar.gz/a63a802374d5dc4deecc4f92cd325705c0dbf738}
+    version: 5.0.0
 
   regex-utilities@2.3.0:
     resolution: {integrity: sha512-8VhliFJAWRaUiVvREIiW2NXXTmHs4vMNnSzuJVhscgmGav3g9VDxLrQndI3dZZVVdp0ZO/5v0xmX516/7M9cng==}
@@ -537,7 +538,7 @@ snapshots:
       lru-cache: 10.4.3
       minipass: 7.1.2
 
-  regex-recursion@5.0.0:
+  regex-recursion@https://codeload.github.com/slevithan/regex-recursion/tar.gz/a63a802374d5dc4deecc4f92cd325705c0dbf738:
     dependencies:
       regex-utilities: 2.3.0
 

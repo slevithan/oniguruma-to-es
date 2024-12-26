@@ -63,6 +63,12 @@ describe('Recursion', () => {
     it('should throw for overlapping recursions', () => {
       expect(() => toDetails(r`a\g<0>?\g<0>?`)).toThrow();
     });
+
+    it('should exclude duplicated captures from result subpatterns', () => {
+      expect(toRegExp(r`(a)\g<0>?`, {avoidSubclass: true, maxRecursionDepth: 2}).exec('aa')).toHaveSize(3);
+      expect(toRegExp(r`(a)\g<0>?`).exec('aa')).toHaveSize(2);
+      expect(toRegExp(r`(?<a>a)\g<0>?`).exec('aa')).toHaveSize(2);
+    });
   });
 
   describe('numbered', () => {
@@ -79,6 +85,12 @@ describe('Recursion', () => {
     it('should throw for overlapping recursions', () => {
       expect(() => toDetails(r`(a\g<2>(\g<1>?))`)).toThrow();
     });
+
+    it('should exclude duplicated captures from result subpatterns', () => {
+      expect(toRegExp(r`\A((a)\g<1>?)\z`, {avoidSubclass: true, maxRecursionDepth: 2}).exec('aa')).toHaveSize(4);
+      expect(toRegExp(r`\A((a)\g<1>?)\z`).exec('aa')).toHaveSize(3);
+      expect(toRegExp(r`\A((a)\g<1>?)\g<1>\z`).exec('aaaa')).toHaveSize(3);
+    });
   });
 
   describe('relative numbered', () => {
@@ -94,6 +106,12 @@ describe('Recursion', () => {
 
     it('should throw for overlapping recursions', () => {
       expect(() => toDetails(r`(a\g<+1>(\g<-2>?))`)).toThrow();
+    });
+
+    it('should exclude duplicated captures from result subpatterns', () => {
+      expect(toRegExp(r`\A((a)\g<-2>?)\z`, {avoidSubclass: true, maxRecursionDepth: 2}).exec('aa')).toHaveSize(4);
+      expect(toRegExp(r`\A((a)\g<-2>?)\z`).exec('aa')).toHaveSize(3);
+      expect(toRegExp(r`\A((a)\g<-2>?)\g<-2>\z`).exec('aaaa')).toHaveSize(3);
     });
   });
 
@@ -119,6 +137,12 @@ describe('Recursion', () => {
       expect(() => toDetails(r`a\g<0>?(?<r>a\g<r>?)`)).toThrow();
       expect(() => toDetails(r`(?<r>a\g<r>?\g<r>?)`)).toThrow();
       expect(() => toDetails(r`(?<a>\g<b>(?<b>a\g<a>?))`)).toThrow();
+    });
+
+    it('should exclude duplicated captures from result subpatterns', () => {
+      expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\z`, {avoidSubclass: true, maxRecursionDepth: 2}).exec('aa')).toHaveSize(4);
+      expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\z`).exec('aa')).toHaveSize(3);
+      expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\g<a>\z`).exec('aaaa')).toHaveSize(3);
     });
   });
 });

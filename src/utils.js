@@ -3,6 +3,9 @@ import {EsVersion, Target} from './options.js';
 const cp = String.fromCodePoint;
 const r = String.raw;
 
+// See <github.com/slevithan/regex/blob/main/src/subclass.js>
+const emulationGroupMarker = '$E$';
+
 const envSupportsDuplicateNames = (() => {
   try {
     new RegExp('(?<n>)|(?<n>)');
@@ -62,6 +65,7 @@ function throwIfNot(value, msg) {
 
 export {
   cp,
+  emulationGroupMarker,
   envSupportsDuplicateNames,
   envSupportsFlagGroups,
   envSupportsFlagV,

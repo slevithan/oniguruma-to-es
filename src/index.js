@@ -4,6 +4,7 @@ import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
 import {EmulatedRegExp} from './subclass.js';
 import {tokenize} from './tokenize.js';
+import {emulationGroupMarker} from './utils.js';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
@@ -51,6 +52,7 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
 */
 function toDetails(pattern, options) {
   const opts = getOptions(options);
+  const avoidSubclass = opts.avoidSubclass;
   const tokenized = tokenize(pattern, opts.flags, {captureGroup: opts.rules.captureGroup});
   const onigurumaAst = parse(tokenized, {
     skipBackrefValidation: opts.rules.allowOrphanBackrefs,
@@ -60,18 +62,16 @@ function toDetails(pattern, options) {
     accuracy: opts.accuracy,
     allowUnhandledGAnchors: opts.rules.allowUnhandledGAnchors,
     asciiWordBoundaries: opts.rules.asciiWordBoundaries,
-    avoidSubclass: opts.avoidSubclass,
+    avoidSubclass,
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  const pluginData = {useEmulationGroups: !opts.avoidSubclass};
+  const pluginData = {useEmulationGroups: !avoidSubclass};
   const result = {
     pattern: atomic(possessive(recursion(generated.pattern, pluginData)), pluginData),
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  // See <github.com/slevithan/regex/blob/main/src/subclass.js>
-  const emulationGroupMarker = '$E$';
-  const useEmulationGroups = result.pattern.includes(emulationGroupMarker) && !opts.avoidSubclass;
+  const useEmulationGroups = result.pattern.includes(emulationGroupMarker) && !avoidSubclass;
   if (useEmulationGroups || regexAst._strategy) {
     result.subclass = {
       useEmulationGroups,
