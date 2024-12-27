@@ -175,7 +175,7 @@ Using default `accuracy` adds support for the following features, depending on `
 Disables advanced emulation that relies on returning a `RegExp` subclass. In cases when a subclass would otherwise have been used, this results in one of the following:
 
 - An error is thrown for certain patterns that are not emulatable without a subclass.
-- When the regex can still be emulated accurately, *subpattern* match details (accessed via properties of match objects returned when using the regex) might differ from Oniguruma.
+- When the regex can still be emulated accurately, *subpattern* match details (accessed via properties of match results when using the regex) might differ from Oniguruma.
 
 ### `flags`
 
