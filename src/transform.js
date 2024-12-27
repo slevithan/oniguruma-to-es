@@ -30,10 +30,10 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
 @param {import('./parse.js').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
-  allowUnhandledGAnchors?: boolean;
   asciiWordBoundaries?: boolean;
   avoidSubclass?: boolean;
   bestEffortTarget?: keyof Target;
+  ignoreUnsupportedGAnchors?: boolean;
 }} [options]
 @returns {RegexAst}
 */
@@ -46,19 +46,19 @@ function transform(ast, options) {
     //   representations would be hard to change to ASCII-based after the fact in the generator
     //   based on `target`/`accuracy`, so produce the appropriate structure here.
     accuracy: 'default',
-    allowUnhandledGAnchors: false,
     asciiWordBoundaries: false,
     avoidSubclass: false,
     bestEffortTarget: 'ES2025',
+    ignoreUnsupportedGAnchors: false,
     ...options,
   };
   // AST transformations that work together with a `RegExp` subclass to add advanced emulation
   const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast);
   const firstPassState = {
     accuracy: opts.accuracy,
-    allowUnhandledGAnchors: opts.allowUnhandledGAnchors,
     asciiWordBoundaries: opts.asciiWordBoundaries,
     flagDirectivesByAlt: new Map(),
+    ignoreUnsupportedGAnchors: opts.ignoreUnsupportedGAnchors,
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
@@ -130,7 +130,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {allowUnhandledGAnchors, asciiWordBoundaries, supportedGNodes, wordIsAscii}) {
+  Assertion({node, ast, remove, replaceWith}, {asciiWordBoundaries, ignoreUnsupportedGAnchors, supportedGNodes, wordIsAscii}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -142,7 +142,7 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
         ast.flags.sticky = true;
-      } else if (!allowUnhandledGAnchors) {
+      } else if (!ignoreUnsupportedGAnchors) {
         throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
       remove();
@@ -305,7 +305,7 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}, {allowUnhandledGAnchors, supportedGNodes}) {
+  Pattern({node}, {ignoreUnsupportedGAnchors, supportedGNodes}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
@@ -327,7 +327,7 @@ const FirstPassVisitor = {
       if (!hasAltWithoutLeadG) {
         // Supported `\G` nodes will be removed (and add flag y) when traversed; others will error
         leadingGs.forEach(g => supportedGNodes.add(g));
-      } else if (!allowUnhandledGAnchors) {
+      } else if (!ignoreUnsupportedGAnchors) {
         throw new Error(r`Uses "\G" in a way that's unsupported`);
       }
     }

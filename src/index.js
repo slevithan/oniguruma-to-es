@@ -30,9 +30,9 @@ import {recursion} from 'regex-recursion';
   maxRecursionDepth?: number | null;
   rules?: {
     allowOrphanBackrefs?: boolean;
-    allowUnhandledGAnchors?: boolean;
     asciiWordBoundaries?: boolean;
     captureGroup?: boolean;
+    ignoreUnsupportedGAnchors?: boolean;
   };
   target?: keyof Target;
   verbose?: boolean;
@@ -59,10 +59,10 @@ function toDetails(pattern, options) {
   });
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
-    allowUnhandledGAnchors: opts.rules.allowUnhandledGAnchors,
     asciiWordBoundaries: opts.rules.asciiWordBoundaries,
     avoidSubclass,
     bestEffortTarget: opts.target,
+    ignoreUnsupportedGAnchors: opts.rules.ignoreUnsupportedGAnchors,
   });
   const generated = generate(regexAst, opts);
   const pluginData = {useEmulationGroups: !avoidSubclass};

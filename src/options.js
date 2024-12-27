@@ -55,13 +55,13 @@ function getOptions(options) {
     rules: {
       // Useful with TextMate grammars that merge backreferences across patterns.
       allowOrphanBackrefs: false,
-      // Removes unsupported uses of `\G`, rather than erroring.
-      allowUnhandledGAnchors: false,
       // Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
       asciiWordBoundaries: false,
       // Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`. Unnamed captures and numbered calls allowed
       // when using named capture.
       captureGroup: false,
+      // Removes unsupported uses of `\G`, rather than erroring.
+      ignoreUnsupportedGAnchors: false,
       ...(options?.rules),
     },
   };

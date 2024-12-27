@@ -135,7 +135,7 @@ describe('Assertion: Search start', () => {
       ];
       patterns.forEach(pattern => {
         expect(() => toDetails(pattern)).toThrow();
-        expect(() => toDetails(pattern, {rules: {allowUnhandledGAnchors: true}})).not.toThrow();
+        expect(() => toDetails(pattern, {rules: {ignoreUnsupportedGAnchors: true}})).not.toThrow();
       });
     });
   });

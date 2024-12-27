@@ -22,9 +22,9 @@ const state = {
     maxRecursionDepth: getValue('option-maxRecursionDepth'),
     rules: {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
-      allowUnhandledGAnchors: getValue('option-allowUnhandledGAnchors'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
       captureGroup: getValue('option-captureGroup'),
+      ignoreUnsupportedGAnchors: getValue('option-ignoreUnsupportedGAnchors'),
     },
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),
