@@ -946,14 +946,14 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ## ❌ Unsupported features
 
-The following don't yet have any support, and throw errors. They're all infrequently-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle ~99.9% of real-world Oniguruma regexes, based on patterns used in a large [collection](https://github.com/shikijs/textmate-grammars-themes/tree/main/packages/tm-grammars/grammars) of TextMate grammars.
+The following don't yet have any support, and throw errors. They're all uncommonly-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle 99.9+% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars.
 
 - Supportable:
   - Grapheme boundaries: `\y`, `\Y`.
   - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
   - Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
   - Code point sequences: `\x{H H …}`, `\o{O O …}`.
-  - Whole-pattern modifier: Don't capture `(?C)`.
+  - Whole-pattern modifier: Don't capture group `(?C)`.
 - Supportable for some uses:
   - Absence functions: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
