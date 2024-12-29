@@ -933,11 +933,11 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 </table>
 
-The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them). Where applicable, Oniguruma-To-ES follows the latest version of Oniguruma (currently 6.9.9).
+The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, subpattern details on match results, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them). Where applicable, Oniguruma-To-ES follows the latest version of Oniguruma (currently 6.9.9).
 
 ### Footnotes
 
-1. Unicode blocks (which in Oniguruma are used with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also a flawed and arguably unuseful feature, given the ability to use Unicode scripts and other properties.
+1. Unicode blocks (which in Oniguruma are specified with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also rarely used, fundamentally flawed, and arguably unuseful given the availability of Unicode scripts and other properties.
 2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 3. Target `ES2018` doesn't support nested *negated* character classes.
 4. Examples of supported uses of `\G` include `\G…`, `\G…|\G…`, `(?<=…)\G…`, `(^|\G)…`, `(?!\G)…`, and many others.

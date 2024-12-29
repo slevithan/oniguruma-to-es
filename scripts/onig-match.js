@@ -7,7 +7,7 @@ import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiled
 
 exec(process.argv.slice(2));
 
-// Basic Oniguruma tester for the console; also reports a comparison with Oniguruma-to-ES
+// Basic Oniguruma tester for the console; also reports a comparison with Oniguruma-To-ES
 async function exec([pattern, str]) {
   if (!(typeof pattern === 'string' && typeof str === 'string')) {
     err(null, 'pattern and str args expected');
