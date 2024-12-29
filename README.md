@@ -8,7 +8,7 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.style/) syntax highlighter, etc.).
-- Share regexes across your Ruby and JavaScript code.
+- Share regexes across your Ruby and JavaScript code.<sup>✳︎</sup>
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **less than 4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
@@ -17,6 +17,8 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library).
 
 Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `accuracy` option to throw for such patterns (see details below).
+
+<sup>✳︎: Ruby 2.0+ uses [Onigmo](https://github.com/k-takata/Onigmo), a fork of Oniguruma with similar syntax and behavior.</sup>
 
 ## 📜 Contents
 
@@ -970,13 +972,13 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 - Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` (supported by Node.js 20 and 2023-era browsers) or later if you need support for these features.
 - With targets before `ES2025`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
-  - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i:A\p{Lower})`, `(?i:A)\p{Lower}`, `(?i:A(?-i:\p{Lower}))`, and `\w(?i:\p{Lower})`, but not `A(?i:\p{Lower})`.
+  - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i)A\p{Lower}`, `(?i:A)\p{Lower}`, `(?i)A(?-i)\p{Lower}`, and `\w(?i)\p{Lower}`, but not `A(?i)\p{Lower}`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
-- Oniguruma-To-ES uses the version of Unicode supported natively by your JavaScript environment. Using Unicode properties via `\p{…}` that require a later version of Unicode than the environment supports results in a runtime error. This is an extreme edge case since modern JavaScript environments support recent versions of Unicode, often ahead of Oniguruma itself.
+- Oniguruma-To-ES uses the version of Unicode supported natively by your JavaScript environment. Using Unicode properties via `\p{…}` that require a later version of Unicode than the environment supports results in a runtime error. This is an extreme edge case since modern JavaScript environments support recent versions of Unicode, often ahead of Oniguruma.
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles [Onigmo](https://github.com/k-takata/Onigmo) regexes to JavaScript (Onigmo is a fork of Oniguruma with similar syntax and behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled on the server to use them in JavaScript. Note that JsRegex doesn't always translate edge case behavior differences.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles Onigmo regexes to JavaScript (Onigmo is a fork of Oniguruma with similar syntax and behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled on the server to use them in JavaScript. Note that JsRegex doesn't always translate edge case behavior differences.
 
 ## 🏷️ About
 
