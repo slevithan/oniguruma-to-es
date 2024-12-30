@@ -693,7 +693,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Includes all JS forms<br>
       ✔ Adds <code>{,n}</code> for min 0<br>
       ✔ Explicit bounds have upper limit of 100,000 (unlimited in JS)<br>
-      ✔ Error with assertions (same as JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Error with assertions (same as JS with flag <code>u</code>, <code>v</code>) and directives<br>
     </td>
   </tr>
   <tr valign="top">
