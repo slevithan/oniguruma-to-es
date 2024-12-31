@@ -435,11 +435,12 @@ const SecondPassVisitor = {
         multiplexCapturesToLeftByRef.get(node.name).push({node, origin});
       }
 
-      // ## Track data for duplicate names within an alternation path
-      // Pre-ES2025 doesn't allow duplicate names, but ES2025+ allows duplicate names that are
-      // unique per mutually exclusive alternation path. So if using a duplicate name for this
-      // path, remove the name from all but the latest instance (also applies to groups added via
-      // subroutine expansion)
+      // ## Track data for duplicate names
+      // Pre-ES2025 doesn't allow duplicate names, but ES2025 allows duplicate names that are
+      // unique per mutually exclusive alternation path. However, Oniguruma's handling for named
+      // subpatterns on match results means we can't use this ES2025 feature even when in an ES2025
+      // env. So, if using a duplicate name, remove the name from all but the first instance that
+      // wasn't created by subroutine expansion
       if (node.name) {
         const groupsWithSameName = getOrCreate(groupsByName, node.name, new Map());
         let hasDuplicateNameToRemove = false;
@@ -448,9 +449,7 @@ const SecondPassVisitor = {
           hasDuplicateNameToRemove = true;
         } else {
           for (const groupInfo of groupsWithSameName.values()) {
-            if (!groupInfo.hasDuplicateNameToRemove && canParticipateWithNode(groupInfo.node, node, {
-              ancestorsParticipate: true,
-            })) {
+            if (!groupInfo.hasDuplicateNameToRemove) {
               // Will change to an unnamed capture in a later pass
               hasDuplicateNameToRemove = true;
               break;
@@ -539,9 +538,7 @@ const ThirdPassVisitor = {
       return;
     }
     const reffedNodes = state.reffedNodesByReferencer.get(node);
-    const participants = reffedNodes.filter(reffed => canParticipateWithNode(reffed, node, {
-      ancestorsParticipate: false,
-    }));
+    const participants = reffedNodes.filter(reffed => canParticipateWithNode(reffed, node));
     // For the backref's `ref`, use `number` rather than `name` because group names might have been
     // removed if they're duplicates within their alternation path, or they might be removed later
     // by the generator (depending on target) if they're duplicates within the overall pattern.
@@ -621,7 +618,7 @@ function areFlagsEqual(a, b) {
   return a.dotAll === b.dotAll && a.ignoreCase === b.ignoreCase;
 }
 
-function canParticipateWithNode(capture, node, {ancestorsParticipate}) {
+function canParticipateWithNode(capture, node) {
   // Walks to the left (prev siblings), down (sibling descendants), up (parent), then back down
   // (parent's prev sibling descendants) the tree in a loop
   let rightmostPoint = node;
@@ -636,7 +633,7 @@ function canParticipateWithNode(capture, node, {ancestorsParticipate}) {
     }
     if (rightmostPoint === capture) {
       // Capture is ancestor of node
-      return ancestorsParticipate;
+      return false;
     }
     const kidsOfParent = getKids(rightmostPoint.parent);
     for (const kid of kidsOfParent) {

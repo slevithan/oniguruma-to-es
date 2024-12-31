@@ -71,7 +71,6 @@ function generate(ast, options) {
     lastNode,
     maxRecursionDepth: rDepth,
     useAppliedIgnoreCase: !!(!minTargetEs2025 && hasCaseInsensitiveNode && hasCaseSensitiveNode),
-    useDuplicateNames: minTargetEs2025,
     useFlagMods: minTargetEs2025,
     useFlagV: minTargetEs2024,
     verbose: opts.verbose,
@@ -248,11 +247,9 @@ function genBackreference({ref}, state) {
 function genCapturingGroup({name, number, alternatives, _originNumber}, state, gen) {
   if (name) {
     if (state.groupNames.has(name)) {
-      if (!state.useDuplicateNames) {
-        // Keep the name only in the first alternation path that used it; the transformer already
-        // stripped all but the first duplicate name per alternation path
-        name = null;
-      }
+      // Keep the name only in the first alternation path that used it; the transformer already
+      // stripped all but the first duplicate name per alternation path
+      name = null;
     } else {
       state.groupNames.add(name);
     }

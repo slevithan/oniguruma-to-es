@@ -3,15 +3,6 @@ import {EsVersion, Target} from './options.js';
 const cp = String.fromCodePoint;
 const r = String.raw;
 
-const envSupportsDuplicateNames = (() => {
-  try {
-    new RegExp('(?<n>)|(?<n>)');
-  } catch {
-    return false;
-  }
-  return true;
-})();
-
 const envSupportsFlagGroups = (() => {
   try {
     new RegExp('(?i:)');
@@ -62,7 +53,6 @@ function throwIfNot(value, msg) {
 
 export {
   cp,
-  envSupportsDuplicateNames,
   envSupportsFlagGroups,
   envSupportsFlagV,
   getNewCurrentFlags,

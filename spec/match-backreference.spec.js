@@ -1,6 +1,6 @@
 import {toDetails} from '../dist/index.mjs';
 import {cp, r} from '../src/utils.js';
-import {maxTestTargetForDuplicateNames, maxTestTargetForFlagGroups, minTestTargetForFlagGroups} from './helpers/features.js';
+import {maxTestTargetForFlagGroups, minTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -309,10 +309,7 @@ describe('Backreference', () => {
 
     it('should reference the group to the left when there are duplicate names to the right', () => {
       expect('aab').toExactlyMatch(r`(?<n>a)\k<n>(?<n>b)`);
-      expect('aa').toExactlyMatch({
-        pattern: r`(?<n>a)\k<n>|(?<n>b)`,
-        maxTestTarget: maxTestTargetForDuplicateNames,
-      });
+      expect('aa').toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)`);
     });
 
     it('should multiplex for duplicate names to the left', () => {
@@ -367,27 +364,15 @@ describe('Backreference', () => {
         expect('').not.toFindMatch(r`(?<a>\g<b>(?<b>\k<a>))`);
         expect('').not.toFindMatch(r`(?<a>\g<b>(?<b>\k<b>))`);
         expect('').not.toFindMatch(r`(?<a>(?<a>\k<a>))`);
-        expect('aa').toExactlyMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
-        expect(['a', 'b', 'ba', 'bb']).not.toFindMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b\k<n>)`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
+        expect('aa').toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b\k<n>)`);
+        expect(['a', 'b', 'ba', 'bb']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b\k<n>)`);
       });
 
       it('should preclude not-yet-closed groups when multiplexing', () => {
         expect('aa').toExactlyMatch(r`(?<a>a)(?<a>\k<a>)`);
         expect('aba').toExactlyMatch(r`(?<n>a)(?<n>b\k<n>)`);
-        expect(['aa', 'bcb']).toExactlyMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
-        expect(['a', 'bc', 'bca', 'bcc']).not.toFindMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
+        expect(['aa', 'bcb']).toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`);
+        expect(['a', 'bc', 'bca', 'bcc']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c\k<n>)`);
       });
 
       it('should not match references to groups not in the alternation path', () => {
@@ -397,22 +382,10 @@ describe('Backreference', () => {
       it('should preclude groups not in the alternation path when multiplexing', () => {
         // This enforces Oniguruma logic where backrefs to nonparticipating groups fail to match
         // rather than JS logic where they match the empty string
-        expect(['aa', 'bb']).toExactlyMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
-        expect(['a', 'b', 'ba']).not.toFindMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b)\k<n>`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
-        expect(['aa', 'bcb', 'bcc']).toExactlyMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
-        expect(['a', 'bc', 'bca']).not.toFindMatch({
-          pattern: r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`,
-          maxTestTarget: maxTestTargetForDuplicateNames,
-        });
+        expect(['aa', 'bb']).toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)\k<n>`);
+        expect(['a', 'b', 'ba']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b)\k<n>`);
+        expect(['aa', 'bcb', 'bcc']).toExactlyMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`);
+        expect(['a', 'bc', 'bca']).not.toFindMatch(r`(?<n>a)\k<n>|(?<n>b)(?<n>c)\k<n>`);
       });
 
       it('should throw for forward references to defined groups', () => {

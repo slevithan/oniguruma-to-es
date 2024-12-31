@@ -239,8 +239,8 @@ JavaScript version used for generated regexes. Using `auto` detects the best val
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
   - Generated regexes require Node.js 20 or any 2023-era browser ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
-- `ES2025`: Uses JS flag `v` and allows use of flag groups and duplicate group names.
-  - Benefits: Faster transpilation, simpler generated source, and duplicate group names are preserved across separate alternation paths.
+- `ES2025`: Uses JS flag `v` and allows use of flag groups.
+  - Benefits: Faster transpilation, simpler generated source.
   - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support for flag groups).
 </details>
 

@@ -1,4 +1,4 @@
-import {envSupportsDuplicateNames, envSupportsFlagGroups, envSupportsFlagV} from './utils.js';
+import {envSupportsFlagGroups, envSupportsFlagV} from './utils.js';
 
 const Accuracy = /** @type {const} */ ({
   default: 'default',
@@ -66,9 +66,7 @@ function getOptions(options) {
     },
   };
   if (opts.target === 'auto') {
-    opts.target = (envSupportsDuplicateNames && envSupportsFlagGroups) ?
-      'ES2025' :
-      (envSupportsFlagV ? 'ES2024' : 'ES2018');
+    opts.target = envSupportsFlagGroups ? 'ES2025' : (envSupportsFlagV ? 'ES2024' : 'ES2018');
   }
   return opts;
 }

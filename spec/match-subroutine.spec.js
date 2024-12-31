@@ -139,13 +139,13 @@ describe('Subroutine', () => {
     });
 
     it('should transfer captured values on match results', () => {
-      expect(toRegExp(r`(?<n>[ab])\g<n>`).exec('ab').groups.n).toBe('b');
-      expect(toRegExp(r`\g<n>(?<n>[ab])`).exec('ab').groups.n).toBe('b');
+      expect(toRegExp(r`(?<n>.)\g<n>`).exec('ab').groups.n).toBe('b');
+      expect(toRegExp(r`\g<n>(?<n>.)`).exec('ab').groups.n).toBe('b');
     });
 
     it('should transfer captured values on match results for child captures', () => {
-      expect(toRegExp(r`(?<n1>(?<n2>[ab]))\g<n1>`).exec('ab').groups.n2).toBe('b');
-      expect(toRegExp(r`\g<n1>(?<n1>(?<n2>[ab]))`).exec('ab').groups.n2).toBe('b');
+      expect(toRegExp(r`(?<n1>(?<n2>.))\g<n1>`).exec('ab').groups.n2).toBe('b');
+      expect(toRegExp(r`\g<n1>(?<n1>(?<n2>.))`).exec('ab').groups.n2).toBe('b');
     });
 
     it('should transfer subpattern match indices', () => {

@@ -32,14 +32,6 @@ const state = {
   comparison: getValue('comparison'),
 };
 
-const envSupportsDuplicateNames = (() => {
-  try {
-    new RegExp('(?<n>)|(?<n>)');
-  } catch {
-    return false;
-  }
-  return true;
-})();
 const envSupportsFlagGroups = (() => {
   try {
     new RegExp('(?i:)');
@@ -57,9 +49,7 @@ const envSupportsFlagV = (() => {
   return true;
 })();
 // Logic from `src/options.js`
-const autoTarget = (envSupportsDuplicateNames && envSupportsFlagGroups) ?
-  'ES2025' :
-  (envSupportsFlagV ? 'ES2024' : 'ES2018');
+const autoTarget = envSupportsFlagGroups ? 'ES2025' : (envSupportsFlagV ? 'ES2024' : 'ES2018');
 
 ui.autoTargetOption.innerHTML += ` [${autoTarget}]`;
 autoGrow();
