@@ -16,6 +16,7 @@ results from `toDetails` to produce the same result as `toRegExp`.
 */
 class EmulatedRegExp extends RegExpSubclass {
   #strategy;
+  rawOptions;
   /**
   @param {string | EmulatedRegExp} pattern
   @param {string} [flags]
@@ -36,6 +37,7 @@ class EmulatedRegExp extends RegExpSubclass {
       // Can read private properties of the existing object since it was created by this class
       this.#strategy = pattern.#strategy;
     }
+    this.rawOptions = options;
   }
   /**
   Called internally by all String/RegExp methods that use regexes.
