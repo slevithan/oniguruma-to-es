@@ -46,7 +46,7 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
 @returns {{
   pattern: string;
   flags: string;
-  subclass?: import('./subclass.js').EmulatedRegExpOptions;
+  options?: import('./subclass.js').EmulatedRegExpOptions;
 }}
 */
 function toDetails(pattern, options) {
@@ -71,10 +71,11 @@ function toDetails(pattern, options) {
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
   const useEmulationGroups = !avoidSubclass && result.pattern.includes(emulationGroupMarker);
-  if (useEmulationGroups || regexAst._strategy) {
-    result.subclass = {
-      useEmulationGroups,
-      strategy: regexAst._strategy ?? null,
+  const strategy = regexAst._strategy;
+  if (useEmulationGroups || strategy) {
+    result.options = {
+      ...(strategy ? {strategy} : null),
+      ...(useEmulationGroups ? {useEmulationGroups} : null),
     };
   }
   return result;
@@ -110,8 +111,8 @@ Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 */
 function toRegExp(pattern, options) {
   const result = toDetails(pattern, options);
-  if (result.subclass) {
-    return new EmulatedRegExp(result.pattern, result.flags, result.subclass);
+  if (result.options) {
+    return new EmulatedRegExp(result.pattern, result.flags, result.options);
   }
   return new RegExp(result.pattern, result.flags);
 }

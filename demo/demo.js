@@ -88,8 +88,8 @@ function showTranspiled() {
     // Use `toDetails` but display as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
     details = OnigurumaToES.toDetails(ui.input.value, options);
-    if (details.subclass) {
-      result = getFormattedSubclass(details.pattern, details.flags, details.subclass);
+    if (details.options) {
+      result = getFormattedSubclass(details.pattern, details.flags, details.options);
       ui.subclassInfo.classList.remove('hidden');
       ui.output.classList.add('subclass');
     } else {
@@ -157,10 +157,9 @@ function areDetailsEqual(a, b) {
   }
   return (
     a.pattern === b.pattern &&
-    a.flags.replace(/[vu]/, '') === b.flags.replace(/[vu]/, '') &&
-    a.subclass?.strategy === b.subclass?.strategy &&
-    a.subclass?.subpattern === b.subclass?.subpattern &&
-    a.subclass?.useEmulationGroups === b.subclass?.useEmulationGroups
+    a.flags.replace(/[uv]/, '') === b.flags.replace(/[uv]/, '') &&
+    a.options?.strategy === b.options?.strategy &&
+    a.options?.useEmulationGroups === b.options?.useEmulationGroups
   );
 }
 
@@ -168,14 +167,12 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedSubclass(pattern, flags, {strategy, subpattern, useEmulationGroups}) {
+function getFormattedSubclass(pattern, flags, {strategy, useEmulationGroups}) {
   const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  const subclassStrs = [];
-  strategy && subclassStrs.push(`strategy: '${strategy}'`);
-  subpattern && subclassStrs.push(`subpattern: '${escStr(subpattern)}'`);
-  useEmulationGroups && subclassStrs.push(`useEmulationGroups: ${useEmulationGroups}`);
-  const subclass = subclassStrs.join(',\n  ');
-  return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${subclass},\n})`;
+  const optionStrs = [];
+  strategy && optionStrs.push(`strategy: '${strategy}'`);
+  useEmulationGroups && optionStrs.push(`useEmulationGroups: ${useEmulationGroups}`);
+  return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${optionStrs.join(',\n  ')},\n})`;
 }
 
 function getRegExpLiteralPattern(str) {

@@ -68,7 +68,7 @@ describe('Assertion: Search start', () => {
         r`(?!\G|)a`,
         r`(?<=\Ga)a`,
         r`(?<=a\G)a`,
-        // r`(?<=\G|)a`, // Supported using subclass
+        r`(?<=\G|)a`,
         r`(?<!\Ga)a`,
         r`(?<!a\G)a`,
         r`(?<!\G|)a`,

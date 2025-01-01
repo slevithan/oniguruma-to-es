@@ -4,8 +4,8 @@ import {RegExpSubclass} from 'regex/internals';
 
 /**
 @typedef {{
-  useEmulationGroups?: boolean;
   strategy?: string | null;
+  useEmulationGroups?: boolean;
 }} EmulatedRegExpOptions
 */
 
@@ -30,9 +30,15 @@ class EmulatedRegExp extends RegExpSubclass {
   */
   rawArgs;
   /**
-  @param {string | EmulatedRegExp} pattern
+  @overload
+  @param {string} pattern
   @param {string} [flags]
   @param {EmulatedRegExpOptions} [options]
+  */
+  /**
+  @overload
+  @param {EmulatedRegExp} pattern
+  @param {string} [flags]
   */
   constructor(pattern, flags, options) {
     // Argument `options` isn't provided when regexes are copied via `new EmulatedRegExp(regexp)`,
@@ -58,8 +64,8 @@ class EmulatedRegExp extends RegExpSubclass {
       }
     } else {
       const opts = {
-        useEmulationGroups: false,
         strategy: null,
+        useEmulationGroups: false,
         ...options,
       };
       super(pattern, flags, {useEmulationGroups: opts.useEmulationGroups});
@@ -68,8 +74,8 @@ class EmulatedRegExp extends RegExpSubclass {
         pattern,
         flags: flags ?? '',
         options: {
-          ...(opts.useEmulationGroups ? {useEmulationGroups: true} : null),
           ...(opts.strategy ? {strategy: opts.strategy} : null),
+          ...(opts.useEmulationGroups ? {useEmulationGroups: true} : null),
         },
       };
     }

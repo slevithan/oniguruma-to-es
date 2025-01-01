@@ -6,9 +6,9 @@ describe('toDetails', () => {
     expect(Object.keys(toDetails(''))).toEqual(['pattern', 'flags']);
   });
 
-  it('should return an object with pattern, flags, and subclass properties when the pattern requires subclass-based emulation', () => {
-    expect(Object.keys(toDetails('a++'))).toEqual(['pattern', 'flags', 'subclass']);
-    expect(Object.keys(toDetails(r`(^|\G)`))).toEqual(['pattern', 'flags', 'subclass']);
+  it('should return an object with pattern, flags, and options properties when the pattern uses subclass-based emulation', () => {
+    expect(Object.keys(toDetails('a++'))).toEqual(['pattern', 'flags', 'options']);
+    expect(Object.keys(toDetails(r`(^|\G)`))).toEqual(['pattern', 'flags', 'options']);
   });
 
   it('should throw for non-string patterns', () => {

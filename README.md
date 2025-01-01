@@ -105,13 +105,13 @@ function toDetails(
 ): {
   pattern: string;
   flags: string;
-  subclass?: EmulatedRegExpOptions;
+  options?: EmulatedRegExpOptions;
 };
 ```
 
-Note that the returned `flags` might also be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `subclass` properties can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
+Note that the returned `flags` might also be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `options` properties can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
 
-If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case, by throwing an error for any patterns that rely on `EmulatedRegExp`'s additional handling.
+If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case (resulting in an error for any patterns that require `EmulatedRegExp`'s additional handling).
 
 ### `toOnigurumaAst`
 
@@ -135,13 +135,17 @@ Works the same as JavaScript's native `RegExp` constructor in all contexts, but 
 
 ```ts
 class EmulatedRegExp extends RegExp {
-  constructor(
-    pattern: string | EmulatedRegExp,
-    flags?: string,
-    options?: EmulatedRegExpOptions
-  );
-};
+  constructor(pattern: string, flags?: string, options?: EmulatedRegExpOptions);
+  constructor(pattern: EmulatedRegExp, flags?: string);
+  rawArgs: {
+    pattern: string;
+    flags: string;
+    options: EmulatedRegExpOptions;
+  };
+}
 ```
+
+The `rawArgs` property of `EmulatedRegExp` instances can be used to serialize the object as a string.
 
 ## 🔩 Options
 
@@ -176,8 +180,9 @@ Using default `accuracy` adds support for the following features, depending on `
 
 Disables advanced emulation that relies on returning a `RegExp` subclass. In cases when a subclass would otherwise have been used, this results in one of the following:
 
-- An error is thrown for certain patterns that are not emulatable without a subclass.
-- When the regex can still be emulated accurately, *subpattern* match details (accessed via properties of match results when using the regex) might differ from Oniguruma.
+- An error is thrown for patterns that are not emulatable without a subclass.
+- Some patterns can still be emulated accurately without a subclass, but in this case *subpattern* match details might differ from Oniguruma.
+  - This is only relevant if you access the subpattern details of match results in your code (backreference array indices, `groups`, and `indices`).
 
 ### `flags`
 
@@ -982,7 +987,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 🏷️ About
 
-Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan).
+Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) and [contributors](https://github.com/slevithan/oniguruma-to-es/graphs/contributors).
 
 If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
 
