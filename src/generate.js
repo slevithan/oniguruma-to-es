@@ -66,7 +66,6 @@ function generate(ast, options) {
       dotAll: ast.flags.dotAll,
       ignoreCase: ast.flags.ignoreCase,
     },
-    groupNames: new Set(),
     inCharClass: false,
     lastNode,
     maxRecursionDepth: rDepth,
@@ -245,15 +244,6 @@ function genBackreference({ref}, state) {
 }
 
 function genCapturingGroup({name, number, alternatives, _originNumber}, state, gen) {
-  if (name) {
-    if (state.groupNames.has(name)) {
-      // Keep the name only in the first alternation path that used it; the transformer already
-      // stripped all but the first duplicate name per alternation path
-      name = null;
-    } else {
-      state.groupNames.add(name);
-    }
-  }
   state.captureMap.set(number, {ignoreCase: state.currentFlags.ignoreCase});
   return `(${
     name ? `?<${name}>` : ''
