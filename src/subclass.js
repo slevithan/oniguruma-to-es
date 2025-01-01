@@ -1,5 +1,5 @@
 import {AstAssertionKinds, AstTypes} from './parse.js';
-import {hasOnlyChild, isLookaround, isZeroLengthNode} from './utils-node.js';
+import {hasOnlyChild, isLookaround, isZeroLengthNode} from './utils-ast.js';
 import {RegExpSubclass} from 'regex/internals';
 
 /**

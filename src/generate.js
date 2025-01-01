@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
-import {isLookaround} from './utils-node.js';
+import {isLookaround} from './utils-ast.js';
 import {emulationGroupMarker} from 'regex/internals';
 
 /**

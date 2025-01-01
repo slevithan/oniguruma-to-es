@@ -1,6 +1,6 @@
 import {AstTypes} from './parse.js';
 import {throwIfNot} from './utils.js';
-import {isLookaround} from './utils-node.js';
+import {isLookaround} from './utils-ast.js';
 
 function traverse(path, state, visitor) {
   let ast = path.node;

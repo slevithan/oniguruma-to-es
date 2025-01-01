@@ -2,7 +2,7 @@ import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes
 import {traverse} from './traverse.js';
 import {JsUnicodePropertiesMap, JsUnicodePropertiesOfStringsMap, PosixProperties, slug} from './unicode.js';
 import {getOrCreate, r, throwIfNot} from './utils.js';
-import {hasOnlyChild} from './utils-node.js';
+import {hasOnlyChild} from './utils-ast.js';
 
 const AstTypes = {
   Alternative: 'Alternative',

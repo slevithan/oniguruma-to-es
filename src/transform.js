@@ -5,7 +5,7 @@ import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
-import {isLookaround, isZeroLengthNode} from './utils-node.js';
+import {isLookaround, isZeroLengthNode} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
