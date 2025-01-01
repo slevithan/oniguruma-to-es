@@ -109,6 +109,17 @@ describe('Assertion: Search start', () => {
       expect(() => toDetails(r`((\Ga|b)c)`)).toThrow();
     });
 
+    it('should allow as lone node in top-level alternative', () => {
+      // Regex flavors that support \G make a subtle distinction about whether \G (after the first
+      // match attempt at pos 0) matches at the end of the previous match (.NET, PCRE, Perl, Java,
+      // Boost) or the start of the match attempt (Oniguruma, Onigmo). Relevant after zero-length
+      // matches, where the read-head advance will make the "end of previous match" approach fail
+      expect('ab'.match(toRegExp(r`\G|ab`, {global: true}))).toEqual(['', '', '']);
+      expect('ab'.match(toRegExp(r`x|\G`, {global: true}))).toEqual(['', '', '']);
+      expect('ab'.match(toRegExp(r`x|\G|y`, {global: true}))).toEqual(['', '', '']);
+      expect('aba'.match(toRegExp(r`a|\G`, {global: true}))).toEqual(['a', '', 'a', '']);
+    });
+
     // Documenting current behavior
     it('should throw for redundant but otherwise supportable assertions', () => {
       expect(() => toDetails(r`\G\Ga`)).toThrow();
@@ -131,7 +142,8 @@ describe('Assertion: Search start', () => {
     it('should allow unsupported forms if allowing all search start anchors', () => {
       const patterns = [
         r`a\G`,
-        r`\G|`,
+        r`\Ga|b`,
+        r`(\G|a)b`,
       ];
       patterns.forEach(pattern => {
         expect(() => toDetails(pattern)).toThrow();

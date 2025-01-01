@@ -313,14 +313,22 @@ const FirstPassVisitor = {
     let hasAltWithLeadG = false;
     let hasAltWithoutLeadG = false;
     for (const alt of node.alternatives) {
-      const leadingG = getLeadingG(alt.elements);
-      if (leadingG) {
-        hasAltWithLeadG = true;
-        Array.isArray(leadingG) ?
-          leadingGs.push(...leadingG) :
-          leadingGs.push(leadingG);
+      if (alt.elements.length === 1 && alt.elements[0].kind === AstAssertionKinds.search_start) {
+        // Remove the `\G` (leaving behind an empty alternative) since a top-level alternative that
+        // includes only `\G` always matches at the start of the match attempt (based on
+        // Oniguruma's rules). This is different than other regex flavors where `\G` matches at the
+        // end of the previous match
+        alt.elements.length = 0;
       } else {
-        hasAltWithoutLeadG = true;
+        const leadingG = getLeadingG(alt.elements);
+        if (leadingG) {
+          hasAltWithLeadG = true;
+          Array.isArray(leadingG) ?
+            leadingGs.push(...leadingG) :
+            leadingGs.push(leadingG);
+        } else {
+          hasAltWithoutLeadG = true;
+        }
       }
     }
     if (hasAltWithLeadG) {
