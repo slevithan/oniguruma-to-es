@@ -5,7 +5,7 @@ import {RegExpSubclass} from 'regex/internals';
 /**
 @typedef {{
   useEmulationGroups?: boolean;
-  strategy?: string;
+  strategy?: string | null;
 }} EmulatedRegExpOptions
 */
 
@@ -15,29 +15,64 @@ results from `toDetails` to produce the same result as `toRegExp`.
 @augments RegExp
 */
 class EmulatedRegExp extends RegExpSubclass {
+  /**
+  @private
+  @type {string | null}
+  */
   #strategy;
-  rawOptions;
+  /**
+  Can be used to serialize the arguments used to create the instance.
+  @type {{
+    pattern: string;
+    flags: string;
+    options: EmulatedRegExpOptions;
+  }}
+  */
+  rawArgs;
   /**
   @param {string | EmulatedRegExp} pattern
   @param {string} [flags]
   @param {EmulatedRegExpOptions} [options]
   */
   constructor(pattern, flags, options) {
-    const opts = {
-      useEmulationGroups: false,
-      strategy: null,
-      ...options,
-    };
-    super(pattern, flags, {useEmulationGroups: opts.useEmulationGroups});
-    if (opts.strategy) {
+    // Argument `options` isn't provided when regexes are copied via `new EmulatedRegExp(regexp)`,
+    // including as part of the internal handling of string methods `matchAll` and `split`
+    if (pattern instanceof RegExp) {
+      if (options) {
+        throw new Error('Cannot provide options when copying a regexp');
+      }
+      super(pattern, flags);
+      if (pattern instanceof EmulatedRegExp) {
+        this.#strategy = pattern.#strategy;
+        this.rawArgs = pattern.rawArgs;
+      } else {
+        this.#strategy = null;
+        this.rawArgs = {
+          pattern: pattern.source,
+          flags: pattern.flags,
+          options: {},
+        };
+      }
+      if (flags !== undefined) {
+        this.rawArgs.flags = flags;
+      }
+    } else {
+      const opts = {
+        useEmulationGroups: false,
+        strategy: null,
+        ...options,
+      };
+      super(pattern, flags, {useEmulationGroups: opts.useEmulationGroups});
       this.#strategy = opts.strategy;
-    // The third argument `options` isn't provided when regexes are copied as part of the internal
-    // handling of string methods `matchAll` and `split`
-    } else if (pattern instanceof EmulatedRegExp) {
-      // Can read private properties of the existing object since it was created by this class
-      this.#strategy = pattern.#strategy;
+      this.rawArgs = {
+        pattern,
+        flags: flags ?? '',
+        options: {
+          ...(opts.useEmulationGroups ? {useEmulationGroups: true} : null),
+          ...(opts.strategy ? {strategy: opts.strategy} : null),
+        },
+      };
     }
-    this.rawOptions = options;
   }
   /**
   Called internally by all String/RegExp methods that use regexes.
