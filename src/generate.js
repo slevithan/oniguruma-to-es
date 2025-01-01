@@ -324,19 +324,21 @@ function genCharacterClassRange(node, state) {
   };
   const minStr = getCharEscape(min, escOpts);
   const maxStr = getCharEscape(max, escOpts);
-  let extraChars = '';
+  const extraChars = new Set();
   if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
     // [TODO] Avoid duplication by considering other chars in the parent char class when expanding
     const charsOutsideRange = getCasesOutsideCharClassRange(node);
     const ranges = getCodePointRangesFromChars(charsOutsideRange);
     ranges.forEach(value => {
-      extraChars += Array.isArray(value) ?
-        `${getCharEscape(value[0], escOpts)}-${getCharEscape(value[1], escOpts)}` :
-        getCharEscape(value, escOpts);
+      extraChars.add(
+        Array.isArray(value) ?
+          `${getCharEscape(value[0], escOpts)}-${getCharEscape(value[1], escOpts)}` :
+          getCharEscape(value, escOpts)
+      );
     });
   }
   // Create the range without calling `gen` on the `min`/`max` kids
-  return `${minStr}-${maxStr}${extraChars}`;
+  return `${minStr}-${maxStr}${[...extraChars].join('')}`;
 }
 
 function genCharacterSet({kind, negate, value, key}, state) {
