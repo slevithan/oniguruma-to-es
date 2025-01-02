@@ -940,7 +940,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 </table>
 
-The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, subpattern details on match results, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them). Where applicable, Oniguruma-To-ES follows the latest version of Oniguruma (currently 6.9.9).
+The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, subpattern details on match results, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them). Where applicable, Oniguruma-To-ES follows the latest version of Oniguruma (currently 6.9.10).
 
 ### Footnotes
 
@@ -953,20 +953,24 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ## ❌ Unsupported features
 
-The following don't yet have any support, and throw errors. They're all uncommonly-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle 99.9+% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars.
+The following throw errors since they aren't yet supported. They're all uncommonly-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle ~99.9% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars.
 
 - Supportable:
-  - Grapheme boundaries: `\y`, `\Y`.
-  - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
   - Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
   - Code point sequences: `\x{H H …}`, `\o{O O …}`.
+  - Grapheme boundaries: `\y`, `\Y`.
+  - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
   - Whole-pattern modifier: Don't capture group `(?C)`.
+  - Built-in callout: `(*FAIL)`.
 - Supportable for some uses:
   - Absence functions: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
+  - Built-in callout: `(*SKIP)(*FAIL)`.
 - Not supportable:
-  - Callout functions: `(?{…})`, etc.
+  - Callouts: `(?{…})`, `(*…)`, etc.
+
+See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't currently supported. Contributions are welcome if you want to add support for currently unsupported features.
 
 <a name="unicode"></a>
 ## ㊗️ Unicode
@@ -979,7 +983,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 - With targets before `ES2025`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
   - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i)A\p{Lower}`, `(?i:A)\p{Lower}`, `(?i)A(?-i)\p{Lower}`, and `\w(?i)\p{Lower}`, but not `A(?i)\p{Lower}`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
-- Oniguruma-To-ES uses the version of Unicode supported natively by your JavaScript environment. Using Unicode properties via `\p{…}` that require a later version of Unicode than the environment supports results in a runtime error. This is an extreme edge case since modern JavaScript environments support recent versions of Unicode, often ahead of Oniguruma.
+- Oniguruma-To-ES uses the version of Unicode supported natively by your JavaScript environment. Using Unicode properties via `\p{…}` that were added in a later version of Unicode than the environment supports results in a runtime error. This is an extreme edge case since modern JavaScript environments support recent versions of Unicode.
 
 ## 👀 Similar projects
 
