@@ -240,7 +240,7 @@ function range(start, end) {
   return range;
 }
 
-// Generates a Unicode property lookup name: lowercase, with hyphens, spaces, and underscores removed
+// Generates a Unicode property lookup name: lowercase, without spaces, hyphens, underscores
 function slug(name) {
   return name.replace(/[- _]+/g, '').toLowerCase();
 }

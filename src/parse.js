@@ -643,7 +643,7 @@ function createVariableLengthCharacterSet(kind) {
   };
 }
 
-// Unlike Onig, JS Unicode property names are case sensitive, don't ignore whitespace and
+// Unlike Onig, JS Unicode property names are case sensitive, don't ignore spaces, hyphens, and
 // underscores, and require underscores in specific positions
 function getJsUnicodePropertyName(value) {
   const slugged = slug(value);
@@ -655,12 +655,12 @@ function getJsUnicodePropertyName(value) {
   if (jsName) {
     return jsName;
   }
-  // Assume it's a script name (avoids adding heavyweight data for the names); JS requires
-  // formatting 'Like_This', so use a best effort to reformat the name (covers everything sane, but
-  // not able to map for all possible formatting differences)
+  // Assume it's a script name (avoids including heavyweight data for long list of script names);
+  // JS requires formatting `Like_This`, so use best effort to reformat the name (covers a lot, but
+  // isn't able to map for all possible formatting differences)
   return value.
     trim().
-    replace(/\s+/g, '_').
+    replace(/[- _]+/g, '_').
     replace(/[A-Z][a-z]+(?=[A-Z])/g, '$&_'). // `PropertyName` to `Property_Name`
     replace(/[A-Za-z]+/g, m => m[0].toUpperCase() + m.slice(1).toLowerCase());
 }

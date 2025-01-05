@@ -65,7 +65,7 @@ const sharedEscapesPattern = `${
 }|${
   // Unicode property; Onig considers `\p` an identity escape, but e.g. `\p{`, `\p{ ^L}`, and
   // `\p{gc=L}` are invalid
-  r`[pP]\{(?:\^?[\x20\w]+\})?`
+  r`[pP]\{(?:\^?[-\x20_]*[A-Za-z][-\x20\w]*\})?`
 }|${
   // Hex encoded byte sequence; attempt match before other `\xNN` hex char
   r`x[89A-Fa-f]\p{AHex}(?:\\x[89A-Fa-f]\p{AHex})*`
@@ -511,7 +511,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   if (/^\\[pP]\{/.test(raw)) {
     if (raw.length === 3) {
-      throw new Error('Incomplete or invalid Unicode property');
+      throw new Error(`Incomplete or invalid Unicode property "${raw}"`);
     }
     return createTokenForUnicodeProperty(raw);
   }
@@ -670,7 +670,7 @@ function createTokenForShorthandCharClass(raw) {
 }
 
 function createTokenForUnicodeProperty(raw) {
-  const {p, neg, value} = /^\\(?<p>[pP])\{(?<neg>\^?)(?<value>[ \w]+)/.exec(raw).groups;
+  const {p, neg, value} = /^\\(?<p>[pP])\{(?<neg>\^?)(?<value>[^}]+)/.exec(raw).groups;
   const negate = (p === 'P' && !neg) || (p === 'p' && !!neg);
   return createToken(TokenTypes.CharacterSet, raw, {
     kind: TokenCharacterSetKinds.property,

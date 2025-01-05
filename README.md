@@ -533,7 +533,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Aliases<br>
       ✔ POSIX properties<br>
       ✔ Invert with <code>\p{^…}</code>, <code>\P{^…}</code><br>
-      ✔ Insignificant spaces, underscores, and casing in names<br>
+      ✔ Insignificant spaces, hyphens, underscores, and casing in names<br>
       ✔ <code>\p</code>, <code>\P</code> without <code>{</code> is an identity escape<br>
       ✔ Error for key prefixes<br>
       ✔ Error for props of strings<br>
