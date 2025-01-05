@@ -22,8 +22,8 @@ function generate(ast, options) {
   const opts = getOptions(options);
   const minTargetEs2024 = isMinTarget(opts.target, 'ES2024');
   const minTargetEs2025 = isMinTarget(opts.target, 'ES2025');
-  const rDepth = opts.maxRecursionDepth;
-  if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 20)) {
+  const rLimit = opts.maxRecursionDepth;
+  if (rLimit !== null && (!Number.isInteger(rLimit) || rLimit < 2 || rLimit > 20)) {
     throw new Error('Invalid maxRecursionDepth; use 2-20 or null');
   }
 
@@ -70,7 +70,7 @@ function generate(ast, options) {
     },
     inCharClass: false,
     lastNode,
-    maxRecursionDepth: rDepth,
+    maxRecursionDepth: rLimit,
     useAppliedIgnoreCase: !!(!minTargetEs2025 && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useFlagMods: minTargetEs2025,
     useFlagV: minTargetEs2024,

@@ -26,7 +26,7 @@ describe('Recursion', () => {
   it('should allow maxRecursionDepth 2-20', () => {
     for (let i = 2; i <= 20; i++) {
       expect('a'.repeat(i)).toExactlyMatch({
-        pattern: r`(a)\g<0>?`,
+        pattern: r`a\g<0>?`,
         maxRecursionDepth: i,
       });
     }
