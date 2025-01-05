@@ -17,9 +17,18 @@ describe('Recursion', () => {
     expect(() => toDetails('', {maxRecursionDepth: null})).not.toThrow();
   });
 
-  it('should throw if maxRecursionDepth is not null or an integer 2-100', () => {
-    for (const value of [-2, 0, 1, 2.5, 101, Infinity, '2', '', undefined, NaN, false]) {
+  it('should throw if maxRecursionDepth is not null or an integer 2-20', () => {
+    for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', undefined, NaN, false]) {
       expect(() => toDetails('', {maxRecursionDepth: value})).toThrow();
+    }
+  });
+
+  it('should allow maxRecursionDepth 2-20', () => {
+    for (let i = 2; i <= 20; i++) {
+      expect('a'.repeat(i)).toExactlyMatch({
+        pattern: r`(a)\g<0>?`,
+        maxRecursionDepth: i,
+      });
     }
   });
 

@@ -6,6 +6,8 @@ import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-ast.js';
 import {emulationGroupMarker} from 'regex/internals';
 
+const onigRecursionLimit = 20;
+
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
 @param {import('./transform.js').RegexAst} ast
@@ -21,8 +23,8 @@ function generate(ast, options) {
   const minTargetEs2024 = isMinTarget(opts.target, 'ES2024');
   const minTargetEs2025 = isMinTarget(opts.target, 'ES2025');
   const rDepth = opts.maxRecursionDepth;
-  if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 100)) {
-    throw new Error('Invalid maxRecursionDepth; use 2-100 or null');
+  if (rDepth !== null && (!Number.isInteger(rDepth) || rDepth < 2 || rDepth > 20)) {
+    throw new Error('Invalid maxRecursionDepth; use 2-20 or null');
   }
 
   // If the output can't use flag groups, we need a pre-pass to check for the use of chars with
@@ -405,15 +407,15 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
 }
 
 function genRecursion({ref}, state) {
-  const rDepth = state.maxRecursionDepth;
-  if (!rDepth) {
+  const limit = state.maxRecursionDepth;
+  if (!limit) {
     throw new Error('Use of recursion disabled');
   }
-  if (state.accuracy === 'strict') {
-    throw new Error('Use of recursion requires non-strict accuracy due to depth limit');
+  if (limit !== onigRecursionLimit && state.accuracy === 'strict') {
+    throw new Error('Use of recursion with limit less than 20 requires non-strict accuracy');
   }
   // Using the syntax supported by `regex-recursion`
-  return ref === 0 ? `(?R=${rDepth})` : r`\g<${ref}&R=${rDepth}>`;
+  return ref === 0 ? `(?R=${limit})` : r`\g<${ref}&R=${limit}>`;
 }
 
 /**
