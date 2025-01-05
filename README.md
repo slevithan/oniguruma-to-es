@@ -16,7 +16,7 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library).
 
-Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression). A few uncommon features can't be perfectly emulated and allow rare differences, but if you don't want to allow this, you can set the `accuracy` option to throw for such patterns (see details below).
+Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression).
 
 <sup>✳︎: Ruby 2.0+ uses [Onigmo](https://github.com/k-takata/Onigmo), a fork of Oniguruma with similar syntax and behavior.</sup>
 
@@ -145,7 +145,7 @@ class EmulatedRegExp extends RegExp {
 }
 ```
 
-The `rawArgs` property of `EmulatedRegExp` instances can be used to serialize the object as a string.
+The `rawArgs` property of `EmulatedRegExp` instances can be used to serialize the object.
 
 ## 🔩 Options
 
@@ -947,7 +947,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 1. Unicode blocks (which in Oniguruma are specified with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also rarely used, fundamentally flawed, and arguably unuseful given the availability of Unicode scripts and other properties.
 2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 3. Target `ES2018` doesn't support nested *negated* character classes.
-4. Examples of supported uses of `\G` include `\G…`, `\G…|\G…`, `(?<=…)\G…`, `(^|\G)…`, `(?!\G)…`, and many others.
+4. Supported uses of `\G` include `\G…`, `\G…|\G…`, `(?<=…)\G…`, `(^|\G)…`, `(?!\G)…`, and many others.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 6. The recursion depth limit is specified by option `maxRecursionDepth`. Overlapping recursions and the use of backreferences when the recursed subpattern contains captures aren't yet supported. Patterns that would error in Oniguruma due to triggering infinite recursion might find a match in Oniguruma-To-ES since recursion is bounded (future versions will detect this and error at transpilation time).
 
@@ -961,12 +961,12 @@ The following throw errors since they aren't yet supported. They're all uncommon
   - Grapheme boundaries: `\y`, `\Y`.
   - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
   - Whole-pattern modifier: Don't capture group `(?C)`.
-  - Built-in callout: `(*FAIL)`.
+  - Callout: `(*FAIL)`.
 - Supportable for some uses:
-  - Absence functions: `(?~…)`, etc.
+  - Absence: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
-  - Built-in callout: `(*SKIP)(*FAIL)`.
+  - Callout: `(*SKIP)(*FAIL)`.
 - Not supportable:
   - Callouts: `(?{…})`, `(*…)`, etc.
 
