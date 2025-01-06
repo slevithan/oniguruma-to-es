@@ -1,15 +1,28 @@
 import {toDetails} from '../dist/index.mjs';
 import {r} from '../src/utils.js';
+import {minTestTargetForFlagV} from './helpers/features.js';
+import {matchers} from './helpers/matchers.js';
+
+beforeEach(() => {
+  jasmine.addMatchers(matchers);
+});
 
 describe('CharacterClassIntersection', () => {
-  // TODO: Add remaining
+  it('should allow intersection of union and ranges without a nested class', () => {
+    // Include nested class in output since JS requires it
+    expect(toDetails('[ab&&c]').pattern).toBe('[[ab]&&c]');
+    expect(toDetails('[a-d&&e]').pattern).toBe('[[a-d]&&e]');
+    expect(toDetails('[a-de&&f]').pattern).toBe('[[a-de]&&f]');
+  });
 
-  describe('for union and ranges', () => {
-    it('should allow intersection of union and ranges without a nested class', () => {
-      expect(toDetails('[ab&&c]').pattern).toBe('[[ab]&&c]');
-      expect(toDetails('[a-d&&e]').pattern).toBe('[[a-d]&&e]');
-      expect(toDetails('[a-de&&f]').pattern).toBe('[[a-de]&&f]');
+  it('should fail to match an empty intersection', () => {
+    expect('a').not.toFindMatch({
+      pattern: '[a&&]',
+      minTestTarget: minTestTargetForFlagV,
     });
+    expect(toDetails('[&&]').pattern).toBe('[[]&&[]]');
+    expect(toDetails('[a&&]').pattern).toBe('[a&&[]]');
+    expect(toDetails('[&&a]').pattern).toBe('[[]&&a]');
   });
 
   describe('nested class unwrapping', () => {
@@ -32,4 +45,6 @@ describe('CharacterClassIntersection', () => {
       expect(toDetails(r`[\w&&a]`).pattern).toBe(r`[[\p{L}\p{M}\p{N}\p{Pc}]&&a]`);
     });
   });
+
+  // TODO: Add remaining
 });

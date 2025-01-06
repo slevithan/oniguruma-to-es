@@ -291,9 +291,12 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
     state.inCharClass = false;
     return result;
   }
-  const firstType = elements[0].type;
+  // No first element for implicit class in empty intersection like `[&&]`
+  const firstType = elements[0]?.type;
   if (
-    !negate && (
+    !negate &&
+    firstType &&
+    (
       ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
         (!state.useFlagV || !state.verbose) &&
         parent.type === AstTypes.CharacterClass &&
