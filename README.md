@@ -167,7 +167,7 @@ Using default `accuracy` adds support for the following features, depending on `
 
 - All targets (`ES2025` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
-  - Enables recursion (ex: `\g<0>`) with a depth limit specified by option `maxRecursionDepth`.
+  - Enables using recursion (ex: `\g<0>`) with a depth limit lower than `20` (Oniguruma's limit).
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
