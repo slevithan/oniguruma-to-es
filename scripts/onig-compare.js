@@ -11,13 +11,13 @@ compare([
   [r`[\000]`, `0`],
   [r`\0000`, `\u{0}0`],
   [r`[\0000]`, `0`],
-  [r`\1`, `\u{1}`],
+  [r`\1`, `\u{1}`], // Error
   [r`\10`, cp(0o10)],
   [r`\18`, `\u{1}8`],
   [r`\177`, cp(0o177)],
-  [r`\200`, cp(0o200)],
-  [r`\c`, `c`],
-  [r`[\c]`, `c`],
+  [r`\200`, cp(0o200)], // Error
+  [r`\c`, `c`], // Error
+  [r`[\c]`, `c`], // Error
   [r`\N`, `\n`],
   [r`[\N]`, `\n`],
   [r`\N`, `\r`],
@@ -34,42 +34,42 @@ compare([
   [r`[\o{1}]`, `\u{1}`, `Octal code points not yet supported`],
   [r`\p`, `p`],
   [r`[\p]`, `p`],
-  [r`\p{`, `p{`],
-  [r`[\p{]`, `p`],
-  [r`\u`, `u`, r`Onig bug: pattern-terminating \u as identity escape`],
-  [r`\u.`, `ua`],
-  [r`[\u]`, `u`],
-  [r`\u0`, `u0`],
-  [r`[\u0]`, `u`],
-  [r`\u00`, `u00`],
-  [r`\u000`, `u000`],
+  [r`\p{`, `p{`], // Error
+  [r`[\p{]`, `p`], // Error
+  [r`\u`, `u`, r`Onig bug: pattern-terminating \u as identity; see #21`],
+  [r`\u.`, `ua`], // Error
+  [r`[\u]`, `u`], // Error
+  [r`\u0`, `u0`], // Error
+  [r`[\u0]`, `u`], // Error
+  [r`\u00`, `u00`], // Error
+  [r`\u000`, `u000`], // Error
   [r`\u0000`, `\u{0}`],
   [r`\uFFFF`, `\u{FFFF}`],
-  [r`\u{`, `u{`],
-  [r`[\u{]`, `u`],
-  [r`\u{A}`, `\u{A}`],
-  [r`[\u{A}]`, `u`],
-  [r`\x`, `x`, r`Onig bug: pattern-terminating \x as identity escape`],
-  [r`\x.`, `xa`, r`Onig bug: incomplete \x doesn't error but fails to match`],
-  [r`[\x]`, `x`, r`Onig bug: incomplete \x doesn't error but fails to match`],
+  [r`\u{`, `u{`], // Error
+  [r`[\u{]`, `u`], // Error
+  [r`\u{A}`, `\u{A}`], // Error
+  [r`[\u{A}]`, `u`], // Error
+  [r`\x`, `x`, r`Onig bug: pattern-terminating \x as identity; see #21`],
+  [r`\x.`, `\u{0}a`, r`Incomplete \x as \0 intentionally not supported; see #21`],
+  [r`[\x]`, `\u{0}`, r`Incomplete \x as \0 intentionally not supported; see #21`],
   [r`\x1`, `\u{1}`],
   [r`[\x1]`, `\u{1}`],
   [r`\x7F`, `\u{7F}`],
-  [r`\x80`, `\u{80}`],
-  [r`\x{`, `x{`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
-  [r`[\x{]`, `x`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
-  [r`\x{ 1 }`, `x{ 1 }`, r`Incomplete "\x{" as identity unsupported: high ambiguity`],
-  [r`^\x{,2}$`, `xx`, r`Incomplete "\x" as identity unsupported: high ambiguity`],
-  [r`^\x{2,}$`, `xx`],
+  [r`\x80`, `\u{80}`], // Error
+  [r`\x{`, `x{`, r`Incomplete \x{ as identity intentionally not supported; see #21`],
+  [r`[\x{]`, `x`, r`Incomplete \x{ as identity intentionally not supported; see #21`],
+  [r`\x{ 1 }`, `x{ 1 }`, r`Incomplete \x{ as identity intentionally not supported; see #21`],
+  [r`^\x{,2}$`, `xx`, r`Incomplete \x as identity when followed by implicit 0-min quantifier intentionally not supported; see #21`],
+  [r`^\x{2,}$`, `xx`], // Error
   [r`\x{1}`, `\u{1}`],
   [r`[\x{1}]`, `\u{1}`],
   [r`\x{00000001}`, `\u{1}`], // 8 hex digits
-  [r`\x{000000001}`, `\u{1}`], // 9 hex digits
+  [r`\x{000000001}`, `\u{1}`], // 9 hex digits; error
   [r`\x{10FFFF}`, `\u{10FFFF}`],
   [r`\x{0010FFFF}`, `\u{10FFFF}`], // 8 hex digits
-  [r`\x{00010FFFF}`, `\u{10FFFF}`], // 9 hex digits
+  [r`\x{00010FFFF}`, `\u{10FFFF}`], // 9 hex digits; error
   [r`\x{13FFFF}`, ``, `Beyond Unicode range: JS doesn't support`],
-  [r`\x{140000}`, ``],
+  [r`\x{140000}`, ``], // Error
   [r`\x{0 1}`, `\u{0}\u{1}`, `Code point sequences not yet supported`],
   [r`\💖`, '💖'],
   [`\\\u{10000}`, '\u{10000}'],

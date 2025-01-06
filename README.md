@@ -209,9 +209,9 @@ Include JavaScript flag `d` (`hasIndices`) in the result.
 
 *Default: `5`.*
 
-Specifies the recursion depth limit. Supported values are integers `2`–`20` (since `20` is the Oniguruma limit) and `null`. If `null`, any use of recursion results in an error.
+Specifies the recursion depth limit. Supported values are integers `2`–`20` and `null`. If `null`, any use of recursion results in an error.
 
-Since recursion depth is configurable, use of recursion with a limit lower than 20 also results in an error if using strict `accuracy`.
+Since Oniguruma's depth limit is `20`, any use of recursion with a limit lower than `20` results in an error if using strict `accuracy`.
 
 <details>
   <summary>More details</summary>
