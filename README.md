@@ -954,7 +954,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ## ❌ Unsupported features
 
-The following throw errors since they aren't yet supported. They're all uncommonly-used features, with most being *extremely* rare. Note that Oniguruma-To-ES can handle ~99.9% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars.
+The following throw errors since they aren't yet supported. They're all extremely rare.
 
 - Supportable:
   - Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
@@ -967,11 +967,15 @@ The following throw errors since they aren't yet supported. They're all uncommon
   - Absence: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
-  - Callout: `(*SKIP)(*FAIL)`.
+  - Callout pair: `(*SKIP)(*FAIL)`.
 - Not supportable:
   - Callouts: `(?{…})`, `(*…)`, etc.
 
-See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't currently supported. Contributions are welcome if you want to add support for currently unsupported features.
+Note that Oniguruma-To-ES can handle ~99.9% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, *absence* and *conditionals* were used in 2–3 regexes each, and the rest weren't used at all.
+
+See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't currently supported.
+
+Contributions are welcome if you want to add support for currently unsupported features.
 
 <a name="unicode"></a>
 ## ㊗️ Unicode
@@ -996,7 +1000,7 @@ Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) a
 
 If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
 
-© 2024–present. MIT License.
+MIT License.
 
 <!-- Badges -->
 
