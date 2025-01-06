@@ -56,6 +56,15 @@ describe('CharacterClassRange', () => {
     expect('d').not.toFindMatch(r`[a-c-z]`);
   });
 
+  it('should handle sequences with literal and range hyphens', () => {
+    expect(toDetails('[-]').pattern).toBe(r`[\-]`);
+    expect(toDetails('[--]').pattern).toBe(r`[\-\-]`);
+    expect(toDetails('[---]').pattern).toBe(r`[\--\-]`);
+    expect(toDetails('[----]').pattern).toBe(r`[\--\-\-]`);
+    expect(toDetails('[-----]').pattern).toBe(r`[\--\-\-\-]`);
+    expect(toDetails('[------]').pattern).toBe(r`[\--\-\--\-]`);
+  });
+
   it('should throw for range with set', () => {
     expect(() => toDetails(r`[a-\w]`)).toThrow();
     expect(() => toDetails(r`[\w-a]`)).toThrow();

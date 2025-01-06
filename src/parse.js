@@ -227,6 +227,7 @@ function parseCharacterClassHyphen(context, state) {
   const prevSiblingNode = parent.elements.at(-1);
   const nextToken = tokens[context.current];
   if (
+    !state.isCheckingRangeEnd &&
     prevSiblingNode &&
     prevSiblingNode.type !== AstTypes.CharacterClass &&
     prevSiblingNode.type !== AstTypes.CharacterClassRange &&
@@ -235,7 +236,10 @@ function parseCharacterClassHyphen(context, state) {
     nextToken.type !== TokenTypes.CharacterClassClose &&
     nextToken.type !== TokenTypes.CharacterClassIntersector
   ) {
-    const nextNode = walk(parent, state);
+    const nextNode = walk(parent, {
+      isCheckingRangeEnd: true,
+      ...state,
+    });
     if (prevSiblingNode.type === AstTypes.Character && nextNode.type === AstTypes.Character) {
       parent.elements.pop();
       return createCharacterClassRange(prevSiblingNode, nextNode);
