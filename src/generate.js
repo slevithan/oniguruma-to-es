@@ -293,17 +293,19 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
   }
   const firstType = elements[0].type;
   if (
-    !negate &&
-    ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
-      (!state.useFlagV || !state.verbose) &&
-      parent.type === AstTypes.CharacterClass &&
-      firstType !== AstTypes.CharacterClassIntersection
-    ) ||
-    ( !state.verbose &&
-      parent.type === AstTypes.CharacterClassIntersection &&
-      elements.length === 1 &&
-      firstType !== AstTypes.CharacterClass &&
-      firstType !== AstTypes.CharacterClassRange
+    !negate && (
+      ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
+        (!state.useFlagV || !state.verbose) &&
+        parent.type === AstTypes.CharacterClass &&
+        firstType !== AstTypes.CharacterClassIntersection
+      ) ||
+      ( !state.verbose &&
+        parent.type === AstTypes.CharacterClassIntersection &&
+        // JS doesn't allow intersection with union or ranges
+        elements.length === 1 &&
+        firstType !== AstTypes.CharacterClass &&
+        firstType !== AstTypes.CharacterClassRange
+      )
     )
   ) {
     // Remove unnecessary nesting; unwrap kids into the parent char class. Some basic char class
