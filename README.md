@@ -621,6 +621,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Doesn't require nested classes for intersection of union and ranges<br>
+      ✔ Allows empty segments<br>
     </td>
   </tr>
 

@@ -20,9 +20,14 @@ describe('CharacterClassIntersection', () => {
       pattern: '[a&&]',
       minTestTarget: minTestTargetForFlagV,
     });
+    expect('a').toExactlyMatch({
+      pattern: '[[&&]a]',
+      minTestTarget: minTestTargetForFlagV,
+    });
     expect(toDetails('[&&]').pattern).toBe('[[]&&[]]');
     expect(toDetails('[a&&]').pattern).toBe('[a&&[]]');
     expect(toDetails('[&&a]').pattern).toBe('[[]&&a]');
+    expect(toDetails('[[&&]a]').pattern).toBe('[[[]&&[]]a]');
   });
 
   describe('nested class unwrapping', () => {
