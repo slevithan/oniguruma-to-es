@@ -7,13 +7,8 @@ beforeEach(() => {
 });
 
 describe('Recursion', () => {
-  it('should throw if recursion used with null recursionLimit', () => {
-    expect(() => toDetails(r`a\g<0>?`, {recursionLimit: null})).toThrow();
-    expect(() => toDetails('', {recursionLimit: null})).not.toThrow();
-  });
-
-  it('should throw if recursionLimit is not null or an integer 2-20', () => {
-    for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', undefined, NaN, false]) {
+  it('should throw if recursionLimit is not an integer 2-20', () => {
+    for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', null, undefined, NaN, false]) {
       expect(() => toDetails('', {recursionLimit: value})).toThrow();
     }
   });

@@ -6,8 +6,6 @@ import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-ast.js';
 import {emulationGroupMarker} from 'regex/internals';
 
-const onigRecursionLimit = 20;
-
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
 @param {import('./transform.js').RegexAst} ast
@@ -22,9 +20,9 @@ function generate(ast, options) {
   const opts = getOptions(options);
   const minTargetEs2024 = isMinTarget(opts.target, 'ES2024');
   const minTargetEs2025 = isMinTarget(opts.target, 'ES2025');
-  const rLimit = opts.recursionLimit;
-  if (rLimit !== null && (!Number.isInteger(rLimit) || rLimit < 2 || rLimit > 20)) {
-    throw new Error('Invalid recursionLimit; use 2-20 or null');
+  const recursionLimit = opts.recursionLimit;
+  if (!Number.isInteger(recursionLimit) || recursionLimit < 2 || recursionLimit > 20) {
+    throw new Error('Invalid recursionLimit; use 2-20');
   }
 
   // If the output can't use flag groups, we need a pre-pass to check for the use of chars with
@@ -70,7 +68,7 @@ function generate(ast, options) {
     },
     inCharClass: false,
     lastNode,
-    recursionLimit: rLimit,
+    recursionLimit,
     useAppliedIgnoreCase: !!(!minTargetEs2025 && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useFlagMods: minTargetEs2025,
     useFlagV: minTargetEs2024,
@@ -413,9 +411,7 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
 
 function genRecursion({ref}, state) {
   const limit = state.recursionLimit;
-  if (!limit) {
-    throw new Error('Use of recursion disabled');
-  }
+  const onigRecursionLimit = 20;
   if (limit !== onigRecursionLimit && state.accuracy === 'strict') {
     throw new Error('Use of recursion with limit less than 20 requires non-strict accuracy');
   }

@@ -78,7 +78,7 @@ function showTranspiled() {
     }${
       state.flags.W ? 'W' : ''
     }`,
-    recursionLimit: state.opts.recursionLimit === '' ? null : +state.opts.recursionLimit,
+    recursionLimit: state.opts.recursionLimit === '' ? 20 : +state.opts.recursionLimit,
     target: state.opts.target === 'auto' ? autoTarget : state.opts.target,
   };
   const errorObj = {error: true};

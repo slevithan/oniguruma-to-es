@@ -27,7 +27,7 @@ import {recursion} from 'regex-recursion';
   flags?: string;
   global?: boolean;
   hasIndices?: boolean;
-  recursionLimit?: number | null;
+  recursionLimit?: number;
   rules?: {
     allowOrphanBackrefs?: boolean;
     asciiWordBoundaries?: boolean;
