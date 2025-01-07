@@ -1,3 +1,4 @@
+import {toDetails} from '../dist/index.mjs';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -90,6 +91,28 @@ describe('Assertion: Lookaround', () => {
       expect([
         'bca', 'bdda',
       ]).toFindMatch('(?<=b(?:c|dd))a');
+    });
+
+    describe('contents', () => {
+      it('should throw for invalid contents in positive lookbehind', () => {
+        expect(() => toDetails('(?<=(?=))')).toThrow();
+        expect(() => toDetails('(?<=(?!))')).toThrow();
+        expect(() => toDetails('(?<=(?<!))')).toThrow();
+        // Valid
+        expect(() => toDetails('(?<=(?<=))')).not.toThrow();
+        expect(() => toDetails('(?<=())')).not.toThrow();
+        expect(() => toDetails('(?<=(?<n>))')).not.toThrow();
+      });
+
+      it('should throw for invalid contents in negative lookbehind', () => {
+        expect(() => toDetails('(?<!(?=))')).toThrow();
+        expect(() => toDetails('(?<!(?!))')).toThrow();
+        expect(() => toDetails('(?<!())')).toThrow();
+        expect(() => toDetails('(?<!(?<n>))')).toThrow();
+        // Valid
+        expect(() => toDetails('(?<!(?<=))')).not.toThrow();
+        expect(() => toDetails('(?<!(?<!))')).not.toThrow();
+      });
     });
   });
 });

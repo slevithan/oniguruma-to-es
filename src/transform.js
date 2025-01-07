@@ -138,7 +138,7 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.line_start) {
       // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
       // string-terminating line feed
-      replaceWith(parseFragment(r`(?<=\A|\n(?!\z))`));
+      replaceWith(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}));
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
         ast.flags.sticky = true;

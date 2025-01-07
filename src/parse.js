@@ -67,6 +67,7 @@ const AstVariableLengthCharacterSetKinds = {
 function parse({tokens, flags, rules}, options) {
   const opts = {
     skipBackrefValidation: false,
+    skipLookbehindValidation: false,
     skipPropertyNameValidation: false,
     verbose: false,
     ...options,
@@ -78,6 +79,7 @@ function parse({tokens, flags, rules}, options) {
     namedGroupsByName: new Map(),
     parent: null,
     skipBackrefValidation: opts.skipBackrefValidation,
+    skipLookbehindValidation: opts.skipLookbehindValidation,
     skipPropertyNameValidation: opts.skipPropertyNameValidation,
     subroutines: [],
     token: null,
@@ -237,8 +239,8 @@ function parseCharacterClassHyphen(context, state) {
     nextToken.type !== TokenTypes.CharacterClassIntersector
   ) {
     const nextNode = walk(parent, {
-      isCheckingRangeEnd: true,
       ...state,
+      isCheckingRangeEnd: true,
     });
     if (prevSiblingNode.type === AstTypes.Character && nextNode.type === AstTypes.Character) {
       parent.elements.pop();
@@ -308,7 +310,7 @@ function parseCharacterSet({token, skipPropertyNameValidation}) {
 }
 
 function parseGroupOpen(context, state) {
-  const {token, tokens, capturingGroups, namedGroupsByName, verbose, walk} = context;
+  const {token, tokens, capturingGroups, namedGroupsByName, skipLookbehindValidation, verbose, walk} = context;
   let node = createByGroupKind(token);
   // Track capturing group details for backrefs and subroutines (before parsing the group's
   // contents so nested groups with the same name are tracked in order)
@@ -326,7 +328,33 @@ function parseGroupOpen(context, state) {
       context.current++;
     } else {
       const alt = node.alternatives.at(-1);
-      alt.elements.push(walk(alt, state));
+      const isLookbehind = node.kind === AstAssertionKinds.lookbehind;
+      const isNegLookbehind = isLookbehind && node.negate;
+      const child = walk(alt, {
+        ...state,
+        isInLookbehid: state.isInLookbehind || isLookbehind,
+        isInNegLookbehind: state.isInNegLookbehind || isNegLookbehind,
+      });
+      alt.elements.push(child);
+      if ((isLookbehind || state.isInLookbehind) && !skipLookbehindValidation) {
+        // JS supports all features within lookbehind, but Onig doesn't. Absence operator forms
+        // `(?~|)` and `(?~|…)` also aren't valid in lookbehind (the `(?~…)` and `(?~|…|…)` forms
+        // are allowed), but all forms throw since absence operators aren't yet supported
+        const msg = 'Lookbehind includes a pattern not allowed by Oniguruma';
+        if (isNegLookbehind || state.isInNegLookbehind) {
+          // - Invalid: `(?=…)`, `(?!…)`, capturing groups
+          // - Valid: `(?<=…)`, `(?<!…)`
+          if (child.kind === AstAssertionKinds.lookahead || child.type === AstTypes.CapturingGroup) {
+            throw new Error(msg);
+          }
+        } else {
+          // - Invalid: `(?=…)`, `(?!…)`, `(?<!…)`
+          // - Valid: `(?<=…)`, capturing groups
+          if (child.kind === AstAssertionKinds.lookahead || (child.kind === AstAssertionKinds.lookbehind && child.negate)) {
+            throw new Error(msg);
+          }
+        }
+      }
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }
