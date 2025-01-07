@@ -591,6 +591,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Same as JS with flag <code>u</code>, <code>v</code><br>
+      ✔ Allows <code>\x{…}</code> above <code>10FFFF</code> at end of range to mean last valid code point<br>
     </td>
   </tr>
   <tr valign="top">

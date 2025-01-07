@@ -100,7 +100,7 @@ function parse({tokens, flags, rules}, options) {
       case TokenTypes.Backreference:
         return parseBackreference(context);
       case TokenTypes.Character:
-        return createCharacter(token.value);
+        return createCharacter(token.value, {useLastValid: !!state.isCheckingRangeEnd});
       case TokenTypes.CharacterClassHyphen:
         return parseCharacterClassHyphen(context, state);
       case TokenTypes.CharacterClassOpen:
@@ -479,7 +479,21 @@ function createCapturingGroup(number, name) {
   };
 }
 
-function createCharacter(charCode) {
+function createCharacter(charCode, options) {
+  const opts = {
+    useLastValid: false,
+    ...options,
+  };
+  if (charCode > 0x10FFFF) {
+    const hex = charCode.toString(16);
+    if (opts.useLastValid) {
+      charCode = 0x10FFFF;
+    } else if (charCode > 0x13FFFF) {
+      throw new Error(`Invalid code point out of range "\\x{${hex}}"`);
+    } else {
+      throw new Error(`Invalid code point out of range in JS "\\x{${hex}}"`);
+    }
+  }
   return {
     type: AstTypes.Character,
     value: charCode,

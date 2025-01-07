@@ -240,7 +240,20 @@ describe('Character', () => {
 
     it(r`should throw for invalid \x{N...}`, () => {
       expect(() => toDetails(r`\x{G}`)).toThrow();
+      expect(() => toDetails(r`\x{0x0}`)).toThrow();
+    });
+
+    it(r`should throw for \x{N...} out of range`, () => {
       expect(() => toDetails(r`\x{110000}`)).toThrow();
+      expect(() => toDetails(r`[\x{110000}]`)).toThrow();
+      expect(() => toDetails(r`[\x{110000}-\x{110000}]`)).toThrow();
+    });
+
+    it(r`should allow \x{N...} out of range at char class range end`, () => {
+      expect('\u{10FFFF}').toExactlyMatch(r`[\0-\x{110000}]`);
+      expect('\u{10FFFF}').toExactlyMatch(r`[\0-\x{FFFFFFFF}]`);
+      // 9 hex digits is invalid
+      expect(() => toDetails(r`[\0-\x{100000000}]`)).toThrow();
     });
   });
 

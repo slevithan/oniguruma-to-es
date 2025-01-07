@@ -695,14 +695,16 @@ function getFlagPropsForToken(flags) {
   return Object.keys(obj).length ? obj : null;
 }
 
+// - Unenclosed `\xNN` above 0x7F is handled elsewhere as a UTF-8 encoded byte sequence
+// - Enclosed `\x{}` with value above 0x10FFFF is allowed here; handled in the parser
 function getValidatedHexCharCode(raw) {
   // Note: Onig (tested 6.9.8) has a bug where bare `\u` and `\x` are identity escapes if they
   // appear at the very end of the pattern, so e.g. `\u` matches `u`, but `\u0`, `\u.`, and `[\u]`
-  // are all errors, and `\x.` and `[\x]` are not errors but seemingly fail to match anything.
-  // Don't emulate these bugs, and just treat these cases as errors. Also, Onig treats incomplete
-  // `\x{` (with the brace and not immediately followed by a hex digit) as an identity escape, so
-  // e.g. `\x{` matches `x{` and `^\x{,2}$` matches `xx`, but `\x{2,}` and `\x{0,2}` are errors.
-  // Don't emulate this nasty/pointless ambiguity; just treat incomplete `\x{` as an error
+  // are all errors, and `\x.` and `[\x]` aren't errors but instead the `\x` is equivalent to `\0`.
+  // Don't emulate these bugs (see #21), and just treat these cases as errors. Also, Onig treats
+  // incomplete `\x{` (with the brace and not immediately followed by a hex digit) as an identity
+  // escape, so e.g. `\x{` matches `x{` and `^\x{,2}$` matches `xx`, but `\x{2,}` and `\x{0,2}` are
+  // errors. Don't emulate this pointless ambiguity; just treat incomplete `\x{` as an error
   if (/^(?:\\u(?!\p{AHex}{4})|\\x(?!\p{AHex}{1,2}|\{\p{AHex}{1,8}\}))/u.test(raw)) {
     throw new Error(`Incomplete or invalid escape "${raw}"`);
   }
@@ -711,12 +713,6 @@ function getValidatedHexCharCode(raw) {
     /^\\x\{\s*(?<hex>\p{AHex}+)/u.exec(raw).groups.hex :
     raw.slice(2);
   const dec = parseInt(hex, 16);
-  // `\xNN` above 0x7F is handled elsewhere as a UTF-8 encoded byte sequence
-  if (dec > 0x13FFFF) {
-    throw new Error(`Invalid out of range "${raw}"`);
-  } else if (dec > 0x10FFFF) {
-    throw new Error(`Invalid out of range in JS "${raw}"`);
-  }
   return dec;
 }
 
