@@ -43,7 +43,7 @@ function getOptions(options) {
     hasIndices: false,
     // Specifies the recursion depth limit. Supported values are integers `2`–`20` (since `20` is
     // the Oniguruma limit) and `null`. If `null`, any use of recursion results in an error.
-    maxRecursionDepth: 5, // TODO: Rename as `recursionLimit` (breaking change #19)
+    recursionLimit: 5, // TODO: Rename as `recursionLimit` (breaking change #19)
     // JavaScript version used for generated regexes. Using `auto` detects the best value based on
     // your environment. Later targets allow faster processing, simpler generated source, and
     // support for additional features.

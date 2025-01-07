@@ -22,9 +22,9 @@ function generate(ast, options) {
   const opts = getOptions(options);
   const minTargetEs2024 = isMinTarget(opts.target, 'ES2024');
   const minTargetEs2025 = isMinTarget(opts.target, 'ES2025');
-  const rLimit = opts.maxRecursionDepth;
+  const rLimit = opts.recursionLimit;
   if (rLimit !== null && (!Number.isInteger(rLimit) || rLimit < 2 || rLimit > 20)) {
-    throw new Error('Invalid maxRecursionDepth; use 2-20 or null');
+    throw new Error('Invalid recursionLimit; use 2-20 or null');
   }
 
   // If the output can't use flag groups, we need a pre-pass to check for the use of chars with
@@ -70,7 +70,7 @@ function generate(ast, options) {
     },
     inCharClass: false,
     lastNode,
-    maxRecursionDepth: rLimit,
+    recursionLimit: rLimit,
     useAppliedIgnoreCase: !!(!minTargetEs2025 && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useFlagMods: minTargetEs2025,
     useFlagV: minTargetEs2024,
@@ -412,7 +412,7 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
 }
 
 function genRecursion({ref}, state) {
-  const limit = state.maxRecursionDepth;
+  const limit = state.recursionLimit;
   if (!limit) {
     throw new Error('Use of recursion disabled');
   }

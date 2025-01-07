@@ -19,7 +19,7 @@ const state = {
     avoidSubclass: getValue('option-avoidSubclass'),
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
-    maxRecursionDepth: getValue('option-maxRecursionDepth'),
+    recursionLimit: getValue('option-recursionLimit'),
     rules: {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
@@ -78,7 +78,7 @@ function showTranspiled() {
     }${
       state.flags.W ? 'W' : ''
     }`,
-    maxRecursionDepth: state.opts.maxRecursionDepth === '' ? null : +state.opts.maxRecursionDepth,
+    recursionLimit: state.opts.recursionLimit === '' ? null : +state.opts.recursionLimit,
     target: state.opts.target === 'auto' ? autoTarget : state.opts.target,
   };
   const errorObj = {error: true};
