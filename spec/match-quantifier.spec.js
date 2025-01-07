@@ -21,8 +21,61 @@ describe('Quantifier', () => {
   //   });
   // });
 
+  describe('possessive', () => {
+    it('should not remember backtracking positions for repeated tokens', () => {
+      // `++`
+      expect('aaa').not.toFindMatch('a++.');
+      expect('aaa1').toExactlyMatch('a++1');
+      expect('aaa').not.toFindMatch(r`\u0061++.`);
+      expect('aaa1').toExactlyMatch(r`\u0061++1`);
+      // `*+`
+      expect('aaa').not.toFindMatch('a*+.');
+      expect('aaa1').toExactlyMatch('a*+1');
+      // `?+`
+      expect('a').not.toFindMatch('a?+.');
+      expect('a1').toExactlyMatch('a?+1');
+    });
+
+    it('should not make interval quantifiers possessive with + suffix', () => {
+      expect('aaa').toExactlyMatch('a{1,}+.');
+    });
+
+    it('should make interval quantifiers possessive with reversed range', () => {
+      // Non-possessive
+      expect('aaa').toExactlyMatch('a{1,10}.');
+      // Possessive
+      expect('aaa').not.toFindMatch('a{10,1}.');
+      expect('aaa1').toExactlyMatch('a{10,1}1');
+    });
+
+    it('should work for character classes', () => {
+      expect('aaa').not.toFindMatch('[a-z]++.');
+      expect('aaa1').toExactlyMatch('[a-z]++1');
+    });
+
+    it('should work for groups', () => {
+      expect('aaaa').not.toFindMatch('(a(a?))++.');
+      expect('aaaa1').toExactlyMatch('(a(a?))++1');
+    });
+
+    it('should work for multiple possessive quantifiers', () => {
+      expect('ab').toExactlyMatch('a++b++');
+      expect('ab').toExactlyMatch('[a]++[b]++');
+      expect('ab').toExactlyMatch('(a)++(b)++');
+    });
+
+    it('should work for nested possessive quantifiers', () => {
+      expect('ababb').toExactlyMatch('(ab++)++');
+      expect('ababb').toExactlyMatch('(a(b)++)++');
+    });
+
+    it('should be literal within character classes', () => {
+      expect('*').toExactlyMatch('[.*+]');
+    });
+  });
+
   // TODO: Add me
-  // describe('possessive', () => {
+  // describe('chaining', () => {
   //   it('should', () => {
   //     expect('').toExactlyMatch(r``);
   //   });

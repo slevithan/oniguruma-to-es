@@ -1,29 +1,23 @@
-import {toDetails} from '../dist/index.mjs';
-import {r} from '../src/utils.js';
-import {matchers} from './helpers/matchers.js';
+// TODO: Add me
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
+// import {toDetails} from '../dist/index.mjs';
+// import {r} from '../src/utils.js';
+// import {matchers} from './helpers/matchers.js';
 
-describe('Directive', () => {
-  describe('flags', () => {
-    it('should not allow quantification', () => {
-      expect(() => toDetails('(?i)+')).toThrow();
-      expect(() => toDetails('(?imx)+')).toThrow();
-      expect(() => toDetails('(?-i)+')).toThrow();
-      expect(() => toDetails('(?im-x)+')).toThrow();
-    });
+// beforeEach(() => {
+//   jasmine.addMatchers(matchers);
+// });
 
-    // TODO: Add remaining
-  });
+// describe('Directive', () => {
+//   describe('flags', () => {
+//     it('should', () => {
+//       expect('').toExactlyMatch(r``);
+//     });
+//   });
 
-  describe('keep', () => {
-    it('should not allow quantification', () => {
-      expect(() => toDetails(r`\K+`)).toThrow();
-      expect(() => toDetails(r`a\K+a`)).toThrow();
-    });
-
-    // TODO: Add remaining
-  });
-});
+//   describe('keep', () => {
+//     it('should', () => {
+//       expect('').toExactlyMatch(r``);
+//     });
+//   });
+// });

@@ -1,6 +1,9 @@
 import {toDetails} from '../dist/index.mjs';
 
 describe('CharacterClass', () => {
+  // See also `match-char-class-range.spec.js` and `match-char-class-intersection.spec.js`
+  // Tests for specific tokens within char classes are mixed into specs elsewhere
+
   describe('nested class unwrapping', () => {
     it('should unwrap unneeded nested classes', () => {
       expect(toDetails('[[ab]]').pattern).toBe('[ab]');
@@ -24,6 +27,6 @@ describe('CharacterClass', () => {
     });
   });
 
-  // TODO: Add remaining
+  // TODO: Add remaining (leading `]`, unbalanced, etc.)
   // TODO: Test that nested negated classes throw for target ES2018
 });

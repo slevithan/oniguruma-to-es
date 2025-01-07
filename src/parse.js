@@ -606,11 +606,6 @@ function createPattern() {
 }
 
 function createQuantifier(element, min, max, greedy, possessive) {
-  // Could be checked in the tokenizer, but done here to parallel char class range validation and
-  // to prevent manually creating invalid quantifiers
-  if (max < min) {
-    throw new Error('Quantifier range out of order');
-  }
   const node = {
     type: AstTypes.Quantifier,
     min,
@@ -619,6 +614,14 @@ function createQuantifier(element, min, max, greedy, possessive) {
     possessive,
     element,
   };
+  if (max < min) {
+    return {
+      ...node,
+      min: max,
+      max: min,
+      possessive: true,
+    };
+  }
   return node;
 }
 
