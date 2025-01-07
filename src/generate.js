@@ -411,10 +411,6 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
 
 function genRecursion({ref}, state) {
   const limit = state.recursionLimit;
-  const onigRecursionLimit = 20;
-  if (limit !== onigRecursionLimit && state.accuracy === 'strict') {
-    throw new Error('Use of recursion with limit less than 20 requires non-strict accuracy');
-  }
   // Using the syntax supported by `regex-recursion`
   return ref === 0 ? `(?R=${limit})` : r`\g<${ref}&R=${limit}>`;
 }

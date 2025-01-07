@@ -22,13 +22,6 @@ describe('Recursion', () => {
     }
   });
 
-  it('should throw if recursionLimit below 20 used with strict accuracy', () => {
-    // Default is 20
-    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict'})).not.toThrow();
-    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict', recursionLimit: 20})).not.toThrow();
-    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict', recursionLimit: 5})).toThrow();
-  });
-
   // Documenting current behavior
   it('should throw if backref used with recursion when the recursed subpattern contains captures', () => {
     expect(() => toDetails(r`(a)\1\g<0>?`)).toThrow();

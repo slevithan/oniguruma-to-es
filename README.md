@@ -167,7 +167,6 @@ Using default `accuracy` adds support for the following features, depending on `
 
 - All targets (`ES2025` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
-  - Enables using recursion (ex: `\g<0>`) with a depth limit lower than `20` (Oniguruma's limit).
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
@@ -210,14 +209,6 @@ Include JavaScript flag `d` (`hasIndices`) in the result.
 *Default: `20`.*
 
 Recursion depth limit. The default value of `20` is Oniguruma's limit, but you can use an integer from `2` to `20`.
-
-Use of recursion with a limit lower than `20` results in an error if using strict `accuracy`.
-
-<details>
-  <summary>More details</summary>
-
-Using a high limit can impact performance, but this is generally only a problem if the regex has an existing issue with runaway backtracking that recursion exacerbates. Higher limits have no effect on regexes that don't use recursion, so you should feel free to increase this if helpful.
-</details>
 
 ### `rules`
 
@@ -864,10 +855,10 @@ Notice that nearly every feature below has at least subtle differences from Java
       <code>\g&lt;0></code>,<br>
       <code>\g'0'</code>
     </td>
-    <td align="middle">☑️</td>
-    <td align="middle">☑️</td>
+    <td align="middle">☑️<sup>[6]</sup></td>
+    <td align="middle">☑️<sup>[6]</sup></td>
     <td>
-      ● Has depth limit<sup>[6]</sup><br>
+      ✔ Limits depth to 20 levels<br>
     </td>
   </tr>
   <tr valign="top">
@@ -877,10 +868,10 @@ Notice that nearly every feature below has at least subtle differences from Java
       <code>(…\g&lt;-1>?…)</code>,<br>
       <code>(?&lt;a>…\g&lt;a>?…)</code>, etc.
     </td>
-    <td align="middle">☑️</td>
-    <td align="middle">☑️</td>
+    <td align="middle">☑️<sup>[6]</sup></td>
+    <td align="middle">☑️<sup>[6]</sup></td>
     <td>
-      ● Has depth limit<sup>[6]</sup><br>
+      ✔ Limits depth to 20 levels<br>
     </td>
   </tr>
 
