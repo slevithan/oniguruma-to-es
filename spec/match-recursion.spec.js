@@ -7,11 +7,6 @@ beforeEach(() => {
 });
 
 describe('Recursion', () => {
-  it('should throw if recursion used with strict accuracy', () => {
-    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict'})).toThrow();
-    expect(() => toDetails('', {accuracy: 'strict'})).not.toThrow();
-  });
-
   it('should throw if recursion used with null recursionLimit', () => {
     expect(() => toDetails(r`a\g<0>?`, {recursionLimit: null})).toThrow();
     expect(() => toDetails('', {recursionLimit: null})).not.toThrow();
@@ -30,6 +25,13 @@ describe('Recursion', () => {
         recursionLimit: i,
       });
     }
+  });
+
+  it('should throw if recursionLimit below 20 used with strict accuracy', () => {
+    // Default is 20
+    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict'})).not.toThrow();
+    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict', recursionLimit: 20})).not.toThrow();
+    expect(() => toDetails(r`a\g<0>?`, {accuracy: 'strict', recursionLimit: 5})).toThrow();
   });
 
   // Documenting current behavior

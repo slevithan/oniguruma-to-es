@@ -12,7 +12,7 @@ function getArgs(actual, expected) {
     pattern: typeof expected === 'string' ? expected : expected.pattern,
     flags: expected.flags ?? '',
     accuracy: expected.accuracy ?? 'default',
-    recursionLimit: expected.recursionLimit ?? 5,
+    recursionLimit: expected.recursionLimit ?? 20,
     rules: expected.rules ?? {},
     strings: Array.isArray(actual) ? actual : [actual],
     targets: targeted,
