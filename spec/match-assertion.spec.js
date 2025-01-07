@@ -7,8 +7,10 @@ beforeEach(() => {
 });
 
 describe('Assertion', () => {
-  // [NOTE] For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`; for kind
-  // `search_start`, see `match-search-start.spec.js`
+  // - For kinds `lookahead` and `lookbehind`, see `match-lookaround.spec.js`
+  // - For kind `search_start`, see `match-search-start.spec.js`
+
+  // TODO: Test handling of assertion syntax within char classes
 
   describe('line_end', () => {
     it('should match at the end of the string', () => {

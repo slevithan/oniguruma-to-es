@@ -56,6 +56,15 @@ describe('Character', () => {
       expect('\r').toExactlyMatch(r`\r`);
       expect('\t').toExactlyMatch(r`\t`);
       expect('\v').toExactlyMatch(r`\v`);
+      // In char class
+      expect('\x07').toExactlyMatch(r`[\a]`);
+      expect('\x08').toExactlyMatch(r`[\b]`);
+      expect('\x1B').toExactlyMatch(r`[\e]`);
+      expect('\f').toExactlyMatch(r`[\f]`);
+      expect('\n').toExactlyMatch(r`[\n]`);
+      expect('\r').toExactlyMatch(r`[\r]`);
+      expect('\t').toExactlyMatch(r`[\t]`);
+      expect('\v').toExactlyMatch(r`[\v]`);
     });
   });
 
@@ -121,11 +130,19 @@ describe('Character', () => {
       expect('\0').toExactlyMatch(r`\0`);
       expect('\0').toExactlyMatch(r`\00`);
       expect('\0').toExactlyMatch(r`\000`);
+      // In char class
+      expect('\0').toExactlyMatch(r`[\0]`);
+      expect('\0').toExactlyMatch(r`[\00]`);
+      expect('\0').toExactlyMatch(r`[\000]`);
+      expect('0').not.toFindMatch(r`[\000]`);
     });
 
     it('should match null followed by literal digits', () => {
       expect('\u{0}0').toExactlyMatch(r`\0000`);
       expect('\u{0}1').toExactlyMatch(r`\0001`);
+      // In char class
+      expect('0').toExactlyMatch(r`[\0000]`);
+      expect('1').toExactlyMatch(r`[\0001]`);
     });
 
     it('should throw for invalid backrefs', () => {
@@ -140,11 +157,20 @@ describe('Character', () => {
       expect('\u{1}').toExactlyMatch(r`\001`);
       expect(cp(0o17)).toExactlyMatch(r`\17`);
       expect(cp(0o177)).toExactlyMatch(r`\177`);
+      // In char class
+      expect('\u{1}').toExactlyMatch(r`[\1]`);
+      expect('\u{1}').toExactlyMatch(r`[\01]`);
+      expect('\u{1}').toExactlyMatch(r`[\001]`);
+      expect(cp(0o17)).toExactlyMatch(r`[\17]`);
+      expect(cp(0o177)).toExactlyMatch(r`[\177]`);
     });
 
     it(r`should throw for octal UTF-8 encoded byte above \177`, () => {
       expect(() => toDetails(r`\200`)).toThrow();
       expect(() => toDetails(r`\777`)).toThrow();
+      // In char class
+      expect(() => toDetails(r`[\200]`)).toThrow();
+      expect(() => toDetails(r`[\777]`)).toThrow();
     });
 
     it('should match octals followed by literal digits', () => {
@@ -155,12 +181,29 @@ describe('Character', () => {
       expect(`${cp(0o11)}8`).toExactlyMatch(r`\118`);
       expect(`${cp(0o11)}9`).toExactlyMatch(r`\119`);
       expect(`${cp(0o11)}90`).toExactlyMatch(r`\1190`);
+      // In char class
+      expect('0').toExactlyMatch(r`[\1000]`);
+      expect('8').toExactlyMatch(r`[\18]`);
+      expect('9').toExactlyMatch(r`[\19]`);
+      expect('0').toExactlyMatch(r`[\190]`);
+      expect('8').toExactlyMatch(r`[\118]`);
+      expect('9').toExactlyMatch(r`[\119]`);
+      expect('0').toExactlyMatch(r`[\1190]`);
+    });
+
+    it('should match identity escapes', () => {
+      // Single-digit `\N` outside of char class is always handled as a backref; not relevant here
+      expect('8').toExactlyMatch(r`[\8]`);
+      expect('9').toExactlyMatch(r`[\9]`);
     });
 
     it('should match identity escapes followed by literal digits', () => {
       expect('80').toExactlyMatch(r`\80`);
       expect('90').toExactlyMatch(r`\90`);
       expect('900').toExactlyMatch(r`\900`);
+      // In char class
+      expect('0').toExactlyMatch(r`[\80]`);
+      expect('0').toExactlyMatch(r`[\90]`);
     });
   });
 

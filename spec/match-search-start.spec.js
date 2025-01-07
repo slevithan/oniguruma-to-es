@@ -8,6 +8,11 @@ beforeEach(() => {
 });
 
 describe('Assertion: Search start', () => {
+  it('should be identity escape within a char class', () => {
+    expect('G').toExactlyMatch(r`[\G]`);
+    expect('\\').not.toFindMatch(r`[\G]`);
+  });
+
   describe('without subclass', () => {
     // TODO: Consider enabling `avoidSubclass` for all of these except when specifically testing
     // subclass strategies

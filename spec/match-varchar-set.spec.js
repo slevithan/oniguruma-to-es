@@ -23,6 +23,11 @@ describe('VariableLengthCharacterSet', () => {
     it('should match graphemes atomically', () => {
       expect(graphemes).not.toFindMatch(r`\X\p{Any}`);
     });
+
+    it('should be identity escape within a char class', () => {
+      expect('X').toExactlyMatch(r`[\X]`);
+      expect('a').not.toFindMatch(r`[\X]`);
+    });
   });
 
   describe('newline', () => {
@@ -40,6 +45,11 @@ describe('VariableLengthCharacterSet', () => {
 
     it('should match newlines atomically', () => {
       expect('\r\n').not.toFindMatch(r`\R\n`);
+    });
+
+    it('should be identity escape within a char class', () => {
+      expect('R').toExactlyMatch(r`[\R]`);
+      expect('\n').not.toFindMatch(r`[\R]`);
     });
   });
 });
