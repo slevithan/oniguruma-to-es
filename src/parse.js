@@ -332,7 +332,7 @@ function parseGroupOpen(context, state) {
       const isNegLookbehind = isLookbehind && node.negate;
       const child = walk(alt, {
         ...state,
-        isInLookbehid: state.isInLookbehind || isLookbehind,
+        isInLookbehind: state.isInLookbehind || isLookbehind,
         isInNegLookbehind: state.isInNegLookbehind || isNegLookbehind,
       });
       alt.elements.push(child);

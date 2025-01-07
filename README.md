@@ -676,8 +676,10 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Same as JS<br>
       ✔ Allows variable-length quantifiers and alternation within lookbehind<br>
+      ✔ Lookahead invalid within lookbehind<br>
+      ✔ Capturing groups invalid within negative lookbehind<br>
+      ✔ Negative lookbehind invalid within positive lookbehind<br>
     </td>
   </tr>
   <tr valign="top">
