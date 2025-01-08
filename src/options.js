@@ -61,8 +61,7 @@ function getOptions(options) {
       captureGroup: false,
       // Remove unsupported uses of `\G`, rather than erroring.
       ignoreUnsupportedGAnchors: false,
-      // Change the recursion depth limit from the default `20` (used by Oniguruma) to an integer
-      // `2`–`20`.
+      // Change the recursion depth limit from Oniguruma's default of `20` to an integer `2`–`20`.
       recursionLimit: 20,
       ...(options?.rules),
     },

@@ -215,7 +215,7 @@ Advanced options that override standard behavior, error checking, and flags when
   - On by default in `vscode-oniguruma`.
 - `ignoreUnsupportedGAnchors`: Remove unsupported uses of `\G`, rather than erroring.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed. This might lead to some false positive matches, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
-- `recursionLimit`: Change the recursion depth limit from the default `20` (used by Oniguruma) to an integer `2`–`20`.
+- `recursionLimit`: Change the recursion depth limit from Oniguruma's default of `20` to an integer `2`–`20`.
 
 ### `target`
 
@@ -936,11 +936,11 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 ### Footnotes
 
-1. Unicode blocks (which in Oniguruma are specified with an `In…` prefix) are easily emulatable but their character data would significantly increase library weight. They're also rarely used, fundamentally flawed, and arguably unuseful given the availability of Unicode scripts and other properties.
+1. Unicode blocks (which in Oniguruma are specified with an `In` prefix) are easily emulatable but their character data would significantly increase library weight. They're also rarely used, fundamentally flawed, and arguably unuseful given the availability of Unicode scripts and other properties.
 2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 3. Target `ES2018` doesn't support nested *negated* character classes.
 4. Supported uses of `\G` include `\G…`, `\G…|\G…`, `(?<=…)\G…`, `(^|\G)…`, `(?!\G)…`, and many others.
-5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
+5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 6. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
 
 ## ❌ Unsupported features
@@ -955,14 +955,14 @@ The following throw errors since they aren't yet supported. They're all extremel
   - Whole-pattern modifier: Don't capture group `(?C)`.
   - Callout: `(*FAIL)`.
 - Supportable for some uses:
-  - Absence: `(?~…)`, etc.
+  - Absence operators: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
   - Callout pair: `(*SKIP)(*FAIL)`.
 - Not supportable:
-  - Callouts: `(?{…})`, `(*…)`, etc.
+  - Other callouts: `(?{…})`, `(*…)`, etc.
 
-Note that Oniguruma-To-ES can handle ~99.9% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, *absence* and *conditionals* were used in 2–3 regexes each, and the rest weren't used at all.
+Note that Oniguruma-To-ES can handle 99.9% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, absence operators and conditionals were used in 2–3 regexes each, and the rest weren't used at all.
 
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't currently supported.
 
