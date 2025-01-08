@@ -20,7 +20,7 @@ function generate(ast, options) {
   const opts = getOptions(options);
   const minTargetEs2024 = isMinTarget(opts.target, 'ES2024');
   const minTargetEs2025 = isMinTarget(opts.target, 'ES2025');
-  const recursionLimit = opts.recursionLimit;
+  const recursionLimit = opts.rules.recursionLimit;
   if (!Number.isInteger(recursionLimit) || recursionLimit < 2 || recursionLimit > 20) {
     throw new Error('Invalid recursionLimit; use 2-20');
   }

@@ -27,12 +27,12 @@ import {recursion} from 'regex-recursion';
   flags?: string;
   global?: boolean;
   hasIndices?: boolean;
-  recursionLimit?: number;
   rules?: {
     allowOrphanBackrefs?: boolean;
     asciiWordBoundaries?: boolean;
     captureGroup?: boolean;
     ignoreUnsupportedGAnchors?: boolean;
+    recursionLimit?: number;
   };
   target?: keyof Target;
   verbose?: boolean;

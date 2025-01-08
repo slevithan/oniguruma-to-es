@@ -9,7 +9,7 @@ beforeEach(() => {
 describe('Recursion', () => {
   it('should throw if recursionLimit is not an integer 2-20', () => {
     for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', null, undefined, NaN, false]) {
-      expect(() => toDetails('', {recursionLimit: value})).toThrow();
+      expect(() => toDetails('', {rules: {recursionLimit: value}})).toThrow();
     }
   });
 
@@ -17,7 +17,7 @@ describe('Recursion', () => {
     for (let i = 2; i <= 20; i++) {
       expect('a'.repeat(i)).toExactlyMatch({
         pattern: r`a\g<0>?`,
-        recursionLimit: i,
+        rules: {recursionLimit: i},
       });
     }
   });
@@ -64,7 +64,7 @@ describe('Recursion', () => {
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {
-      expect(toRegExp(r`(a)\g<0>?`, {avoidSubclass: true, recursionLimit: 2}).exec('aa')).toHaveSize(3);
+      expect(toRegExp(r`(a)\g<0>?`, {avoidSubclass: true, rules: {recursionLimit: 2}}).exec('aa')).toHaveSize(3);
       expect(toRegExp(r`(a)\g<0>?`).exec('aa')).toHaveSize(2);
       expect(toRegExp(r`(?<a>a)\g<0>?`).exec('aa')).toHaveSize(2);
     });
@@ -86,7 +86,7 @@ describe('Recursion', () => {
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {
-      expect(toRegExp(r`\A((a)\g<1>?)\z`, {avoidSubclass: true, recursionLimit: 2}).exec('aa')).toHaveSize(4);
+      expect(toRegExp(r`\A((a)\g<1>?)\z`, {avoidSubclass: true, rules: {recursionLimit: 2}}).exec('aa')).toHaveSize(4);
       expect(toRegExp(r`\A((a)\g<1>?)\z`).exec('aa')).toHaveSize(3);
       expect(toRegExp(r`\A((a)\g<1>?)\g<1>\z`).exec('aaaa')).toHaveSize(3);
     });
@@ -108,7 +108,7 @@ describe('Recursion', () => {
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {
-      expect(toRegExp(r`\A((a)\g<-2>?)\z`, {avoidSubclass: true, recursionLimit: 2}).exec('aa')).toHaveSize(4);
+      expect(toRegExp(r`\A((a)\g<-2>?)\z`, {avoidSubclass: true, rules: {recursionLimit: 2}}).exec('aa')).toHaveSize(4);
       expect(toRegExp(r`\A((a)\g<-2>?)\z`).exec('aa')).toHaveSize(3);
       expect(toRegExp(r`\A((a)\g<-2>?)\g<-2>\z`).exec('aaaa')).toHaveSize(3);
     });
@@ -139,7 +139,7 @@ describe('Recursion', () => {
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {
-      expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\z`, {avoidSubclass: true, recursionLimit: 2}).exec('aa')).toHaveSize(4);
+      expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\z`, {avoidSubclass: true, rules: {recursionLimit: 2}}).exec('aa')).toHaveSize(4);
       expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\z`).exec('aa')).toHaveSize(3);
       expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\g<a>\z`).exec('aaaa')).toHaveSize(3);
     });

@@ -19,12 +19,12 @@ const state = {
     avoidSubclass: getValue('option-avoidSubclass'),
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
-    recursionLimit: getValue('option-recursionLimit'),
     rules: {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
       captureGroup: getValue('option-captureGroup'),
       ignoreUnsupportedGAnchors: getValue('option-ignoreUnsupportedGAnchors'),
+      recursionLimit: getValue('option-recursionLimit'),
     },
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),
@@ -78,7 +78,6 @@ function showTranspiled() {
     }${
       state.flags.W ? 'W' : ''
     }`,
-    recursionLimit: state.opts.recursionLimit === '' ? 20 : +state.opts.recursionLimit,
     target: state.opts.target === 'auto' ? autoTarget : state.opts.target,
   };
   const errorObj = {error: true};
@@ -181,7 +180,13 @@ function getRegExpLiteralPattern(str) {
 
 function getValue(id) {
   const el = document.getElementById(id);
-  return el.type === 'checkbox' ? el.checked : el.value;
+  if (el.type === 'number') {
+    return +el.value;
+  }
+  if (el.type === 'checkbox') {
+    return el.checked;
+  }
+  return el.value;
 }
 
 function listDifferents(arr) {

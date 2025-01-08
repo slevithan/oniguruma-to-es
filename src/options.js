@@ -41,9 +41,6 @@ function getOptions(options) {
     global: false,
     // Include JavaScript flag `d` (`hasIndices`) in the result.
     hasIndices: false,
-    // Recursion depth limit. The default value of `20` is Oniguruma's limit, but you can use an
-    // integer from `2` to `20`.
-    recursionLimit: 20,
     // JavaScript version used for generated regexes. Using `auto` detects the best value based on
     // your environment. Later targets allow faster processing, simpler generated source, and
     // support for additional features.
@@ -58,10 +55,12 @@ function getOptions(options) {
       // Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
       asciiWordBoundaries: false,
       // Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`. Unnamed captures and numbered calls allowed
-      // when using named capture.
+      // when using named capture. On by default in `vscode-oniguruma`.
       captureGroup: false,
       // Removes unsupported uses of `\G`, rather than erroring.
       ignoreUnsupportedGAnchors: false,
+      // Changes the Oniguruma recursion depth limit (`20`). Values accepted are integers `2`-`20`.
+      recursionLimit: 20,
       ...(options?.rules),
     },
   };
