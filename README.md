@@ -14,7 +14,7 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
-Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars (via the Shiki library).
+Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars.
 
 Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression).
 
@@ -211,11 +211,10 @@ Advanced options that override standard behavior, error checking, and flags when
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
 - `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
 - `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
-  - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`.
-  - On by default in `vscode-oniguruma`.
+  - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
 - `ignoreUnsupportedGAnchors`: Remove unsupported uses of `\G`, rather than erroring.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed. This might lead to some false positive matches, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
-- `recursionLimit`: Change the recursion depth limit from Oniguruma's default of `20` to an integer `2`–`20`.
+- `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
 
 ### `target`
 

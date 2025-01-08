@@ -56,12 +56,11 @@ function getOptions(options) {
       asciiWordBoundaries: false,
       // Allow unnamed captures and numbered calls (backreferences and subroutines) when using
       // named capture.
-      // - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`.
-      // - On by default in `vscode-oniguruma`.
+      // - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
       captureGroup: false,
       // Remove unsupported uses of `\G`, rather than erroring.
       ignoreUnsupportedGAnchors: false,
-      // Change the recursion depth limit from Oniguruma's default of `20` to an integer `2`–`20`.
+      // Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
       recursionLimit: 20,
       ...(options?.rules),
     },

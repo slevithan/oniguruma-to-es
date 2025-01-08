@@ -95,23 +95,39 @@ describe('Assertion: Lookaround', () => {
 
     describe('contents', () => {
       it('should throw for invalid contents in positive lookbehind', () => {
-        expect(() => toDetails('(?<=(?=))')).toThrow();
-        expect(() => toDetails('(?<=(?!))')).toThrow();
-        expect(() => toDetails('(?<=(?<!))')).toThrow();
+        // Invalid
+        [ '(?<=(?=))', // positive lookahead
+          '(?<=(?:a(?=)))', // positive lookahead; not direct child
+          '(?<=(?!))', // negative lookahead
+          '(?<=(?<!))', // negative lookbehind
+        ].forEach(p => {
+          expect(() => toDetails(p)).toThrow();
+        });
         // Valid
-        expect(() => toDetails('(?<=(?<=))')).not.toThrow();
-        expect(() => toDetails('(?<=())')).not.toThrow();
-        expect(() => toDetails('(?<=(?<n>))')).not.toThrow();
+        [ '(?<=(?<=))', // positive lookbehind
+          '(?<=())', // capturing group (unnamed)
+          '(?<=(?<n>))', // capturing group (named)
+        ].forEach(p => {
+          expect(() => toDetails(p)).not.toThrow();
+        });
       });
 
       it('should throw for invalid contents in negative lookbehind', () => {
-        expect(() => toDetails('(?<!(?=))')).toThrow();
-        expect(() => toDetails('(?<!(?!))')).toThrow();
-        expect(() => toDetails('(?<!())')).toThrow();
-        expect(() => toDetails('(?<!(?<n>))')).toThrow();
+        // Invalid
+        [ '(?<!(?=))', // positive lookahead
+          '(?<!(?:a(?=)))', // positive lookahead; not direct child
+          '(?<!(?!))', // negative lookahead
+          '(?<!())', // capturing group (unnamed)
+          '(?<!(?<n>))', // capturing group (named)
+        ].forEach(p => {
+          expect(() => toDetails(p)).toThrow();
+        });
         // Valid
-        expect(() => toDetails('(?<!(?<=))')).not.toThrow();
-        expect(() => toDetails('(?<!(?<!))')).not.toThrow();
+        [ '(?<!(?<=))', // positive lookbehind
+          '(?<!(?<!))', // negative lookbehind
+        ].forEach(p => {
+          expect(() => toDetails(p)).not.toThrow();
+        });
       });
     });
   });
