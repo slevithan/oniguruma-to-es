@@ -206,14 +206,16 @@ Include JavaScript flag `d` (`hasIndices`) in the result.
 
 ### `rules`
 
-Advanced pattern options that override standard error checking and flags when enabled.
+Advanced options that override standard behavior, error checking, and flags when enabled.
 
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
 - `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
-- `captureGroup`: Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`. Unnamed captures and numbered calls allowed when using named capture. On by default in `vscode-oniguruma`.
-- `ignoreUnsupportedGAnchors`: Removes unsupported uses of `\G`, rather than erroring.
+- `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
+  - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`.
+  - On by default in `vscode-oniguruma`.
+- `ignoreUnsupportedGAnchors`: Remove unsupported uses of `\G`, rather than erroring.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed. This might lead to some false positive matches, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
-- `recursionLimit`: Changes the Oniguruma recursion depth limit (`20`). Values accepted are integers `2`-`20`.
+- `recursionLimit`: Change the recursion depth limit from the default `20` (used by Oniguruma) to an integer `2`–`20`.
 
 ### `target`
 
@@ -853,7 +855,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️<sup>[6]</sup></td>
     <td align="middle">☑️<sup>[6]</sup></td>
     <td>
-      ✔ Max depth of 20<br>
+      ✔ 20-level depth limit<br>
     </td>
   </tr>
   <tr valign="top">
@@ -866,7 +868,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️<sup>[6]</sup></td>
     <td align="middle">☑️<sup>[6]</sup></td>
     <td>
-      ✔ Max depth of 20<br>
+      ✔ 20-level depth limit<br>
     </td>
   </tr>
 
@@ -939,7 +941,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 3. Target `ES2018` doesn't support nested *negated* character classes.
 4. Supported uses of `\G` include `\G…`, `\G…|\G…`, `(?<=…)\G…`, `(^|\G)…`, `(?!\G)…`, and many others.
 5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because (1) most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), (2) erroring matches the behavior of named backreferences, and (3) the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
-6. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and using backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
+6. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
 
 ## ❌ Unsupported features
 

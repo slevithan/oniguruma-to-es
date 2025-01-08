@@ -48,18 +48,21 @@ function getOptions(options) {
     // Disables optimizations that simplify the pattern when it doesn't change the meaning.
     verbose: false,
     ...options,
-    // Advanced pattern options that override standard error checking and flags when enabled.
+    // Advanced options that override standard behavior, error checking, and flags when enabled.
     rules: {
       // Useful with TextMate grammars that merge backreferences across patterns.
       allowOrphanBackrefs: false,
       // Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
       asciiWordBoundaries: false,
-      // Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`. Unnamed captures and numbered calls allowed
-      // when using named capture. On by default in `vscode-oniguruma`.
+      // Allow unnamed captures and numbered calls (backreferences and subroutines) when using
+      // named capture.
+      // - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`.
+      // - On by default in `vscode-oniguruma`.
       captureGroup: false,
-      // Removes unsupported uses of `\G`, rather than erroring.
+      // Remove unsupported uses of `\G`, rather than erroring.
       ignoreUnsupportedGAnchors: false,
-      // Changes the Oniguruma recursion depth limit (`20`). Values accepted are integers `2`-`20`.
+      // Change the recursion depth limit from the default `20` (used by Oniguruma) to an integer
+      // `2`–`20`.
       recursionLimit: 20,
       ...(options?.rules),
     },
