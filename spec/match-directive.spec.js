@@ -1,6 +1,5 @@
 // TODO: Add me
 
-// import {toDetails} from '../dist/index.mjs';
 // import {r} from '../src/utils.js';
 // import {matchers} from './helpers/matchers.js';
 

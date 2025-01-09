@@ -9,6 +9,7 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.style/) syntax highlighter, etc.).
 - Share regexes across your Ruby and JavaScript code.<sup>✳︎</sup>
+- Evaluate Oniguruma regexes for validity, and traverse their ASTs.
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **less than 4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
@@ -129,6 +130,8 @@ function toOnigurumaAst(
 ): OnigurumaAst;
 ```
 
+An error is thrown if the pattern isn't valid in Oniguruma. But unlike `toRegExp` and `toDetails`, this won't evaluate whether the regex can be emulated in JavaScript.
+
 ### `EmulatedRegExp`
 
 Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given results from `toDetails` to produce the same result as `toRegExp`.
@@ -214,6 +217,7 @@ Advanced options that override standard behavior, error checking, and flags when
   - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
 - `ignoreUnsupportedGAnchors`: Remove unsupported uses of `\G`, rather than erroring.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed. This might lead to some false positive matches, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
+  - Validation of the regex doesn't ignore unsupported `\G`s, so e.g. a quantifier after `\G` will still error.
 - `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
 
 ### `target`

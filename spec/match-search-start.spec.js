@@ -7,7 +7,9 @@ beforeEach(() => {
   jasmine.addMatchers(matchers);
 });
 
-describe('Assertion: Search start', () => {
+describe('Assertion: search_start', () => {
+  // Note: See specs for option `rules.ignoreUnsupportedGAnchors` in `options.spec.js`
+
   it('should be identity escape within a char class', () => {
     expect('G').toExactlyMatch(r`[\G]`);
     expect('\\').not.toFindMatch(r`[\G]`);
@@ -33,7 +35,6 @@ describe('Assertion: Search start', () => {
     });
 
     it('should throw if not used at the start of every top-level alternative', () => {
-      expect(() => toDetails(r`a\G`)).toThrow();
       expect(() => toDetails(r`\Ga|b`)).toThrow();
       expect(() => toDetails(r`a|\Gb`)).toThrow();
     });
@@ -138,22 +139,11 @@ describe('Assertion: Search start', () => {
 
     // Note: Could support by replacing `\G` with `(?!)`, but these forms aren't useful
     it('should throw at unmatchable positions', () => {
+      expect(() => toDetails(r`a\G`)).toThrow();
       expect(() => toDetails(r`a\Gb`)).toThrow();
       expect(() => toDetails(r`(?<=a\Gb)`)).toThrow();
       expect(() => toDetails(r`(?=a\Gb)`)).toThrow();
       expect(() => toDetails(r`(?=ab\G)`)).toThrow();
-    });
-
-    it('should allow unsupported forms if allowing all search start anchors', () => {
-      const patterns = [
-        r`a\G`,
-        r`\Ga|b`,
-        r`(\G|a)b`,
-      ];
-      patterns.forEach(pattern => {
-        expect(() => toDetails(pattern)).toThrow();
-        expect(() => toDetails(pattern, {rules: {ignoreUnsupportedGAnchors: true}})).not.toThrow();
-      });
     });
   });
 
@@ -162,7 +152,7 @@ describe('Assertion: Search start', () => {
     it('should apply line_or_search_start', () => {
       // Matches with `^` since not global
       expect(toRegExp(r`(^|\G)a`).exec('b\na')?.index).toBe(2);
-      // Match the first 3 and last 1
+      // Matched `a`s are the first three and last one
       expect('aaabaaacaa\na'.match(toRegExp(r`(^|\G)a`, {global: true}))).toEqual(['a', 'a', 'a', 'a']);
       expect(toRegExp(r`(?:^|\G)a`).exec('b\na')?.index).toBe(2);
       expect(toRegExp(r`(\G|^)a`).exec('b\na')?.index).toBe(2);

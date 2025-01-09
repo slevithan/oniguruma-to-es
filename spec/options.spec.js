@@ -62,7 +62,7 @@ describe('Options', () => {
 
   describe('rules', () => {
     describe('captureGroup', () => {
-      it('enables mixed unnamed and named capture', () => {
+      it('should enable mixed unnamed and named capture', () => {
         expect('aba').toExactlyMatch({
           pattern: r`(a)(?<n>b)\1`,
           rules: {captureGroup: true},
@@ -75,7 +75,7 @@ describe('Options', () => {
         expect(() => toDetails(r`(a)(?<n>b)\1`)).toThrow();
       });
 
-      it('no multiplexing for numbered backrefs to named capture', () => {
+      it('should not multiplex for numbered backrefs to named capture', () => {
         expect('abb').toExactlyMatch({
           pattern: r`(?<n>a)(?<n>b)\2`,
           rules: {captureGroup: true},
@@ -86,7 +86,7 @@ describe('Options', () => {
         });
       });
 
-      it('multiplexing preserved for named backrefs', () => {
+      it('should preserve multiplexing for named backrefs', () => {
         expect(['abcb', 'abcc']).toExactlyMatch({
           pattern: r`(a)(?<n>b)(?<n>c)\k<n>`,
           rules: {captureGroup: true},
@@ -123,7 +123,7 @@ describe('Options', () => {
         });
       });
 
-      it('allows numbered subroutine refs to duplicate group names', () => {
+      it('should allow numbered subroutine refs to duplicate group names', () => {
         expect(['abca', 'abcc']).toExactlyMatch({
           pattern: r`(?<n>.)(?<n>.)\g<2>\k<n>`,
           rules: {captureGroup: true},
@@ -140,6 +140,25 @@ describe('Options', () => {
           pattern: r`(a)(?<n>.)(?<n>.)\g<2>\k<n>`,
           rules: {captureGroup: true},
         });
+      });
+    });
+
+    describe('ignoreUnsupportedGAnchors', () => {
+      it(r`should ignore unsupported uses of \G`, () => {
+        const patterns = [
+          r`a\G`,
+          r`\Ga|b`,
+          r`(\G|a)b`,
+        ];
+        patterns.forEach(pattern => {
+          expect(() => toDetails(pattern)).toThrow();
+          expect(() => toDetails(pattern, {rules: {ignoreUnsupportedGAnchors: true}})).not.toThrow();
+        });
+      });
+
+      it(r`should check validity of unsupported uses of \G`, () => {
+        expect(() => toDetails(r`a\G+`, {rules: {ignoreUnsupportedGAnchors: true}})).toThrow();
+        expect(() => toDetails(r`a\G`, {rules: {ignoreUnsupportedGAnchors: true}})).not.toThrow();
       });
     });
 
