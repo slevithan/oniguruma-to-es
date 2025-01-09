@@ -1,4 +1,4 @@
-# Oniguruma-To-ES (鬼車➟ES)
+# Oniguruma-To-ES (鬼車➟<img src="https://upload.wikimedia.org/wikipedia/commons/9/99/Unofficial_JavaScript_logo_2.svg" width="24" height="24">)
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
