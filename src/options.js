@@ -55,8 +55,8 @@ function getOptions(options) {
       // Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
       asciiWordBoundaries: false,
       // Allow unnamed captures and numbered calls (backreferences and subroutines) when using
-      // named capture.
-      // - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
+      // named capture. This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in
+      // `vscode-oniguruma`.
       captureGroup: false,
       // Remove unsupported uses of `\G`, rather than erroring.
       ignoreUnsupportedGAnchors: false,

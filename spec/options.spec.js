@@ -156,9 +156,14 @@ describe('Options', () => {
         });
       });
 
-      it(r`should check validity of unsupported uses of \G`, () => {
-        expect(() => toDetails(r`a\G+`, {rules: {ignoreUnsupportedGAnchors: true}})).toThrow();
+      it(r`should not ignore \G in parsing and validation`, () => {
         expect(() => toDetails(r`a\G`, {rules: {ignoreUnsupportedGAnchors: true}})).not.toThrow();
+        expect(() => toDetails(r`a\G+`, {rules: {ignoreUnsupportedGAnchors: true}})).toThrow();
+        expect(() => toDetails(r`\c\GA`, {rules: {ignoreUnsupportedGAnchors: true}})).toThrow();
+        expect('aa0').toExactlyMatch({
+          pattern: r`(a)\1\G0`,
+          rules: {ignoreUnsupportedGAnchors: true},
+        });
       });
     });
 

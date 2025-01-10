@@ -130,7 +130,7 @@ function toOnigurumaAst(
 ): OnigurumaAst;
 ```
 
-An error is thrown if the pattern isn't valid in Oniguruma. But unlike `toRegExp` and `toDetails`, this won't evaluate whether the regex can be emulated in JavaScript.
+An error is thrown if the pattern isn't valid in Oniguruma. But unlike `toRegExp` and `toDetails`, `toOnigurumaAst` doesn't evaluate whether the pattern can be emulated in JavaScript.
 
 ### `EmulatedRegExp`
 
@@ -214,10 +214,10 @@ Advanced options that override standard behavior, error checking, and flags when
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
 - `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
 - `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
-  - Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
+  - This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
 - `ignoreUnsupportedGAnchors`: Remove unsupported uses of `\G`, rather than erroring.
   - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed. This might lead to some false positive matches, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
-  - Validation of the regex doesn't ignore unsupported `\G`s, so e.g. a quantifier after `\G` will still error.
+  - Parsing and validation don't ignore `\G`, so e.g. `\G+` will still error.
 - `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
 
 ### `target`
