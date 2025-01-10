@@ -66,17 +66,14 @@ describe('Assertion: search_start', () => {
     });
 
     it('should throw if not an only child of a positive lookaround', () => {
+      // Note: Blocked cases like `(?=a\G)a` are handled separately and don't throw
       [ r`(?=\Ga)a`,
-        r`(?=a\G)a`,
         r`(?=\G|)a`,
         r`(?!\Ga)a`,
-        r`(?!a\G)a`,
         r`(?!\G|)a`,
         r`(?<=\Ga)a`,
-        r`(?<=a\G)a`,
         r`(?<=\G|)a`,
         r`(?<!\Ga)a`,
-        r`(?<!a\G)a`,
         r`(?<!\G|)a`,
       ].forEach(p => expect(() => toDetails(p)).withContext(p).toThrow());
     });
@@ -87,10 +84,27 @@ describe('Assertion: search_start', () => {
       expect('a').toExactlyMatch(r`[a]*\Ga`);
     });
 
+    // Documenting current behavior; these could be turned into valid match-blockers
     it('should throw if following a non-0-min quantified token', () => {
       expect(() => toDetails(r`a+\G`)).toThrow();
       expect(() => toDetails(r`a+?\G`)).toThrow();
       expect(() => toDetails(r`(a)+\G`)).toThrow();
+    });
+
+    it('should allow but never match if preceded by a non-zero-length token', () => {
+      expect('a').not.toFindMatch(r`a\G`);
+      expect('a').not.toFindMatch(r`[a]\G`);
+      expect('a').not.toFindMatch(r`\p{Any}\G`);
+      expect('ab').not.toFindMatch(r`a\Gb`);
+      expect('a').not.toFindMatch(r`(?=a\G)`);
+      expect('a').not.toFindMatch(r`(?=a\G)a`);
+      expect('ab').not.toFindMatch(r`(?=a\Gb)`);
+      expect('a').not.toFindMatch(r`(?<=a\G)`);
+      expect('ab').not.toFindMatch(r`(?<=a\G)b`);
+      expect('ab').not.toFindMatch(r`(?<=a\Gb)`);
+      expect('a').toExactlyMatch(r`(?!a\G)a`);
+      expect('a').toExactlyMatch(r`(?<!a\G)a`);
+      expect('ab').toFindMatch(r`(?<!a\G)b`);
     });
 
     it('should allow if within a wrapper group', () => {
@@ -135,15 +149,6 @@ describe('Assertion: search_start', () => {
     it('should throw if leading in a non-0-min quantified group', () => {
       expect(() => toDetails(r`(\Ga)+`)).toThrow();
       expect(() => toDetails(r`(\Ga)+\G`)).toThrow();
-    });
-
-    // Note: Could support by replacing `\G` with `(?!)`, but these forms aren't useful
-    it('should throw at unmatchable positions', () => {
-      expect(() => toDetails(r`a\G`)).toThrow();
-      expect(() => toDetails(r`a\Gb`)).toThrow();
-      expect(() => toDetails(r`(?<=a\Gb)`)).toThrow();
-      expect(() => toDetails(r`(?=a\Gb)`)).toThrow();
-      expect(() => toDetails(r`(?=ab\G)`)).toThrow();
     });
   });
 

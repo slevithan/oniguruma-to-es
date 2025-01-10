@@ -5,7 +5,7 @@ import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
-import {isLookaround, isZeroLengthNode} from './utils-ast.js';
+import {canMatchZeroLength, isLookaround} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
@@ -130,7 +130,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, ast, remove, replaceWith}, {asciiWordBoundaries, ignoreUnsupportedGAnchors, supportedGNodes, wordIsAscii}) {
+  Assertion({node, key, container, ast, remove, replaceWith}, {asciiWordBoundaries, ignoreUnsupportedGAnchors, supportedGNodes, wordIsAscii}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -142,10 +142,27 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
         ast.flags.sticky = true;
-      } else if (!ignoreUnsupportedGAnchors) {
-        throw new Error(r`Uses "\G" in a way that's unsupported`);
+        remove();
+      } else {
+        const prevType = container[key - 1]?.type; // parent.elements[key - 1]
+        // This is an incomplete list of ways to block the `\G` from matching, but blocked `\G` is
+        // an edge case so it's okay if some blockers trigger the standard error for unsupported
+        // `\G`. Additional ways to block include:
+        // - A node prior to the previous node blocks
+        // - Non-zero-min quantified node (but can't just check quantifier's `min` because it might
+        //   repeat a group that can match zero-length)
+        if (
+          prevType === AstTypes.Character ||
+          prevType === AstTypes.CharacterClass ||
+          prevType === AstTypes.CharacterSet
+        ) {
+          replaceWith(prepContainer(createLookaround({negate: true})));
+        } else if (!ignoreUnsupportedGAnchors) {
+          throw new Error(r`Uses "\G" in a way that's unsupported`);
+        } else {
+          remove();
+        }
       }
-      remove();
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
     } else if (kind === AstAssertionKinds.word_boundary && !wordIsAscii && !asciiWordBoundaries) {
@@ -769,7 +786,7 @@ function getLeadingG(els) {
   const firstToConsider = els.find(el => (
     el.kind === AstAssertionKinds.search_start ||
     isLoneGLookaround(el, {negate: false}) ||
-    !isZeroLengthNode(el)
+    !canMatchZeroLength(el)
   ));
   if (!firstToConsider) {
     return null;

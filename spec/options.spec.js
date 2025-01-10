@@ -156,8 +156,8 @@ describe('Options', () => {
     describe('ignoreUnsupportedGAnchors', () => {
       it(r`should ignore unsupported uses of \G`, () => {
         const patterns = [
-          r`a\G`,
           r`\Ga|b`,
+          r`a|\Gb`,
           r`(\G|a)b`,
         ];
         patterns.forEach(pattern => {

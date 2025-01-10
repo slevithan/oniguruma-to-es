@@ -1,5 +1,5 @@
 import {AstAssertionKinds, AstTypes} from './parse.js';
-import {hasOnlyChild, isLookaround, isZeroLengthNode} from './utils-ast.js';
+import {canMatchZeroLength, hasOnlyChild, isLookaround} from './utils-ast.js';
 import {RegExpSubclass} from 'regex/internals';
 
 /**
@@ -200,7 +200,7 @@ function applySubclassStrategies(ast) {
   }
   for (let i = 0; i < singleAltIn.elements.length; i++) {
     const el = singleAltIn.elements[i];
-    if (!isZeroLengthNode(el)) {
+    if (!canMatchZeroLength(el)) {
       break;
     }
     if (isLoneGLookaround(el, {negate: true})) {
