@@ -16,9 +16,6 @@ describe('Assertion: search_start', () => {
   });
 
   describe('without subclass', () => {
-    // TODO: Consider enabling `avoidSubclass` for all of these except when specifically testing
-    // subclass strategies
-
     it('should match at the start of the search', () => {
       expect('a').toExactlyMatch(r`\Ga`);
       expect([
@@ -66,7 +63,7 @@ describe('Assertion: search_start', () => {
     });
 
     it('should throw if not an only child of a positive lookaround', () => {
-      // Note: Blocked cases like `(?=a\G)a` are handled separately and don't throw
+      // Note: Match-blocker cases like `(?=a\G)a` are handled separately and don't throw
       [ r`(?=\Ga)a`,
         r`(?=\G|)a`,
         r`(?!\Ga)a`,
@@ -84,14 +81,18 @@ describe('Assertion: search_start', () => {
       expect('a').toExactlyMatch(r`[a]*\Ga`);
     });
 
-    // Documenting current behavior; these could be turned into valid match-blockers
+    // Documenting current behavior
     it('should throw if following a non-0-min quantified token', () => {
       expect(() => toDetails(r`a+\G`)).toThrow();
       expect(() => toDetails(r`a+?\G`)).toThrow();
+      expect(() => toDetails(r`aa*\G`)).toThrow();
       expect(() => toDetails(r`(a)+\G`)).toThrow();
+      expect(() => toDetails(r`(a|)+\G`)).toThrow();
+      expect(() => toDetails(r`()+\G`)).toThrow();
     });
 
-    it('should allow but never match if preceded by a non-zero-length token', () => {
+    it('should block matches if preceded by a non-zero-length token', () => {
+      expect(toRegExp(r`a\G`).sticky).toBe(false);
       expect('a').not.toFindMatch(r`a\G`);
       expect('a').not.toFindMatch(r`[a]\G`);
       expect('a').not.toFindMatch(r`\p{Any}\G`);
