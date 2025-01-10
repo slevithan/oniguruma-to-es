@@ -698,11 +698,12 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
   <tr valign="top">
     <td>Possessive</td>
-    <td><code>?+</code>, <code>*+</code>, <code>++</code></td>
+    <td><code>?+</code>, <code>*+</code>, <code>++</code>, <code>{3,2}</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ <code>+</code> suffix doesn't make <code>{…}</code> interval quantifiers possessive (creates a quantifier chain)<br>
+      ✔ <code>+</code> suffix doesn't make <code>{…}</code> quantifiers possessive (creates a quantifier chain)<br>
+      ✔ Reversed <code>{…}</code> ranges are possessive<br>
     </td>
   </tr>
   <tr valign="top">
