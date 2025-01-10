@@ -7,6 +7,20 @@ beforeEach(() => {
 });
 
 describe('Options', () => {
+  // TODO: Add me
+  // describe('accuracy', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
+
+  // TODO: Add me
+  // describe('avoidSubclass', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
+
   describe('flags', () => {
     it('should accept and translate supported flags', () => {
       expect(toDetails('', {flags: 'i'}).flags).toContain('i');
@@ -28,39 +42,35 @@ describe('Options', () => {
     });
   });
 
-  describe('target', () => {
-    it('should set target based on env for target auto', () => {
-      if (envSupportsFlagV) {
-        expect(toDetails('', {target: 'auto'}).flags).toBe('v');
-      } else {
-        expect(toDetails('', {target: 'auto'}).flags).toBe('u');
-      }
-    });
+  // TODO: Add me
+  // describe('global', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
 
-    it('should use target auto if unspecified', () => {
-      if (envSupportsFlagV) {
-        expect(toDetails('').flags).toBe('v');
-      } else {
-        expect(toDetails('').flags).toBe('u');
-      }
-    });
-
-    it('should add flag v for target ES2024+', () => {
-      expect(toDetails('', {target: 'ES2024'}).flags).toBe('v');
-      expect(toDetails('', {target: 'ES2025'}).flags).toBe('v');
-    });
-
-    it('should add flag u for target ES2018', () => {
-      expect(toDetails('', {target: 'ES2018'}).flags).toBe('u');
-    });
-
-    it('should throw for unexpected targets', () => {
-      expect(() => toDetails('', {target: 'ES6'})).toThrow();
-      expect(() => toDetails('', {target: 'ES2019'})).toThrow();
-    });
-  });
+  // TODO: Add me
+  // describe('hasIndices', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
 
   describe('rules', () => {
+    // TODO: Add me
+    // describe('allowOrphanBackrefs', () => {
+    //   it('should', () => {
+    //     expect('').toExactlyMatch(r``);
+    //   });
+    // });
+
+    // TODO: Add me
+    // describe('asciiWordBoundaries', () => {
+    //   it('should', () => {
+    //     expect('').toExactlyMatch(r``);
+    //   });
+    // });
+
     describe('captureGroup', () => {
       it('should enable mixed unnamed and named capture', () => {
         expect('aba').toExactlyMatch({
@@ -167,8 +177,60 @@ describe('Options', () => {
       });
     });
 
-    // TODO: Add remaining
+    describe('recursionLimit', () => {
+      it('should throw if recursionLimit is not an integer 2-20', () => {
+        for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', null, undefined, NaN, false]) {
+          expect(() => toDetails('', {rules: {recursionLimit: value}})).toThrow();
+        }
+      });
+
+      it('should allow recursionLimit 2-20', () => {
+        for (let i = 2; i <= 20; i++) {
+          expect('a'.repeat(i)).toExactlyMatch({
+            pattern: r`a\g<0>?`,
+            rules: {recursionLimit: i},
+          });
+        }
+      });
+    });
   });
 
-  // TODO: Add remaining
+  describe('target', () => {
+    it('should set target based on env for target auto', () => {
+      if (envSupportsFlagV) {
+        expect(toDetails('', {target: 'auto'}).flags).toBe('v');
+      } else {
+        expect(toDetails('', {target: 'auto'}).flags).toBe('u');
+      }
+    });
+
+    it('should use target auto if unspecified', () => {
+      if (envSupportsFlagV) {
+        expect(toDetails('').flags).toBe('v');
+      } else {
+        expect(toDetails('').flags).toBe('u');
+      }
+    });
+
+    it('should add flag v for target ES2024+', () => {
+      expect(toDetails('', {target: 'ES2024'}).flags).toBe('v');
+      expect(toDetails('', {target: 'ES2025'}).flags).toBe('v');
+    });
+
+    it('should add flag u for target ES2018', () => {
+      expect(toDetails('', {target: 'ES2018'}).flags).toBe('u');
+    });
+
+    it('should throw for unexpected targets', () => {
+      expect(() => toDetails('', {target: 'ES6'})).toThrow();
+      expect(() => toDetails('', {target: 'ES2019'})).toThrow();
+    });
+  });
+
+  // TODO: Add me
+  // describe('verbose', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
 });

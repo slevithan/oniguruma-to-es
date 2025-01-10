@@ -7,20 +7,7 @@ beforeEach(() => {
 });
 
 describe('Recursion', () => {
-  it('should throw if recursionLimit is not an integer 2-20', () => {
-    for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', null, undefined, NaN, false]) {
-      expect(() => toDetails('', {rules: {recursionLimit: value}})).toThrow();
-    }
-  });
-
-  it('should allow recursionLimit 2-20', () => {
-    for (let i = 2; i <= 20; i++) {
-      expect('a'.repeat(i)).toExactlyMatch({
-        pattern: r`a\g<0>?`,
-        rules: {recursionLimit: i},
-      });
-    }
-  });
+  // Note: See specs for option `rules.recursionLimit` in `options.spec.js`
 
   // Documenting current behavior
   it('should throw if backref used with recursion when the recursed subpattern contains captures', () => {
