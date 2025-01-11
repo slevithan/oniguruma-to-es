@@ -63,7 +63,7 @@ describe('Assertion: search_start', () => {
     });
 
     it('should throw if not an only child of a positive lookaround', () => {
-      // Note: Match-blocker cases like `(?=a\G)a` are handled separately and don't throw
+      // Note: Never-matching cases like `(?=a\G)a` are handled separately and don't throw
       [ r`(?=\Ga)a`,
         r`(?=\G|)a`,
         r`(?!\Ga)a`,
@@ -75,23 +75,7 @@ describe('Assertion: search_start', () => {
       ].forEach(p => expect(() => toDetails(p)).withContext(p).toThrow());
     });
 
-    it('should allow if following a 0-min quantified token', () => {
-      expect('a').toExactlyMatch(r`a*\Ga`);
-      expect('a').toExactlyMatch(r`(a)*\Ga`);
-      expect('a').toExactlyMatch(r`[a]*\Ga`);
-    });
-
-    // Documenting current behavior
-    it('should throw if following a non-0-min quantified token', () => {
-      expect(() => toDetails(r`a+\G`)).toThrow();
-      expect(() => toDetails(r`a+?\G`)).toThrow();
-      expect(() => toDetails(r`aa*\G`)).toThrow();
-      expect(() => toDetails(r`(a)+\G`)).toThrow();
-      expect(() => toDetails(r`(a|)+\G`)).toThrow();
-      expect(() => toDetails(r`()+\G`)).toThrow();
-    });
-
-    it('should block matches if preceded by a non-zero-length token', () => {
+    it('should never match if preceded by a non-zero-length token', () => {
       expect(toRegExp(r`a\G`).sticky).toBe(false);
       expect('a').not.toFindMatch(r`a\G`);
       expect('a').not.toFindMatch(r`[a]\G`);
@@ -106,6 +90,23 @@ describe('Assertion: search_start', () => {
       expect('a').toExactlyMatch(r`(?!a\G)a`);
       expect('a').toExactlyMatch(r`(?<!a\G)a`);
       expect('ab').toFindMatch(r`(?<!a\G)b`);
+    });
+
+    // Documenting current behavior
+    it('should throw if following a quantified token', () => {
+      // Min-zero length preceding `\G`
+      expect(() => toDetails(r`a*\G`)).toThrow();
+      expect(() => toDetails(r`a*\Ga`)).toThrow();
+      expect(() => toDetails(r`(a)*\G`)).toThrow();
+      expect(() => toDetails(r`(a)*\Ga`)).toThrow();
+      expect(() => toDetails(r`[a]*\G`)).toThrow();
+      expect(() => toDetails(r`()+\G`)).toThrow();
+      expect(() => toDetails(r`(a|)+\G`)).toThrow();
+      // Non-min-zero length preceding `\G`
+      expect(() => toDetails(r`a+\G`)).toThrow();
+      expect(() => toDetails(r`a+?\G`)).toThrow();
+      expect(() => toDetails(r`aa*\G`)).toThrow();
+      expect(() => toDetails(r`(a)+\G`)).toThrow();
     });
 
     it('should allow if within a wrapper group', () => {
@@ -180,15 +181,18 @@ describe('Assertion: search_start', () => {
       expect(toRegExp(r`(?<!\G)a`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`(?:(?!\G)a)`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`((?!\G)a)`).exec('aba')?.index).toBe(2);
-      // Preceding zero-length nodes
+      // Has preceding zero-length node/s
       expect(toRegExp(r`(?<=;)(?!\G)`).exec(';;')?.index).toBe(1);
       expect(toRegExp(r`(?!\G)(?=;)^`).exec(';;\n;')?.index).toBe(3);
       expect(toRegExp(r`(?=;)(?!\G)^`).exec(';;\n;')?.index).toBe(3);
       expect(toRegExp(r`(?=;)^(?!\G)`).exec(';;\n;')?.index).toBe(3);
-      expect(toRegExp(r`a*(?!\G)a`).exec('abcaaa')?.[0]).toBe('aaa');
-      // Preceding non-zero-length nodes
-      expect(() => toDetails(r`a+(?!\G)a`)).toThrow();
+      // Has preceding non-zero-length node
       expect(() => toDetails(r`a(?!\G)a`)).toThrow();
+      expect(() => toDetails(r`a+(?!\G)a`)).toThrow();
+      // Has preceding min-zero-length quantified node
+      expect(() => toDetails(r`a*(?!\G)a`)).toThrow();
+      // expect(toRegExp(r`a*(?!\G)a`).exec('abcaaa')?.[0]).toBe('aaa');
+      // expect('abcaaa'.match(toRegExp(r`a*(?!\G)`, {global}))).toEqual(['a', '', 'aaa']);
     });
   });
 });

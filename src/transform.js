@@ -5,7 +5,7 @@ import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
-import {canMatchZeroLength, isLookaround} from './utils-ast.js';
+import {isAlwaysZeroLength, isLookaround} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
@@ -786,7 +786,7 @@ function getLeadingG(els) {
   const firstToConsider = els.find(el => (
     el.kind === AstAssertionKinds.search_start ||
     isLoneGLookaround(el, {negate: false}) ||
-    !canMatchZeroLength(el)
+    !isAlwaysZeroLength(el)
   ));
   if (!firstToConsider) {
     return null;
