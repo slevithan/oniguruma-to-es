@@ -158,39 +158,52 @@ describe('Assertion: search_start', () => {
   describe('subclass strategies', () => {
     // Leading `(^|\G)` and similar
     it('should apply line_or_search_start', () => {
-      // Matches with `^` since not global
+      // ## Leading
+      // Match uses the `^` since not global
       expect(toRegExp(r`(^|\G)a`).exec('b\na')?.index).toBe(2);
       // Matched `a`s are the first three and last one
       expect('aaabaaacaa\na'.match(toRegExp(r`(^|\G)a`, {global: true}))).toEqual(['a', 'a', 'a', 'a']);
       expect(toRegExp(r`(?:^|\G)a`).exec('b\na')?.index).toBe(2);
       expect(toRegExp(r`(\G|^)a`).exec('b\na')?.index).toBe(2);
+      expect(toRegExp(r`(?<n>\G|^)a`).exec('b\na')?.index).toBe(2);
       expect(toRegExp(r`(?:(\G|^)a)`).exec('b\na')?.index).toBe(2);
       expect(toRegExp(r`((\G|^)a)`).exec('b\na')?.index).toBe(2);
-
-      // Updates match indices accurately
+      // ## With preceding directive/s
+      expect(toRegExp(r`(?i)(^|\G)a`).exec('b\na')?.index).toBe(2);
+      expect(toRegExp(r`(?i)(?x)(^|\G)a`).exec('b\na')?.index).toBe(2);
+      // ## With preceding assertion/s
+      expect(toRegExp(r`(?=a)(^|\G)a`).exec('b\na')?.index).toBe(2);
+      expect(toRegExp(r`(?=a)(?!b)\b(^|\G)a`).exec('b\na')?.index).toBe(2);
+      // ## Match indices on results are accurate
       const re = toRegExp(r`(?<n>^|\G)a`, {global: true, hasIndices: true});
       re.lastIndex = 2;
-      expect(re.exec('12a').indices[0][0]).toBe(2);
-      re.lastIndex = 2;
-      expect(re.exec('12a').indices.groups.n[0]).toBe(2);
+      const match = re.exec('12a');
+      expect(match.indices[0][0]).toBe(2);
+      expect(match.indices.groups.n[0]).toBe(2);
     });
 
     // Leading `(?!\G)` and similar
     it('should apply not_search_start', () => {
-      // Leading
+      // ## Leading
       expect(toRegExp(r`(?!\G)a`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`(?<!\G)a`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`(?:(?!\G)a)`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`((?!\G)a)`).exec('aba')?.index).toBe(2);
-      // Has preceding zero-length node/s
+      // ## With preceding directive/s
+      expect(toRegExp(r`(?i)(?!\G)`).exec(';;')?.index).toBe(1);
+      expect(toRegExp(r`(?i)(?x)(?!\G)`).exec(';;')?.index).toBe(1);
+      // ## With preceding assertion/s
       expect(toRegExp(r`(?<=;)(?!\G)`).exec(';;')?.index).toBe(1);
-      expect(toRegExp(r`(?!\G)(?=;)^`).exec(';;\n;')?.index).toBe(3);
-      expect(toRegExp(r`(?=;)(?!\G)^`).exec(';;\n;')?.index).toBe(3);
       expect(toRegExp(r`(?=;)^(?!\G)`).exec(';;\n;')?.index).toBe(3);
-      // Has preceding non-zero-length node
+      expect(toRegExp(r`(?=;)(?!\G)^`).exec(';;\n;')?.index).toBe(3);
+      expect(toRegExp(r`(?!\G)(?=;)^`).exec(';;\n;')?.index).toBe(3);
+      // ## With preceding `\G`
+      expect(() => toDetails(r`\G(?!\G)`)).toThrow();
+      expect(() => toDetails(r`(?=\G)(?!\G)`)).toThrow();
+      // ## With preceding non-zero-length node
       expect(() => toDetails(r`a(?!\G)a`)).toThrow();
       expect(() => toDetails(r`a+(?!\G)a`)).toThrow();
-      // Has preceding min-zero-length quantified node
+      // ## With preceding min-zero-length quantified node
       expect(() => toDetails(r`a*(?!\G)a`)).toThrow();
       // expect(toRegExp(r`a*(?!\G)a`).exec('abcaaa')?.[0]).toBe('aaa');
       // expect('abcaaa'.match(toRegExp(r`a*(?!\G)`, {global}))).toEqual(['a', '', 'aaa']);

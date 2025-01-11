@@ -145,12 +145,11 @@ function adjustMatchDetails(str, re, match, offset) {
 }
 
 // Special case AST transformation handling that requires coupling with a `RegExp` subclass (see
-// `EmulatedRegExp`). These changes add emulation support for some common patterns that are
-// otherwise unsupportable. Only one subclass strategy is supported per pattern
+// `EmulatedRegExp`). These changes add emulation support for some patterns that are otherwise
+// unsupportable. Only one subclass strategy is supported per pattern
 function applySubclassStrategies(ast) {
   const alts = ast.pattern.alternatives;
   const firstEl = alts[0].elements[0];
-
   if (alts.length > 1 || !firstEl) {
     // These strategies only work if there's no top-level alternation
     return null;
@@ -163,8 +162,14 @@ function applySubclassStrategies(ast) {
     firstEl.alternatives.length === 1;
   const singleAltIn = hasWrapperGroup ? firstEl.alternatives[0] : alts[0];
   // First el within first group if the group doesn't contain top-level alternation, else just the
-  // first el of the pattern; ex: a flag group might enclose the full pattern
-  const firstElIn = hasWrapperGroup ? singleAltIn.elements[0] : firstEl;
+  // first el of the pattern; ex: a flag group might enclose the full pattern. Skips assertions
+  // like `\b` and directives like `(?i)` when considering the first element
+  const firstElInIndex = singleAltIn.elements.findIndex(el => (
+    el.kind === AstAssertionKinds.search_start ||
+    isLoneGLookaround(el) ||
+    !isAlwaysZeroLength(el)
+  ));
+  const firstElIn = singleAltIn.elements[firstElInIndex];
   if (!firstElIn) {
     return null;
   }
@@ -195,28 +200,21 @@ function applySubclassStrategies(ast) {
   // ## Strategy `not_search_start`: Support leading `(?!\G)` and similar
   if (isLoneGLookaround(firstElIn, {negate: true})) {
     // Remove the `\G` and its containing negative lookaround
-    firstElIn.parent.elements.shift();
+    firstElIn.parent.elements.splice(firstElInIndex, 1);
     return 'not_search_start';
-  }
-  for (let i = 0; i < singleAltIn.elements.length; i++) {
-    const el = singleAltIn.elements[i];
-    if (!isAlwaysZeroLength(el)) {
-      break;
-    }
-    if (isLoneGLookaround(el, {negate: true})) {
-      // Remove the `\G` and its containing negative lookaround
-      singleAltIn.elements.splice(i, 1);
-      return 'not_search_start';
-    }
   }
 
   return null;
 }
 
 function isLoneGLookaround(node, options) {
+  const opts = {
+    negate: null,
+    ...options,
+  };
   return (
     isLookaround(node) &&
-    node.negate === options.negate &&
+    (opts.negate === null || node.negate === opts.negate) &&
     hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start)
   );
 }
