@@ -8,13 +8,6 @@ function hasOnlyChild({alternatives}, kidFn) {
   );
 }
 
-function isLookaround({type, kind}) {
-  return (
-    type === AstTypes.Assertion &&
-    (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind)
-  );
-}
-
 function isAlwaysZeroLength({type}) {
   return type === AstTypes.Assertion || type === AstTypes.Directive;
 }
@@ -32,9 +25,24 @@ function isAlwaysNonZeroLength(node) {
   );
 }
 
+// Consumptive groups add to the match.
+// - Includes: capturing, named capturing, noncapturing, atomic, and flag groups
+// - Excludes: lookarounds
+function isConsumptiveGroup({type}) {
+  return type === AstTypes.CapturingGroup || type === AstTypes.Group;
+}
+
+function isLookaround({type, kind}) {
+  return (
+    type === AstTypes.Assertion &&
+    (kind === AstAssertionKinds.lookahead || kind === AstAssertionKinds.lookbehind)
+  );
+}
+
 export {
   hasOnlyChild,
   isAlwaysNonZeroLength,
   isAlwaysZeroLength,
+  isConsumptiveGroup,
   isLookaround,
 };

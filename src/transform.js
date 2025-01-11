@@ -5,7 +5,7 @@ import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
-import {isAlwaysNonZeroLength, isAlwaysZeroLength, isLookaround} from './utils-ast.js';
+import {isAlwaysNonZeroLength, isAlwaysZeroLength, isConsumptiveGroup, isLookaround} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
@@ -790,7 +790,7 @@ function getLeadingG(els) {
   if (isLookaround(firstToConsider)) {
     return firstToConsider.alternatives[0].elements[0];
   }
-  if (firstToConsider.type === AstTypes.Group || firstToConsider.type === AstTypes.CapturingGroup) {
+  if (isConsumptiveGroup(firstToConsider)) {
     const gNodesForGroup = [];
     // Recursively find `\G` nodes for all alternatives in the group
     for (const alt of firstToConsider.alternatives) {

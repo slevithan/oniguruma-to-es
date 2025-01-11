@@ -441,31 +441,35 @@ function createAlternative() {
   };
 }
 
+function createAssertion(kind, options) {
+  // Use `createLookaround` for lookahead and lookbehind assertions
+  const negate = !!options?.negate;
+  return {
+    type: AstTypes.Assertion,
+    kind,
+    ...(kind === AstAssertionKinds.word_boundary ? {negate} : null),
+  };
+}
+
 function createAssertionFromToken({type, kind, negate}) {
-  if (type === TokenTypes.GroupOpen) {
-    return createLookaround({
+  return type === TokenTypes.GroupOpen ?
+    createLookaround({
       behind: kind === TokenGroupKinds.lookbehind,
       negate,
-    });
-  }
-  const nodeKind = throwIfNot({
-    '^': AstAssertionKinds.line_start,
-    '$': AstAssertionKinds.line_end,
-    '\\A': AstAssertionKinds.string_start,
-    '\\b': AstAssertionKinds.word_boundary,
-    '\\B': AstAssertionKinds.word_boundary,
-    '\\G': AstAssertionKinds.search_start,
-    '\\z': AstAssertionKinds.string_end,
-    '\\Z': AstAssertionKinds.string_end_newline,
-  }[kind], `Unexpected assertion kind "${kind}"`);
-  const node = {
-    type: AstTypes.Assertion,
-    kind: nodeKind,
-  };
-  if (nodeKind === AstAssertionKinds.word_boundary) {
-    node.negate = kind === r`\B`;
-  }
-  return node;
+    }) :
+    createAssertion(
+      throwIfNot({
+        '^': AstAssertionKinds.line_start,
+        '$': AstAssertionKinds.line_end,
+        '\\A': AstAssertionKinds.string_start,
+        '\\b': AstAssertionKinds.word_boundary,
+        '\\B': AstAssertionKinds.word_boundary,
+        '\\G': AstAssertionKinds.search_start,
+        '\\z': AstAssertionKinds.string_end,
+        '\\Z': AstAssertionKinds.string_end_newline,
+      }[kind], `Unexpected assertion kind "${kind}"`),
+      {negate: kind === r`\B`}
+    );
 }
 
 function createBackreference(ref, options) {
@@ -768,6 +772,7 @@ export {
   AstTypes,
   AstVariableLengthCharacterSetKinds,
   createAlternative,
+  createAssertion,
   createBackreference,
   createCapturingGroup,
   createCharacter,

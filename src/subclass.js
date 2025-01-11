@@ -1,5 +1,5 @@
-import {AstAssertionKinds, AstTypes} from './parse.js';
-import {hasOnlyChild, isAlwaysZeroLength, isLookaround} from './utils-ast.js';
+import {AstAssertionKinds} from './parse.js';
+import {hasOnlyChild, isAlwaysZeroLength, isConsumptiveGroup, isLookaround} from './utils-ast.js';
 import {RegExpSubclass} from 'regex/internals';
 
 /**
@@ -156,9 +156,7 @@ function applySubclassStrategies(ast) {
   }
 
   const hasWrapperGroup =
-    hasOnlyChild(ast.pattern, kid => (
-      kid.type === AstTypes.CapturingGroup || kid.type === AstTypes.Group
-    )) &&
+    hasOnlyChild(ast.pattern, kid => isConsumptiveGroup(kid)) &&
     firstEl.alternatives.length === 1;
   const singleAltIn = hasWrapperGroup ? firstEl.alternatives[0] : alts[0];
   // First el within first group if the group doesn't contain top-level alternation, else just the
@@ -176,7 +174,7 @@ function applySubclassStrategies(ast) {
 
   // ## Strategy `line_or_search_start`: Support leading `(^|\G)` and similar
   if (
-    (firstElIn.type === AstTypes.CapturingGroup || firstElIn.type === AstTypes.Group) &&
+    isConsumptiveGroup(firstElIn) &&
     firstElIn.alternatives.length === 2 &&
     firstElIn.alternatives[0].elements.length === 1 &&
     firstElIn.alternatives[1].elements.length === 1

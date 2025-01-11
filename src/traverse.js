@@ -1,6 +1,6 @@
 import {AstTypes} from './parse.js';
 import {throwIfNot} from './utils.js';
-import {isLookaround} from './utils-ast.js';
+import {isConsumptiveGroup, isLookaround} from './utils-ast.js';
 
 function traverse(path, state, visitor) {
   let ast = path.node;
@@ -106,12 +106,11 @@ const AstTypeAliases = {
 };
 
 function getAstTypeAliases(node) {
-  const {type} = node;
   const types = [AstTypeAliases.AnyNode];
-  if (type === AstTypes.CapturingGroup || type === AstTypes.Group || isLookaround(node)) {
+  if (isConsumptiveGroup(node) || isLookaround(node)) {
     types.push(AstTypeAliases.AnyGroup);
   }
-  types.push(type);
+  types.push(node.type);
   return types;
 }
 
