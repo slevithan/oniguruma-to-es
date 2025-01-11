@@ -81,6 +81,8 @@ describe('Assertion: search_start', () => {
       expect('a').not.toFindMatch(r`[a]\G`);
       expect('a').not.toFindMatch(r`\p{Any}\G`);
       expect('ab').not.toFindMatch(r`a\Gb`);
+      expect('a').not.toFindMatch(r`a+\G`);
+      expect('a').not.toFindMatch(r`a+?\G`);
       expect('a').not.toFindMatch(r`(?=a\G)`);
       expect('a').not.toFindMatch(r`(?=a\G)a`);
       expect('ab').not.toFindMatch(r`(?=a\Gb)`);
@@ -103,8 +105,7 @@ describe('Assertion: search_start', () => {
       expect(() => toDetails(r`()+\G`)).toThrow();
       expect(() => toDetails(r`(a|)+\G`)).toThrow();
       // Non-min-zero length preceding `\G`
-      expect(() => toDetails(r`a+\G`)).toThrow();
-      expect(() => toDetails(r`a+?\G`)).toThrow();
+      // Note: Never-matching cases like `a+\G` are handled separately and don't throw
       expect(() => toDetails(r`aa*\G`)).toThrow();
       expect(() => toDetails(r`(a)+\G`)).toThrow();
     });

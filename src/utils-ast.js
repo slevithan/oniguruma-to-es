@@ -19,8 +19,22 @@ function isAlwaysZeroLength({type}) {
   return type === AstTypes.Assertion || type === AstTypes.Directive;
 }
 
+function isAlwaysNonZeroLength(node) {
+  const types = [
+    AstTypes.Character,
+    AstTypes.CharacterClass,
+    AstTypes.CharacterSet,
+  ];
+  return types.includes(node.type) || (
+    node.type === AstTypes.Quantifier &&
+    node.min &&
+    types.includes(node.element.type)
+  );
+}
+
 export {
   hasOnlyChild,
+  isAlwaysNonZeroLength,
   isAlwaysZeroLength,
   isLookaround,
 };

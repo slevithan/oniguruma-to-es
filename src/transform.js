@@ -5,7 +5,7 @@ import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
-import {isAlwaysZeroLength, isLookaround} from './utils-ast.js';
+import {isAlwaysNonZeroLength, isAlwaysZeroLength, isLookaround} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
@@ -144,18 +144,11 @@ const FirstPassVisitor = {
         ast.flags.sticky = true;
         remove();
       } else {
-        const prevType = container[key - 1]?.type; // parent.elements[key - 1]
-        // This is an incomplete list of ways to block the `\G` from matching, but blocked `\G` is
-        // an edge case so it's okay if some blockers trigger the standard error for unsupported
-        // `\G`. Additional ways to block include:
-        // - A node prior to the previous node blocks
-        // - Non-zero-min quantified node (but can't just check quantifier's `min` because it might
-        //   repeat a group that can match zero-length)
-        if (
-          prevType === AstTypes.Character ||
-          prevType === AstTypes.CharacterClass ||
-          prevType === AstTypes.CharacterSet
-        ) {
+        const prev = container[key - 1]; // parent.elements[key - 1]
+        // Not all ways of blocking the `\G` from matching are covered (ex: a node prior to the
+        // prev node could block), but blocked `\G` is an edge case so it's okay if some blocked
+        // cases resulting in the standard error for being unsupported
+        if (prev && isAlwaysNonZeroLength(prev)) {
           replaceWith(prepContainer(createLookaround({negate: true})));
         } else if (!ignoreUnsupportedGAnchors) {
           throw new Error(r`Uses "\G" in a way that's unsupported`);
