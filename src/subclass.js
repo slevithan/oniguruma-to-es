@@ -95,8 +95,8 @@ class EmulatedRegExp extends RegExpSubclass {
     const pos = this.lastIndex;
     const strategy = this.#strategy;
 
-    // ## Support leading `(^|\G)` and similar
-    if (strategy === 'line_or_search_start' && useLastIndex && this.lastIndex) {
+    // ## Support `(^|\G)…` and similar at start of pattern with no alts
+    if (strategy === 'line_or_search_start' && useLastIndex && pos) {
       // Reset since testing on a sliced string that we want to match at the start of
       this.lastIndex = 0;
       const match = exec.call(this, str.slice(pos));
@@ -106,7 +106,7 @@ class EmulatedRegExp extends RegExpSubclass {
       return match;
     }
 
-    // ## Support leading `(?!\G)` and similar
+    // ## Support `(?!\G)…` and similar at start of pattern with no alts
     if (strategy === 'not_search_start') {
       let match = exec.call(this, str);
       if (match?.index === pos) {
@@ -172,7 +172,7 @@ function applySubclassStrategies(ast) {
     return null;
   }
 
-  // ## Strategy `line_or_search_start`: Support leading `(^|\G)` and similar
+  // ## Strategy `line_or_search_start`: Support `(^|\G)…` and similar at start of pattern with no alts
   if (
     isConsumptiveGroup(firstElIn) &&
     firstElIn.alternatives.length === 2 &&
@@ -195,7 +195,7 @@ function applySubclassStrategies(ast) {
     }
   }
 
-  // ## Strategy `not_search_start`: Support leading `(?!\G)` and similar
+  // ## Strategy `not_search_start`: Support `(?!\G)…` and similar at start of pattern with no alts
   if (isLoneGLookaround(firstElIn, {negate: true})) {
     // Remove the `\G` and its containing negative lookaround
     firstElIn.parent.elements.splice(firstElInIndex, 1);

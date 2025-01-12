@@ -156,7 +156,7 @@ describe('Assertion: search_start', () => {
   });
 
   describe('subclass strategies', () => {
-    // Leading `(^|\G)` and similar
+    // Support `(^|\G)…` and similar at start of pattern with no alts
     it('should apply line_or_search_start', () => {
       // ## Leading
       // Match uses the `^` since not global
@@ -182,9 +182,10 @@ describe('Assertion: search_start', () => {
       expect(match.indices.groups.n[0]).toBe(2);
     });
 
-    // Leading `(?!\G)` and similar
+    // Support `(?!\G)…` and similar at start of pattern with no alts
     it('should apply not_search_start', () => {
       // ## Leading
+      expect(toRegExp(r`(?!\G)`).exec('a')?.index).toBe(1);
       expect(toRegExp(r`(?!\G)a`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`(?<!\G)a`).exec('aba')?.index).toBe(2);
       expect(toRegExp(r`(?:(?!\G)a)`).exec('aba')?.index).toBe(2);
