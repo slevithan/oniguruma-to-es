@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/index.mjs';
+import {toDetails, toRegExp} from '../dist/esm/index.mjs';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
