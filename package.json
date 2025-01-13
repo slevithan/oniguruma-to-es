@@ -17,8 +17,8 @@
   "types": "./types/index.d.ts",
   "scripts": {
     "bundle:global": "esbuild src/index.js --global-name=OnigurumaToES --bundle --minify --sourcemap --outfile=dist/index.min.js",
-    "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --outfile=dist/esm/index.mjs",
-    "bundle:cjs": "esbuild src/index.js --format=cjs --bundle --sourcemap --outfile=dist/cjs/index.js",
+    "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --external:emoji-regex-xs --external:regex --external:regex-recursion --outfile=dist/esm/index.mjs",
+    "bundle:cjs": "esbuild src/index.js --format=cjs --bundle --sourcemap --external:emoji-regex-xs --external:regex --external:regex-recursion --outfile=dist/cjs/index.js",
     "types": "tsc src/index.js --rootDir src --declaration --allowJs --emitDeclarationOnly --outDir types",
     "prebuild": "rm -rf dist/* types/*",
     "build": "pnpm run bundle:global && pnpm run bundle:esm && pnpm run bundle:cjs && pnpm run types",
