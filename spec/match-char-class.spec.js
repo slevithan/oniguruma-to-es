@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/index.mjs';
+import {toDetails} from '../dist/esm/index.mjs';
 
 describe('CharacterClass', () => {
   // See also `match-char-class-range.spec.js` and `match-char-class-intersection.spec.js`

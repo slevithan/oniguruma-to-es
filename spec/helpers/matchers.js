@@ -1,4 +1,4 @@
-import {toRegExp} from '../../dist/index.mjs';
+import {toRegExp} from '../../dist/esm/index.mjs';
 import {EsVersion} from '../../src/options.js';
 
 function getArgs(actual, expected) {

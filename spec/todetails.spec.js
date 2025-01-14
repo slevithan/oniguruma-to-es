@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/index.mjs';
+import {toDetails} from '../dist/esm/index.mjs';
 import {r} from '../src/utils.js';
 
 describe('toDetails', () => {
