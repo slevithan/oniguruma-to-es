@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.mjs';
+import {toDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {minTestTargetForFlagV} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';

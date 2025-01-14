@@ -1,4 +1,4 @@
-import {EmulatedRegExp, toRegExp} from '../dist/esm/index.mjs';
+import {EmulatedRegExp, toRegExp} from '../dist/esm/index.js';
 import {envSupportsFlagV, r} from '../src/utils.js';
 import {emulationGroupMarker} from 'regex/internals';
 

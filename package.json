@@ -9,7 +9,7 @@
     ".": {
       "import": {
         "types": "./dist/esm/index.d.ts",
-        "default": "./dist/esm/index.mjs"
+        "default": "./dist/esm/index.js"
       },
       "require": {
         "types": "./dist/cjs/index.d.ts",
@@ -19,11 +19,11 @@
   },
   "browser": "./dist/index.min.js",
   "main": "./dist/cjs/index.js",
-  "types": "./types/cjs/index.d.ts",
+  "types": "./dist/cjs/index.d.ts",
   "scripts": {
     "bundle:global": "esbuild src/index.js --global-name=OnigurumaToES --bundle --minify --sourcemap --outfile=dist/index.min.js",
-    "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --external:emoji-regex-xs --external:regex --external:regex-recursion --outfile=dist/esm/index.mjs",
-    "bundle:cjs": "esbuild src/index.js --format=cjs --bundle --sourcemap --external:emoji-regex-xs --external:regex --external:regex-recursion --outfile=dist/cjs/index.js",
+    "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --external:emoji-regex-xs --external:regex --external:regex-recursion --outfile=dist/esm/index.js",
+    "bundle:cjs": "esbuild src/index.js --format=cjs --bundle --sourcemap --outfile=dist/cjs/index.js",
     "types": "tsc src/index.js --rootDir src --declaration --allowJs --emitDeclarationOnly --outDir types",
     "prebuild": "rm -rf dist/* types/*",
     "build": "pnpm run bundle:global && pnpm run bundle:esm && pnpm run bundle:cjs && pnpm run types",
@@ -35,8 +35,7 @@
     "prepare": "pnpm test"
   },
   "files": [
-    "dist",
-    "types"
+    "dist"
   ],
   "repository": {
     "type": "git",

@@ -1,4 +1,4 @@
-import {toRegExp} from '../dist/index.mjs';
+import {toRegExp} from '../src/index.js';
 import {cp, r} from '../src/utils.js';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';

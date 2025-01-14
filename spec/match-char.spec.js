@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.mjs';
+import {toDetails} from '../dist/esm/index.js';
 import {cp, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
