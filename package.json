@@ -32,7 +32,7 @@
     "test": "jasmine",
     "onig:compare": "node scripts/onig-compare.js",
     "onig:match": "node scripts/onig-match.js",
-    "prepare": "pnpm test"
+    "prepublishOnly": "pnpm test"
   },
   "files": [
     "dist"
@@ -56,7 +56,7 @@
   "devDependencies": {
     "esbuild": "^0.24.2",
     "jasmine": "^5.5.0",
-    "typescript": "~5.7.2",
+    "typescript": "^5.7.3",
     "vscode-oniguruma": "^2.0.1"
   }
 }
