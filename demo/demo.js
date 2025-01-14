@@ -23,7 +23,6 @@ const state = {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
       captureGroup: getValue('option-captureGroup'),
-      ignoreUnsupportedGAnchors: getValue('option-ignoreUnsupportedGAnchors'),
       recursionLimit: getValue('option-recursionLimit'),
     },
     target: getValue('option-target'),
@@ -157,7 +156,6 @@ function areDetailsEqual(a, b) {
   return (
     a.pattern === b.pattern &&
     a.flags.replace(/[uv]/, '') === b.flags.replace(/[uv]/, '') &&
-    JSON.stringify(a.options?.captures) === JSON.stringify(b.options?.captures) &&
     a.options?.strategy === b.options?.strategy &&
     a.options?.useEmulationGroups === b.options?.useEmulationGroups
   );
@@ -168,12 +166,11 @@ function escapeHtml(str) {
 }
 
 function getFormattedSubclass(pattern, flags, {captures, strategy, useEmulationGroups}) {
-  const escStr = str => str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const optionStrs = [];
-  captures && optionStrs.push(`captures: ${JSON.stringify(captures).replace(/,/g, ', ')}`)
-  strategy && optionStrs.push(`strategy: "${strategy}"`);
+  strategy && optionStrs.push(`strategy: '${strategy}'`);
   useEmulationGroups && optionStrs.push(`useEmulationGroups: ${useEmulationGroups}`);
-  return `new EmulatedRegExp("${escStr(pattern)}", "${flags}", {\n  ${optionStrs.join(',\n  ')},\n})`;
+  return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${optionStrs.join(',\n  ')},\n})`;
 }
 
 function getRegExpLiteralPattern(str) {

@@ -153,30 +153,6 @@ describe('Options', () => {
       });
     });
 
-    describe('ignoreUnsupportedGAnchors', () => {
-      it(r`should ignore unsupported uses of \G`, () => {
-        const patterns = [
-          r`\Ga|b`,
-          r`a|\Gb`,
-          r`(\G|a)b`,
-        ];
-        patterns.forEach(pattern => {
-          expect(() => toDetails(pattern)).toThrow();
-          expect(() => toDetails(pattern, {rules: {ignoreUnsupportedGAnchors: true}})).not.toThrow();
-        });
-      });
-
-      it(r`should not ignore \G in parsing and validation`, () => {
-        expect(() => toDetails(r`a\G`, {rules: {ignoreUnsupportedGAnchors: true}})).not.toThrow();
-        expect(() => toDetails(r`a\G+`, {rules: {ignoreUnsupportedGAnchors: true}})).toThrow();
-        expect(() => toDetails(r`\c\GA`, {rules: {ignoreUnsupportedGAnchors: true}})).toThrow();
-        expect('aa0').toExactlyMatch({
-          pattern: r`(a)\1\G0`,
-          rules: {ignoreUnsupportedGAnchors: true},
-        });
-      });
-    });
-
     describe('recursionLimit', () => {
       it('should throw if recursionLimit is not an integer 2-20', () => {
         for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', null, undefined, NaN, false]) {

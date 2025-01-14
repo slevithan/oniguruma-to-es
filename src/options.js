@@ -58,8 +58,6 @@ function getOptions(options) {
       // named capture. This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in
       // `vscode-oniguruma`.
       captureGroup: false,
-      // Remove unsupported uses of `\G`, rather than erroring.
-      ignoreUnsupportedGAnchors: false,
       // Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
       recursionLimit: 20,
       ...(options?.rules),

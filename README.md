@@ -15,7 +15,7 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 
 ### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
-Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on thousands of real-world Oniguruma regexes used in TextMate grammars.
+Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars.
 
 Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression).
 
@@ -25,7 +25,7 @@ Depending on features used, Oniguruma-To-ES might use advanced emulation via a `
 
 - [Install and use](#️-install-and-use)
 - [API](#-api)
-  - [`toRegExp`](#toregexp) (and [Type `OnigurumaToEsOptions`](#type-onigurumatoesoptions)), [`toDetails`](#todetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
+  - [`toRegExp`](#toregexp), [`toDetails`](#todetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
 - [Options](#-options)
   - [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
 - [Supported features](#-supported-features)
@@ -87,7 +87,6 @@ type OnigurumaToEsOptions = {
     allowOrphanBackrefs?: boolean;
     asciiWordBoundaries?: boolean;
     captureGroup?: boolean;
-    ignoreUnsupportedGAnchors?: boolean;
     recursionLimit?: number;
   };
   target?: 'auto' | 'ES2025' | 'ES2024' | 'ES2018';
@@ -172,6 +171,7 @@ Using default `accuracy` adds support for the following features, depending on `
 
 - All targets (`ES2025` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
+  - Although many common uses of `\G` are supported even with strict `accuracy`, this enables all other uses of `\G` using subclass-based emulation. This can lead to extremely rare mismatches when three edge cases are stacked on each other: ① an uncommon use of `\G` combined with ② lookbehind that searches behind the search start (not match start) position ③ during a search when the regex's `lastIndex` isn't `0`.
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
@@ -186,7 +186,7 @@ Disables advanced emulation that relies on returning a `RegExp` subclass. In cas
 
 - An error is thrown for patterns that are not emulatable without a subclass.
 - Some patterns can still be emulated accurately without a subclass, but in this case *subpattern* match details might differ from Oniguruma.
-  - This is only relevant if you access the subpattern details of match results in your code (backreference array indices, `groups`, and `indices`).
+  - This is only relevant if you access the subpattern details of match results in your code (via subpattern array indices, `groups`, and `indices`).
 
 ### `flags`
 
@@ -217,9 +217,6 @@ Advanced options that override standard behavior, error checking, and flags when
 - `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
 - `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
   - This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
-- `ignoreUnsupportedGAnchors`: Remove unsupported uses of `\G`, rather than erroring.
-  - Oniguruma-To-ES uses a variety of strategies to accurately emulate many common uses of `\G`. When using this option, if a `\G` is found that doesn't have a known emulation strategy, the `\G` is simply removed. This might lead to some false positive matches, but is useful for non-critical matching (like syntax highlighting) when having some mismatches is better than not working.
-  - Parsing and validation don't ignore `\G`, so e.g. `\G+` will still error.
 - `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
 
 ### `target`
@@ -652,10 +649,10 @@ Notice that nearly every feature below has at least subtle differences from Java
   <tr valign="top">
     <td>Search start</td>
     <td><code>\G</code></td>
-    <td align="middle">☑️</td>
-    <td align="middle">☑️</td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
     <td>
-      ● Common uses supported<sup>[4]</sup><br>
+      ✔ Matches at start of match attempt (not end of prev match; advances after 0-length match)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -807,7 +804,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ✔ Error if group to the right<sup>[5]</sup><br>
+      ✔ Error if group to the right<sup>[4]</sup><br>
       ✔ Duplicate names (and subroutines) to the right not included in multiplex<br>
       ✔ Fail to match (or don't include in multiplex) ancestor groups and groups in preceding alternation paths<br>
       ❌ Some rare cases are indeterminable at compile time and use the JS behavior of matching an empty string<br>
@@ -858,8 +855,8 @@ Notice that nearly every feature below has at least subtle differences from Java
       <code>\g&lt;0></code>,<br>
       <code>\g'0'</code>
     </td>
-    <td align="middle">☑️<sup>[6]</sup></td>
-    <td align="middle">☑️<sup>[6]</sup></td>
+    <td align="middle">☑️<sup>[5]</sup></td>
+    <td align="middle">☑️<sup>[5]</sup></td>
     <td>
       ✔ 20-level depth limit<br>
     </td>
@@ -871,8 +868,8 @@ Notice that nearly every feature below has at least subtle differences from Java
       <code>(…\g&lt;-1>?…)</code>,<br>
       <code>(?&lt;a>…\g&lt;a>?…)</code>, etc.
     </td>
-    <td align="middle">☑️<sup>[6]</sup></td>
-    <td align="middle">☑️<sup>[6]</sup></td>
+    <td align="middle">☑️<sup>[5]</sup></td>
+    <td align="middle">☑️<sup>[5]</sup></td>
     <td>
       ✔ 20-level depth limit<br>
     </td>
@@ -945,9 +942,8 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 1. Unicode blocks (which in Oniguruma are specified with an `In` prefix) are easily emulatable but their character data would significantly increase library weight. They're also rarely used, fundamentally flawed, and arguably unuseful given the availability of Unicode scripts and other properties.
 2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 3. Target `ES2018` doesn't support nested *negated* character classes.
-4. Supported uses of `\G` include `\G…`, `\G…|\G…`, `(?<=…)\G…`, `(^|\G)…`, `(?!\G)…`, and many others.
-5. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
-6. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
+4. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
+5. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
 
 ## ❌ Unsupported features
 
@@ -968,7 +964,7 @@ The following throw errors since they aren't yet supported. They're all extremel
 - Not supportable:
   - Other callouts: `(?{…})`, `(*…)`, etc.
 
-Note that Oniguruma-To-ES can handle 99.9% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, absence operators and conditionals were used in 2–3 regexes each, and the rest weren't used at all.
+Note that Oniguruma-To-ES supports 99.9+% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, absence operators and conditionals were used in 2–3 regexes each. The rest weren't used at all.
 
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't currently supported.
 

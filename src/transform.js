@@ -1,11 +1,10 @@
 import {Accuracy, Target} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
-import {applySubclassStrategies, isLoneGLookaround} from './subclass.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
-import {isAlwaysNonZeroLength, isAlwaysZeroLength, isConsumptiveGroup, isLookaround} from './utils-ast.js';
+import {hasOnlyChild, isAlwaysNonZeroLength, isAlwaysZeroLength, isConsumptiveGroup, isLookaround} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
 
 /**
@@ -15,7 +14,6 @@ import emojiRegex from 'emoji-regex-xs';
   pattern: Object;
   flags: Object;
   options: Object;
-  _captures: Array<string | null>;
   _strategy: string | null;
 }} RegexAst
 */
@@ -34,7 +32,6 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
   asciiWordBoundaries?: boolean;
   avoidSubclass?: boolean;
   bestEffortTarget?: keyof Target;
-  ignoreUnsupportedGAnchors?: boolean;
 }} [options]
 @returns {RegexAst}
 */
@@ -50,17 +47,15 @@ function transform(ast, options) {
     asciiWordBoundaries: false,
     avoidSubclass: false,
     bestEffortTarget: 'ES2025',
-    ignoreUnsupportedGAnchors: false,
     ...options,
   };
-  // AST transformations that work together with a `RegExp` subclass to add advanced emulation
-  const strategy = opts.avoidSubclass ? null : applySubclassStrategies(ast);
   const firstPassState = {
     accuracy: opts.accuracy,
+    allowSubclassedG: opts.accuracy === 'default' && !opts.avoidSubclass,
     asciiWordBoundaries: opts.asciiWordBoundaries,
     flagDirectivesByAlt: new Map(),
-    ignoreUnsupportedGAnchors: opts.ignoreUnsupportedGAnchors,
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
+    strategy: {name: null},
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
     supportedGNodes: new Set(),
@@ -92,15 +87,13 @@ function transform(ast, options) {
   };
   traverse({node: ast}, secondPassState, SecondPassVisitor);
   const thirdPassState = {
-    captures: [],
     groupsByName: secondPassState.groupsByName,
     highestOrphanBackref: 0,
     numCapturesToLeft: 0,
     reffedNodesByReferencer: secondPassState.reffedNodesByReferencer,
   };
   traverse({node: ast}, thirdPassState, ThirdPassVisitor);
-  ast._captures = thirdPassState.captures;
-  ast._strategy = strategy;
+  ast._strategy = firstPassState.strategy.name;
   return ast;
 }
 
@@ -131,7 +124,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, key, container, ast, remove, replaceWith}, {asciiWordBoundaries, ignoreUnsupportedGAnchors, supportedGNodes, wordIsAscii}) {
+  Assertion({node, key, container, ast, remove, replaceWith}, {allowSubclassedG, asciiWordBoundaries, strategy, supportedGNodes, wordIsAscii}) {
     const {kind, negate} = node;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
@@ -151,10 +144,11 @@ const FirstPassVisitor = {
         // cases resulting in the standard error for being unsupported
         if (prev && isAlwaysNonZeroLength(prev)) {
           replaceWith(prepContainer(createLookaround({negate: true})));
-        } else if (!ignoreUnsupportedGAnchors) {
+        } else if (!allowSubclassedG) {
           throw new Error(r`Uses "\G" in a way that's unsupported`);
         } else {
-          remove();
+          replaceWith(createAssertion(AstAssertionKinds.string_start));
+          strategy.name = 'search_start_clip';
         }
       }
     } else if (kind === AstAssertionKinds.string_end_newline) {
@@ -316,7 +310,7 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}, {ignoreUnsupportedGAnchors, supportedGNodes}) {
+  Pattern({node}, {supportedGNodes}) {
     // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
     // of every top-level alternative (with complex rules for what determines being at the start).
     // Additional `\G` error checking in `Assertion` visitor
@@ -343,13 +337,9 @@ const FirstPassVisitor = {
         }
       }
     }
-    if (hasAltWithLeadG) {
-      if (!hasAltWithoutLeadG) {
-        // Supported `\G` nodes will be removed (and add flag y) when traversed; others will error
-        leadingGs.forEach(g => supportedGNodes.add(g));
-      } else if (!ignoreUnsupportedGAnchors) {
-        throw new Error(r`Uses "\G" in a way that's unsupported`);
-      }
+    if (hasAltWithLeadG && !hasAltWithoutLeadG) {
+      // Supported `\G` nodes will be removed (and add flag y) when traversed
+      leadingGs.forEach(g => supportedGNodes.add(g));
     }
   },
 
@@ -589,9 +579,6 @@ const ThirdPassVisitor = {
         delete node.name;
       }
     }
-    if (!node._originNumber) {
-      state.captures.push(node.name ?? null);
-    }
   },
 
   Recursion({node}, state) {
@@ -823,6 +810,18 @@ function hasDescendant(node, descendant) {
     }
   }
   return false;
+}
+
+function isLoneGLookaround(node, options) {
+  const opts = {
+    negate: null,
+    ...options,
+  };
+  return (
+    isLookaround(node) &&
+    (opts.negate === null || node.negate === opts.negate) &&
+    hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start)
+  );
 }
 
 function isValidGroupNameJs(name) {

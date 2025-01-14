@@ -111,16 +111,16 @@
           <div>
             <p>
               <label>
-                <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setRule('allowOrphanBackrefs', this.checked)">
-                <code>allowOrphanBackrefs</code>
-                <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
+                <input type="number" id="option-recursionLimit" value="20" min="2" max="20" onchange="setRule('recursionLimit', +this.value)" onkeyup="setRule('recursionLimit', +this.value)">
+                <code>recursionLimit</code>
+                <span class="tip tip-lg">Depth limit can be <code>2</code> to <code>20</code>; Oniguruma uses <code>20</code></span>
               </label>
             </p>
             <p>
               <label>
-                <input type="checkbox" id="option-ignoreUnsupportedGAnchors" onchange="setRule('ignoreUnsupportedGAnchors', this.checked)">
-                <code>ignoreUnsupportedGAnchors</code>
-                <span class="tip tip-lg">Removes unsupported uses of <code>\G</code>, rather than erroring</span>
+                <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setRule('allowOrphanBackrefs', this.checked)">
+                <code>allowOrphanBackrefs</code>
+                <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
               </label>
             </p>
           </div>
@@ -140,15 +140,6 @@
               </label>
             </p>
           </div>
-        </div>
-        <div>
-          <p>
-            <label>
-              <input type="number" id="option-recursionLimit" value="20" min="2" max="20" onchange="setRule('recursionLimit', +this.value)" onkeyup="setRule('recursionLimit', +this.value)">
-              <code>recursionLimit</code>
-              <span class="tip tip-lg">Depth limit can be <code>2</code> to <code>20</code>; Oniguruma uses <code>20</code></span>
-            </label>
-          </p>
         </div>
       </section>
     </details>

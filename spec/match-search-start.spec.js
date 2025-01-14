@@ -8,61 +8,70 @@ beforeEach(() => {
 });
 
 describe('Assertion: search_start', () => {
-  // Note: See specs for option `rules.ignoreUnsupportedGAnchors` in `options.spec.js`
-
   it('should be identity escape within a char class', () => {
     expect('G').toExactlyMatch(r`[\G]`);
     expect('\\').not.toFindMatch(r`[\G]`);
   });
 
   describe('without subclass', () => {
+    function opts(options) {
+      return {
+        avoidSubclass: true,
+        ...options,
+      };
+    }
+    function matcherOpts(pattern, options) {
+      return {
+        pattern,
+        ...opts(options),
+      };
+    }
+
     it('should match at the start of the search', () => {
-      expect('a').toExactlyMatch(r`\Ga`);
-      expect(['a', 'b', '123']).toExactlyMatch(r`\Ga|\Gb|\G\d+`);
+      expect('a').toExactlyMatch(matcherOpts(r`\Ga`));
+      expect(['a', 'b', '123']).toExactlyMatch(matcherOpts(r`\Ga|\Gb|\G\d+`));
     });
 
     it('should match all positions when on its own and applied repeatedly', () => {
-      expect('ab'.match(toRegExp(r`\G`, {global: true}))).toEqual(['', '', '']);
-      expect('ab'.match(toRegExp(r`(\G)`, {global: true}))).toEqual(['', '', '']);
+      expect('ab'.match(toRegExp(r`\G`, opts({global: true})))).toEqual(['', '', '']);
+      expect('ab'.match(toRegExp(r`(\G)`, opts({global: true})))).toEqual(['', '', '']);
     });
 
     it('should not match at positions other than the start of the search', () => {
-      expect('ba').not.toFindMatch(r`\Ga`);
+      expect('ba').not.toFindMatch(matcherOpts(r`\Ga`));
     });
 
     it('should match only at the start of the search when applied repeatedly', () => {
-      expect('abbcbb'.match(toRegExp(r`\G[ab]`, {global: true}))).toEqual(['a', 'b', 'b']);
+      expect('abbcbb'.match(toRegExp(r`\G[ab]`, opts({global: true})))).toEqual(['a', 'b', 'b']);
     });
 
     it('should throw if not used at the start of every top-level alternative', () => {
-      expect(() => toDetails(r`\Ga|b`)).toThrow();
-      expect(() => toDetails(r`a|\Gb`)).toThrow();
+      expect(() => toDetails(r`\Ga|b`, opts())).toThrow();
+      expect(() => toDetails(r`a|\Gb`, opts())).toThrow();
     });
 
     it('should allow if following a directive', () => {
-      expect('a').toExactlyMatch(r`\K\Ga`);
-      expect(['a', 'A']).toExactlyMatch({
-        pattern: r`(?i)\Ga`,
+      expect('a').toExactlyMatch(matcherOpts(r`\K\Ga`));
+      expect(['a', 'A']).toExactlyMatch(matcherOpts(r`(?i)\Ga`, {
         maxTestTarget: maxTestTargetForFlagGroups,
-      });
-      expect(['a', 'A']).toExactlyMatch({
-        pattern: r`(?i)(?m)\Ga`,
+      }));
+      expect(['a', 'A']).toExactlyMatch(matcherOpts(r`(?i)(?m)\Ga`, {
         maxTestTarget: maxTestTargetForFlagGroups,
-      });
+      }));
     });
 
     it('should allow if following an assertion', () => {
-      expect('a').toExactlyMatch(r`\A\Ga`);
-      expect('a').toExactlyMatch(r`\b\Ga`);
-      expect('a').toExactlyMatch(r`(?=a)\Ga`);
-      expect('a').toExactlyMatch(r`(?<=\A)\Ga`);
-      expect('a').toExactlyMatch(r`(?<!a)\Ga`);
-      expect('a').toExactlyMatch(r`(?<!a)(?=a)\Ga`);
+      expect('a').toExactlyMatch(matcherOpts(r`\A\Ga`));
+      expect('a').toExactlyMatch(matcherOpts(r`\b\Ga`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?=a)\Ga`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?<=\A)\Ga`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?<!a)\Ga`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?<!a)(?=a)\Ga`));
     });
 
     it('should allow if an only child of a positive lookaround', () => {
-      expect('a').toExactlyMatch(r`(?=\G)a`);
-      expect('a').toExactlyMatch(r`(?<=\G)a`);
+      expect('a').toExactlyMatch(matcherOpts(r`(?=\G)a`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?<=\G)a`));
     });
 
     it('should throw if not an only child of a positive lookaround', () => {
@@ -75,64 +84,63 @@ describe('Assertion: search_start', () => {
         r`(?<=\G|)a`,
         r`(?<!\Ga)a`,
         r`(?<!\G|)a`,
-      ].forEach(p => expect(() => toDetails(p)).withContext(p).toThrow());
+      ].forEach(p => expect(() => toDetails(p, opts())).withContext(p).toThrow());
     });
 
     it('should never match if preceded by a non-zero-length token', () => {
       expect(toRegExp(r`a\G`).sticky).toBe(false);
-      expect('a').not.toFindMatch(r`a\G`);
-      expect('a').not.toFindMatch(r`[a]\G`);
-      expect('a').not.toFindMatch(r`\p{Any}\G`);
-      expect('ab').not.toFindMatch(r`a\Gb`);
-      expect('a').not.toFindMatch(r`a+\G`);
-      expect('a').not.toFindMatch(r`a+?\G`);
-      expect('a').not.toFindMatch(r`(?=a\G)`);
-      expect('a').not.toFindMatch(r`(?=a\G)a`);
-      expect('ab').not.toFindMatch(r`(?=a\Gb)`);
-      expect('a').not.toFindMatch(r`(?<=a\G)`);
-      expect('ab').not.toFindMatch(r`(?<=a\G)b`);
-      expect('ab').not.toFindMatch(r`(?<=a\Gb)`);
-      expect('a').toExactlyMatch(r`(?!a\G)a`);
-      expect('a').toExactlyMatch(r`(?<!a\G)a`);
-      expect('ab').toFindMatch(r`(?<!a\G)b`);
+      expect('a').not.toFindMatch(matcherOpts(r`a\G`));
+      expect('a').not.toFindMatch(matcherOpts(r`[a]\G`));
+      expect('a').not.toFindMatch(matcherOpts(r`\p{Any}\G`));
+      expect('ab').not.toFindMatch(matcherOpts(r`a\Gb`));
+      expect('a').not.toFindMatch(matcherOpts(r`a+\G`));
+      expect('a').not.toFindMatch(matcherOpts(r`a+?\G`));
+      expect('a').not.toFindMatch(matcherOpts(r`(?=a\G)`));
+      expect('a').not.toFindMatch(matcherOpts(r`(?=a\G)a`));
+      expect('ab').not.toFindMatch(matcherOpts(r`(?=a\Gb)`));
+      expect('a').not.toFindMatch(matcherOpts(r`(?<=a\G)`));
+      expect('ab').not.toFindMatch(matcherOpts(r`(?<=a\G)b`));
+      expect('ab').not.toFindMatch(matcherOpts(r`(?<=a\Gb)`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?!a\G)a`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?<!a\G)a`));
+      expect('ab').toFindMatch(matcherOpts(r`(?<!a\G)b`));
     });
 
     // Documenting current behavior
     it('should throw if following a quantified token', () => {
       // Min-zero length preceding `\G`
-      expect(() => toDetails(r`a*\G`)).toThrow();
-      expect(() => toDetails(r`a*\Ga`)).toThrow();
-      expect(() => toDetails(r`(a)*\G`)).toThrow();
-      expect(() => toDetails(r`(a)*\Ga`)).toThrow();
-      expect(() => toDetails(r`[a]*\G`)).toThrow();
-      expect(() => toDetails(r`()+\G`)).toThrow();
-      expect(() => toDetails(r`(a|)+\G`)).toThrow();
+      expect(() => toDetails(r`a*\G`, opts())).toThrow();
+      expect(() => toDetails(r`a*\Ga`, opts())).toThrow();
+      expect(() => toDetails(r`(a)*\G`, opts())).toThrow();
+      expect(() => toDetails(r`(a)*\Ga`, opts())).toThrow();
+      expect(() => toDetails(r`[a]*\G`, opts())).toThrow();
+      expect(() => toDetails(r`()+\G`, opts())).toThrow();
+      expect(() => toDetails(r`(a|)+\G`, opts())).toThrow();
       // Non-min-zero length preceding `\G`
       // Note: Never-matching cases like `a+\G` are handled separately and don't throw
-      expect(() => toDetails(r`aa*\G`)).toThrow();
-      expect(() => toDetails(r`(a)+\G`)).toThrow();
+      expect(() => toDetails(r`aa*\G`, opts())).toThrow();
+      expect(() => toDetails(r`(a)+\G`, opts())).toThrow();
     });
 
     it('should allow if within a wrapper group', () => {
-      expect('a').toExactlyMatch(r`(\Ga)`);
-      expect('a').toExactlyMatch(r`(((\Ga)))`);
-      expect('a').toExactlyMatch(r`(?:\Ga)`);
-      expect('a').toExactlyMatch(r`(?>\Ga)`);
-      expect('a').toExactlyMatch(r`(?<a>\Ga)`);
-      expect('a').toExactlyMatch({
-        pattern: r`(?i:\Ga)`,
+      expect('a').toExactlyMatch(matcherOpts(r`(\Ga)`));
+      expect('a').toExactlyMatch(matcherOpts(r`(((\Ga)))`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?:\Ga)`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?>\Ga)`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?<a>\Ga)`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?i:\Ga)`, {
         maxTestTarget: maxTestTargetForFlagGroups,
-      });
+      }));
     });
 
     it('should check within groups to determine validity', () => {
-      expect('a').toExactlyMatch(r`((?=\G)a)`);
-      expect('a').toExactlyMatch(r`(?:(?>^(?<n>\Ga)))`);
-      expect(() => toDetails(r`(?:(?>a(?<n>\Gb)))`)).toThrow();
-      expect('a').toExactlyMatch(r`\Ga|(((\Gb)))`);
-      expect(() => toDetails(r`\Ga|(((b\Gc)))`)).toThrow();
-      expect(['ac', 'bc']).toExactlyMatch(r`((\Ga|\Gb)c)`);
-      expect(() => toDetails(r`((\Ga|b)c)`)).toThrow();
+      expect('a').toExactlyMatch(matcherOpts(r`((?=\G)a)`));
+      expect('a').toExactlyMatch(matcherOpts(r`(?:(?>^(?<n>\Ga)))`));
+      expect(() => toDetails(r`(?:(?>a(?<n>\Gb)))`, opts())).toThrow();
+      expect('a').toExactlyMatch(matcherOpts(r`\Ga|(((\Gb)))`));
+      expect(() => toDetails(r`\Ga|(((b\Gc)))`, opts())).toThrow();
+      expect(['ac', 'bc']).toExactlyMatch(matcherOpts(r`((\Ga|\Gb)c)`));
+      expect(() => toDetails(r`((\Ga|b)c)`, opts())).toThrow();
     });
 
     it('should allow as lone node in top-level alternative', () => {
@@ -140,27 +148,38 @@ describe('Assertion: search_start', () => {
       // match attempt at pos 0) matches at the end of the previous match (.NET, PCRE, Perl, Java,
       // Boost) or the start of the match attempt (Oniguruma, Onigmo). Relevant after zero-length
       // matches, where the read-head advance will make the "end of previous match" approach fail
-      expect('ab'.match(toRegExp(r`\G|ab`, {global: true}))).toEqual(['', '', '']);
-      expect('ab'.match(toRegExp(r`x|\G`, {global: true}))).toEqual(['', '', '']);
-      expect('ab'.match(toRegExp(r`x|\G|y`, {global: true}))).toEqual(['', '', '']);
-      expect('aba'.match(toRegExp(r`a|\G`, {global: true}))).toEqual(['a', '', 'a', '']);
+      expect('ab'.match(toRegExp(r`\G|ab`, opts({global: true})))).toEqual(['', '', '']);
+      expect('ab'.match(toRegExp(r`x|\G`, opts({global: true})))).toEqual(['', '', '']);
+      expect('ab'.match(toRegExp(r`x|\G|y`, opts({global: true})))).toEqual(['', '', '']);
+      expect('aba'.match(toRegExp(r`a|\G`, opts({global: true})))).toEqual(['a', '', 'a', '']);
     });
 
     // Documenting current behavior
     it('should throw for redundant but otherwise supportable assertions', () => {
-      expect(() => toDetails(r`\G\Ga`)).toThrow();
-      expect(() => toDetails(r`\Ga|\G\Gb`)).toThrow();
+      expect(() => toDetails(r`\G\Ga`, opts())).toThrow();
+      expect(() => toDetails(r`\Ga|\G\Gb`, opts())).toThrow();
     });
 
     it('should throw if leading in a non-0-min quantified group', () => {
-      expect(() => toDetails(r`(\Ga)+`)).toThrow();
-      expect(() => toDetails(r`(\Ga)+\G`)).toThrow();
+      expect(() => toDetails(r`(\Ga)+`, opts())).toThrow();
+      expect(() => toDetails(r`(\Ga)+\G`, opts())).toThrow();
     });
   });
 
-  describe('subclass strategies', () => {
-    // Support `(^|\G)…` and similar at start of pattern with no alts
-    it('should apply line_or_search_start', () => {
+  describe('with subclass', () => {
+    // Note: The following specs test some common uses, but all uses of `\G` should be supported.
+    // Mismatches are possible when three edge cases are stacked on each other:
+    // 1. An uncommon use of `\G` that requires subclass-based emulation.
+    // 2. Combined with lookbehind that searches behind the search start (not match start) position.
+    // 3. During a search when the regex's `lastIndex` isn't `0`.
+
+    it(r`should support '\G…|…'`, () => {
+      expect(['a', 'b']).toExactlyMatch(r`\Ga|b`);
+      expect('xb').toFindMatch(r`\Ga|b`);
+      expect('xa').not.toFindMatch(r`\Ga|b`);
+    });
+
+    it(r`should support '(^|\G)…' and similar at start of pattern`, () => {
       // ## Leading
       // Match uses the `^` since not global
       expect(toRegExp(r`(^|\G)a`).exec('b\na')?.index).toBe(2);
@@ -185,8 +204,7 @@ describe('Assertion: search_start', () => {
       expect(match.indices.groups.n[0]).toBe(2);
     });
 
-    // Support `(?!\G)…` and similar at start of pattern with no alts
-    it('should apply not_search_start', () => {
+    it(r`should support '(?!\G)…' and similar at start of pattern`, () => {
       // ## Leading
       expect(toRegExp(r`(?!\G)`).exec('a')?.index).toBe(1);
       expect(toRegExp(r`(?!\G)a`).exec('aba')?.index).toBe(2);
@@ -201,20 +219,12 @@ describe('Assertion: search_start', () => {
       expect(toRegExp(r`(?=;)^(?!\G)`).exec(';;\n;')?.index).toBe(3);
       expect(toRegExp(r`(?=;)(?!\G)^`).exec(';;\n;')?.index).toBe(3);
       expect(toRegExp(r`(?!\G)(?=;)^`).exec(';;\n;')?.index).toBe(3);
-      // ## With preceding `\G`
-      expect(() => toDetails(r`\G(?!\G)`)).toThrow();
-      expect(() => toDetails(r`(?=\G)(?!\G)`)).toThrow();
-      // ## With preceding non-zero-length node
-      expect(() => toDetails(r`a(?!\G)a`)).toThrow();
-      expect(() => toDetails(r`a+(?!\G)a`)).toThrow();
       // ## With preceding min-zero-length quantified node
-      expect(() => toDetails(r`a*(?!\G)a`)).toThrow();
-      // expect(toRegExp(r`a*(?!\G)a`).exec('abcaaa')?.[0]).toBe('aaa');
-      // expect('abcaaa'.match(toRegExp(r`a*(?!\G)`, {global}))).toEqual(['a', '', 'aaa']);
+      expect(toRegExp(r`a*(?!\G)a`).exec('abcaaa')?.[0]).toBe('aaa');
+      expect('abcaaa'.match(toRegExp(r`a*(?!\G)`, {global: true}))).toEqual(['a', '', 'aaa']);
     });
 
-    // Support `(?!\G)|…` at top level
-    it('should apply first_alt_not_search_start', () => {
+    it(r`should support '(?!\G)|…'`, () => {
       expect(toRegExp(r`(?!\G)|a`).exec('')).toBe(null);
       [ {str: 'a', match: 'a', index: 0},
         {str: 'ba', match: '', index: 1},
@@ -242,8 +252,7 @@ describe('Assertion: search_start', () => {
       ).toEqual(result);
     });
 
-    // Support `…|(?!\G)` at top level
-    it('should apply last_alt_not_search_start', () => {
+    it(r`should support '…|(?!\G)'`, () => {
       expect(toRegExp(r`a|(?!\G)`).exec('')).toBe(null);
       [ {str: 'a', match: 'a', index: 0},
         {str: 'ba', match: 'a', index: 1},

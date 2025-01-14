@@ -12,6 +12,7 @@ function getArgs(actual, expected) {
     pattern: typeof expected === 'string' ? expected : expected.pattern,
     flags: expected.flags ?? '',
     accuracy: expected.accuracy ?? 'default',
+    avoidSubclass: expected.avoidSubclass ?? false,
     rules: expected.rules ?? {},
     strings: Array.isArray(actual) ? actual : [actual],
     targets: targeted,
@@ -25,9 +26,9 @@ function wasFullStrMatch(match, str) {
 // Expects `negate` to be set by `negativeCompare` and doesn't rely on Jasmine's automatic matcher
 // negation because when negated we don't want to early return `true` when looping over the array
 // of strings and one is found to not match; they all need to not match
-function matchWithAllTargets({pattern, flags, accuracy, rules, strings, targets}, {exact, negate}) {
+function matchWithAllTargets({pattern, flags, accuracy, avoidSubclass, rules, strings, targets}, {exact, negate}) {
   for (const target of targets) {
-    const re = toRegExp(pattern, {accuracy, flags, rules, target});
+    const re = toRegExp(pattern, {accuracy, avoidSubclass, flags, rules, target});
     for (const str of strings) {
       // In case the regex includes flag g or y
       re.lastIndex = 0;
