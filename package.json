@@ -7,14 +7,19 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./types/index.d.ts",
-      "import": "./dist/esm/index.mjs",
-      "require": "./dist/cjs/index.js"
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "browser": "./dist/index.min.js",
   "main": "./dist/cjs/index.js",
-  "types": "./types/index.d.ts",
+  "types": "./types/cjs/index.d.ts",
   "scripts": {
     "bundle:global": "esbuild src/index.js --global-name=OnigurumaToES --bundle --minify --sourcemap --outfile=dist/index.min.js",
     "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --external:emoji-regex-xs --external:regex --external:regex-recursion --outfile=dist/esm/index.mjs",
@@ -22,6 +27,7 @@
     "types": "tsc src/index.js --rootDir src --declaration --allowJs --emitDeclarationOnly --outDir types",
     "prebuild": "rm -rf dist/* types/*",
     "build": "pnpm run bundle:global && pnpm run bundle:esm && pnpm run bundle:cjs && pnpm run types",
+    "postbuild": "node scripts/postbuild.js",
     "pretest": "pnpm run build",
     "test": "jasmine",
     "onig:compare": "node scripts/onig-compare.js",
