@@ -18,9 +18,12 @@ describe('Assertion: search_start', () => {
   describe('without subclass', () => {
     it('should match at the start of the search', () => {
       expect('a').toExactlyMatch(r`\Ga`);
-      expect([
-        'a', 'b', 'hello',
-      ]).toExactlyMatch(r`\Ga|\Gb|\G\w+`);
+      expect(['a', 'b', '123']).toExactlyMatch(r`\Ga|\Gb|\G\d+`);
+    });
+
+    it('should match all positions when on its own and applied repeatedly', () => {
+      expect('ab'.match(toRegExp(r`\G`, {global: true}))).toEqual(['', '', '']);
+      expect('ab'.match(toRegExp(r`(\G)`, {global: true}))).toEqual(['', '', '']);
     });
 
     it('should not match at positions other than the start of the search', () => {
@@ -208,6 +211,64 @@ describe('Assertion: search_start', () => {
       expect(() => toDetails(r`a*(?!\G)a`)).toThrow();
       // expect(toRegExp(r`a*(?!\G)a`).exec('abcaaa')?.[0]).toBe('aaa');
       // expect('abcaaa'.match(toRegExp(r`a*(?!\G)`, {global}))).toEqual(['a', '', 'aaa']);
+    });
+
+    // Support `(?!\G)|…` at top level
+    it('should apply first_alt_not_search_start', () => {
+      expect(toRegExp(r`(?!\G)|a`).exec('')).toBe(null);
+      [ {str: 'a', match: 'a', index: 0},
+        {str: 'ba', match: '', index: 1},
+        {str: 'bba', match: '', index: 1},
+      ].forEach(o => {
+        const result = toRegExp(r`(?!\G)|a`).exec(o.str);
+        expect(result[0]).toBe(o.match);
+        expect(result.index).toBe(o.index);
+      });
+      expect('bba'.match(toRegExp(r`(?!\G)|a`, {global: true}))).toEqual(['', 'a']);
+      expect('bbba'.match(toRegExp(r`(?!\G)|a`, {global: true}))).toEqual(['', '']);
+      expect('bbbba'.match(toRegExp(r`(?!\G)|a`, {global: true}))).toEqual(['', '', 'a']);
+
+      // Check `groups` and `indices` are set correctly
+      const result = ['', undefined, undefined];
+      Object.assign(result, {
+        index: 1,
+        input: 'xxa',
+        groups: {n: undefined},
+        indices: [[1, 1], undefined, undefined],
+      });
+      result.indices.groups = {n: undefined};
+      expect(
+        toRegExp(r`(?!\G)|(b)|(?<n>a)`, {hasIndices: true, rules: {captureGroup: true}}).exec(result.input)
+      ).toEqual(result);
+    });
+
+    // Support `…|(?!\G)` at top level
+    it('should apply last_alt_not_search_start', () => {
+      expect(toRegExp(r`a|(?!\G)`).exec('')).toBe(null);
+      [ {str: 'a', match: 'a', index: 0},
+        {str: 'ba', match: 'a', index: 1},
+        {str: 'bba', match: '', index: 1},
+      ].forEach(o => {
+        const result = toRegExp(r`a|(?!\G)`).exec(o.str);
+        expect(result[0]).toBe(o.match);
+        expect(result.index).toBe(o.index);
+      });
+      expect('bba'.match(toRegExp(r`a|(?!\G)`, {global: true}))).toEqual(['', 'a']);
+      expect('bbba'.match(toRegExp(r`a|(?!\G)`, {global: true}))).toEqual(['', 'a']);
+      expect('bbbba'.match(toRegExp(r`a|(?!\G)`, {global: true}))).toEqual(['', '', 'a']);
+
+      // Check `groups` and `indices` are set correctly
+      const result = ['', undefined, undefined];
+      Object.assign(result, {
+        index: 1,
+        input: 'xxa',
+        groups: {n: undefined},
+        indices: [[1, 1], undefined, undefined],
+      });
+      result.indices.groups = {n: undefined};
+      expect(
+        toRegExp(r`(b)|(?<n>a)|(?!\G)`, {hasIndices: true, rules: {captureGroup: true}}).exec(result.input)
+      ).toEqual(result);
     });
   });
 });

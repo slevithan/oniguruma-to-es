@@ -2,7 +2,7 @@ import {transform} from './transform.js';
 import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
-import {EmulatedRegExp} from './subclass.js';
+import {EmulatedRegExp, strategiesUsingCaptures} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {atomic, emulationGroupMarker, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
@@ -74,6 +74,7 @@ function toDetails(pattern, options) {
   const strategy = regexAst._strategy;
   if (useEmulationGroups || strategy) {
     result.options = {
+      ...(strategiesUsingCaptures.has(strategy) ? {captures: regexAst._captures} : null),
       ...(strategy ? {strategy} : null),
       ...(useEmulationGroups ? {useEmulationGroups} : null),
     };

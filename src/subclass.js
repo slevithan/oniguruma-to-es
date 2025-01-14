@@ -64,6 +64,7 @@ class EmulatedRegExp extends RegExpSubclass {
       }
     } else {
       const opts = {
+        captures: null,
         strategy: null,
         useEmulationGroups: false,
         ...options,
@@ -74,6 +75,7 @@ class EmulatedRegExp extends RegExpSubclass {
         pattern,
         flags: flags ?? '',
         options: {
+          ...(opts.captures ? {captures: opts.captures} : null),
           ...(opts.strategy ? {strategy: opts.strategy} : null),
           ...(opts.useEmulationGroups ? {useEmulationGroups: true} : null),
         },
@@ -101,19 +103,44 @@ class EmulatedRegExp extends RegExpSubclass {
       this.lastIndex = 0;
       const match = exec.call(this, str.slice(pos));
       if (match) {
-        adjustMatchDetails(str, this, match, pos);
+        adjustMatchDetailsForOffset(match, this, str, pos);
+        this.lastIndex += pos;
       }
       return match;
     }
 
-    // ## Support `(?!\G)…` and similar at start of pattern with no alts
-    if (strategy === 'not_search_start') {
+    if (strategy) {
       let match = exec.call(this, str);
-      if (match?.index === pos) {
-        const globalRe = useLastIndex ? this : new RegExp(this.source, `g${this.flags}`);
-        globalRe.lastIndex = match.index + 1;
-        match = exec.call(globalRe, str);
+
+      // ## Support `(?!\G)…` and similar at start of pattern with no alts
+      if (strategy === 'not_search_start') {
+        if (match?.index === pos) {
+          const globalRe = useLastIndex ? this : new RegExp(this.source, `g${this.flags}`);
+          globalRe.lastIndex = match.index + 1;
+          match = exec.call(globalRe, str);
+        }
       }
+
+      if (
+        // ## Support `(?!\G)|…` at top level
+        strategy === 'first_alt_not_search_start' ||
+        // ## Support `…|(?!\G)` at top level
+        strategy === 'last_alt_not_search_start'
+      ) {
+        // These strategies add flag y, so don't need to check where the match occurred
+        if (!match && str.length > pos) {
+          if (strategy === 'last_alt_not_search_start') {
+            this.lastIndex = pos + 1;
+            match = exec.call(this, str);
+          }
+          if (!match) {
+            const matchPos = pos + 1;
+            match = getZeroLengthMatchDetailsWithNoParticipatingCaptures(this, str, matchPos);
+            this.lastIndex = matchPos;
+          }
+        }
+      }
+
       return match;
     }
 
@@ -121,10 +148,9 @@ class EmulatedRegExp extends RegExpSubclass {
   }
 }
 
-function adjustMatchDetails(str, re, match, offset) {
-  match.input = str;
+function adjustMatchDetailsForOffset(match, re, input, offset) {
+  match.input = input;
   match.index += offset;
-  re.lastIndex += offset;
   if (re.hasIndices) {
     const matchIndices = match.indices;
     for (let i = 0; i < matchIndices.length; i++) {
@@ -150,8 +176,26 @@ function adjustMatchDetails(str, re, match, offset) {
 function applySubclassStrategies(ast) {
   const alts = ast.pattern.alternatives;
   const firstEl = alts[0].elements[0];
-  if (alts.length > 1 || !firstEl) {
-    // These strategies only work if there's no top-level alternation
+
+  if (alts.length > 1) {
+    // ## Strategy `first_alt_not_search_start`: Support `(?!\G)|…` at top level
+    if (alts[0].elements.length === 1 && isLoneGLookaround(firstEl, {negate: true})) {
+      alts.shift();
+      ast.flags.sticky = true;
+      return 'first_alt_not_search_start';
+    // ## Strategy `last_alt_not_search_start`: Support `…|(?!\G)` at top level
+    } else {
+      const lastAltEls = alts.at(-1).elements;
+      if (lastAltEls.length === 1 && isLoneGLookaround(lastAltEls[0], {negate: true})) {
+        alts.pop();
+        ast.flags.sticky = true;
+        return 'last_alt_not_search_start';
+      }
+    }
+    // Remaining strategies only work if there's no top-level alternation
+    return null;
+  }
+  if (!firstEl) {
     return null;
   }
 
@@ -205,6 +249,32 @@ function applySubclassStrategies(ast) {
   return null;
 }
 
+function getZeroLengthMatchDetailsWithNoParticipatingCaptures(re, input, index) {
+  // `re` is assumed to be an `EmulatedRegExp` with `options.captures`
+  const caps = re.rawArgs.options.captures;
+  const capNames = caps.filter(name => !!name);
+  const groups = capNames.length ?
+    capNames.reduce((result, name) => {
+      result[name] = undefined;
+      return result;
+    }, {}) :
+    undefined;
+  const match = Array(caps.length + 1).fill(undefined);
+  Object.assign(match, {
+    0: '',
+    index,
+    input,
+    groups,
+  });
+  if (re.hasIndices) {
+    const indices = Array(caps.length + 1).fill(undefined);
+    indices[0] = [index, index];
+    match.indices = indices;
+    match.indices.groups = groups;
+  }
+  return match;
+}
+
 function isLoneGLookaround(node, options) {
   const opts = {
     negate: null,
@@ -217,8 +287,14 @@ function isLoneGLookaround(node, options) {
   );
 }
 
+const strategiesUsingCaptures = new Set([
+  'first_alt_not_search_start',
+  'last_alt_not_search_start',
+]);
+
 export {
   applySubclassStrategies,
   EmulatedRegExp,
   isLoneGLookaround,
+  strategiesUsingCaptures,
 };

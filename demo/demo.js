@@ -157,6 +157,7 @@ function areDetailsEqual(a, b) {
   return (
     a.pattern === b.pattern &&
     a.flags.replace(/[uv]/, '') === b.flags.replace(/[uv]/, '') &&
+    JSON.stringify(a.options?.captures) === JSON.stringify(b.options?.captures) &&
     a.options?.strategy === b.options?.strategy &&
     a.options?.useEmulationGroups === b.options?.useEmulationGroups
   );
@@ -166,12 +167,13 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedSubclass(pattern, flags, {strategy, useEmulationGroups}) {
-  const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+function getFormattedSubclass(pattern, flags, {captures, strategy, useEmulationGroups}) {
+  const escStr = str => str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const optionStrs = [];
-  strategy && optionStrs.push(`strategy: '${strategy}'`);
+  captures && optionStrs.push(`captures: ${JSON.stringify(captures).replace(/,/g, ', ')}`)
+  strategy && optionStrs.push(`strategy: "${strategy}"`);
   useEmulationGroups && optionStrs.push(`useEmulationGroups: ${useEmulationGroups}`);
-  return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${optionStrs.join(',\n  ')},\n})`;
+  return `new EmulatedRegExp("${escStr(pattern)}", "${flags}", {\n  ${optionStrs.join(',\n  ')},\n})`;
 }
 
 function getRegExpLiteralPattern(str) {

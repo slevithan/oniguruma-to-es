@@ -15,7 +15,8 @@ import emojiRegex from 'emoji-regex-xs';
   pattern: Object;
   flags: Object;
   options: Object;
-  _strategy?: string;
+  _captures: Array<string | null>;
+  _strategy: string | null;
 }} RegexAst
 */
 /**
@@ -91,15 +92,15 @@ function transform(ast, options) {
   };
   traverse({node: ast}, secondPassState, SecondPassVisitor);
   const thirdPassState = {
+    captures: [],
     groupsByName: secondPassState.groupsByName,
     highestOrphanBackref: 0,
     numCapturesToLeft: 0,
     reffedNodesByReferencer: secondPassState.reffedNodesByReferencer,
   };
   traverse({node: ast}, thirdPassState, ThirdPassVisitor);
-  if (strategy) {
-    ast._strategy = strategy;
-  }
+  ast._captures = thirdPassState.captures;
+  ast._strategy = strategy;
   return ast;
 }
 
@@ -587,6 +588,9 @@ const ThirdPassVisitor = {
       if (state.groupsByName.get(node.name).get(node).hasDuplicateNameToRemove) {
         delete node.name;
       }
+    }
+    if (!node._originNumber) {
+      state.captures.push(node.name ?? null);
     }
   },
 
