@@ -13,13 +13,35 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **less than 4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
-### [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
-
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars.
 
 Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression).
 
 <sup>✳︎: Ruby 2.0+ uses [Onigmo](https://github.com/k-takata/Onigmo), a fork of Oniguruma with similar syntax and behavior.</sup>
+
+## 🧪 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
+
+## 🪧 Examples
+
+```js
+import {toRegExp} from 'oniguruma-to-es';
+
+// Many advanced features are supported that would produce more complex
+// transformations than shown here
+toRegExp(String.raw`(?x)
+  \A
+  (?<n>\d) (?<n>\p{greek}) \k<n>
+  ([0a-z&&\h]){,2}
+  \Z
+`);
+// → /^(?<n>\p{Nd})(\p{sc=Greek})(?:\1|\2)(?:[[0a-z]&&\p{AHex}]){0,2}(?=\n?$)/v
+
+// Mixed case-sensitivity supports Unicode case folding
+toRegExp(`[a-z](?i)[a-z]`, {target: 'ES2018'});
+// → /[a-z][a-zA-ZſK]/u
+toRegExp(`[a-z](?i)[a-z]`, {target: 'ES2025'});
+// → /[a-z](?i:[a-z])/v
+```
 
 ## 📜 Contents
 
