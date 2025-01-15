@@ -27,15 +27,13 @@ Depending on features used, Oniguruma-To-ES might use advanced emulation via a `
 import {toRegExp} from 'oniguruma-to-es';
 
 toRegExp(String.raw`(?x)
-  \A
   (?<n>\d) (?<n>\p{greek}) \k<n>
   ([0a-z&&\h]){,2}
-  \Z
 `);
-// → /^(?<n>\p{Nd})(\p{sc=Greek})(?:\1|\2)(?:[[0a-z]&&\p{AHex}]){0,2}(?=\n?$)/v
+// → /(?<n>\p{Nd})(\p{sc=Greek})(?:\1|\2)(?:[[0a-z]&&\p{AHex}]){0,2}/v
 ```
 
-Many advanced features are supported that would produce more complex transformations than shown above. However, in this output we can already see several translations that might not be obvious or are subtly different than JavaScript, including that Oniguruma's `\d` is Unicode-based by default, backreferences to named groups with duplicate names match the captured value of any of the groups, character class intersection doesn't require nested classes for union and ranges (like JavaScript does), and `\Z` can match at the position before a string-terminating line feed.
+Many advanced features are supported that would produce more complex transformations than shown above. However, in this output you can already see several translations that might not be obvious. Apart from the free-spacing modifier `(?x)` that isn't supported in JavaScript, you can also see that Oniguruma's `\d` is Unicode-based by default, backreferences to named groups with duplicate names match the captured value of any of the groups, `(…)` groups are noncapturing by default if named groups are present, character class intersection doesn't follow JavaScript's requirement for using nested classes with union and ranges, and `{…}` interval quantifiers can use an implicit `0` min.
 
 This next example shows support for Unicode case folding with mixed case-sensitivity. Notice that code points `ſ` ([U+017F](https://codepoints.net/U+017F)) and `K` ([U+212A](https://codepoints.net/U+212A)) are added to the second, case-insensitive range if given a `target` prior to `ES2025`, and that modern JavaScript regex features (like flag groups) are used if allowed by the `target`.
 
