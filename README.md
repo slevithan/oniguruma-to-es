@@ -19,7 +19,7 @@ Depending on features used, Oniguruma-To-ES might use advanced emulation via a `
 
 <sup>✳︎: Ruby 2.0+ uses [Onigmo](https://github.com/k-takata/Onigmo), a fork of Oniguruma with similar syntax and behavior.</sup>
 
-## 🧪 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
+## 🔮 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
 ## 🪧 Examples
 
@@ -33,14 +33,14 @@ toRegExp(String.raw`(?x)
 // → /(?<n>\p{Nd})(\p{sc=Greek})(?:\1|\2)(?:[[0a-z]&&\p{AHex}]){0,2}/v
 ```
 
-Many advanced features are supported that would produce more complex transformations than shown above. However, in this output you can already see several translations that might not be obvious. Apart from the free-spacing modifier `(?x)` that isn't supported in JavaScript, you can also see that Oniguruma's `\d` is Unicode-based by default, backreferences to named groups with duplicate names match the captured value of any of the groups, `(…)` groups are noncapturing by default if named groups are present, character class intersection doesn't follow JavaScript's requirement for using nested classes with union and ranges, and `{…}` interval quantifiers can use an implicit `0` min.
+Although the example above is fairly straightforward, you can see several translations that might not be obvious. Apart from the `(?x)` free-spacing modifier and the `\h` hex-digit shorthand that aren't available in JavaScript, you can also see that Oniguruma's `\d` is Unicode-based by default, backreferences to duplicate group names match the captured value of any of the groups, `(…)` groups are noncapturing by default if named groups are present, character class intersection doesn't follow JavaScript's requirement of using nested classes for union and ranges, and `{…}` interval quantifiers can use an implicit `0` min. Many advanced features are supported that would produce more complicated transformations.
 
-This next example shows support for Unicode case folding with mixed case-sensitivity. Notice that code points `ſ` ([U+017F](https://codepoints.net/U+017F)) and `K` ([U+212A](https://codepoints.net/U+212A)) are added to the second, case-insensitive range if given a `target` prior to `ES2025`, and that modern JavaScript regex features (like flag groups) are used if allowed by the `target`.
+This next example shows support for Unicode case folding with mixed case-sensitivity. Notice that code points `ſ` ([U+017F](https://codepoints.net/U+017F)) and `K` ([U+212A](https://codepoints.net/U+212A)) are added to the second, case-insensitive range if using a `target` prior to `ES2025`, and that modern JavaScript regex features (like flag groups) are used if supported by the `target`.
 
 ```js
-toRegExp(`[a-z](?i)[a-z]`, {target: 'ES2018'});
+toRegExp('[a-z](?i)[a-z]', {target: 'ES2018'});
 // → /[a-z][a-zA-ZſK]/u
-toRegExp(`[a-z](?i)[a-z]`, {target: 'ES2025'});
+toRegExp('[a-z](?i)[a-z]', {target: 'ES2025'});
 // → /[a-z](?i:[a-z])/v
 ```
 
