@@ -738,7 +738,11 @@ function getOptimizedGroup(node) {
 }
 
 function isValidGroupNameOniguruma(name) {
-  return !/^(?:[-\d]|$)/.test(name);
+  // Although Onig group name rules are permissive, the validation here is incomplete and can be
+  // improved. The more restrictive rules for valid JS group names are accurately captured in
+  // `isValidGroupNameJs`. Note that backrefs and subroutines might contextually use `-` and `+` to
+  // indicate relative index or recursion level
+  return /^[^-+\d)][^)]*$/.test(name);
 }
 
 // For any intersection classes that contain only a class, swap the parent with its (modded) child

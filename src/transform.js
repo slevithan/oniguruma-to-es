@@ -838,7 +838,7 @@ function isLoneGLookaround(node, options) {
 }
 
 function isValidGroupNameJs(name) {
-  // JS group names are more restrictive than Onig; see
+  // JS group names are more restrictive than Onig; see `isValidGroupNameOniguruma`,
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
 }
