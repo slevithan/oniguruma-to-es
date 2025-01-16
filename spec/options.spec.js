@@ -7,12 +7,14 @@ beforeEach(() => {
 });
 
 describe('Options', () => {
-  // TODO: Add me
-  // describe('accuracy', () => {
-  //   it('should', () => {
-  //     expect('').toExactlyMatch(r``);
-  //   });
-  // });
+  describe('accuracy', () => {
+    it(r`should throw for subclass-based \G emulation if lookbehind present`, () => {
+      expect(() => toDetails(r`\Ga|(?<=)`, {accuracy: 'strict'})).toThrow();
+      expect(() => toDetails(r`\Ga|(?<=)`)).not.toThrow();
+    });
+
+    // TODO: Add remaining
+  });
 
   // TODO: Add me
   // describe('avoidSubclass', () => {

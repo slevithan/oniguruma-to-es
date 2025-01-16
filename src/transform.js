@@ -51,11 +51,12 @@ function transform(ast, options) {
   };
   const firstPassState = {
     accuracy: opts.accuracy,
-    allowSubclassedG: opts.accuracy === 'default' && !opts.avoidSubclass,
     asciiWordBoundaries: opts.asciiWordBoundaries,
+    avoidSubclass: opts.avoidSubclass,
     flagDirectivesByAlt: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
-    strategy: {name: null},
+    passedLookbehind: false,
+    strategy: null,
     // Subroutines can appear before the groups they ref, so collect reffed nodes for a second pass 
     subroutineRefMap: new Map(),
     supportedGNodes: new Set(),
@@ -93,7 +94,7 @@ function transform(ast, options) {
     reffedNodesByReferencer: secondPassState.reffedNodesByReferencer,
   };
   traverse({node: ast}, thirdPassState, ThirdPassVisitor);
-  ast._strategy = firstPassState.strategy.name;
+  ast._strategy = firstPassState.strategy;
   return ast;
 }
 
@@ -124,8 +125,9 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, key, container, ast, remove, replaceWith}, {allowSubclassedG, asciiWordBoundaries, strategy, supportedGNodes, wordIsAscii}) {
+  Assertion({node, key, container, ast, remove, replaceWith}, state) {
     const {kind, negate} = node;
+    const {asciiWordBoundaries, avoidSubclass, supportedGNodes, wordIsAscii} = state;
     if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?=\z|\n)`));
@@ -133,6 +135,8 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
       // string-terminating line feed
       replaceWith(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}));
+    } else if (kind === AstAssertionKinds.lookbehind) {
+      state.passedLookbehind = true;
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
         ast.flags.sticky = true;
@@ -144,11 +148,11 @@ const FirstPassVisitor = {
         // cases resulting in the standard error for being unsupported
         if (prev && isAlwaysNonZeroLength(prev)) {
           replaceWith(prepContainer(createLookaround({negate: true})));
-        } else if (!allowSubclassedG) {
-          throw new Error(r`Uses "\G" in a way that's unsupported`);
+        } else if (avoidSubclass) {
+          throw new Error(r`Uses "\G" in a way that requires a subclass`);
         } else {
           replaceWith(createAssertion(AstAssertionKinds.string_start));
-          strategy.name = 'search_start_clip';
+          state.strategy = 'search_start_clip';
         }
       }
     } else if (kind === AstAssertionKinds.string_end_newline) {
@@ -310,37 +314,44 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  Pattern({node}, {supportedGNodes}) {
-    // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
-    // of every top-level alternative (with complex rules for what determines being at the start).
-    // Additional `\G` error checking in `Assertion` visitor
-    const leadingGs = [];
-    let hasAltWithLeadG = false;
-    let hasAltWithoutLeadG = false;
-    for (const alt of node.alternatives) {
-      if (alt.elements.length === 1 && alt.elements[0].kind === AstAssertionKinds.search_start) {
-        // Remove the `\G` (leaving behind an empty alternative, and without adding JS flag y)
-        // since a top-level alternative that includes only `\G` always matches at the start of the
-        // match attempt. Note that this is based on Oniguruma's rules, and is different than other
-        // regex flavors where `\G` matches at the end of the previous match (a subtle distinction
-        // that's relevant after zero-length matches)
-        alt.elements.pop();
-      } else {
-        const leadingG = getLeadingG(alt.elements);
-        if (leadingG) {
-          hasAltWithLeadG = true;
-          Array.isArray(leadingG) ?
-            leadingGs.push(...leadingG) :
-            leadingGs.push(leadingG);
+  Pattern: {
+    enter({node}, {supportedGNodes}) {
+      // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
+      // of every top-level alternative (with complex rules for what determines being at the start).
+      // Additional `\G` error checking in `Assertion` visitor
+      const leadingGs = [];
+      let hasAltWithLeadG = false;
+      let hasAltWithoutLeadG = false;
+      for (const alt of node.alternatives) {
+        if (alt.elements.length === 1 && alt.elements[0].kind === AstAssertionKinds.search_start) {
+          // Remove the `\G` (leaving behind an empty alternative, and without adding JS flag y)
+          // since a top-level alternative that includes only `\G` always matches at the start of the
+          // match attempt. Note that this is based on Oniguruma's rules, and is different than other
+          // regex flavors where `\G` matches at the end of the previous match (a subtle distinction
+          // that's relevant after zero-length matches)
+          alt.elements.pop();
         } else {
-          hasAltWithoutLeadG = true;
+          const leadingG = getLeadingG(alt.elements);
+          if (leadingG) {
+            hasAltWithLeadG = true;
+            Array.isArray(leadingG) ?
+              leadingGs.push(...leadingG) :
+              leadingGs.push(leadingG);
+          } else {
+            hasAltWithoutLeadG = true;
+          }
         }
       }
-    }
-    if (hasAltWithLeadG && !hasAltWithoutLeadG) {
-      // Supported `\G` nodes will be removed (and add flag y) when traversed
-      leadingGs.forEach(g => supportedGNodes.add(g));
-    }
+      if (hasAltWithLeadG && !hasAltWithoutLeadG) {
+        // Supported `\G` nodes will be removed (and add flag y) when traversed
+        leadingGs.forEach(g => supportedGNodes.add(g));
+      }
+    },
+    exit(_, {accuracy, passedLookbehind, strategy}) {
+      if (accuracy === 'strict' && passedLookbehind && strategy) {
+        throw new Error(r`Uses "\G" in a way that requires non-strict accuracy`);
+      }
+    },
   },
 
   Quantifier({node}) {
