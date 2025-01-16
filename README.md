@@ -925,7 +925,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
     <td>
-      ● Supported if at top level and no top-level alternation is used<br>
+      ● Supported at top level if no top-level alternation is used<br>
     </td>
   </tr>
   <tr valign="top">

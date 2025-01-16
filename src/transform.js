@@ -247,10 +247,12 @@ const FirstPassVisitor = {
         traverseReplacement(flagGroup, path, state, FirstPassVisitor);
       }
     } else if (kind === AstDirectiveKinds.keep) {
-      // Allows multiple `\K`s
-      if (parent.parent !== ast.pattern || ast.pattern.alternatives.length > 1) {
-        // `\K` is emulatable at least within top-level alternation, but it's tricky. Ex: `ab\Kc|a`
-        // is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
+      const firstAltFirstEl = ast.pattern.alternatives[0].elements[0];
+      const hasWrapperGroup =
+        hasOnlyChild(ast.pattern, kid => kid.type === AstTypes.Group) &&
+        firstAltFirstEl.alternatives.length === 1;
+      const topLevel = hasWrapperGroup ? firstAltFirstEl : ast.pattern;
+      if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
       replaceWith(prepContainer(createLookaround({behind: true}), removeAllPrevSiblings()));
