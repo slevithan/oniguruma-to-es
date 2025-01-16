@@ -94,6 +94,12 @@ class EmulatedRegExp extends RegExpSubclass {
     if (this.#strategy === 'search_start_clip' && useLastIndex && pos) {
       // Reset since this tests on a sliced string that we want to match at the start of
       this.lastIndex = 0;
+      // Slicing the string can lead to mismatches when three edge cases are stacked on each other:
+      // 1. An uncommon use of `\G` that relies on subclass-based emulation, combined with...
+      // 2. Lookbehind that searches behind the search start (not match start) position...
+      // 3. During a search when the regex's `lastIndex` isn't `0`.
+      // The `search_start_clip` strategy is therefore only allowed with strict `accuracy` when
+      // lookbehind isn't present
       const match = exec.call(this, str.slice(pos));
       if (match) {
         adjustMatchDetailsForOffset(match, this, str, pos);

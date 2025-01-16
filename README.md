@@ -194,7 +194,7 @@ Using default `accuracy` adds support for the following features, depending on `
 
 - All targets (`ES2025` and earlier):
   - Enables use of `\X` using a close approximation of a Unicode extended grapheme cluster.
-  - Although most uses of `\G` are supported with strict `accuracy`, this enables the remaining edge cases. This can lead to extremely rare mismatches when three edge cases are stacked on each other: ① an uncommon use of `\G` that relies on subclass-based emulation ② combined with lookbehind that searches behind the search start (not match start) position ③ during a search when the regex's `lastIndex` isn't `0`.
+  - Enables combining lookbehind with uncommon uses of `\G` that rely on subclass-based emulation.
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
