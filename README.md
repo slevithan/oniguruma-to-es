@@ -851,16 +851,14 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      All subroutines:<br>
+      ✔ Error if named capture used<br>
+      ✔ Allows leading 0s<br>
+      All subroutines (incl. named):<br>
       ✔ Allowed before reffed group<br>
       ✔ Can be nested (any depth)<br>
-      ✔ Doesn't alter backref nums<br>
       ✔ Reuses flags from the reffed group (ignores local flags)<br>
       ✔ Replaces most recent captured values (for backrefs)<br>
       ✔ <code>\g</code> without <code>&lt;</code> <code>'</code> is an identity escape<br>
-      Numbered only:<br>
-      ✔ Error if named capture used<br>
-      ✔ Allows leading 0s<br>
     </td>
   </tr>
   <tr valign="top">
