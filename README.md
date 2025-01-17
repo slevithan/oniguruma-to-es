@@ -1,5 +1,8 @@
 # Oniguruma (鬼車) to ES
 
+“I think \[Oniguruma-To-ES] is very wonderful”<br>
+— K. Kosako, creator of Oniguruma
+
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![bundle][bundle-src]][bundle-href]
@@ -8,8 +11,8 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.style/) syntax highlighter, etc.).
-- Share regexes across your Ruby and JavaScript code.<sup>✳︎</sup>
-- Evaluate Oniguruma regexes for validity, and traverse their ASTs.
+- Share regexes across your Ruby<sup>✳︎</sup> or PHP (`mb_ereg`, etc.) and JavaScript code.
+- Evaluate the validity of Oniguruma regexes and traverse their ASTs.
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **less than 4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
