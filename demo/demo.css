@@ -210,7 +210,7 @@ pre, code, kbd, textarea {
   background-color: #f3f3f3;
 }
 
-#comparison-control {
+#comparison-control, #bench {
   float: right;
   font-size: 0.9em;
   color: #333;

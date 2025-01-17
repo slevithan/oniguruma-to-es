@@ -18,6 +18,7 @@
 
     <h2>Try it</h2>
     <p><textarea id="input" spellcheck="false" oninput="autoGrow(); showTranspiled()">(?x) (?&lt;n>\d) (?&lt;n>\p{greek}) \k&lt;n> (?i) [-a-z] \h{,4}</textarea></p>
+    <p id="bench"><span id="runtime"></span> <button onclick="showTranspiled()">⟳</button></p>
     <p>
       <label><code>flags</code></label>
       <label>

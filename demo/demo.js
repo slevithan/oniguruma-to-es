@@ -4,6 +4,7 @@ const ui = {
   output: document.getElementById('output'),
   subclassInfo: document.getElementById('subclass-info'),
   comparisonInfo: document.getElementById('comparison-info'),
+  runtime: document.getElementById('runtime'),
 };
 const state = {
   flags: {
@@ -82,10 +83,14 @@ function showTranspiled() {
   const errorObj = {error: true};
   let details;
   let result = '';
+  let runtime = 0;
   try {
     // Use `toDetails` but display as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
+    const startTime = performance.now();
     details = OnigurumaToES.toDetails(ui.input.value, options);
+    const endTime = performance.now();
+    runtime = endTime - startTime;
     if (details.options) {
       result = getFormattedSubclass(details.pattern, details.flags, details.options);
       ui.subclassInfo.classList.remove('hidden');
@@ -99,6 +104,7 @@ function showTranspiled() {
     ui.output.classList.add('error');
   }
   ui.output.innerHTML = escapeHtml(result);
+  ui.runtime.innerHTML = runtime ? `${Math.round((runtime + Number.EPSILON) * 100) / 100}ms` : '';
 
   // ## Compare to all other accuracy/target combinations
   if (!state.comparison) {

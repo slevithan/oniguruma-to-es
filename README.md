@@ -853,6 +853,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Error if named capture used<br>
       ✔ Allows leading 0s<br>
+      <br>
       All subroutines (incl. named):<br>
       ✔ Allowed before reffed group<br>
       ✔ Can be nested (any depth)<br>
