@@ -100,11 +100,12 @@ function showTranspiled() {
     }
   } catch (err) {
     details = errorObj;
+    runtime = NaN;
     result = `Error: ${err.message}`;
     ui.output.classList.add('error');
   }
   ui.output.innerHTML = escapeHtml(result);
-  ui.runtime.innerHTML = runtime ? `${Math.round((runtime + Number.EPSILON) * 100) / 100}ms` : '';
+  ui.runtime.innerHTML = Number.isNaN(runtime) ? '' : `${Math.round((runtime + Number.EPSILON) * 100) / 100}ms`;
 
   // ## Compare to all other accuracy/target combinations
   if (!state.comparison) {
