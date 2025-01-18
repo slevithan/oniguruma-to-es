@@ -5,6 +5,7 @@ const ui = {
   subclassInfo: document.getElementById('subclass-info'),
   comparisonInfo: document.getElementById('comparison-info'),
   runtime: document.getElementById('runtime'),
+  bench: document.getElementById('bench'),
 };
 const state = {
   flags: {
@@ -30,6 +31,7 @@ const state = {
     verbose: getValue('option-verbose'),
   },
   comparison: getValue('comparison'),
+  bench: !!(new URL(location).searchParams.get('bench')),
 };
 
 const envSupportsFlagGroups = (() => {
@@ -54,6 +56,10 @@ const autoTarget = envSupportsFlagGroups ? 'ES2025' : (envSupportsFlagV ? 'ES202
 ui.autoTargetOption.innerHTML += ` [${autoTarget}]`;
 autoGrow();
 showTranspiled();
+
+if (state.bench) {
+  ui.bench.classList.remove('hidden');
+}
 
 function autoGrow() {
   ui.input.style.height = '0';
@@ -105,7 +111,9 @@ function showTranspiled() {
     ui.output.classList.add('error');
   }
   ui.output.innerHTML = escapeHtml(result);
-  ui.runtime.innerHTML = Number.isNaN(runtime) ? '' : `${Math.round((runtime + Number.EPSILON) * 100) / 100}ms`;
+  if (state.bench) {
+    ui.runtime.innerHTML = Number.isNaN(runtime) ? '' : `${Math.round((runtime + Number.EPSILON) * 10) / 10}ms`;
+  }
 
   // ## Compare to all other accuracy/target combinations
   if (!state.comparison) {
