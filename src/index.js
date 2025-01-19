@@ -32,6 +32,7 @@ import {recursion} from 'regex-recursion';
     asciiWordBoundaries?: boolean;
     captureGroup?: boolean;
     recursionLimit?: number;
+    singleline?: boolean;
   };
   target?: keyof Target;
   verbose?: boolean;
@@ -51,7 +52,10 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
 function toDetails(pattern, options) {
   const opts = getOptions(options);
   const avoidSubclass = opts.avoidSubclass;
-  const tokenized = tokenize(pattern, opts.flags, {captureGroup: opts.rules.captureGroup});
+  const tokenized = tokenize(pattern, opts.flags, {
+    captureGroup: opts.rules.captureGroup,
+    singleline: opts.rules.singleline,
+  });
   const onigurumaAst = parse(tokenized, {
     skipBackrefValidation: opts.rules.allowOrphanBackrefs,
     verbose: opts.verbose,

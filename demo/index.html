@@ -110,13 +110,9 @@
             </p>
           </div>
           <div>
-            <p>
-              <label>
-                <input type="number" id="option-recursionLimit" value="20" min="2" max="20" onchange="setRule('recursionLimit', +this.value)" onkeyup="setRule('recursionLimit', +this.value)">
-                <code>recursionLimit</code>
-                <span class="tip tip-lg">Depth limit can be <code>2</code> to <code>20</code>; Oniguruma uses <code>20</code></span>
-              </label>
-            </p>
+            <hr width="1" size="65">
+          </div>
+          <div>
             <p>
               <label>
                 <input type="checkbox" id="option-allowOrphanBackrefs" onchange="setRule('allowOrphanBackrefs', this.checked)">
@@ -124,8 +120,6 @@
                 <span class="tip tip-xl">Useful with TextMate grammars that merge backrefs across <code>begin</code> and <code>end</code> patterns</span>
               </label>
             </p>
-          </div>
-          <div>
             <p>
               <label>
                 <input type="checkbox" id="option-asciiWordBoundaries" onchange="setRule('asciiWordBoundaries', this.checked)">
@@ -138,6 +132,22 @@
                 <input type="checkbox" id="option-captureGroup" onchange="setRule('captureGroup', this.checked)">
                 <code>captureGroup</code>
                 <span class="tip tip-xl">Unnamed captures and numbered calls allowed when using named capture; on by default in <code>vscode-oniguruma</code></span>
+              </label>
+            </p>
+          </div>
+          <div>
+            <p>
+              <label>
+                <input type="number" id="option-recursionLimit" value="20" min="2" max="20" onchange="setRule('recursionLimit', +this.value)" onkeyup="setRule('recursionLimit', +this.value)">
+                <code>recursionLimit</code>
+                <span class="tip tip-lg">Depth limit can be <code>2</code> to <code>20</code>; Oniguruma uses <code>20</code></span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="option-singleline" onchange="setRule('singleline', this.checked)">
+                <code>singleline</code>
+                <span class="tip tip-md"><code>^</code> as <code>\A</code>; <code>$</code> as <code>\Z</code></span>
               </label>
             </p>
           </div>

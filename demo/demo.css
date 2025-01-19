@@ -21,6 +21,10 @@ main {
   border-radius: 0 0 15px 15px;
 }
 
+hr {
+  border: 1px solid #c9e4ff;
+}
+
 h1, h2, ul, p, pre, summary {
   margin-bottom: 12px;
 }

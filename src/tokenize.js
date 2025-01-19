@@ -127,19 +127,25 @@ const charClassTokenRe = new RegExp(r`
   };
   rules: {
     captureGroup: boolean;
+    singleline: boolean;
   };
 }} TokenizerResult
 */
 /**
 @param {string} pattern Oniguruma pattern.
 @param {string} [flags] Oniguruma flags.
-@param {{captureGroup?: boolean;}} [rules] Oniguruma compile-time options.
+@param {{
+  captureGroup?: boolean;
+  singleline?: boolean;
+}} [rules] Oniguruma compile-time options.
 @returns {TokenizerResult}
 */
 function tokenize(pattern, flags = '', rules) {
   rules = {
     // `ONIG_OPTION_CAPTURE_GROUP`
     captureGroup: false,
+    // `ONIG_OPTION_SINGLELINE`
+    singleline: false,
     ...rules,
   };
   if (typeof pattern !== 'string') {
@@ -157,6 +163,7 @@ function tokenize(pattern, flags = '', rules) {
     popModX() {xStack.pop()},
     pushModX(isXOn) {xStack.push(isXOn)},
     replaceCurrentModX(isXOn) {xStack[xStack.length - 1] = isXOn},
+    singleline: rules.singleline,
   };
   let tokens = [];
   let match;
@@ -399,9 +406,13 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     };
   }
   if (m === '^' || m === '$') {
+    const kind = context.singleline ? {
+      '^': r`\A`,
+      '$': r`\Z`,
+    }[m] : m;
     return {
       token: createToken(TokenTypes.Assertion, m, {
-        kind: m,
+        kind,
       }),
     };
   }

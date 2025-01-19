@@ -26,6 +26,7 @@ const state = {
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
       captureGroup: getValue('option-captureGroup'),
       recursionLimit: getValue('option-recursionLimit'),
+      singleline: getValue('option-singleline'),
     },
     target: getValue('option-target'),
     verbose: getValue('option-verbose'),

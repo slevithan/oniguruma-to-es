@@ -171,6 +171,34 @@ describe('Options', () => {
         }
       });
     });
+
+    describe('singleline', () => {
+      it(r`should handle ^ as \A`, () => {
+        expect('a').toExactlyMatch({
+          pattern: r`^a`,
+          rules: {singleline: true},
+        });
+        expect('\na').not.toFindMatch({
+          pattern: r`^a`,
+          rules: {singleline: true},
+        });
+      });
+
+      it(r`should handle $ as \Z`, () => {
+        expect('a').toExactlyMatch({
+          pattern: r`a$`,
+          rules: {singleline: true},
+        });
+        expect('a\n').toFindMatch({
+          pattern: r`a$`,
+          rules: {singleline: true},
+        });
+        expect('a\nb').not.toFindMatch({
+          pattern: r`a$`,
+          rules: {singleline: true},
+        });
+      });
+    });
   });
 
   describe('target', () => {
