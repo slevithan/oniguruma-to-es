@@ -303,6 +303,7 @@ describe('Backreference', () => {
     });
 
     it('should throw for invalid names', () => {
+      // `-` and `+` are invalid in backref names despite being valid in group and subroutine names
       expect(() => toDetails(r`(?<n-n>)\k<n-n>`)).toThrow();
       expect(() => toDetails(r`(?<n+n>)\k<n+n>`)).toThrow();
     });

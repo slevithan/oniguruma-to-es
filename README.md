@@ -781,7 +781,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Duplicate names allowed (including within the same alternation path) unless directly referenced by a subroutine<br>
-      ✔ Error for names invalid in Oniguruma or JS<br>
+      ✔ Error for names invalid in Oniguruma (more permissive than JS)<br>
     </td>
   </tr>
 
@@ -825,6 +825,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ For duplicate group names, rematch any of their matches (multiplex)<br>
       ✔ Refs the most recent of a capture/subroutine set (no multiplex)<br>
       ✔ Combination of multiplex and most recent of capture/subroutine set if duplicate name is indirectly created by a subroutine<br>
+      ✔ Error for <code>-</code>/<code>+</code> in backref names, though valid in group names<br>
     </td>
   </tr>
   <tr valign="top">
