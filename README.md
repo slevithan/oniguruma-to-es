@@ -998,14 +998,14 @@ The following throw errors since they aren't yet supported. They're all extremel
   - Whole-pattern modifier: Don't capture group `(?C)`.
   - Callout: `(*FAIL)`.
 - Supportable for some uses:
-  - Absence operators: `(?~…)`, etc.
+  - Absence functions: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
   - Callout pair: `(*SKIP)(*FAIL)`.
 - Not supportable:
   - Other callouts: `(?{…})`, `(*…)`, etc.
 
-Note that Oniguruma-To-ES supports 99.9+% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, absence operators and conditionals were used in 2–3 regexes each. The rest weren't used at all.
+Note that Oniguruma-To-ES supports 99.9+% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, absence functions and conditionals were used in 2–3 regexes each. The rest weren't used at all.
 
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't currently supported.
 

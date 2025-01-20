@@ -40,6 +40,7 @@ const TokenDirectiveKinds = {
 };
 
 const TokenGroupKinds = {
+  absence: 'absence',
   atomic: 'atomic',
   capturing: 'capturing',
   group: 'group',
@@ -90,10 +91,11 @@ const tokenRe = new RegExp(r`
     | .
   )
   | \( (?: \? (?:
-    [:=!>(~]
+    [:=!>(]
     | <[=!]
     | <[^>]*>
     | '[^']*'
+    | ~\|?
     | # (?:[^)\\] | \\.?)*
     | [imx\-]+[:)]
   )?)?
@@ -358,13 +360,19 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         token,
       }
     }
+    if (m2 === '~') {
+      if (m === '(?~|') {
+        throw new Error(`Unsupported absence function type "${m}"`);
+      }
+      return {
+        token: createToken(TokenTypes.GroupOpen, m, {
+          kind: TokenGroupKinds.absence,
+        }),
+      };
+    }
     if (m2 === '(') {
       // [TODO] Some forms are supportable
       throw new Error(`Unsupported conditional "${m}"`);
-    }
-    if (m2 === '~') {
-      // [TODO] Some forms are supportable
-      throw new Error(`Unsupported absence operator "${m}"`);
     }
     if (m === '(?') {
       throw new Error('Invalid group');

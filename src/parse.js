@@ -337,9 +337,9 @@ function parseGroupOpen(context, state) {
       });
       alt.elements.push(child);
       if ((isLookbehind || state.isInLookbehind) && !skipLookbehindValidation) {
-        // JS supports all features within lookbehind, but Onig doesn't. Absence operator forms
-        // `(?~|)` and `(?~|…)` also aren't valid in lookbehind (the `(?~…)` and `(?~|…|…)` forms
-        // are allowed), but all forms throw since absence operators aren't yet supported
+        // JS supports all features within lookbehind, but Onig doesn't. Absence functions of form
+        // `(?~|)` and `(?~|…)` are also invalid in lookbehind (the `(?~…)` and `(?~|…|…)` forms
+        // are allowed), but all forms with `(?~|` throw since they aren't yet supported
         const msg = 'Lookbehind includes a pattern not allowed by Oniguruma';
         if (isNegLookbehind || state.isInNegLookbehind) {
           // - Invalid: `(?=…)`, `(?!…)`, capturing groups
@@ -451,25 +451,20 @@ function createAssertion(kind, options) {
   };
 }
 
-function createAssertionFromToken({type, kind, negate}) {
-  return type === TokenTypes.GroupOpen ?
-    createLookaround({
-      behind: kind === TokenGroupKinds.lookbehind,
-      negate,
-    }) :
-    createAssertion(
-      throwIfNot({
-        '^': AstAssertionKinds.line_start,
-        '$': AstAssertionKinds.line_end,
-        '\\A': AstAssertionKinds.string_start,
-        '\\b': AstAssertionKinds.word_boundary,
-        '\\B': AstAssertionKinds.word_boundary,
-        '\\G': AstAssertionKinds.search_start,
-        '\\z': AstAssertionKinds.string_end,
-        '\\Z': AstAssertionKinds.string_end_newline,
-      }[kind], `Unexpected assertion kind "${kind}"`),
-      {negate: kind === r`\B`}
-    );
+function createAssertionFromToken({kind}) {
+  return createAssertion(
+    throwIfNot({
+      '^': AstAssertionKinds.line_start,
+      '$': AstAssertionKinds.line_end,
+      '\\A': AstAssertionKinds.string_start,
+      '\\b': AstAssertionKinds.word_boundary,
+      '\\B': AstAssertionKinds.word_boundary,
+      '\\G': AstAssertionKinds.search_start,
+      '\\z': AstAssertionKinds.string_end,
+      '\\Z': AstAssertionKinds.string_end_newline,
+    }[kind], `Unexpected assertion kind "${kind}"`),
+    {negate: kind === r`\B`}
+  );
 }
 
 function createBackreference(ref, options) {
@@ -481,8 +476,7 @@ function createBackreference(ref, options) {
   };
 }
 
-function createByGroupKind(token) {
-  const {kind, number, name, flags} = token;
+function createByGroupKind({flags, kind, name, negate, number}) {
   switch (kind) {
     case TokenGroupKinds.atomic:
       return createGroup({atomic: true});
@@ -492,7 +486,10 @@ function createByGroupKind(token) {
       return createGroup({flags});
     case TokenGroupKinds.lookahead:
     case TokenGroupKinds.lookbehind:
-      return createAssertionFromToken(token);
+      return createLookaround({
+        behind: kind === TokenGroupKinds.lookbehind,
+        negate,
+      });
     default:
       throw new Error(`Unexpected group kind "${kind}"`);
   }
