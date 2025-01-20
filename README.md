@@ -114,6 +114,7 @@ type OnigurumaToEsOptions = {
     asciiWordBoundaries?: boolean;
     captureGroup?: boolean;
     recursionLimit?: number;
+    singleline?: boolean;
   };
   target?: 'auto' | 'ES2025' | 'ES2024' | 'ES2018';
   verbose?: boolean;
@@ -244,7 +245,7 @@ Advanced options that override standard behavior, error checking, and flags when
 - `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
   - This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
 - `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
-- `singleline`: `^` as `\A`; `$` as `\Z`. Improves search performance without changing meaning if searching line by line.
+- `singleline`: `^` as `\A`; `$` as `\Z`. Improves search performance of generated regexes without changing meaning if searching line by line.
   - This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
 
 ### `target`
