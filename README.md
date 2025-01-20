@@ -244,7 +244,7 @@ Advanced options that override standard behavior, error checking, and flags when
 - `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
   - This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
 - `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
-- `singleline`: Treat `^` as `\A` and `$` as `\Z`, which can also improve search performance for these assertions when searching line by line.
+- `singleline`: Treat `^` as `\A`; `$` as `\Z`. Can be used to improve search performance without changing meaning when searching line by line.
   - This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
 
 ### `target`

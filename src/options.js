@@ -60,8 +60,8 @@ function getOptions(options) {
       captureGroup: false,
       // Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
       recursionLimit: 20,
-      // Treat `^` as `\A` and `$` as `\Z`, which can also improve search performance for these
-      // assertions when searching line by line. This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
+      // Treat `^` as `\A`; `$` as `\Z`. Can be used to improve search performance without changing
+      // meaning when searching line by line. This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
       singleline: false,
       ...(options?.rules),
     },
