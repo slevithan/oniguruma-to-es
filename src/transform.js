@@ -54,6 +54,7 @@ function transform(ast, options) {
     asciiWordBoundaries: opts.asciiWordBoundaries,
     avoidSubclass: opts.avoidSubclass,
     flagDirectivesByAlt: new Map(),
+    jsGroupNameMap: new Map(),
     minTargetEs2024: isMinTarget(opts.bestEffortTarget, 'ES2024'),
     passedLookbehind: false,
     strategy: null,
@@ -166,12 +167,21 @@ const FirstPassVisitor = {
     // Kinds `lookahead` and `lookbehind` also don't need transformation
   },
 
-  CapturingGroup({node}, {subroutineRefMap}) {
-    const {name, number} = node;
-    if (name && !isValidGroupNameJs(name)) {
-      throw new Error(`Group name "${name}" invalid in JS`);
+  Backreference({node}, {jsGroupNameMap}) {
+    let {ref} = node;
+    if (typeof ref === 'string' && !isValidGroupNameJs(ref)) {
+      ref = getAndStoreJsGroupName(ref, jsGroupNameMap);
+      node.ref = ref;
     }
-    subroutineRefMap.set(number, node);
+  },
+
+  CapturingGroup({node}, {jsGroupNameMap, subroutineRefMap}) {
+    let {name} = node;
+    if (name && !isValidGroupNameJs(name)) {
+      name = getAndStoreJsGroupName(name, jsGroupNameMap);
+      node.name = name;
+    }
+    subroutineRefMap.set(node.number, node);
     if (name) {
       subroutineRefMap.set(name, node);
     }
@@ -363,6 +373,14 @@ const FirstPassVisitor = {
       // Manually set the parent since we're not using `replaceWith`
       group.parent = node;
       node.element = group;
+    }
+  },
+
+  Subroutine({node}, {jsGroupNameMap}) {
+    let {ref} = node;
+    if (typeof ref === 'string' && !isValidGroupNameJs(ref)) {
+      ref = getAndStoreJsGroupName(ref, jsGroupNameMap);
+      node.ref = ref;
     }
   },
 
@@ -697,6 +715,7 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
   return store;
 }
 
+// `Recursion` nodes are used only by the transformer
 function createRecursion(ref) {
   return {
     type: AstTypes.Recursion,
@@ -712,6 +731,17 @@ function getAllParents(node, filterFn) {
     }
   }
   return results;
+}
+
+// See also `isValidGroupNameJs`
+function getAndStoreJsGroupName(name, map) {
+  if (map.has(name)) {
+    return map.get(name);
+  }
+  // Onig group names can't start with `$`, but JS names can
+  const jsName = `$${map.size}_${name.replace(/^[^$_\p{IDS}]|[^$\u200C\u200D\p{IDC}]/ug, '_')}`;
+  map.set(name, jsName);
+  return jsName;
 }
 
 // Returns the string key for the container that holds the node's kids
@@ -837,6 +867,7 @@ function isLoneGLookaround(node, options) {
   );
 }
 
+// See also `getAndStoreJsGroupName`
 function isValidGroupNameJs(name) {
   // JS group names are more restrictive than Onig; see `isValidGroupNameOniguruma` and
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
