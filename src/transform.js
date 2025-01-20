@@ -179,17 +179,17 @@ const FirstPassVisitor = {
 
   CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
     const {kind, negate, value} = node;
-    // Flag D with `\d`, `\p{Digit}`, `[[:digit:]]``
+    // Flag D with `\d`, `\p{Digit}`, `[[:digit:]]`
     if (digitIsAscii && (kind === AstCharacterSetKinds.digit || value === 'digit')) {
       replaceWith(createCharacterSet(AstCharacterSetKinds.digit, {negate}));
       return;
     }
-    // Flag S with `\s`, `\p{Space}`, `[[:space:]]``
+    // Flag S with `\s`, `\p{Space}`, `[[:space:]]`
     if (spaceIsAscii && (kind === AstCharacterSetKinds.space || value === 'space')) {
       replaceWith(setNegate(parseFragment(asciiSpaceChar), negate));
       return;
     }
-    // Flag W with `\w`, `\p{Word}`, `[[:word:]]``
+    // Flag W with `\w`, `\p{Word}`, `[[:word:]]`
     if (wordIsAscii && (kind === AstCharacterSetKinds.word || value === 'word')) {
       replaceWith(createCharacterSet(AstCharacterSetKinds.word, {negate}));
       return;
@@ -838,7 +838,7 @@ function isLoneGLookaround(node, options) {
 }
 
 function isValidGroupNameJs(name) {
-  // JS group names are more restrictive than Onig; see `isValidGroupNameOniguruma`,
+  // JS group names are more restrictive than Onig; see `isValidGroupNameOniguruma` and
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
 }
