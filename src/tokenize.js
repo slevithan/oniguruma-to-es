@@ -40,7 +40,7 @@ const TokenDirectiveKinds = {
 };
 
 const TokenGroupKinds = {
-  absence: 'absence',
+  absent_repeater: 'absent_repeater',
   atomic: 'atomic',
   capturing: 'capturing',
   group: 'group',
@@ -358,15 +358,15 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       }
       return {
         token,
-      }
+      };
     }
     if (m2 === '~') {
       if (m === '(?~|') {
-        throw new Error(`Unsupported absence function type "${m}"`);
+        throw new Error(`Unsupported absent function kind "${m}"`);
       }
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
-          kind: TokenGroupKinds.absence,
+          kind: TokenGroupKinds.absent_repeater,
         }),
       };
     }

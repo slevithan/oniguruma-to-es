@@ -72,8 +72,8 @@ class EmulatedRegExp extends RegExpSubclass {
         pattern,
         flags: flags ?? '',
         options: {
-          ...(opts.strategy ? {strategy: opts.strategy} : null),
-          ...(opts.useEmulationGroups ? {useEmulationGroups: true} : null),
+          ...(opts.strategy && {strategy: opts.strategy}),
+          ...(opts.useEmulationGroups && {useEmulationGroups: true}),
         },
       };
     }

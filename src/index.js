@@ -76,8 +76,8 @@ function toDetails(pattern, options) {
   const strategy = regexAst._strategy;
   if (useEmulationGroups || strategy) {
     result.options = {
-      ...(strategy ? {strategy} : null),
-      ...(useEmulationGroups ? {useEmulationGroups} : null),
+      ...(strategy && {strategy}),
+      ...(useEmulationGroups && {useEmulationGroups}),
     };
   }
   return result;

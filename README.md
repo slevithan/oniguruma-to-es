@@ -908,7 +908,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="5">Other</th>
+    <th align="left" rowspan="6">Other</th>
     <td>Comment group</td>
     <td><code>(?#…)</code></td>
     <td align="middle">✅</td>
@@ -926,6 +926,15 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Same as JS<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Absent repeater</td>
+    <td><code>(?~…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Supported<sup>[6]</sup><br>
     </td>
   </tr>
   <tr valign="top">
@@ -985,6 +994,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 3. Target `ES2018` doesn't support nested *negated* character classes.
 4. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 5. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
+6. Exotic (and extremely rare) forms of absent functions that start with `(?~|` (absent expressions, stoppers, and clearers) aren't yet supported.
 
 ## ❌ Unsupported features
 
@@ -996,18 +1006,17 @@ The following throw errors since they aren't yet supported. They're all extremel
   - Grapheme boundaries: `\y`, `\Y`.
   - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
   - Whole-pattern modifier: Don't capture group `(?C)`.
-  - Callout: `(*FAIL)`.
+  - Named callout: `(*FAIL)`.
 - Supportable for some uses:
-  - Absence functions: `(?~…)`, etc.
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
-  - Callout pair: `(*SKIP)(*FAIL)`.
+  - Named callout pair: `(*SKIP)(*FAIL)`.
 - Not supportable:
   - Other callouts: `(?{…})`, `(*…)`, etc.
 
-Note that Oniguruma-To-ES supports 99.9+% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, absence functions and conditionals were used in 2–3 regexes each. The rest weren't used at all.
-
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't currently supported.
+
+Note that Oniguruma-To-ES supports 99.9+% of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the features listed above, conditionals were used in three regexes. The rest weren't used at all. Some Oniguruma features are so exotic that they're *used* zero times in all of public GitHub.
 
 Contributions are welcome if you want to add support for currently unsupported features.
 

@@ -5,6 +5,7 @@ import {getOrCreate, r, throwIfNot} from './utils.js';
 import {hasOnlyChild} from './utils-ast.js';
 
 const AstTypes = {
+  AbsentFunction: 'AbsentFunction',
   Alternative: 'Alternative',
   Assertion: 'Assertion',
   Backreference: 'Backreference',
@@ -24,6 +25,11 @@ const AstTypes = {
   VariableLengthCharacterSet: 'VariableLengthCharacterSet',
   // Used only by the transformer for Regex+ ASTs
   Recursion: 'Recursion',
+};
+
+const AstAbsentFunctionKinds = {
+  // See <github.com/slevithan/oniguruma-to-es/issues/13>
+  repeater: 'repeater',
 };
 
 const AstAssertionKinds = {
@@ -320,6 +326,10 @@ function parseGroupOpen(context, state) {
       getOrCreate(namedGroupsByName, node.name, []).push(node);
     }
   }
+  if (node.type === AstTypes.AbsentFunction && state.isInAbsentFunction) {
+    // Doesn't throw in Onig but produces weird results and is described as unsupported in docs
+    throw new Error('Nested absent function not supported by Oniguruma');
+  }
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
   while (nextToken.type !== TokenTypes.GroupClose) {
     if (nextToken.type === TokenTypes.Alternator) {
@@ -327,17 +337,19 @@ function parseGroupOpen(context, state) {
       // Skip the alternator
       context.current++;
     } else {
-      const alt = node.alternatives.at(-1);
+      const isAbsentFunction = node.type === AstTypes.AbsentFunction;
       const isLookbehind = node.kind === AstAssertionKinds.lookbehind;
       const isNegLookbehind = isLookbehind && node.negate;
+      const alt = node.alternatives.at(-1);
       const child = walk(alt, {
         ...state,
+        isInAbsentFunction: state.isInAbsentFunction || isAbsentFunction,
         isInLookbehind: state.isInLookbehind || isLookbehind,
         isInNegLookbehind: state.isInNegLookbehind || isNegLookbehind,
       });
-      alt.elements.push(child);
+      // Centralized validation of lookbehind contents
       if ((isLookbehind || state.isInLookbehind) && !skipLookbehindValidation) {
-        // JS supports all features within lookbehind, but Onig doesn't. Absence functions of form
+        // JS supports all features within lookbehind, but Onig doesn't. Absent functions of form
         // `(?~|)` and `(?~|…)` are also invalid in lookbehind (the `(?~…)` and `(?~|…|…)` forms
         // are allowed), but all forms with `(?~|` throw since they aren't yet supported
         const msg = 'Lookbehind includes a pattern not allowed by Oniguruma';
@@ -355,6 +367,7 @@ function parseGroupOpen(context, state) {
           }
         }
       }
+      alt.elements.push(child);
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }
@@ -434,6 +447,17 @@ function parseSubroutine(context) {
   return node;
 }
 
+function createAbsentFunction(kind) {
+  if (kind !== AstAbsentFunctionKinds.repeater) {
+    throw new Error(`Unexpected absent function kind "${kind}"`);
+  }
+  return {
+    type: AstTypes.AbsentFunction,
+    kind,
+    alternatives: [createAlternative()],
+  };
+}
+
 function createAlternative() {
   return {
     type: AstTypes.Alternative,
@@ -447,7 +471,7 @@ function createAssertion(kind, options) {
   return {
     type: AstTypes.Assertion,
     kind,
-    ...(kind === AstAssertionKinds.word_boundary ? {negate} : null),
+    ...(kind === AstAssertionKinds.word_boundary && {negate}),
   };
 }
 
@@ -478,6 +502,8 @@ function createBackreference(ref, options) {
 
 function createByGroupKind({flags, kind, name, negate, number}) {
   switch (kind) {
+    case TokenGroupKinds.absent_repeater:
+      return createAbsentFunction(AstAbsentFunctionKinds.repeater);
     case TokenGroupKinds.atomic:
       return createGroup({atomic: true});
     case TokenGroupKinds.capturing:
@@ -634,7 +660,7 @@ function createPattern() {
   };
 }
 
-function createQuantifier(element, min, max, greedy, possessive) {
+function createQuantifier(element, min, max, greedy = true, possessive = false) {
   const node = {
     type: AstTypes.Quantifier,
     min,
@@ -766,11 +792,13 @@ function throwIfUnclosedGroup(token) {
 }
 
 export {
+  AstAbsentFunctionKinds,
   AstAssertionKinds,
   AstCharacterSetKinds,
   AstDirectiveKinds,
   AstTypes,
   AstVariableLengthCharacterSetKinds,
+  createAbsentFunction,
   createAlternative,
   createAssertion,
   createBackreference,

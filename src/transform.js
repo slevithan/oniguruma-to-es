@@ -1,5 +1,5 @@
 import {Accuracy, Target} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createUnicodeProperty, parse} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createQuantifier, createUnicodeProperty, parse} from './parse.js';
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
@@ -100,6 +100,17 @@ function transform(ast, options) {
 }
 
 const FirstPassVisitor = {
+  AbsentFunction({node, replaceWith}) {
+    // Convert absent repeater `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
+    const group = prepContainer(createGroup(), [
+      adoptAndSwapKids(createLookaround({negate: true}), node.alternatives),
+      createUnicodeProperty('Any'),
+    ]);
+    const quantifier = createQuantifier(group, 0, Infinity);
+    group.parent = quantifier;
+    replaceWith(prepContainer(createGroup(), [quantifier]));
+  },
+
   Alternative: {
     enter({node, parent, key}, {flagDirectivesByAlt}) {
       // Look for own-level flag directives when entering an alternative because after traversing
@@ -587,7 +598,7 @@ const ThirdPassVisitor = {
     if (!participants.length) {
       // If no participating capture, convert backref to to `(?!)`; backrefs to nonparticipating
       // groups can't match in Onig but match the empty string in JS
-      replaceWith(createLookaround({negate: true}));
+      replaceWith(prepContainer(createLookaround({negate: true})));
     } else if (participants.length > 1) {
       // Multiplex
       const alts = participants.map(reffed => adoptAndSwapKids(
@@ -910,6 +921,5 @@ function traverseReplacement(replacement, {parent, key, container}, state, visit
 }
 
 export {
-  adoptAndSwapKids,
   transform,
 };
