@@ -318,6 +318,9 @@ function parseCharacterSet({token, skipPropertyNameValidation}) {
 function parseGroupOpen(context, state) {
   const {token, tokens, capturingGroups, namedGroupsByName, skipLookbehindValidation, verbose, walk} = context;
   let node = createByGroupKind(token);
+  const isAbsentFunction = node.type === AstTypes.AbsentFunction;
+  const isLookbehind = node.kind === AstAssertionKinds.lookbehind;
+  const isNegLookbehind = isLookbehind && node.negate;
   // Track capturing group details for backrefs and subroutines (before parsing the group's
   // contents so nested groups with the same name are tracked in order)
   if (node.type === AstTypes.CapturingGroup) {
@@ -326,8 +329,9 @@ function parseGroupOpen(context, state) {
       getOrCreate(namedGroupsByName, node.name, []).push(node);
     }
   }
-  if (node.type === AstTypes.AbsentFunction && state.isInAbsentFunction) {
-    // Doesn't throw in Onig but produces weird results and is described as unsupported in docs
+  // Don't allow nested absent functions
+  if (isAbsentFunction && state.isInAbsentFunction) {
+    // Is officially unsupported in Onig but doesn't throw, gives strange results
     throw new Error('Nested absent function not supported by Oniguruma');
   }
   let nextToken = throwIfUnclosedGroup(tokens[context.current]);
@@ -337,9 +341,6 @@ function parseGroupOpen(context, state) {
       // Skip the alternator
       context.current++;
     } else {
-      const isAbsentFunction = node.type === AstTypes.AbsentFunction;
-      const isLookbehind = node.kind === AstAssertionKinds.lookbehind;
-      const isNegLookbehind = isLookbehind && node.negate;
       const alt = node.alternatives.at(-1);
       const child = walk(alt, {
         ...state,
@@ -347,6 +348,7 @@ function parseGroupOpen(context, state) {
         isInLookbehind: state.isInLookbehind || isLookbehind,
         isInNegLookbehind: state.isInNegLookbehind || isNegLookbehind,
       });
+      alt.elements.push(child);
       // Centralized validation of lookbehind contents
       if ((isLookbehind || state.isInLookbehind) && !skipLookbehindValidation) {
         // JS supports all features within lookbehind, but Onig doesn't. Absent functions of form
@@ -367,7 +369,6 @@ function parseGroupOpen(context, state) {
           }
         }
       }
-      alt.elements.push(child);
     }
     nextToken = throwIfUnclosedGroup(tokens[context.current]);
   }
