@@ -269,7 +269,9 @@ const FirstPassVisitor = {
       }
     } else if (kind === AstDirectiveKinds.keep) {
       const firstAltFirstEl = ast.pattern.alternatives[0].elements[0];
+      // Supporting a full-pattern wrapper around `\K` enables use with flag modifiers
       const hasWrapperGroup =
+        // Not emulatable if within a `CapturingGroup`
         hasOnlyChild(ast.pattern, kid => kid.type === AstTypes.Group) &&
         firstAltFirstEl.alternatives.length === 1;
       const topLevel = hasWrapperGroup ? firstAltFirstEl : ast.pattern;

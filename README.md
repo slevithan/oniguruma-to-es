@@ -994,7 +994,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 3. Target `ES2018` doesn't support nested *negated* character classes.
 4. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 5. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
-6. Exotic (and extremely rare) forms of absent functions that start with `(?~|` (absent expressions, stoppers, and clearers) aren't yet supported.
+6. Exotic (and extremely rare) forms of absent functions that start with `(?~|` (absent expressions, stoppers, and clearers) aren't yet supported. Also note that Oniguruma's absent functions have different behavior than Onigmo.
 
 ## ❌ Unsupported features
 

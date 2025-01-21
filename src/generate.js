@@ -117,8 +117,8 @@ function generate(ast, options) {
       case AstTypes.Recursion:
         return genRecursion(node, state);
       default:
-        // Node types `Directive`, `Subroutine`, and `VariableLengthCharacterSet` are never
-        // included in transformer output
+        // Node types `AbsentFunction`, `Directive`, `Subroutine`, and `VariableLengthCharacterSet`
+        // are never included in transformer output
         throw new Error(`Unexpected node type "${node.type}"`);
     }
   }

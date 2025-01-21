@@ -26,8 +26,11 @@ function isAlwaysNonZeroLength(node) {
 }
 
 // Consumptive groups add to the match.
-// - Includes: capturing, named capturing, noncapturing, atomic, and flag groups
-// - Excludes: lookarounds
+// - Includes: Capturing, named capturing, noncapturing, atomic, and flag groups.
+// - Excludes: Lookarounds.
+//   - Special case: Absent functions are consumptive (and negated, quantified) but are different
+//     in other ways so are excluded here.
+// See also `AstTypeAliases.AnyGroup`.
 function isConsumptiveGroup({type}) {
   return type === AstTypes.CapturingGroup || type === AstTypes.Group;
 }
