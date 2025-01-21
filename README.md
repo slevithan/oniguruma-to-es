@@ -929,12 +929,12 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Absent repeater</td>
+    <td>Absent repeater<sup>[6]</sup></td>
     <td><code>(?~…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Supported<sup>[6]</sup><br>
+      ✔ Supported<br>
     </td>
   </tr>
   <tr valign="top">
