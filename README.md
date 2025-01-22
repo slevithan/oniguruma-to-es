@@ -858,7 +858,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Error if named capture used<br>
       ✔ Allows leading 0s<br>
       <br>
-      All subroutines (incl. named):<br>
+      <i>All subroutines (incl. named):</i><br>
       ✔ Allowed before reffed group<br>
       ✔ Can be nested (any depth)<br>
       ✔ Reuses flags from the reffed group (ignores local flags)<br>
@@ -1016,7 +1016,7 @@ The following throw errors since they aren't yet supported. They're all extremel
 
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't yet supported.
 
-Note that **Oniguruma-To-ES supports 99.9+%** of real-world Oniguruma regexes, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the unsupported features listed above, conditionals were used in three regexes, and the rest weren't used at all. Some Oniguruma features are so exotic that they're not used in *any* public code on GitHub.
+Note that **Oniguruma-To-ES supports 99.9+% of real-world Oniguruma regexes**, based on a sample of tens of thousands of regexes used in TextMate grammars. Of the unsupported features listed above, conditionals were used in three regexes, and the rest weren't used at all. Some Oniguruma features are so exotic that they're not used in *any* public code on GitHub.
 
 Contributions are welcome if you want to add support for currently unsupported features.
 
