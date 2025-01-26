@@ -77,10 +77,12 @@ function toDetails(pattern, options) {
   if (!avoidSubclass) {
     const hiddenCaptureNums = atomicResult.hiddenCaptureNums;
     const strategy = regexAst._strategy;
-    if (hiddenCaptureNums.length || strategy) {
+    const transfers = generated._transfers;
+    if (hiddenCaptureNums.length || strategy || transfers.length) {
       result.options = {
         ...(hiddenCaptureNums.length && {hiddenCaptureNums}),
         ...(strategy && {strategy}),
+        ...(transfers.length && {transfers}),
       };
     }
   }

@@ -4,6 +4,7 @@ import {RegExpSubclass} from 'regex/internals';
 @typedef {{
   hiddenCaptureNums?: Array<number>;
   strategy?: string | null;
+  transfers?: Array<[number, number]>;
 }} EmulatedRegExpOptions
 */
 
@@ -64,6 +65,7 @@ class EmulatedRegExp extends RegExpSubclass {
       const opts = {
         hiddenCaptureNums: [],
         strategy: null,
+        transfers: [],
         ...options,
       };
       super(pattern, flags, {hiddenCaptureNums: opts.hiddenCaptureNums});
@@ -74,6 +76,7 @@ class EmulatedRegExp extends RegExpSubclass {
         options: {
           ...(opts.hiddenCaptureNums.length && {hiddenCaptureNums: opts.hiddenCaptureNums}),
           ...(opts.strategy && {strategy: opts.strategy}),
+          ...(opts.transfers.length && {transfers: opts.transfers}),
         },
       };
     }

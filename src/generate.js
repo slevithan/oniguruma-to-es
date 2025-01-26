@@ -13,6 +13,8 @@ Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AS
   pattern: string;
   flags: string;
   options: Object;
+  _hiddenCaptureNums: Array<number>;
+  _transfers: Array<[number, number]>;
 }}
 */
 function generate(ast, options) {
@@ -261,6 +263,7 @@ function genCapturingGroup({name, number, alternatives, _originNumber}, state, g
   // expansion. `_originNumber` is `undefined` if the capture isn't from an expanded subroutine
   if (_originNumber) {
     data.hidden = true;
+    // TODO: Doesn't account for captures added by Regex+ plugins
     data.transferTo = _originNumber < number ? _originNumber : null;
   }
   state.captureMap.set(number, data);
