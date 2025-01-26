@@ -12,11 +12,11 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       regex:
-        specifier: ^5.1.1
-        version: 5.1.1
+        specifier: file:../regex
+        version: file:../regex
       regex-recursion:
-        specifier: ^5.1.1
-        version: 5.1.1
+        specifier: file:../regex-recursion
+        version: file:../regex-recursion
     devDependencies:
       esbuild:
         specifier: ^0.24.2
@@ -288,14 +288,14 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
-  regex-recursion@5.1.1:
-    resolution: {integrity: sha512-ae7SBCbzVNrIjgSbh7wMznPcQel1DNlDtzensnFxpiNpXt1U2ju/bHugH422r+4LAVS1FpW1YCwilmnNsjum9w==}
+  regex-recursion@file:../regex-recursion:
+    resolution: {directory: ../regex-recursion, type: directory}
 
   regex-utilities@2.3.0:
     resolution: {integrity: sha512-8VhliFJAWRaUiVvREIiW2NXXTmHs4vMNnSzuJVhscgmGav3g9VDxLrQndI3dZZVVdp0ZO/5v0xmX516/7M9cng==}
 
-  regex@5.1.1:
-    resolution: {integrity: sha512-dN5I359AVGPnwzJm2jN1k0W9LPZ+ePvoOeVMMfqIMFz53sSwXkxaJoxr50ptnsC771lK95BnTrVSZxq0b9yCGw==}
+  regex@file:../regex:
+    resolution: {directory: ../regex, type: directory}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -547,14 +547,13 @@ snapshots:
       lru-cache: 10.4.3
       minipass: 7.1.2
 
-  regex-recursion@5.1.1:
+  regex-recursion@file:../regex-recursion:
     dependencies:
-      regex: 5.1.1
       regex-utilities: 2.3.0
 
   regex-utilities@2.3.0: {}
 
-  regex@5.1.1:
+  regex@file:../regex:
     dependencies:
       regex-utilities: 2.3.0
 

@@ -50,8 +50,8 @@
   ],
   "dependencies": {
     "emoji-regex-xs": "^1.0.0",
-    "regex": "^5.1.1",
-    "regex-recursion": "^5.1.1"
+    "regex": "file:../regex",
+    "regex-recursion": "file:../regex-recursion"
   },
   "devDependencies": {
     "esbuild": "^0.24.2",

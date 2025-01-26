@@ -4,7 +4,6 @@ import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-ast.js';
-import {emulationGroupMarker} from 'regex/internals';
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
@@ -60,7 +59,6 @@ function generate(ast, options) {
   const state = {
     accuracy: opts.accuracy,
     appliedGlobalFlags,
-    avoidSubclass: opts.avoidSubclass,
     captureMap: new Map(),
     currentFlags: {
       dotAll: ast.flags.dotAll,
@@ -125,11 +123,22 @@ function generate(ast, options) {
 
   const result = gen(ast);
   if (!minTargetEs2024) {
-    // Switch from flag v to u. By default, Regex+ implicitly chooses; control it instead
+    // Switch from flag v to u; Regex+ implicitly chooses by default
     delete result.options.force.v;
     result.options.disable.v = true;
     result.options.unicodeSetsPlugin = null;
   }
+  result._hiddenCaptureNums = [];
+  result._transfers = [];
+  state.captureMap.forEach((value, key) => {
+    if (value.hidden) {
+      result._hiddenCaptureNums.push(key);
+    }
+    if (value.transferTo) {
+      result._transfers.push([key, value.transferTo]);
+    }
+  });
+
   return result;
 }
 
@@ -244,21 +253,18 @@ function genBackreference({ref}, state) {
 }
 
 function genCapturingGroup({name, number, alternatives, _originNumber}, state, gen) {
-  state.captureMap.set(number, {ignoreCase: state.currentFlags.ignoreCase});
-  return `(${
-    name ? `?<${name}>` : ''
-  }${
-    !state.avoidSubclass && _originNumber ?
-      // All captures from/within expanded subroutines are marked as emulation groups, and some are
-      // specially marked as emulation groups with transfer. `number` is based on the pattern after
-      // subroutine expansion, whereas `_originNumber` points to the origin capture of an expanded
-      // subroutine (or child capture) *prior* to subroutine expansion. `_originNumber` is
-      // `undefined` if the current capture isn't from an expanded subroutine
-      `${_originNumber < number ? `$${_originNumber}` : ''}${emulationGroupMarker}` :
-      ''
-  }${
-    alternatives.map(gen).join('|')
-  })`;
+  const data = {ignoreCase: state.currentFlags.ignoreCase};
+  // All captures from/within expanded subroutines are marked as hidden "emulation groups", and
+  // some are specially marked to have their captured values transferred to another capture slot.
+  // `number` is from the pattern *after* subroutine expansion, whereas `_originNumber` points to
+  // the origin capture of an expanded subroutine (or child capture) *prior* to subroutine
+  // expansion. `_originNumber` is `undefined` if the capture isn't from an expanded subroutine
+  if (_originNumber) {
+    data.hidden = true;
+    data.transferTo = _originNumber < number ? _originNumber : null;
+  }
+  state.captureMap.set(number, data);
+  return `(${name ? `?<${name}>` : ''}${alternatives.map(gen).join('|')})`;
 }
 
 function genCharacter({value}, state) {

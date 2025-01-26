@@ -1,6 +1,5 @@
 import {EmulatedRegExp, toRegExp} from '../dist/esm/index.js';
 import {envSupportsFlagV, r} from '../src/utils.js';
-import {emulationGroupMarker} from 'regex/internals';
 
 describe('EmulatedRegExp', () => {
   it('should include property rawArgs on instances', () => {
@@ -16,12 +15,10 @@ describe('EmulatedRegExp', () => {
     const reCopy = new EmulatedRegExp(re);
     const genFlags = envSupportsFlagV ? 'v' : 'u';
     expect(reCopy.rawArgs).toEqual({
-      // Emulation group marker included in `rawArgs.pattern`
-      pattern: r`(?:(?=(${emulationGroupMarker}a+))\1)`,
+      pattern: r`(?:(?=(a+))\1)`,
       flags: genFlags,
-      options: {useEmulationGroups: true},
+      options: {hiddenCaptureNums: [1]},
     });
-    // Emulation group marker stripped from `source`
     expect(reCopy.source).toBe(r`(?:(?=(a+))\1)`);
   });
 

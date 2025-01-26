@@ -4,7 +4,7 @@ import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
 import {EmulatedRegExp} from './subclass.js';
 import {tokenize} from './tokenize.js';
-import {atomic, emulationGroupMarker, possessive} from 'regex/internals';
+import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
 // The transformation and error checking for Oniguruma's unique syntax and behavior differences
@@ -67,18 +67,22 @@ function toDetails(pattern, options) {
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  const pluginData = {useEmulationGroups: !avoidSubclass};
+  const recursionResult = recursion(generated.pattern, {hiddenCaptureNums: generated._hiddenCaptureNums});
+  const possessiveResult = possessive(recursionResult.pattern);
+  const atomicResult = atomic(possessiveResult.pattern, {hiddenCaptureNums: recursionResult.hiddenCaptureNums});
   const result = {
-    pattern: atomic(possessive(recursion(generated.pattern, pluginData)), pluginData),
+    pattern: atomicResult.pattern,
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  const useEmulationGroups = !avoidSubclass && result.pattern.includes(emulationGroupMarker);
-  const strategy = regexAst._strategy;
-  if (useEmulationGroups || strategy) {
-    result.options = {
-      ...(strategy && {strategy}),
-      ...(useEmulationGroups && {useEmulationGroups}),
-    };
+  if (!avoidSubclass) {
+    const hiddenCaptureNums = atomicResult.hiddenCaptureNums;
+    const strategy = regexAst._strategy;
+    if (hiddenCaptureNums.length || strategy) {
+      result.options = {
+        ...(hiddenCaptureNums.length && {hiddenCaptureNums}),
+        ...(strategy && {strategy}),
+      };
+    }
   }
   return result;
 }

@@ -172,8 +172,8 @@ function areDetailsEqual(a, b) {
   return (
     a.pattern === b.pattern &&
     a.flags.replace(/[uv]/, '') === b.flags.replace(/[uv]/, '') &&
-    a.options?.strategy === b.options?.strategy &&
-    a.options?.useEmulationGroups === b.options?.useEmulationGroups
+    a.options?.hiddenCaptureNums?.toString() === b.options?.hiddenCaptureNums?.toString() &&
+    a.options?.strategy === b.options?.strategy
   );
 }
 
@@ -181,11 +181,11 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedSubclass(pattern, flags, {captures, strategy, useEmulationGroups}) {
+function getFormattedSubclass(pattern, flags, {hiddenCaptureNums, strategy}) {
   const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const optionStrs = [];
+  hiddenCaptureNums && optionStrs.push(`hiddenCaptureNums: [${hiddenCaptureNums.join(', ')}]`);
   strategy && optionStrs.push(`strategy: '${strategy}'`);
-  useEmulationGroups && optionStrs.push(`useEmulationGroups: ${useEmulationGroups}`);
   return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${optionStrs.join(',\n  ')},\n})`;
 }
 

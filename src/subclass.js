@@ -2,8 +2,8 @@ import {RegExpSubclass} from 'regex/internals';
 
 /**
 @typedef {{
+  hiddenCaptureNums?: Array<number>;
   strategy?: string | null;
-  useEmulationGroups?: boolean;
 }} EmulatedRegExpOptions
 */
 
@@ -62,18 +62,18 @@ class EmulatedRegExp extends RegExpSubclass {
       }
     } else {
       const opts = {
+        hiddenCaptureNums: [],
         strategy: null,
-        useEmulationGroups: false,
         ...options,
       };
-      super(pattern, flags, {useEmulationGroups: opts.useEmulationGroups});
+      super(pattern, flags, {hiddenCaptureNums: opts.hiddenCaptureNums});
       this.#strategy = opts.strategy;
       this.rawArgs = {
         pattern,
         flags: flags ?? '',
         options: {
+          ...(opts.hiddenCaptureNums.length && {hiddenCaptureNums: opts.hiddenCaptureNums}),
           ...(opts.strategy && {strategy: opts.strategy}),
-          ...(opts.useEmulationGroups && {useEmulationGroups: true}),
         },
       };
     }
