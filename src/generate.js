@@ -13,8 +13,8 @@ Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AS
   pattern: string;
   flags: string;
   options: Object;
+  _captureTransfers: Array<[number, number]>;
   _hiddenCaptureNums: Array<number>;
-  _transfers: Array<[number, number]>;
 }}
 */
 function generate(ast, options) {
@@ -130,14 +130,14 @@ function generate(ast, options) {
     result.options.disable.v = true;
     result.options.unicodeSetsPlugin = null;
   }
+  result._captureTransfers = [];
   result._hiddenCaptureNums = [];
-  result._transfers = [];
   state.captureMap.forEach((value, key) => {
     if (value.hidden) {
       result._hiddenCaptureNums.push(key);
     }
     if (value.transferTo) {
-      result._transfers.push([key, value.transferTo]);
+      result._captureTransfers.push([key, value.transferTo]);
     }
   });
 

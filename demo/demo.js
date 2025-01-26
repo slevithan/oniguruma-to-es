@@ -172,9 +172,9 @@ function areDetailsEqual(a, b) {
   return (
     a.pattern === b.pattern &&
     a.flags.replace(/[uv]/, '') === b.flags.replace(/[uv]/, '') &&
+    JSON.stringify(a.options?.captureTransfers) === JSON.stringify(b.options?.captureTransfers) &&
     JSON.stringify(a.options?.hiddenCaptureNums) === JSON.stringify(b.options?.hiddenCaptureNums) &&
-    a.options?.strategy === b.options?.strategy &&
-    JSON.stringify(a.options?.transfers) === JSON.stringify(b.options?.transfers)
+    a.options?.strategy === b.options?.strategy
   );
 }
 
@@ -182,12 +182,12 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedSubclass(pattern, flags, {hiddenCaptureNums, strategy, transfers}) {
+function getFormattedSubclass(pattern, flags, {captureTransfers, hiddenCaptureNums, strategy}) {
   const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const optionStrs = [];
+  captureTransfers && optionStrs.push(`captureTransfers: ${JSON.stringify(captureTransfers)}`);
   hiddenCaptureNums && optionStrs.push(`hiddenCaptureNums: [${hiddenCaptureNums.join(',')}]`);
   strategy && optionStrs.push(`strategy: '${strategy}'`);
-  transfers && optionStrs.push(`transfers: ${JSON.stringify(transfers)}`);
   return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${optionStrs.join(',\n  ')},\n})`;
 }
 

@@ -2,9 +2,9 @@ import {RegExpSubclass} from 'regex/internals';
 
 /**
 @typedef {{
+  captureTransfers?: Array<[number, number]>;
   hiddenCaptureNums?: Array<number>;
   strategy?: string | null;
-  transfers?: Array<[number, number]>;
 }} EmulatedRegExpOptions
 */
 
@@ -63,9 +63,9 @@ class EmulatedRegExp extends RegExpSubclass {
       }
     } else {
       const opts = {
+        captureTransfers: [],
         hiddenCaptureNums: [],
         strategy: null,
-        transfers: [],
         ...options,
       };
       super(pattern, flags, {hiddenCaptureNums: opts.hiddenCaptureNums});
@@ -74,9 +74,9 @@ class EmulatedRegExp extends RegExpSubclass {
         pattern,
         flags: flags ?? '',
         options: {
+          ...(opts.captureTransfers.length && {captureTransfers: opts.captureTransfers}),
           ...(opts.hiddenCaptureNums.length && {hiddenCaptureNums: opts.hiddenCaptureNums}),
           ...(opts.strategy && {strategy: opts.strategy}),
-          ...(opts.transfers.length && {transfers: opts.transfers}),
         },
       };
     }

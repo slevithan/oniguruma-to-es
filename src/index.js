@@ -75,14 +75,14 @@ function toDetails(pattern, options) {
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
   if (!avoidSubclass) {
+    const captureTransfers = generated._captureTransfers;
     const hiddenCaptureNums = atomicResult.hiddenCaptureNums;
     const strategy = regexAst._strategy;
-    const transfers = generated._transfers;
-    if (hiddenCaptureNums.length || strategy || transfers.length) {
+    if (captureTransfers.length || hiddenCaptureNums.length || strategy) {
       result.options = {
+        ...(captureTransfers.length && {captureTransfers}),
         ...(hiddenCaptureNums.length && {hiddenCaptureNums}),
         ...(strategy && {strategy}),
-        ...(transfers.length && {transfers}),
       };
     }
   }
