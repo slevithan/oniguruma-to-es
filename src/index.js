@@ -67,20 +67,33 @@ function toDetails(pattern, options) {
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
-  const recursionResult = recursion(generated.pattern, {hiddenCaptureNums: generated._hiddenCaptureNums});
+  const recursionResult = recursion(generated.pattern, {
+    captureTransfers: generated._captureTransfers,
+    hiddenCaptureNums: generated._hiddenCaptureNums,
+  });
   const possessiveResult = possessive(recursionResult.pattern);
-  const atomicResult = atomic(possessiveResult.pattern, {hiddenCaptureNums: recursionResult.hiddenCaptureNums});
+  const atomicResult = atomic(possessiveResult.pattern, {
+    hiddenCaptureNums: recursionResult.hiddenCaptureNums,
+  });
   const result = {
     pattern: atomicResult.pattern,
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
   if (!avoidSubclass) {
-    const captureTransfers = generated._captureTransfers;
-    const hiddenCaptureNums = atomicResult.hiddenCaptureNums;
+    const captureTransfers = recursionResult.captureTransfers;
+    // Change map to a format that's serializable as JSON
+    const captureTransfersArray = [];
+    captureTransfers.forEach((from, to) => {
+      // `to` is the user-visible capture number after "emulation groups" are hidden; `from` counts
+      // all captures, including hidden ones
+      captureTransfersArray.push([to, from]);
+    });
+    // Sort isn't required; only for readability when serialized
+    const hiddenCaptureNums = atomicResult.hiddenCaptureNums.sort((a, b) => a - b);
     const strategy = regexAst._strategy;
-    if (captureTransfers.length || hiddenCaptureNums.length || strategy) {
+    if (captureTransfersArray.length || hiddenCaptureNums.length || strategy) {
       result.options = {
-        ...(captureTransfers.length && {captureTransfers}),
+        ...(captureTransfersArray.length && {captureTransfers: captureTransfersArray}),
         ...(hiddenCaptureNums.length && {hiddenCaptureNums}),
         ...(strategy && {strategy}),
       };
