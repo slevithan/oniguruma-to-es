@@ -137,9 +137,11 @@ function generate(ast, options) {
     if (value.hidden) {
       result._hiddenCaptureNums.push(key);
     }
-    if (value.transferTo) {
-      // to (number or name), from (number)
-      result._captureTransfers.set(value.transferTo, key);
+    if (value.transferToNum) {
+      result._captureTransfers.set(value.transferToNum, key);
+    }
+    if (value.transferToName) {
+      result._captureTransfers.set(value.transferToName, key);
     }
   });
 
@@ -267,8 +269,10 @@ function genCapturingGroup(node, state, gen) {
     // If a subroutine (or descendant capture) occurs after its origin group, it's marked to have
     // its captured value transferred to the origin's capture slot. `number` and `origin.number`
     // are the capture numbers *after* subroutine expansion
-    data.transferTo = origin.number < number ? origin.number : null;
-    // TODO: Support transfer for named groups
+    if (number > origin.number) {
+      data.transferToNum = origin.number;
+      data.transferToName = origin.name;
+    }
   }
   state.captureMap.set(number, data);
   return `(${name ? `?<${name}>` : ''}${alternatives.map(gen).join('|')})`;
