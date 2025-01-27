@@ -70,9 +70,11 @@ function toDetails(pattern, options) {
   const recursionResult = recursion(generated.pattern, {
     captureTransfers: generated._captureTransfers,
     hiddenCaptureNums: generated._hiddenCaptureNums,
+    mode: 'external',
   });
   const possessiveResult = possessive(recursionResult.pattern);
   const atomicResult = atomic(possessiveResult.pattern, {
+    captureTransfers: recursionResult.captureTransfers,
     hiddenCaptureNums: recursionResult.hiddenCaptureNums,
   });
   const result = {
@@ -80,7 +82,7 @@ function toDetails(pattern, options) {
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
   if (!avoidSubclass) {
-    const captureTransfers = recursionResult.captureTransfers;
+    const captureTransfers = atomicResult.captureTransfers;
     // Change the map to a format that's serializable as JSON
     const captureTransfersArray = [];
     captureTransfers.forEach((from, to) => {

@@ -185,7 +185,7 @@ function escapeHtml(str) {
 function getFormattedSubclass(pattern, flags, {captureTransfers, hiddenCaptureNums, strategy}) {
   const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const optionStrs = [];
-  captureTransfers && optionStrs.push(`captureTransfers: ${JSON.stringify(captureTransfers)}`);
+  captureTransfers && optionStrs.push(`captureTransfers: ${JSON.stringify(captureTransfers).replace(/"/g, "'")}`);
   hiddenCaptureNums && optionStrs.push(`hiddenCaptureNums: [${hiddenCaptureNums.join(',')}]`);
   strategy && optionStrs.push(`strategy: '${strategy}'`);
   return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${optionStrs.join(',\n  ')},\n})`;
