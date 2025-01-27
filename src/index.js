@@ -81,11 +81,9 @@ function toDetails(pattern, options) {
   };
   if (!avoidSubclass) {
     const captureTransfers = recursionResult.captureTransfers;
-    // Change map to a format that's serializable as JSON
+    // Change the map to a format that's serializable as JSON
     const captureTransfersArray = [];
     captureTransfers.forEach((from, to) => {
-      // `to` is the user-visible capture number after "emulation groups" are hidden; `from` counts
-      // all captures, including hidden ones
       captureTransfersArray.push([to, from]);
     });
     // Sort isn't required; only for readability when serialized

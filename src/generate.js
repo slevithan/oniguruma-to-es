@@ -68,6 +68,7 @@ function generate(ast, options) {
     },
     inCharClass: false,
     lastNode,
+    originMap: ast._originMap,
     recursionLimit,
     useAppliedIgnoreCase: !!(!minTargetEs2025 && hasCaseInsensitiveNode && hasCaseSensitiveNode),
     useFlagMods: minTargetEs2025,
@@ -255,16 +256,18 @@ function genBackreference({ref}, state) {
   return '\\' + ref;
 }
 
-function genCapturingGroup({name, number, alternatives, _originNumber}, state, gen) {
+function genCapturingGroup(node, state, gen) {
+  const {name, number, alternatives} = node;
   const data = {ignoreCase: state.currentFlags.ignoreCase};
-  // All captures from/within expanded subroutines are marked as hidden "emulation groups", and
-  // some are specially marked to have their captured values transferred to another capture slot.
-  // `number` is from the pattern *after* subroutine expansion, whereas `_originNumber` points to
-  // the origin capture of an expanded subroutine (or child capture) *prior* to subroutine
-  // expansion. `_originNumber` is `undefined` if the capture isn't from an expanded subroutine
-  if (_originNumber) {
+  // Has origin if the capture is from an expanded subroutine
+  const origin = state.originMap.get(node);
+  if (origin) {
+    // All captures from/within expanded subroutines are marked as hidden "emulation groups"
     data.hidden = true;
-    data.transferTo = _originNumber < number ? _originNumber : null;
+    // If a subroutine (or descendant capture) occurs after its origin group, it's marked to have
+    // its captured value transferred to the origin's capture slot. `number` and `origin.number`
+    // are the capture numbers *after* subroutine expansion
+    data.transferTo = origin.number < number ? origin.number : null;
     // TODO: Support transfer for named groups
   }
   state.captureMap.set(number, data);

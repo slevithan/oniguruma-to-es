@@ -95,6 +95,7 @@ function transform(ast, options) {
     reffedNodesByReferencer: secondPassState.reffedNodesByReferencer,
   };
   traverse({node: ast}, thirdPassState, ThirdPassVisitor);
+  ast._originMap = secondPassState.groupOriginByCopy;
   ast._strategy = firstPassState.strategy;
   return ast;
 }
@@ -511,10 +512,6 @@ const SecondPassVisitor = {
           }
         }
         groupsByName.get(node.name).set(node, {node, hasDuplicateNameToRemove});
-      }
-      if (origin) {
-        // Used by the generator to handle subroutines and their child captures as emulation groups
-        node._originNumber = origin.number;
       }
     },
     exit({node}, {openRefs}) {
