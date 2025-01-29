@@ -14,7 +14,7 @@ Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AS
   flags: string;
   options: Object;
   _captureTransfers: Map<number | string, number>;
-  _hiddenCaptureNums: Array<number>;
+  _hiddenCaptures: Array<number>;
 }}
 */
 function generate(ast, options) {
@@ -132,10 +132,10 @@ function generate(ast, options) {
     result.options.unicodeSetsPlugin = null;
   }
   result._captureTransfers = new Map();
-  result._hiddenCaptureNums = [];
+  result._hiddenCaptures = [];
   state.captureMap.forEach((value, key) => {
     if (value.hidden) {
-      result._hiddenCaptureNums.push(key);
+      result._hiddenCaptures.push(key);
     }
     if (value.transferToNum) {
       result._captureTransfers.set(value.transferToNum, key);

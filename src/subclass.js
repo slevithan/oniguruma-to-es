@@ -3,7 +3,7 @@ import {getOrCreate} from './utils.js';
 /**
 @typedef {{
   captureTransfers?: Array<[number | string, number]>;
-  hiddenCaptureNums?: Array<number>;
+  hiddenCaptures?: Array<number>;
   strategy?: string | null;
 }} EmulatedRegExpOptions
 */
@@ -76,18 +76,18 @@ class EmulatedRegExp extends RegExp {
       super(pattern, flags);
       const opts = {
         captureTransfers: [],
-        hiddenCaptureNums: [],
+        hiddenCaptures: [],
         strategy: null,
         ...options,
       };
-      this.#captureMap = createCaptureMap(opts.hiddenCaptureNums, opts.captureTransfers);
+      this.#captureMap = createCaptureMap(opts.hiddenCaptures, opts.captureTransfers);
       this.#strategy = opts.strategy;
       this.rawArgs = {
         pattern,
         flags: flags ?? '',
         options: {
           ...(opts.captureTransfers.length && {captureTransfers: opts.captureTransfers}),
-          ...(opts.hiddenCaptureNums.length && {hiddenCaptureNums: opts.hiddenCaptureNums}),
+          ...(opts.hiddenCaptures.length && {hiddenCaptures: opts.hiddenCaptures}),
           ...(opts.strategy && {strategy: opts.strategy}),
         },
       };
@@ -206,9 +206,9 @@ function adjustMatchDetailsForOffset(match, re, input, offset) {
 }
 
 /**
-Build the capturing group map, with emulation groups marked to indicate their submatches shouldn't
-appear in results.
-@param {Array<number>} hiddenCaptureNums
+Build the capturing group map, with hidden/transfer groups marked to indicate their submatches
+should get special handling in match results.
+@param {Array<number>} hiddenCaptures
 @param {Array<[number | string, number]>} captureTransfers
 @returns {Map<number, {
   hidden?: true;
@@ -216,9 +216,9 @@ appear in results.
   transferToName?: string;
 }>}
 */
-function createCaptureMap(hiddenCaptureNums, captureTransfers) {
+function createCaptureMap(hiddenCaptures, captureTransfers) {
   const captureMap = new Map();
-  for (const num of hiddenCaptureNums) {
+  for (const num of hiddenCaptures) {
     captureMap.set(num, {
       hidden: true,
     });

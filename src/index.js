@@ -69,13 +69,13 @@ function toDetails(pattern, options) {
   const generated = generate(regexAst, opts);
   const recursionResult = recursion(generated.pattern, {
     captureTransfers: generated._captureTransfers,
-    hiddenCaptureNums: generated._hiddenCaptureNums,
+    hiddenCaptures: generated._hiddenCaptures,
     mode: 'external',
   });
   const possessiveResult = possessive(recursionResult.pattern);
   const atomicResult = atomic(possessiveResult.pattern, {
     captureTransfers: recursionResult.captureTransfers,
-    hiddenCaptureNums: recursionResult.hiddenCaptureNums,
+    hiddenCaptures: recursionResult.hiddenCaptures,
   });
   const result = {
     pattern: atomicResult.pattern,
@@ -89,12 +89,12 @@ function toDetails(pattern, options) {
       captureTransfersArray.push([to, from]);
     });
     // Sort isn't required; only for readability when serialized
-    const hiddenCaptureNums = atomicResult.hiddenCaptureNums.sort((a, b) => a - b);
+    const hiddenCaptures = atomicResult.hiddenCaptures.sort((a, b) => a - b);
     const strategy = regexAst._strategy;
-    if (captureTransfersArray.length || hiddenCaptureNums.length || strategy) {
+    if (captureTransfersArray.length || hiddenCaptures.length || strategy) {
       result.options = {
         ...(captureTransfersArray.length && {captureTransfers: captureTransfersArray}),
-        ...(hiddenCaptureNums.length && {hiddenCaptureNums}),
+        ...(hiddenCaptures.length && {hiddenCaptures}),
         ...(strategy && {strategy}),
       };
     }

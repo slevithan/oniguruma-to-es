@@ -17,7 +17,7 @@ describe('EmulatedRegExp', () => {
     expect(reCopy.rawArgs).toEqual({
       pattern: r`(?:(?=(a+))\1)`,
       flags: genFlags,
-      options: {hiddenCaptureNums: [1]},
+      options: {hiddenCaptures: [1]},
     });
     expect(reCopy.source).toBe(r`(?:(?=(a+))\1)`);
   });
