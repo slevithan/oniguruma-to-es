@@ -1,4 +1,4 @@
-import {getOrCreate} from './utils.js';
+import {getOrCreate, throwIfNot} from './utils.js';
 
 /**
 @typedef {{
@@ -94,8 +94,7 @@ class EmulatedRegExp extends RegExp {
     }
   }
   /**
-  Called internally by all String/RegExp methods that use regexes. Provides special case handling
-  that requires coupling with pattern changes during transpilation.
+  Called internally by all String/RegExp methods that use regexes.
   @override
   @param {string} str
   @returns {RegExpExecArray | null}
@@ -142,29 +141,23 @@ class EmulatedRegExp extends RegExp {
       indicesCopy = [...match.indices];
       match.indices.length = 1;
     }
-    // TODO: Review and cleanup this code?
-    // TODO: Can I avoid creating `newNums`?
-    const newNums = [0];
+    const mappedNums = [0];
     for (let i = 1; i < matchCopy.length; i++) {
-      const data = this.#captureMap.get(i) ?? {};
-      // TODO: Move the rest behind a function?
-      if (data.hidden) {
-        newNums.push(null);
+      const {hidden, transferToNum, transferToName} = this.#captureMap.get(i) ?? {};
+      if (hidden) {
+        mappedNums.push(null);
       } else {
-        newNums.push(match.length);
+        mappedNums.push(match.length);
         match.push(matchCopy[i]);
         if (this.hasIndices) {
           match.indices.push(indicesCopy[i]);
         }
       }
-      // TODO: Can subclass `RegExpSubclass` if it provides an `adjustedNums` and matchCopy?
-      const {transferToNum, transferToName} = data;
       if (transferToNum) {
-        // TODO: Can this be null and is that a problem?
-        const adjustedNum = newNums[transferToNum];
-        match[adjustedNum] = matchCopy[i];
+        const newNum = throwIfNot(mappedNums[transferToNum]);
+        match[newNum] = matchCopy[i];
         if (this.hasIndices) {
-          match.indices[adjustedNum] = indicesCopy[i];
+          match.indices[newNum] = indicesCopy[i];
         }
       }
       if (transferToName) {
@@ -223,11 +216,11 @@ function createCaptureMap(hiddenCaptures, transfers) {
     });
   }
   for (const [to, from] of transfers) {
-    const data = getOrCreate(captureMap, from, {});
+    const cap = getOrCreate(captureMap, from, {});
     if (typeof to === 'string') {
-      data.transferToName = to;
+      cap.transferToName = to;
     } else {
-      data.transferToNum = to;
+      cap.transferToNum = to;
     }
   }
   return captureMap;

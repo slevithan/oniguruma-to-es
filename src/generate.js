@@ -264,7 +264,7 @@ function genCapturingGroup(node, state, gen) {
   // Has origin if the capture is from an expanded subroutine
   const origin = state.originMap.get(node);
   if (origin) {
-    // All captures from/within expanded subroutines are marked as hidden "emulation groups"
+    // All captures from/within expanded subroutines are marked as hidden
     data.hidden = true;
     // If a subroutine (or descendant capture) occurs after its origin group, it's marked to have
     // its captured value transferred to the origin's capture slot. `number` and `origin.number`
