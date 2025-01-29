@@ -1,8 +1,8 @@
-import {RegExpSubclass} from 'regex/internals';
+import {getOrCreate} from './utils.js';
 
 /**
 @typedef {{
-  captureTransfers?: Array<[number, number]>;
+  captureTransfers?: Array<[number | string, number]>;
   hiddenCaptureNums?: Array<number>;
   strategy?: string | null;
 }} EmulatedRegExpOptions
@@ -11,9 +11,17 @@ import {RegExpSubclass} from 'regex/internals';
 /**
 Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given
 results from `toDetails` to produce the same result as `toRegExp`.
-@augments RegExp
 */
-class EmulatedRegExp extends RegExpSubclass {
+class EmulatedRegExp extends RegExp {
+  /**
+  @private
+  @type {Map<number, {
+    hidden?: true;
+    transferToNum?: number;
+    transferToName?: string;
+  }>}
+  */
+  #captureMap;
   /**
   @private
   @type {string | null}
@@ -48,9 +56,11 @@ class EmulatedRegExp extends RegExpSubclass {
       }
       super(pattern, flags);
       if (pattern instanceof EmulatedRegExp) {
+        this.#captureMap = pattern.#captureMap;
         this.#strategy = pattern.#strategy;
-        this.rawArgs = pattern.rawArgs;
+        this.rawArgs = {...pattern.rawArgs};
       } else {
+        this.#captureMap = new Map();
         this.#strategy = null;
         this.rawArgs = {
           pattern: pattern.source,
@@ -59,16 +69,18 @@ class EmulatedRegExp extends RegExpSubclass {
         };
       }
       if (flags !== undefined) {
+        // Flags were explicitly changed while copying
         this.rawArgs.flags = flags;
       }
     } else {
+      super(pattern, flags);
       const opts = {
         captureTransfers: [],
         hiddenCaptureNums: [],
         strategy: null,
         ...options,
       };
-      super(pattern, flags, {hiddenCaptureNums: opts.hiddenCaptureNums});
+      this.#captureMap = createCaptureMap(opts.hiddenCaptureNums, opts.captureTransfers);
       this.#strategy = opts.strategy;
       this.rawArgs = {
         pattern,
@@ -89,7 +101,6 @@ class EmulatedRegExp extends RegExpSubclass {
   @returns {RegExpExecArray | null}
   */
   exec(str) {
-    const exec = super.exec;
     const useLastIndex = this.global || this.sticky;
     const pos = this.lastIndex;
 
@@ -103,7 +114,7 @@ class EmulatedRegExp extends RegExpSubclass {
       // 3. During a search when the regex's `lastIndex` isn't `0`.
       // The `search_start_clip` strategy is therefore only allowed with strict `accuracy` when
       // lookbehind isn't present
-      const match = exec.call(this, str.slice(pos));
+      const match = this.#execCore(str.slice(pos));
       if (match) {
         adjustMatchDetailsForOffset(match, this, str, pos);
         this.lastIndex += pos;
@@ -111,7 +122,60 @@ class EmulatedRegExp extends RegExpSubclass {
       return match;
     }
 
-    return exec.call(this, str);
+    return this.#execCore(str);
+  }
+
+  /**
+  Adds support for hidden and transfer captures.
+  @param {string} str
+  @returns
+  */
+  #execCore(str) {
+    const match = super.exec(str);
+    if (!match || !this.#captureMap.size) {
+      return match;
+    }
+    const matchCopy = [...match];
+    // Empty all but the first value of the array while preserving its other properties
+    match.length = 1;
+    let indicesCopy;
+    if (this.hasIndices) {
+      indicesCopy = [...match.indices];
+      match.indices.length = 1;
+    }
+    // TODO: Review and cleanup this code?
+    // TODO: Can I avoid creating `newNums`?
+    const newNums = [0];
+    for (let i = 1; i < matchCopy.length; i++) {
+      const data = this.#captureMap.get(i) ?? {};
+      // TODO: Move the rest behind a function?
+      if (data.hidden) {
+        newNums.push(null);
+      } else {
+        newNums.push(match.length);
+        match.push(matchCopy[i]);
+        if (this.hasIndices) {
+          match.indices.push(indicesCopy[i]);
+        }
+      }
+      // TODO: Can subclass `RegExpSubclass` if it provides an `adjustedNums` and matchCopy?
+      const {transferToNum, transferToName} = data;
+      if (transferToNum) {
+        // TODO: Can this be null and is that a problem?
+        const adjustedNum = newNums[transferToNum];
+        match[adjustedNum] = matchCopy[i];
+        if (this.hasIndices) {
+          match.indices[adjustedNum] = indicesCopy[i];
+        }
+      }
+      if (transferToName) {
+        match.groups[transferToName] = matchCopy[i];
+        if (this.hasIndices) {
+          match.indices.groups[transferToName] = indicesCopy[i];
+        }
+      }
+    }
+    return match;
   }
 }
 
@@ -139,6 +203,35 @@ function adjustMatchDetailsForOffset(match, re, input, offset) {
       });
     }
   }
+}
+
+/**
+Build the capturing group map, with emulation groups marked to indicate their submatches shouldn't
+appear in results.
+@param {Array<number>} hiddenCaptureNums
+@param {Array<[number | string, number]>} captureTransfers
+@returns {Map<number, {
+  hidden?: true;
+  transferToNum?: number;
+  transferToName?: string;
+}>}
+*/
+function createCaptureMap(hiddenCaptureNums, captureTransfers) {
+  const captureMap = new Map();
+  for (const num of hiddenCaptureNums) {
+    captureMap.set(num, {
+      hidden: true,
+    });
+  }
+  for (const [to, from] of captureTransfers) {
+    const data = getOrCreate(captureMap, from, {});
+    if (typeof to === 'string') {
+      data.transferToName = to;
+    } else {
+      data.transferToNum = to;
+    }
+  }
+  return captureMap;
 }
 
 export {
