@@ -82,20 +82,16 @@ function toDetails(pattern, options) {
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
   if (!avoidSubclass) {
-    const captureTransfers = atomicResult.captureTransfers;
-    // Change the map to a format that's serializable as JSON
-    const captureTransfersArray = [];
-    captureTransfers.forEach((from, to) => {
-      captureTransfersArray.push([to, from]);
-    });
     // Sort isn't required; only for readability when serialized
     const hiddenCaptures = atomicResult.hiddenCaptures.sort((a, b) => a - b);
+    // Change the map to the `EmulatedRegExp` format which is serializable as JSON
+    const transfers = Array.from(atomicResult.captureTransfers);
     const strategy = regexAst._strategy;
-    if (captureTransfersArray.length || hiddenCaptures.length || strategy) {
+    if (hiddenCaptures.length || strategy || transfers.length) {
       result.options = {
-        ...(captureTransfersArray.length && {captureTransfers: captureTransfersArray}),
         ...(hiddenCaptures.length && {hiddenCaptures}),
         ...(strategy && {strategy}),
+        ...(transfers.length && {transfers}),
       };
     }
   }
