@@ -166,7 +166,7 @@ const FirstPassVisitor = {
           throw new Error(r`Uses "\G" in a way that requires a subclass`);
         } else {
           replaceWith(createAssertion(AstAssertionKinds.string_start));
-          state.strategy = 'search_start_clip';
+          state.strategy = 'clip_search';
         }
       }
     } else if (kind === AstAssertionKinds.string_end_newline) {
