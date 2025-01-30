@@ -154,16 +154,22 @@ class EmulatedRegExp extends RegExp {
         }
       }
       if (transferToNum) {
-        const newNum = throwIfNot(mappedNums[transferToNum]);
-        match[newNum] = matchCopy[i];
-        if (this.hasIndices) {
-          match.indices[newNum] = indicesCopy[i];
+        const to = throwIfNot(mappedNums[transferToNum]);
+        // Only transfer if the capture participated in the match
+        if (matchCopy[i] !== undefined) {
+          match[to] = matchCopy[i];
+          if (this.hasIndices) {
+            match.indices[to] = indicesCopy[i];
+          }
         }
       }
       if (transferToName) {
-        match.groups[transferToName] = matchCopy[i];
-        if (this.hasIndices) {
-          match.indices.groups[transferToName] = indicesCopy[i];
+        // Only transfer if the capture participated in the match
+        if (matchCopy[i] !== undefined) {
+          match.groups[transferToName] = matchCopy[i];
+          if (this.hasIndices) {
+            match.indices.groups[transferToName] = indicesCopy[i];
+          }
         }
       }
     }
