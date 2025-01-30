@@ -51,7 +51,6 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
 */
 function toDetails(pattern, options) {
   const opts = getOptions(options);
-  const avoidSubclass = opts.avoidSubclass;
   const tokenized = tokenize(pattern, opts.flags, {
     captureGroup: opts.rules.captureGroup,
     singleline: opts.rules.singleline,
@@ -63,7 +62,7 @@ function toDetails(pattern, options) {
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
     asciiWordBoundaries: opts.rules.asciiWordBoundaries,
-    avoidSubclass,
+    avoidSubclass: opts.avoidSubclass,
     bestEffortTarget: opts.target,
   });
   const generated = generate(regexAst, opts);
@@ -81,17 +80,17 @@ function toDetails(pattern, options) {
     pattern: atomicResult.pattern,
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  if (!avoidSubclass) {
+  if (!opts.avoidSubclass) {
     // Sort isn't required; only for readability when serialized
     const hiddenCaptures = atomicResult.hiddenCaptures.sort((a, b) => a - b);
     // Change the map to the `EmulatedRegExp` format which is serializable as JSON
     const transfers = Array.from(atomicResult.captureTransfers);
     const strategy = regexAst._strategy;
-    if (hiddenCaptures.length || strategy || transfers.length) {
+    if (hiddenCaptures.length || transfers.length || strategy) {
       result.options = {
         ...(hiddenCaptures.length && {hiddenCaptures}),
-        ...(strategy && {strategy}),
         ...(transfers.length && {transfers}),
+        ...(strategy && {strategy}),
       };
     }
   }
@@ -115,11 +114,6 @@ function toOnigurumaAst(pattern, options) {
   return parse(tokenize(pattern, flags, {captureGroup}));
 }
 
-// // Returns a Regex+ AST generated from an Oniguruma pattern
-// function toRegexAst(pattern, options) {
-//   return transform(toOnigurumaAst(pattern, options));
-// }
-
 /**
 Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
@@ -134,10 +128,15 @@ function toRegExp(pattern, options) {
   return new RegExp(result.pattern, result.flags);
 }
 
+// // Returns a Regex+ AST generated from an Oniguruma pattern
+// function toRegexAst(pattern, options) {
+//   return transform(toOnigurumaAst(pattern, options));
+// }
+
 export {
   EmulatedRegExp,
   toDetails,
   toOnigurumaAst,
-  // toRegexAst,
   toRegExp,
+  // toRegexAst,
 };
