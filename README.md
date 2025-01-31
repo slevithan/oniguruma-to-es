@@ -14,7 +14,7 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 - Share regexes across your Ruby<sup>✳︎</sup> or PHP (`mb_ereg`, etc.) and JavaScript code.
 - Evaluate the validity of Oniguruma regexes and traverse their ASTs.
 
-Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **less than 4% of the size** and its regexes often run much faster since they run as native JavaScript.
+Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **less than 4% of the size** and its regexes often run much faster since they run as native JavaScript. And if you serialize transpiled regexes in advance, only the tree-shakable ~3 kb `EmulatedRegExp` constructor is needed.
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars.
 
