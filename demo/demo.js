@@ -95,7 +95,7 @@ function showTranspiled() {
     // Use `toRegExpDetails` but display as if `toRegExp` was called. This avoids erroring when the
     // selected `target` includes features that don't work in the user's browser
     const startTime = performance.now();
-    details = OnigurumaToES.toRegExpDetails(ui.input.value, options);
+    details = OnigurumaToEs.toRegExpDetails(ui.input.value, options);
     const endTime = performance.now();
     runtime = endTime - startTime;
     if (details.options) {
@@ -130,7 +130,7 @@ function showTranspiled() {
   for (const other of otherTargetAccuracyCombinations) {
     let otherDetails;
     try {
-      otherDetails = OnigurumaToES.toRegExpDetails(ui.input.value, {...options, ...other});
+      otherDetails = OnigurumaToEs.toRegExpDetails(ui.input.value, {...options, ...other});
     } catch {
       otherDetails = errorObj;
     } finally {

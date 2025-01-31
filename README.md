@@ -79,7 +79,7 @@ str.match(toRegExp(pattern));
 ```html
 <script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"></script>
 <script>
-  const {toRegExp} = OnigurumaToES;
+  const {toRegExp} = OnigurumaToEs;
 </script>
 ```
 </details>
