@@ -18,7 +18,7 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars.
 
-Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression).
+Depending on features used, Oniguruma-To-ES might use advanced emulation via a `RegExp` subclass (that remains a native JavaScript regular expression). Subclass-based emulation is also used to accurately repreduce complex details about how Oniguruma sets subpattern matches.
 
 <sup>✳︎: Ruby 2.0+ uses [Onigmo](https://github.com/k-takata/Onigmo), a fork of Oniguruma with similar syntax and behavior.</sup>
 
@@ -1027,7 +1027,7 @@ Contributions that add support for unsupported features are welcome.
 
 ### Coverage
 
-When considering the list above, keep in mind that some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub. **Oniguruma-To-ES supports ~99.99% of real-world Oniguruma regexes**, based on a sample of 54,487 regexes used in 219 TextMate grammars. Of the unsupported features listed above, conditionals were used in three regexes, multiple *overlapping* recursions were used in three regexes, and other unsupported features weren't used at all. Two regexes triggered bugs in Oniguruma 6.9.8 that led to differing results. All other regexes had identical matches compared to Oniguruma when tested against the language samples provided by Shiki.
+When considering the list above, keep in mind that some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub. **Oniguruma-To-ES supports ~99.99% of real-world Oniguruma regexes**, based on a sample of 54,487 regexes used in 219 TextMate grammars. Of the unsupported features listed above, conditionals were used in three regexes, *overlapping* recursions were used in three regexes, and other unsupported features weren't used at all.
 
 <a name="unicode"></a>
 ## ㊗️ Unicode
@@ -1044,7 +1044,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles Onigmo regexes to JavaScript (Onigmo is a fork of Oniguruma with similar syntax and behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled on the server to use them in JavaScript. Note that JsRegex doesn't always translate edge case behavior differences.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles Onigmo regexes to JavaScript (Onigmo is a fork of Oniguruma with similar syntax and behavior). It's written in Ruby and relies on the [Regexp::Parser](https://github.com/ammar/regexp_parser) Ruby gem, which means regexes must be pre-transpiled on the server to use them in JavaScript. Note that JsRegex doesn't always translate edge case behavior differences or accurately reproduce subpattern results.
 
 ## 🏷️ About
 
