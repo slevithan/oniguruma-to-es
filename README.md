@@ -96,14 +96,14 @@ Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 ```ts
 function toRegExp(
   pattern: string,
-  options?: OnigurumaToEsOptions
+  options?: ToRegExpOptions
 ): RegExp | EmulatedRegExp;
 ```
 
-#### Type `OnigurumaToEsOptions`
+#### Type `ToRegExpOptions`
 
 ```ts
-type OnigurumaToEsOptions = {
+type ToRegExpOptions = {
   accuracy?: 'default' | 'strict';
   avoidSubclass?: boolean;
   flags?: string;
@@ -130,7 +130,7 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
 ```ts
 function toRegExpDetails(
   pattern: string,
-  options?: OnigurumaToEsOptions
+  options?: ToRegExpOptions
 ): {
   pattern: string;
   flags: string;

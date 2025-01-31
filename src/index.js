@@ -53,13 +53,13 @@ function toOnigurumaAst(pattern, options) {
   };
   target?: keyof Target;
   verbose?: boolean;
-}} OnigurumaToEsOptions
+}} ToRegExpOptions
 */
 
 /**
 Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
-@param {OnigurumaToEsOptions} [options]
+@param {ToRegExpOptions} [options]
 @returns {RegExp | EmulatedRegExp}
 */
 function toRegExp(pattern, options) {
@@ -73,7 +73,7 @@ function toRegExp(pattern, options) {
 /**
 Accepts an Oniguruma pattern and returns the details for an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
-@param {OnigurumaToEsOptions} [options]
+@param {ToRegExpOptions} [options]
 @returns {{
   pattern: string;
   flags: string;

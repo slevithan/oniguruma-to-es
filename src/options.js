@@ -20,8 +20,8 @@ const Target = /** @type {const} */ ({
 
 /**
 Returns a complete set of options, with default values set for options that weren't provided.
-@param {import('.').OnigurumaToEsOptions} [options]
-@returns {Required<import('.').OnigurumaToEsOptions>}
+@param {import('.').ToRegExpOptions} [options]
+@returns {Required<import('.').ToRegExpOptions>}
 */
 function getOptions(options) {
   if (options?.target !== undefined && !Target[options.target]) {

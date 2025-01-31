@@ -8,7 +8,7 @@ import {isLookaround} from './utils-ast.js';
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
 @param {import('./transform.js').RegexAst} ast
-@param {import('.').OnigurumaToEsOptions} [options]
+@param {import('.').ToRegExpOptions} [options]
 @returns {{
   pattern: string;
   flags: string;
