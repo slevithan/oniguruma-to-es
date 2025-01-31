@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Oniguruma-To-ES REPL</title>
-  <link href="./demo.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/slevithan/oniguruma-to-es/demo/demo.css" rel="stylesheet">
+  <!-- If running in development, replace with local copy -->
+  <!-- <link href="./demo.css" rel="stylesheet"> -->
 </head>
 <body>
   <main>
@@ -170,9 +172,10 @@
 
   <!-- Hack to make it work on GitHub Pages where `dist/` isn't checked in; use the latest release's copy -->
   <script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"></script>
-  <!-- If running in development, replace with local copy -->
-  <script src="../dist/index.min.js"></script>
-  <script src="./demo.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slevithan/oniguruma-to-es/demo/demo.js"></script>
+  <!-- If running in development, replace with local copies -->
+  <!-- <script src="../dist/index.min.js"></script> -->
+  <!-- <script src="./demo.js"></script> -->
   <script>
     // For testing in the console
     Object.assign(globalThis, OnigurumaToES);
