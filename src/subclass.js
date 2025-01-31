@@ -14,28 +14,25 @@ results from `toDetails` to produce the same result as `toRegExp`.
 */
 class EmulatedRegExp extends RegExp {
   /**
-  @private
   @type {Map<number, {
     hidden?: true;
     transferTo?: number;
   }>}
   */
-  #captureMap;
+  #captureMap = new Map();
   /**
-  @private
-  @type {Map<number, string>}
+  @type {Map<number, string> | null}
   */
-  #nameMap;
+  #nameMap = null;
   /**
-  @private
   @type {string | null}
   */
-  #strategy;
+  #strategy = null;
   /**
   Can be used to serialize the instance.
   @type {EmulatedRegExpOptions}
   */
-  rawOptions;
+  rawOptions = {};
   /**
   @overload
   @param {string} pattern
@@ -60,11 +57,6 @@ class EmulatedRegExp extends RegExp {
         this.#nameMap = pattern.#nameMap;
         this.#strategy = pattern.#strategy;
         this.rawOptions = pattern.rawOptions;
-      } else {
-        this.#captureMap = new Map();
-        this.#nameMap = new Map();
-        this.#strategy = null;
-        this.rawOptions = {};
       }
     } else {
       super(pattern, flags);
@@ -75,7 +67,6 @@ class EmulatedRegExp extends RegExp {
         ...options,
       };
       this.#captureMap = createCaptureMap(opts.hiddenCaptures, opts.transfers);
-      this.#nameMap = new Map();
       this.#strategy = opts.strategy;
       this.rawOptions = {
         ...(opts.hiddenCaptures.length && {hiddenCaptures: opts.hiddenCaptures}),
@@ -152,8 +143,9 @@ class EmulatedRegExp extends RegExp {
           match.indices[to] = indicesCopy[i];
         }
         if (match.groups) {
-          if (!this.#nameMap.size) {
-            this.#nameMap = createNameMap(this.source); // Cache
+          if (!this.#nameMap) {
+            // Generate and cache the first time it's needed
+            this.#nameMap = createNameMap(this.source);
           }
           const name = this.#nameMap.get(transferTo);
           if (name) {
