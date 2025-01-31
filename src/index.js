@@ -83,7 +83,7 @@ function toDetails(pattern, options) {
   if (!opts.avoidSubclass) {
     // Sort isn't required; only for readability when serialized
     const hiddenCaptures = atomicResult.hiddenCaptures.sort((a, b) => a - b);
-    // Change the map to the `EmulatedRegExp` format which is serializable as JSON
+    // Change the map to the `EmulatedRegExp` format, serializable as JSON
     const transfers = Array.from(atomicResult.captureTransfers);
     const strategy = regexAst._strategy;
     if (hiddenCaptures.length || transfers.length || strategy) {

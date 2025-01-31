@@ -2,7 +2,7 @@ import {getOptions} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, getNewCurrentFlags, isMinTarget, r} from './utils.js';
+import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-ast.js';
 
 /**
@@ -13,7 +13,7 @@ Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AS
   pattern: string;
   flags: string;
   options: Object;
-  _captureTransfers: Map<number | string, number>;
+  _captureTransfers: Map<number, Array<number>>;
   _hiddenCaptures: Array<number>;
 }}
 */
@@ -137,11 +137,8 @@ function generate(ast, options) {
     if (value.hidden) {
       result._hiddenCaptures.push(key);
     }
-    if (value.transferToNum) {
-      result._captureTransfers.set(value.transferToNum, key);
-    }
-    if (value.transferToName) {
-      result._captureTransfers.set(value.transferToName, key);
+    if (value.transferTo) {
+      getOrCreate(result._captureTransfers, value.transferTo, []).push(key);
     }
   });
 
@@ -270,8 +267,7 @@ function genCapturingGroup(node, state, gen) {
     // its captured value transferred to the origin's capture slot. `number` and `origin.number`
     // are the capture numbers *after* subroutine expansion
     if (number > origin.number) {
-      data.transferToNum = origin.number;
-      data.transferToName = origin.name;
+      data.transferTo = origin.number;
     }
   }
   state.captureMap.set(number, data);

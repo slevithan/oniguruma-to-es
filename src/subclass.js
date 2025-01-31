@@ -4,7 +4,7 @@ import {getOrCreate, throwIfNot} from './utils.js';
 @typedef {{
   hiddenCaptures?: Array<number>;
   strategy?: string | null;
-  transfers?: Array<[number | string, number]>;
+  transfers?: Array<[number, Array<number>]>;
 }} EmulatedRegExpOptions
 */
 
@@ -17,11 +17,15 @@ class EmulatedRegExp extends RegExp {
   @private
   @type {Map<number, {
     hidden?: true;
-    transferToNum?: number;
-    transferToName?: string;
+    transferTo?: number;
   }>}
   */
   #captureMap;
+  /**
+  @private
+  @type {Map<number, string>}
+  */
+  #nameMap;
   /**
   @private
   @type {string | null}
@@ -57,10 +61,12 @@ class EmulatedRegExp extends RegExp {
       super(pattern, flags);
       if (pattern instanceof EmulatedRegExp) {
         this.#captureMap = pattern.#captureMap;
+        this.#nameMap = pattern.#nameMap;
         this.#strategy = pattern.#strategy;
         this.rawArgs = {...pattern.rawArgs};
       } else {
         this.#captureMap = new Map();
+        this.#nameMap = new Map();
         this.#strategy = null;
         this.rawArgs = {
           pattern: pattern.source,
@@ -81,6 +87,7 @@ class EmulatedRegExp extends RegExp {
         ...options,
       };
       this.#captureMap = createCaptureMap(opts.hiddenCaptures, opts.transfers);
+      this.#nameMap = new Map();
       this.#strategy = opts.strategy;
       this.rawArgs = {
         pattern,
@@ -143,7 +150,7 @@ class EmulatedRegExp extends RegExp {
     }
     const mappedNums = [0];
     for (let i = 1; i < matchCopy.length; i++) {
-      const {hidden, transferToNum, transferToName} = this.#captureMap.get(i) ?? {};
+      const {hidden, transferTo} = this.#captureMap.get(i) ?? {};
       if (hidden) {
         mappedNums.push(null);
       } else {
@@ -153,22 +160,23 @@ class EmulatedRegExp extends RegExp {
           match.indices.push(indicesCopy[i]);
         }
       }
-      if (transferToNum) {
-        const to = throwIfNot(mappedNums[transferToNum]);
-        // Only transfer if the capture participated in the match
-        if (matchCopy[i] !== undefined) {
-          match[to] = matchCopy[i];
-          if (this.hasIndices) {
-            match.indices[to] = indicesCopy[i];
-          }
+      // Only transfer if the capture participated in the match
+      if (transferTo && matchCopy[i] !== undefined) {
+        const to = throwIfNot(mappedNums[transferTo]);
+        match[to] = matchCopy[i];
+        if (this.hasIndices) {
+          match.indices[to] = indicesCopy[i];
         }
-      }
-      if (transferToName) {
-        // Only transfer if the capture participated in the match
-        if (matchCopy[i] !== undefined) {
-          match.groups[transferToName] = matchCopy[i];
-          if (this.hasIndices) {
-            match.indices.groups[transferToName] = indicesCopy[i];
+        if (match.groups) {
+          if (!this.#nameMap.size) {
+            this.#nameMap = createNameMap(this.source); // Cache
+          }
+          const name = this.#nameMap.get(transferTo);
+          if (name) {
+            match.groups[name] = matchCopy[i];
+            if (this.hasIndices) {
+              match.indices.groups[name] = indicesCopy[i];
+            }
           }
         }
       }
@@ -207,11 +215,10 @@ function adjustMatchDetailsForOffset(match, re, input, offset) {
 Build the capturing group map, with hidden/transfer groups marked to indicate their submatches
 should get special handling in match results.
 @param {Array<number>} hiddenCaptures
-@param {Array<[number | string, number]>} transfers
+@param {Array<[number, Array<number>]>} transfers
 @returns {Map<number, {
   hidden?: true;
-  transferToNum?: number;
-  transferToName?: string;
+  transferTo?: number;
 }>}
 */
 function createCaptureMap(hiddenCaptures, transfers) {
@@ -222,14 +229,42 @@ function createCaptureMap(hiddenCaptures, transfers) {
     });
   }
   for (const [to, from] of transfers) {
-    const cap = getOrCreate(captureMap, from, {});
-    if (typeof to === 'string') {
-      cap.transferToName = to;
-    } else {
-      cap.transferToNum = to;
+    for (const num of from) {
+      getOrCreate(captureMap, num, {}).transferTo = to;
     }
   }
   return captureMap;
+}
+
+/**
+@param {string} pattern
+@returns {Map<number, string>}
+*/
+function createNameMap(pattern) {
+  const re = /(?<capture>\((?:\?<(?![=!])(?<name>[^>]+)>|(?!\?)))|\\?./gsu;
+  const map = new Map();
+  let numCharClassesOpen = 0;
+  let numCaptures = 0;
+  let match;
+  while (match = re.exec(pattern)) {
+    const {0: m, groups: {capture, name}} = match;
+    // Relies on no unescaped literal `[` in char classes (valid in JS if not using flag v), but
+    // this library's generator never produces unescaped literal `[` even with `target` ES2018 (see
+    // `CharClassEscapeChars`)
+    if (m === '[') {
+      numCharClassesOpen++;
+    } else if (!numCharClassesOpen) {
+      if (capture) {
+        numCaptures++;
+        if (name) {
+          map.set(numCaptures, name);
+        }
+      }
+    } else if (m === ']') {
+      numCharClassesOpen--;
+    }
+  }
+  return map;
 }
 
 export {
