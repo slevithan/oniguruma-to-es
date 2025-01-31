@@ -168,15 +168,11 @@ Works the same as JavaScript's native `RegExp` constructor in all contexts, but 
 class EmulatedRegExp extends RegExp {
   constructor(pattern: string, flags?: string, options?: EmulatedRegExpOptions);
   constructor(pattern: EmulatedRegExp, flags?: string);
-  rawArgs: {
-    pattern: string;
-    flags: string;
-    options: EmulatedRegExpOptions;
-  };
+  rawOptions: EmulatedRegExpOptions;
 }
 ```
 
-The `rawArgs` property of `EmulatedRegExp` instances can be used to serialize the object.
+The `rawOptions` property of `EmulatedRegExp` instances can be used to serialize the object.
 
 ## 🔩 Options
 

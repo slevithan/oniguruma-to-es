@@ -1,35 +1,34 @@
 import {EmulatedRegExp, toRegExp} from '../dist/esm/index.js';
-import {envSupportsFlagV, r} from '../src/utils.js';
 
 describe('EmulatedRegExp', () => {
-  it('should include property rawArgs on instances', () => {
-    expect(new EmulatedRegExp('').rawArgs).toEqual({
-      pattern: '',
-      flags: '',
-      options: {},
-    });
+  it('should create a new instance when copying a regexp', () => {
+    const re1 = /./;
+    const re2 = new EmulatedRegExp('.');
+    expect(new EmulatedRegExp(re1)).not.toBe(re1);
+    expect(new EmulatedRegExp(re2)).not.toBe(re2);
   });
 
-  it('should preserve rawArgs when copying an instance', () => {
+  it('should allow changing flags when copying a regexp', () => {
+    const re = toRegExp('.', {global: true});
+    const reCopy = new EmulatedRegExp(re, 'i');
+    expect(re.global).toBe(true);
+    expect(re.ignoreCase).toBe(false);
+    expect(reCopy.global).toBe(false);
+    expect(reCopy.ignoreCase).toBe(true);
+  });
+
+  it('should throw if providing options when copying a regexp', () => {
+    expect(() => new EmulatedRegExp(/./, '', {})).toThrow();
+  });
+
+  it('should include property rawOptions on instances', () => {
+    expect(new EmulatedRegExp('').rawOptions).toEqual({});
+  });
+
+  it('should preserve rawOptions when copying a regexp', () => {
     const re = toRegExp('a++');
     const reCopy = new EmulatedRegExp(re);
-    const genFlags = envSupportsFlagV ? 'v' : 'u';
-    expect(reCopy.rawArgs).toEqual({
-      pattern: r`(?:(?=(a+))\1)`,
-      flags: genFlags,
-      options: {hiddenCaptures: [1]},
-    });
-    expect(reCopy.source).toBe(r`(?:(?=(a+))\1)`);
-  });
-
-  it('should throw if providing options while copying a regexp', () => {
-    expect(() => new EmulatedRegExp(/./, '', {})).toThrow();
-    expect(() => new EmulatedRegExp(/./, '')).not.toThrow();
-  });
-
-  it('should update rawArgs.flags when flags are provided while copying a regexp', () => {
-    expect(new EmulatedRegExp(/./g).rawArgs.flags).toBe('g');
-    expect(new EmulatedRegExp(/./g, '').rawArgs.flags).toBe('');
-    expect(new EmulatedRegExp(/./g, 'd').rawArgs.flags).toBe('d');
+    expect(reCopy.rawOptions).toEqual({hiddenCaptures: [1]});
+    expect(reCopy.rawOptions).toEqual(re.rawOptions);
   });
 });

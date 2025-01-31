@@ -32,14 +32,10 @@ class EmulatedRegExp extends RegExp {
   */
   #strategy;
   /**
-  Can be used to serialize the arguments used to create the instance.
-  @type {{
-    pattern: string;
-    flags: string;
-    options: EmulatedRegExpOptions;
-  }}
+  Can be used to serialize the instance.
+  @type {EmulatedRegExpOptions}
   */
-  rawArgs;
+  rawOptions;
   /**
   @overload
   @param {string} pattern
@@ -63,20 +59,12 @@ class EmulatedRegExp extends RegExp {
         this.#captureMap = pattern.#captureMap;
         this.#nameMap = pattern.#nameMap;
         this.#strategy = pattern.#strategy;
-        this.rawArgs = {...pattern.rawArgs};
+        this.rawOptions = pattern.rawOptions;
       } else {
         this.#captureMap = new Map();
         this.#nameMap = new Map();
         this.#strategy = null;
-        this.rawArgs = {
-          pattern: pattern.source,
-          flags: pattern.flags,
-          options: {},
-        };
-      }
-      if (flags !== undefined) {
-        // Flags were explicitly changed while copying
-        this.rawArgs.flags = flags;
+        this.rawOptions = {};
       }
     } else {
       super(pattern, flags);
@@ -89,14 +77,10 @@ class EmulatedRegExp extends RegExp {
       this.#captureMap = createCaptureMap(opts.hiddenCaptures, opts.transfers);
       this.#nameMap = new Map();
       this.#strategy = opts.strategy;
-      this.rawArgs = {
-        pattern,
-        flags: flags ?? '',
-        options: {
-          ...(opts.hiddenCaptures.length && {hiddenCaptures: opts.hiddenCaptures}),
-          ...(opts.strategy && {strategy: opts.strategy}),
-          ...(opts.transfers.length && {transfers: opts.transfers}),
-        },
+      this.rawOptions = {
+        ...(opts.hiddenCaptures.length && {hiddenCaptures: opts.hiddenCaptures}),
+        ...(opts.strategy && {strategy: opts.strategy}),
+        ...(opts.transfers.length && {transfers: opts.transfers}),
       };
     }
   }
