@@ -24,6 +24,18 @@ Depending on features used, Oniguruma-To-ES might use advanced emulation via a `
 
 ## 🔮 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
+## 📜 Contents
+
+- [Examples](#-examples)
+- [Install and use](#️-install-and-use)
+- [API](#-api)
+  - [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
+- [Options](#-options)
+  - [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
+- [Supported features](#-supported-features)
+- [Unsupported features](#-unsupported-features)
+- [Unicode](#️-unicode)
+
 ## 🪧 Examples
 
 ```js
@@ -46,17 +58,6 @@ toRegExp('[a-z](?i)[a-z]', {target: 'ES2018'});
 toRegExp('[a-z](?i)[a-z]', {target: 'ES2025'});
 // → /[a-z](?i:[a-z])/v
 ```
-
-## 📜 Contents
-
-- [Install and use](#️-install-and-use)
-- [API](#-api)
-  - [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
-- [Options](#-options)
-  - [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
-- [Supported features](#-supported-features)
-- [Unsupported features](#-unsupported-features)
-- [Unicode](#️-unicode)
 
 ## 🕹️ Install and use
 
@@ -172,7 +173,7 @@ class EmulatedRegExp extends RegExp {
 }
 ```
 
-The `rawOptions` property of `EmulatedRegExp` instances can be used to serialize the object.
+The `rawOptions` property of `EmulatedRegExp` instances can be used for serialization.
 
 #### Type `EmulatedRegExpOptions`
 
