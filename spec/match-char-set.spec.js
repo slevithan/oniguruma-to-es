@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -99,32 +99,32 @@ describe('CharacterSet', () => {
     });
 
     it(r`should throw for incomplete \p{ \P{`, () => {
-      expect(() => toDetails(r`\p{`)).toThrow();
-      expect(() => toDetails(r`\P{`)).toThrow();
-      expect(() => toDetails(r`[\p{]`)).toThrow();
-      expect(() => toDetails(r`[\P{]`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{`)).toThrow();
+      expect(() => toRegExpDetails(r`\P{`)).toThrow();
+      expect(() => toRegExpDetails(r`[\p{]`)).toThrow();
+      expect(() => toRegExpDetails(r`[\P{]`)).toThrow();
     });
 
     it(r`should throw for incomplete \p \P followed by interval quantifier`, () => {
-      expect(() => toDetails(r`\p{2}`)).toThrow();
-      expect(() => toDetails(r`\p{2,}`)).toThrow();
-      expect(() => toDetails(r`\p{,2}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{2}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{2,}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{,2}`)).toThrow();
     });
 
     it(r`should throw for name without A-Za-z`, () => {
-      expect(() => toDetails(r`\p{}`)).toThrow();
-      expect(() => toDetails(r`\p{^}`)).toThrow();
-      expect(() => toDetails(r`\p{0}`)).toThrow();
-      expect(() => toDetails(r`\p{ }`)).toThrow();
-      expect(() => toDetails(r`\p{-}`)).toThrow();
-      expect(() => toDetails(r`\p{__}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{^}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{0}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{ }`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{-}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{__}`)).toThrow();
     });
 
     it(r`should throw for name with non-ASCII-word character`, () => {
-      expect(() => toDetails(r`\p{N'Ko}`)).toThrow();
-      expect(() => toDetails(r`\p{Nko}`)).not.toThrow();
-      expect(() => toDetails(r`\p{Hanunóo}`)).toThrow();
-      expect(() => toDetails(r`\p{Hanunoo}`)).not.toThrow();
+      expect(() => toRegExpDetails(r`\p{N'Ko}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{Nko}`)).not.toThrow();
+      expect(() => toRegExpDetails(r`\p{Hanunóo}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{Hanunoo}`)).not.toThrow();
     });
 
     it(r`should allow negating with leading ^`, () => {
@@ -135,17 +135,17 @@ describe('CharacterSet', () => {
     });
 
     it(r`should require a negating ^ to be the first character`, () => {
-      expect(() => toDetails(r`\p{ ^L}`)).toThrow();
-      expect(() => toDetails(r`\P{ ^L}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{ ^L}`)).toThrow();
+      expect(() => toRegExpDetails(r`\P{ ^L}`)).toThrow();
     });
 
     it(r`should throw for key prefix`, () => {
-      expect(() => toDetails(r`\p{gc=L}`)).toThrow();
-      expect(() => toDetails(r`\p{General_Category=L}`)).toThrow();
-      expect(() => toDetails(r`\p{sc=Latin}`)).toThrow();
-      expect(() => toDetails(r`\p{Script=Latin}`)).toThrow();
-      expect(() => toDetails(r`\p{scx=Latin}`)).toThrow();
-      expect(() => toDetails(r`\p{Script_Extensions=Latin}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{gc=L}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{General_Category=L}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{sc=Latin}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{Script=Latin}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{scx=Latin}`)).toThrow();
+      expect(() => toRegExpDetails(r`\p{Script_Extensions=Latin}`)).toThrow();
     });
 
     it(r`should throw for properties of strings`, () => {
@@ -158,7 +158,7 @@ describe('CharacterSet', () => {
         'RGI_Emoji_Tag_Sequence',
         'RGI_Emoji_ZWJ_Sequence',
       ].forEach(name => {
-        expect(() => toDetails(r`\p{${name}}`)).toThrow();
+        expect(() => toRegExpDetails(r`\p{${name}}`)).toThrow();
       });
     });
 
@@ -169,7 +169,7 @@ describe('CharacterSet', () => {
         'LOWERCASE LETTER',
         ' Lo W-_e r CaSe---Letter ',
       ].forEach(name => {
-        expect(toDetails(r`\p{${name}}`).pattern).toBe(r`\p{Lowercase_Letter}`);
+        expect(toRegExpDetails(r`\p{${name}}`).pattern).toBe(r`\p{Lowercase_Letter}`);
       });
       [ 'Ll',
         'll',
@@ -177,14 +177,14 @@ describe('CharacterSet', () => {
         'L L',
         '   l _-l --',
       ].forEach(name => {
-        expect(toDetails(r`\p{${name}}`).pattern).toBe(r`\p{Ll}`);
+        expect(toRegExpDetails(r`\p{${name}}`).pattern).toBe(r`\p{Ll}`);
       });
       [ 'LOWER CASE',
         ' l-__-owercase ',
       ].forEach(name => {
-        expect(toDetails(r`\p{${name}}`).pattern).toBe(r`\p{Lowercase}`);
+        expect(toRegExpDetails(r`\p{${name}}`).pattern).toBe(r`\p{Lowercase}`);
       });
-      expect(toDetails(r`\p{asciihexdigit}`).pattern).toBe(r`\p{ASCII_Hex_Digit}`);
+      expect(toRegExpDetails(r`\p{asciihexdigit}`).pattern).toBe(r`\p{ASCII_Hex_Digit}`);
     });
 
     it(r`should use best effort to allow insignificant spaces, hyphens, underscores, and casing for scripts`, () => {
@@ -194,15 +194,15 @@ describe('CharacterSet', () => {
         'EGYPTIAN  HIEROGLYPHS',
         ' Egyptian_-_Hieroglyphs ',
       ].forEach(name => {
-        expect(toDetails(r`\p{${name}}`).pattern).toBe(r`\p{sc=Egyptian_Hieroglyphs}`);
+        expect(toRegExpDetails(r`\p{${name}}`).pattern).toBe(r`\p{sc=Egyptian_Hieroglyphs}`);
       });
-      expect(toDetails(r`\p{NKo}`).pattern).toBe(r`\p{sc=Nko}`);
-      expect(toDetails(r`\p{Phags-pa}`).pattern).toBe(r`\p{sc=Phags_Pa}`);
+      expect(toRegExpDetails(r`\p{NKo}`).pattern).toBe(r`\p{sc=Nko}`);
+      expect(toRegExpDetails(r`\p{Phags-pa}`).pattern).toBe(r`\p{sc=Phags_Pa}`);
     });
 
     // Documenting current behavior
     it(r`should handle unknown properties as scripts`, () => {
-      expect(toDetails(r`\p{FakeProperty}`).pattern).toBe(r`\p{sc=Fake_Property}`);
+      expect(toRegExpDetails(r`\p{FakeProperty}`).pattern).toBe(r`\p{sc=Fake_Property}`);
       expect(() => toRegExp(r`\p{FakeProperty}`)).toThrow();
     });
   });

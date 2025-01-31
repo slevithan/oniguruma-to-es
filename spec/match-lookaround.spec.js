@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -100,14 +100,14 @@ describe('Assertion: lookbehind', () => {
         '(?<=(?!))', // negative lookahead
         '(?<=(?<!))', // negative lookbehind
       ].forEach(p => {
-        expect(() => toDetails(p)).toThrow();
+        expect(() => toRegExpDetails(p)).toThrow();
       });
       // Valid
       [ '(?<=(?<=))', // positive lookbehind
         '(?<=())', // capturing group (unnamed)
         '(?<=(?<n>))', // capturing group (named)
       ].forEach(p => {
-        expect(() => toDetails(p)).not.toThrow();
+        expect(() => toRegExpDetails(p)).not.toThrow();
       });
     });
 
@@ -119,13 +119,13 @@ describe('Assertion: lookbehind', () => {
         '(?<!())', // capturing group (unnamed)
         '(?<!(?<n>))', // capturing group (named)
       ].forEach(p => {
-        expect(() => toDetails(p)).toThrow();
+        expect(() => toRegExpDetails(p)).toThrow();
       });
       // Valid
       [ '(?<!(?<=))', // positive lookbehind
         '(?<!(?<!))', // negative lookbehind
       ].forEach(p => {
-        expect(() => toDetails(p)).not.toThrow();
+        expect(() => toRegExpDetails(p)).not.toThrow();
       });
     });
   });

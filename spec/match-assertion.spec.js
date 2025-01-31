@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -173,8 +173,8 @@ describe('Assertion', () => {
   describe('grapheme_boundary', () => {
     // Supportable with close approximation, but extremely rare and not many use cases
     it('should throw as unsupported', () => {
-      expect(() => toDetails(r`\y`)).toThrow();
-      expect(() => toDetails(r`\Y`)).toThrow();
+      expect(() => toRegExpDetails(r`\y`)).toThrow();
+      expect(() => toRegExpDetails(r`\Y`)).toThrow();
     });
   });
 });

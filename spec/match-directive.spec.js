@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -36,30 +36,30 @@ describe('Directive', () => {
     });
 
     it('should throw if used within a pattern-wrapping lookaround', () => {
-      expect(() => toDetails(r`(?=a\Kb)`)).toThrow();
-      expect(() => toDetails(r`(?<=a\Kb)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?=a\Kb)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<=a\Kb)`)).toThrow();
     });
 
     // Not emulatable
     it('should throw if used within a pattern-wrapping capturing group', () => {
-      expect(() => toDetails(r`(a\Kb)`)).toThrow();
-      expect(() => toDetails(r`(?<n>a\Kb)`)).toThrow();
+      expect(() => toRegExpDetails(r`(a\Kb)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<n>a\Kb)`)).toThrow();
     });
 
     // Not emulatable
     it('should throw if used within a pattern-wrapping quantified group', () => {
-      expect(() => toDetails(r`(?:a\Kb)+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?:a\Kb)+`)).toThrow();
     });
 
     it('should throw if used within a non-pattern-wrapping group', () => {
-      expect(() => toDetails(r`(?:a\Kb)c`)).toThrow();
-      expect(() => toDetails(r`a(?:b\Kc)`)).toThrow();
-      expect(() => toDetails(r`(a\Kb)c`)).toThrow();
-      expect(() => toDetails(r`(?<n>a\Kb)c`)).toThrow();
-      expect(() => toDetails(r`(?>a\Kb)c`)).toThrow();
-      expect(() => toDetails(r`(?i:a\Kb)c`)).toThrow();
-      expect(() => toDetails(r`(?=a\Kb)c`)).toThrow();
-      expect(() => toDetails(r`(?<=a\Kb)c`)).toThrow();
+      expect(() => toRegExpDetails(r`(?:a\Kb)c`)).toThrow();
+      expect(() => toRegExpDetails(r`a(?:b\Kc)`)).toThrow();
+      expect(() => toRegExpDetails(r`(a\Kb)c`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<n>a\Kb)c`)).toThrow();
+      expect(() => toRegExpDetails(r`(?>a\Kb)c`)).toThrow();
+      expect(() => toRegExpDetails(r`(?i:a\Kb)c`)).toThrow();
+      expect(() => toRegExpDetails(r`(?=a\Kb)c`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<=a\Kb)c`)).toThrow();
     });
 
     it('should allow multiple uses', () => {
@@ -71,8 +71,8 @@ describe('Directive', () => {
     it('should throw if top-level alternation present', () => {
       // `\K` is emulatable at least within top-level alternation, but it's tricky. Ex: `ab\Kc|a`
       // is equivalent to `(?<=ab)c|a(?!bc)`, not simply `(?<=ab)c|a`
-      expect(() => toDetails(r`a\Kb|c`)).toThrow();
-      expect(() => toDetails(r`a|b\Kc`)).toThrow();
+      expect(() => toRegExpDetails(r`a\Kb|c`)).toThrow();
+      expect(() => toRegExpDetails(r`a|b\Kc`)).toThrow();
     });
   });
 });

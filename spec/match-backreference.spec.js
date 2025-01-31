@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {cp, r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups, minTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -13,10 +13,10 @@ describe('Backreference', () => {
   });
 
   it(r`should throw for incomplete \k< or \k'`, () => {
-    expect(() => toDetails(r`\k<`)).toThrow();
-    expect(() => toDetails(r`\k'`)).toThrow();
-    expect(() => toDetails(r`(?<aa>)\k<aa`)).toThrow();
-    expect(() => toDetails(r`()\k<1`)).toThrow();
+    expect(() => toRegExpDetails(r`\k<`)).toThrow();
+    expect(() => toRegExpDetails(r`\k'`)).toThrow();
+    expect(() => toRegExpDetails(r`(?<aa>)\k<aa`)).toThrow();
+    expect(() => toRegExpDetails(r`()\k<1`)).toThrow();
   });
 
   describe('numbered backref', () => {
@@ -25,14 +25,14 @@ describe('Backreference', () => {
     });
 
     it('should throw if group not defined', () => {
-      expect(() => toDetails(r`\1`)).toThrow();
-      expect(() => toDetails(r`()\2`)).toThrow();
-      expect(() => toDetails(r`(()\3)`)).toThrow();
+      expect(() => toRegExpDetails(r`\1`)).toThrow();
+      expect(() => toRegExpDetails(r`()\2`)).toThrow();
+      expect(() => toRegExpDetails(r`(()\3)`)).toThrow();
     });
 
     it('should throw if group not defined even when subroutines add captures', () => {
-      expect(() => toDetails(r`()\g<1>\2`)).toThrow();
-      expect(() => toDetails(r`\g<1>(()\3)`)).toThrow();
+      expect(() => toRegExpDetails(r`()\g<1>\2`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<1>(()\3)`)).toThrow();
     });
 
     it('should treat escaped number as octal if > 1 digit and not enough captures to the left', () => {
@@ -53,7 +53,7 @@ describe('Backreference', () => {
     });
 
     it('should throw for mixed named capture and numbered backrefs', () => {
-      expect(() => toDetails(r`(?<a>)\1`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\1`)).toThrow();
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
@@ -91,13 +91,13 @@ describe('Backreference', () => {
       // For 1-9, else it becomes octal if not enough groups defined to the left, even if enough
       // groups defined to the right
       it('should throw for forward references to defined groups', () => {
-        expect(() => toDetails(r`\1()`)).toThrow();
-        expect(() => toDetails(r`()\2()`)).toThrow();
-        expect(() => toDetails(r`(()\3)()`)).toThrow();
+        expect(() => toRegExpDetails(r`\1()`)).toThrow();
+        expect(() => toRegExpDetails(r`()\2()`)).toThrow();
+        expect(() => toRegExpDetails(r`(()\3)()`)).toThrow();
       });
 
       it('should throw for forward references to defined groups even when subroutines add captures', () => {
-        expect(() => toDetails(r`\g<1>\1()`)).toThrow();
+        expect(() => toRegExpDetails(r`\g<1>\1()`)).toThrow();
       });
     });
   });
@@ -109,18 +109,18 @@ describe('Backreference', () => {
     });
 
     it('should throw if group not defined', () => {
-      expect(() => toDetails(r`\k<1>`)).toThrow();
-      expect(() => toDetails(r`()\k<2>`)).toThrow();
-      expect(() => toDetails(r`(()\k<3>)`)).toThrow();
+      expect(() => toRegExpDetails(r`\k<1>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<2>`)).toThrow();
+      expect(() => toRegExpDetails(r`(()\k<3>)`)).toThrow();
     });
 
     it('should throw if group not defined even when subroutines add captures', () => {
-      expect(() => toDetails(r`()\g<1>\k<2>`)).toThrow();
-      expect(() => toDetails(r`\g<1>(()\k<3>)`)).toThrow();
+      expect(() => toRegExpDetails(r`()\g<1>\k<2>`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<1>(()\k<3>)`)).toThrow();
     });
 
     it('should throw for group 0', () => {
-      expect(() => toDetails(r`()\k<0>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<0>`)).toThrow();
     });
 
     it('should allow leading 0s', () => {
@@ -129,8 +129,8 @@ describe('Backreference', () => {
     });
 
     it('should throw for surrounding whitespace', () => {
-      expect(() => toDetails(r`()\k< 1 >`)).toThrow();
-      expect(() => toDetails(r`()\k' 1 '`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k< 1 >`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k' 1 '`)).toThrow();
     });
 
     it('should allow 3-digit backrefs', () => {
@@ -142,7 +142,7 @@ describe('Backreference', () => {
     });
 
     it('should throw for mixed named capture and numbered backrefs', () => {
-      expect(() => toDetails(r`(?<a>)\k<1>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\k<1>`)).toThrow();
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
@@ -178,13 +178,13 @@ describe('Backreference', () => {
       });
 
       it('should throw for forward references to defined groups', () => {
-        expect(() => toDetails(r`\k<1>()`)).toThrow();
-        expect(() => toDetails(r`()\k<2>()`)).toThrow();
-        expect(() => toDetails(r`(()\k<3>)()`)).toThrow();
+        expect(() => toRegExpDetails(r`\k<1>()`)).toThrow();
+        expect(() => toRegExpDetails(r`()\k<2>()`)).toThrow();
+        expect(() => toRegExpDetails(r`(()\k<3>)()`)).toThrow();
       });
 
       it('should throw for forward references to defined groups even when subroutines add captures', () => {
-        expect(() => toDetails(r`\g<1>\k<1>()`)).toThrow();
+        expect(() => toRegExpDetails(r`\g<1>\k<1>()`)).toThrow();
       });
     });
   });
@@ -196,31 +196,31 @@ describe('Backreference', () => {
     });
 
     it('should throw for relative 0', () => {
-      expect(() => toDetails(r`()\k<-0>`)).toThrow();
-      expect(() => toDetails(r`()\k<-00>`)).toThrow();
-      expect(() => toDetails(r`()\k<+0>`)).toThrow();
-      expect(() => toDetails(r`()\k<+00>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<-0>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<-00>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<+0>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<+00>`)).toThrow();
     });
 
     it('should throw if group not defined', () => {
-      expect(() => toDetails(r`\k<-1>`)).toThrow();
-      expect(() => toDetails(r`()\k<-2>`)).toThrow();
-      expect(() => toDetails(r`(()\k<-3>)`)).toThrow();
-      expect(() => toDetails(r`\k<-1>()`)).toThrow();
-      expect(() => toDetails(r`()\k<-2>()`)).toThrow();
-      expect(() => toDetails(r`(()\k<-3>)()`)).toThrow();
+      expect(() => toRegExpDetails(r`\k<-1>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<-2>`)).toThrow();
+      expect(() => toRegExpDetails(r`(()\k<-3>)`)).toThrow();
+      expect(() => toRegExpDetails(r`\k<-1>()`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<-2>()`)).toThrow();
+      expect(() => toRegExpDetails(r`(()\k<-3>)()`)).toThrow();
     });
 
     it('should throw if group not defined with forward reference', () => {
-      expect(() => toDetails(r`\k<+1>`)).toThrow();
-      expect(() => toDetails(r`()\k<+1>`)).toThrow();
-      expect(() => toDetails(r`\k<+2>()`)).toThrow();
+      expect(() => toRegExpDetails(r`\k<+1>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k<+1>`)).toThrow();
+      expect(() => toRegExpDetails(r`\k<+2>()`)).toThrow();
     });
 
     it('should throw if group not defined even when subroutines add captures', () => {
-      expect(() => toDetails(r`\g<1>\k<-1>()`)).toThrow();
-      expect(() => toDetails(r`()\g<1>\k<-2>`)).toThrow();
-      expect(() => toDetails(r`\g<1>(()\k<-3>)`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<1>\k<-1>()`)).toThrow();
+      expect(() => toRegExpDetails(r`()\g<1>\k<-2>`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<1>(()\k<-3>)`)).toThrow();
     });
 
     it('should allow leading 0s', () => {
@@ -229,8 +229,8 @@ describe('Backreference', () => {
     });
 
     it('should throw for surrounding whitespace', () => {
-      expect(() => toDetails(r`()\k< -1 >`)).toThrow();
-      expect(() => toDetails(r`()\k' -1 '`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k< -1 >`)).toThrow();
+      expect(() => toRegExpDetails(r`()\k' -1 '`)).toThrow();
     });
 
     it('should allow 3-digit numbers', () => {
@@ -242,7 +242,7 @@ describe('Backreference', () => {
     });
 
     it('should throw for mixed named capture and relative numbered backrefs', () => {
-      expect(() => toDetails(r`(?<a>)\k<-1>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\k<-1>`)).toThrow();
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
@@ -278,9 +278,9 @@ describe('Backreference', () => {
       });
 
       it('should throw for forward references to defined groups', () => {
-        expect(() => toDetails(r`\k<+1>()`)).toThrow();
-        expect(() => toDetails(r`\k'+1'()`)).toThrow();
-        expect(() => toDetails(r`()\k<+1>()`)).toThrow();
+        expect(() => toRegExpDetails(r`\k<+1>()`)).toThrow();
+        expect(() => toRegExpDetails(r`\k'+1'()`)).toThrow();
+        expect(() => toRegExpDetails(r`()\k<+1>()`)).toThrow();
       });
     });
   });
@@ -292,20 +292,20 @@ describe('Backreference', () => {
     });
 
     it('should throw if group not defined', () => {
-      expect(() => toDetails(r`\k<n>`)).toThrow();
-      expect(() => toDetails(r`(?<a>)\k<n>`)).toThrow();
-      expect(() => toDetails(r`\g<n>\k<n>`)).toThrow();
+      expect(() => toRegExpDetails(r`\k<n>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\k<n>`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<n>\k<n>`)).toThrow();
     });
 
     it('should throw for surrounding whitespace', () => {
-      expect(() => toDetails(r`(?<n>)\k< n >`)).toThrow();
-      expect(() => toDetails(r`(?'n')\k' n '`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<n>)\k< n >`)).toThrow();
+      expect(() => toRegExpDetails(r`(?'n')\k' n '`)).toThrow();
     });
 
     it('should throw for invalid names', () => {
       // `-` and `+` are invalid in backref names despite being valid in group and subroutine names
-      expect(() => toDetails(r`(?<n-n>)\k<n-n>`)).toThrow();
-      expect(() => toDetails(r`(?<n+n>)\k<n+n>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<n-n>)\k<n-n>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<n+n>)\k<n+n>`)).toThrow();
     });
 
     it('should reference the group to the left when there are duplicate names to the right', () => {
@@ -390,12 +390,12 @@ describe('Backreference', () => {
       });
 
       it('should throw for forward references to defined groups', () => {
-        expect(() => toDetails(r`\k<n>(?<n>)`)).toThrow();
-        expect(() => toDetails(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
+        expect(() => toRegExpDetails(r`\k<n>(?<n>)`)).toThrow();
+        expect(() => toRegExpDetails(r`(?<a>(?<b>)\k<c>)(?<c>)`)).toThrow();
       });
 
       it('should throw for forward references to defined groups even when subroutines add captures', () => {
-        expect(() => toDetails(r`\g<n>\k<n>(?<n>)`)).toThrow();
+        expect(() => toRegExpDetails(r`\g<n>\k<n>(?<n>)`)).toThrow();
       });
     });
   });
@@ -413,7 +413,7 @@ describe('Backreference', () => {
       });
       // Throw with strict `accuracy` if `target` below ES2025
       ['ES2018', 'ES2024'].forEach(target => {
-        expect(() => toDetails(r`(a)(?i)\1`, {
+        expect(() => toRegExpDetails(r`(a)(?i)\1`, {
           accuracy: 'strict',
           target,
         })).toThrow();

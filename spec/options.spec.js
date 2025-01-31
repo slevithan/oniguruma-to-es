@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {envSupportsFlagV, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -9,8 +9,8 @@ beforeEach(() => {
 describe('Options', () => {
   describe('accuracy', () => {
     it(r`should throw for subclass-based \G emulation if lookbehind present`, () => {
-      expect(() => toDetails(r`\Ga|(?<=)`, {accuracy: 'strict'})).toThrow();
-      expect(() => toDetails(r`\Ga|(?<=)`)).not.toThrow();
+      expect(() => toRegExpDetails(r`\Ga|(?<=)`, {accuracy: 'strict'})).toThrow();
+      expect(() => toRegExpDetails(r`\Ga|(?<=)`)).not.toThrow();
     });
 
     // TODO: Add remaining
@@ -25,22 +25,22 @@ describe('Options', () => {
 
   describe('flags', () => {
     it('should accept and translate supported flags', () => {
-      expect(toDetails('', {flags: 'i'}).flags).toContain('i');
-      expect(toDetails('', {flags: 'm'}).flags).toContain('s');
-      expect(toDetails('', {flags: 'm'}).flags).not.toContain('m');
-      expect(toDetails('', {flags: 'x'}).flags).not.toContain('x');
-      expect(toDetails('', {flags: 'D'}).flags).not.toContain('D');
-      expect(toDetails('', {flags: 'S'}).flags).not.toContain('S');
-      expect(toDetails('', {flags: 'W'}).flags).not.toContain('W');
+      expect(toRegExpDetails('', {flags: 'i'}).flags).toContain('i');
+      expect(toRegExpDetails('', {flags: 'm'}).flags).toContain('s');
+      expect(toRegExpDetails('', {flags: 'm'}).flags).not.toContain('m');
+      expect(toRegExpDetails('', {flags: 'x'}).flags).not.toContain('x');
+      expect(toRegExpDetails('', {flags: 'D'}).flags).not.toContain('D');
+      expect(toRegExpDetails('', {flags: 'S'}).flags).not.toContain('S');
+      expect(toRegExpDetails('', {flags: 'W'}).flags).not.toContain('W');
     });
   
     it('should throw for unexpected flags', () => {
-      expect(() => toDetails('', {flags: 'd'})).toThrow();
-      expect(() => toDetails('', {flags: 'g'})).toThrow();
-      expect(() => toDetails('', {flags: 's'})).toThrow();
-      expect(() => toDetails('', {flags: 'u'})).toThrow();
-      expect(() => toDetails('', {flags: 'v'})).toThrow();
-      expect(() => toDetails('', {flags: 'y'})).toThrow();
+      expect(() => toRegExpDetails('', {flags: 'd'})).toThrow();
+      expect(() => toRegExpDetails('', {flags: 'g'})).toThrow();
+      expect(() => toRegExpDetails('', {flags: 's'})).toThrow();
+      expect(() => toRegExpDetails('', {flags: 'u'})).toThrow();
+      expect(() => toRegExpDetails('', {flags: 'v'})).toThrow();
+      expect(() => toRegExpDetails('', {flags: 'y'})).toThrow();
     });
   });
 
@@ -84,7 +84,7 @@ describe('Options', () => {
           rules: {captureGroup: true},
         });
         // Without `rules.captureGroup`
-        expect(() => toDetails(r`(a)(?<n>b)\1`)).toThrow();
+        expect(() => toRegExpDetails(r`(a)(?<n>b)\1`)).toThrow();
       });
 
       it('should not multiplex for numbered backrefs to named capture', () => {
@@ -158,7 +158,7 @@ describe('Options', () => {
     describe('recursionLimit', () => {
       it('should throw if recursionLimit is not an integer 2-20', () => {
         for (const value of [-2, 0, 1, 2.5, 21, Infinity, '2', '', null, undefined, NaN, false]) {
-          expect(() => toDetails('', {rules: {recursionLimit: value}})).toThrow();
+          expect(() => toRegExpDetails('', {rules: {recursionLimit: value}})).toThrow();
         }
       });
 
@@ -204,32 +204,32 @@ describe('Options', () => {
   describe('target', () => {
     it('should set target based on env for target auto', () => {
       if (envSupportsFlagV) {
-        expect(toDetails('', {target: 'auto'}).flags).toBe('v');
+        expect(toRegExpDetails('', {target: 'auto'}).flags).toBe('v');
       } else {
-        expect(toDetails('', {target: 'auto'}).flags).toBe('u');
+        expect(toRegExpDetails('', {target: 'auto'}).flags).toBe('u');
       }
     });
 
     it('should use target auto if unspecified', () => {
       if (envSupportsFlagV) {
-        expect(toDetails('').flags).toBe('v');
+        expect(toRegExpDetails('').flags).toBe('v');
       } else {
-        expect(toDetails('').flags).toBe('u');
+        expect(toRegExpDetails('').flags).toBe('u');
       }
     });
 
     it('should add flag v for target ES2024+', () => {
-      expect(toDetails('', {target: 'ES2024'}).flags).toBe('v');
-      expect(toDetails('', {target: 'ES2025'}).flags).toBe('v');
+      expect(toRegExpDetails('', {target: 'ES2024'}).flags).toBe('v');
+      expect(toRegExpDetails('', {target: 'ES2025'}).flags).toBe('v');
     });
 
     it('should add flag u for target ES2018', () => {
-      expect(toDetails('', {target: 'ES2018'}).flags).toBe('u');
+      expect(toRegExpDetails('', {target: 'ES2018'}).flags).toBe('u');
     });
 
     it('should throw for unexpected targets', () => {
-      expect(() => toDetails('', {target: 'ES6'})).toThrow();
-      expect(() => toDetails('', {target: 'ES2019'})).toThrow();
+      expect(() => toRegExpDetails('', {target: 'ES6'})).toThrow();
+      expect(() => toRegExpDetails('', {target: 'ES2019'})).toThrow();
     });
   });
 

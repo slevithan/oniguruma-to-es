@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -46,8 +46,8 @@ describe('Assertion: search_start', () => {
     });
 
     it('should throw if not used at the start of every top-level alternative', () => {
-      expect(() => toDetails(r`\Ga|b`, opts())).toThrow();
-      expect(() => toDetails(r`a|\Gb`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`\Ga|b`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`a|\Gb`, opts())).toThrow();
     });
 
     it('should allow if following a directive', () => {
@@ -84,7 +84,7 @@ describe('Assertion: search_start', () => {
         r`(?<=\G|)a`,
         r`(?<!\Ga)a`,
         r`(?<!\G|)a`,
-      ].forEach(p => expect(() => toDetails(p, opts())).withContext(p).toThrow());
+      ].forEach(p => expect(() => toRegExpDetails(p, opts())).withContext(p).toThrow());
     });
 
     it('should never match if preceded by a non-zero-length token', () => {
@@ -109,17 +109,17 @@ describe('Assertion: search_start', () => {
     // Documenting current behavior
     it('should throw if following a quantified token', () => {
       // Min-zero length preceding `\G`
-      expect(() => toDetails(r`a*\G`, opts())).toThrow();
-      expect(() => toDetails(r`a*\Ga`, opts())).toThrow();
-      expect(() => toDetails(r`(a)*\G`, opts())).toThrow();
-      expect(() => toDetails(r`(a)*\Ga`, opts())).toThrow();
-      expect(() => toDetails(r`[a]*\G`, opts())).toThrow();
-      expect(() => toDetails(r`()+\G`, opts())).toThrow();
-      expect(() => toDetails(r`(a|)+\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`a*\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`a*\Ga`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`(a)*\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`(a)*\Ga`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`[a]*\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`()+\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`(a|)+\G`, opts())).toThrow();
       // Non-min-zero length preceding `\G`
       // Note: Never-matching cases like `a+\G` are handled separately and don't throw
-      expect(() => toDetails(r`aa*\G`, opts())).toThrow();
-      expect(() => toDetails(r`(a)+\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`aa*\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`(a)+\G`, opts())).toThrow();
     });
 
     it('should allow if within a wrapper group', () => {
@@ -136,11 +136,11 @@ describe('Assertion: search_start', () => {
     it('should check within groups to determine validity', () => {
       expect('a').toExactlyMatch(matcherOpts(r`((?=\G)a)`));
       expect('a').toExactlyMatch(matcherOpts(r`(?:(?>^(?<n>\Ga)))`));
-      expect(() => toDetails(r`(?:(?>a(?<n>\Gb)))`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`(?:(?>a(?<n>\Gb)))`, opts())).toThrow();
       expect('a').toExactlyMatch(matcherOpts(r`\Ga|(((\Gb)))`));
-      expect(() => toDetails(r`\Ga|(((b\Gc)))`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`\Ga|(((b\Gc)))`, opts())).toThrow();
       expect(['ac', 'bc']).toExactlyMatch(matcherOpts(r`((\Ga|\Gb)c)`));
-      expect(() => toDetails(r`((\Ga|b)c)`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`((\Ga|b)c)`, opts())).toThrow();
     });
 
     it('should allow as lone node in top-level alternative', () => {
@@ -156,13 +156,13 @@ describe('Assertion: search_start', () => {
 
     // Documenting current behavior
     it('should throw for redundant but otherwise supportable assertions', () => {
-      expect(() => toDetails(r`\G\Ga`, opts())).toThrow();
-      expect(() => toDetails(r`\Ga|\G\Gb`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`\G\Ga`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`\Ga|\G\Gb`, opts())).toThrow();
     });
 
     it('should throw if leading in a non-0-min quantified group', () => {
-      expect(() => toDetails(r`(\Ga)+`, opts())).toThrow();
-      expect(() => toDetails(r`(\Ga)+\G`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`(\Ga)+`, opts())).toThrow();
+      expect(() => toRegExpDetails(r`(\Ga)+\G`, opts())).toThrow();
     });
   });
 

@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -31,7 +31,7 @@ describe('CapturingGroup', () => {
         ['((?<a>)|(?<a>))(?<a>)(?<a>)', '(?:(?<a>)|())()()'],
       ];
       for (const [pattern, output] of tests) {
-        expect(toDetails(pattern, {verbose: true}).pattern).toBe(output);
+        expect(toRegExpDetails(pattern, {verbose: true}).pattern).toBe(output);
       }
     });
 

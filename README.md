@@ -51,7 +51,7 @@ toRegExp('[a-z](?i)[a-z]', {target: 'ES2025'});
 
 - [Install and use](#️-install-and-use)
 - [API](#-api)
-  - [`toRegExp`](#toregexp), [`toDetails`](#todetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
+  - [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
 - [Options](#-options)
   - [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
 - [Supported features](#-supported-features)
@@ -123,12 +123,12 @@ type OnigurumaToEsOptions = {
 
 See [Options](#-options) for more details.
 
-### `toDetails`
+### `toRegExpDetails`
 
 Accepts an Oniguruma pattern and returns the details needed to construct an equivalent JavaScript `RegExp`.
 
 ```ts
-function toDetails(
+function toRegExpDetails(
   pattern: string,
   options?: OnigurumaToEsOptions
 ): {
@@ -158,11 +158,11 @@ function toOnigurumaAst(
 ): OnigurumaAst;
 ```
 
-An error is thrown if the pattern isn't valid in Oniguruma. But unlike `toRegExp` and `toDetails`, `toOnigurumaAst` doesn't evaluate whether the pattern can be emulated in JavaScript.
+An error is thrown if the pattern isn't valid in Oniguruma. Unlike `toRegExp` and `toRegExpDetails`, `toOnigurumaAst` doesn't evaluate whether the pattern can be emulated in JavaScript.
 
 ### `EmulatedRegExp`
 
-Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given results from `toDetails` to produce the same result as `toRegExp`.
+Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given results from `toRegExpDetails` to produce the same result as `toRegExp`.
 
 ```ts
 class EmulatedRegExp extends RegExp {
@@ -176,7 +176,7 @@ The `rawOptions` property of `EmulatedRegExp` instances can be used to serialize
 
 ## 🔩 Options
 
-The following options are shared by functions [`toRegExp`](#toregexp) and [`toDetails`](#todetails).
+The following options are shared by functions [`toRegExp`](#toregexp) and [`toRegExpDetails`](#toregexpdetails).
 
 ### `accuracy`
 

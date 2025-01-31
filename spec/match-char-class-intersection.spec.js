@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {minTestTargetForFlagV} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -10,9 +10,9 @@ beforeEach(() => {
 describe('CharacterClassIntersection', () => {
   it('should allow intersection of union and ranges without a nested class', () => {
     // Include nested class in output since JS requires it
-    expect(toDetails('[ab&&c]').pattern).toBe('[[ab]&&c]');
-    expect(toDetails('[a-d&&e]').pattern).toBe('[[a-d]&&e]');
-    expect(toDetails('[a-de&&f]').pattern).toBe('[[a-de]&&f]');
+    expect(toRegExpDetails('[ab&&c]').pattern).toBe('[[ab]&&c]');
+    expect(toRegExpDetails('[a-d&&e]').pattern).toBe('[[a-d]&&e]');
+    expect(toRegExpDetails('[a-de&&f]').pattern).toBe('[[a-de]&&f]');
   });
 
   it('should fail to match an empty intersection', () => {
@@ -24,30 +24,30 @@ describe('CharacterClassIntersection', () => {
       pattern: '[[&&]a]',
       minTestTarget: minTestTargetForFlagV,
     });
-    expect(toDetails('[&&]').pattern).toBe('[[]&&[]]');
-    expect(toDetails('[a&&]').pattern).toBe('[a&&[]]');
-    expect(toDetails('[&&a]').pattern).toBe('[[]&&a]');
-    expect(toDetails('[[&&]a]').pattern).toBe('[[[]&&[]]a]');
+    expect(toRegExpDetails('[&&]').pattern).toBe('[[]&&[]]');
+    expect(toRegExpDetails('[a&&]').pattern).toBe('[a&&[]]');
+    expect(toRegExpDetails('[&&a]').pattern).toBe('[[]&&a]');
+    expect(toRegExpDetails('[[&&]a]').pattern).toBe('[[[]&&[]]a]');
   });
 
   describe('nested class unwrapping', () => {
     it('should unwrap unneeded nested classes', () => {
-      expect(toDetails('[[a]&&b]').pattern).toBe('[a&&b]');
-      expect(toDetails('[[[a]]&&b]').pattern).toBe('[a&&b]');
-      expect(toDetails('[[^[^a]]&&[b]]').pattern).toBe('[a&&b]');
+      expect(toRegExpDetails('[[a]&&b]').pattern).toBe('[a&&b]');
+      expect(toRegExpDetails('[[[a]]&&b]').pattern).toBe('[a&&b]');
+      expect(toRegExpDetails('[[^[^a]]&&[b]]').pattern).toBe('[a&&b]');
     });
 
     it('should unwrap the child class of a union or range wrapper class', () => {
-      expect(toDetails('[[ab]c&&d]').pattern).toBe('[[abc]&&d]');
-      expect(toDetails('[[ab]c-f&&g]').pattern).toBe('[[abc-f]&&g]');
-      expect(toDetails('[[ab][cd]&&e]').pattern).toBe('[[abcd]&&e]');
+      expect(toRegExpDetails('[[ab]c&&d]').pattern).toBe('[[abc]&&d]');
+      expect(toRegExpDetails('[[ab]c-f&&g]').pattern).toBe('[[abc-f]&&g]');
+      expect(toRegExpDetails('[[ab][cd]&&e]').pattern).toBe('[[abcd]&&e]');
     });
 
     it('should not unwrap required nested classes', () => {
-      expect(toDetails('[[ab]&&c]').pattern).toBe('[[ab]&&c]');
-      expect(toDetails('[[a-b]&&c]').pattern).toBe('[[a-b]&&c]');
-      expect(toDetails('[[^a]&&b]').pattern).toBe('[[^a]&&b]');
-      expect(toDetails(r`[\w&&a]`).pattern).toBe(r`[[\p{L}\p{M}\p{N}\p{Pc}]&&a]`);
+      expect(toRegExpDetails('[[ab]&&c]').pattern).toBe('[[ab]&&c]');
+      expect(toRegExpDetails('[[a-b]&&c]').pattern).toBe('[[a-b]&&c]');
+      expect(toRegExpDetails('[[^a]&&b]').pattern).toBe('[[^a]&&b]');
+      expect(toRegExpDetails(r`[\w&&a]`).pattern).toBe(r`[[\p{L}\p{M}\p{N}\p{Pc}]&&a]`);
     });
   });
 

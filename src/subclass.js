@@ -10,7 +10,7 @@ import {getOrCreate, throwIfNot} from './utils.js';
 
 /**
 Works the same as JavaScript's native `RegExp` constructor in all contexts, but can be given
-results from `toDetails` to produce the same result as `toRegExp`.
+results from `toRegExpDetails` to produce the same result as `toRegExp`.
 */
 class EmulatedRegExp extends RegExp {
   /**
@@ -20,19 +20,23 @@ class EmulatedRegExp extends RegExp {
   }>}
   */
   #captureMap = new Map();
+
   /**
   @type {Map<number, string> | null}
   */
   #nameMap = null;
+
   /**
   @type {string | null}
   */
   #strategy = null;
+
   /**
   Can be used to serialize the instance.
   @type {EmulatedRegExpOptions}
   */
   rawOptions = {};
+
   /**
   @overload
   @param {string} pattern
@@ -75,6 +79,7 @@ class EmulatedRegExp extends RegExp {
       };
     }
   }
+
   /**
   Called internally by all String/RegExp methods that use regexes.
   @override

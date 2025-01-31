@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 
 describe('AbsentFunction', () => {
@@ -20,32 +20,32 @@ describe('AbsentFunction', () => {
     });
 
     it('should throw for nested absent repeaters', () => {
-      expect(() => toDetails('(?~(?~))')).toThrow();
-      expect(() => toDetails('(?~a(?~))')).toThrow();
-      expect(() => toDetails('(?~(?~a))')).toThrow();
-      expect(() => toDetails('(?~a(?~b))')).toThrow();
+      expect(() => toRegExpDetails('(?~(?~))')).toThrow();
+      expect(() => toRegExpDetails('(?~a(?~))')).toThrow();
+      expect(() => toRegExpDetails('(?~(?~a))')).toThrow();
+      expect(() => toRegExpDetails('(?~a(?~b))')).toThrow();
     });
   });
 
   describe('absent expression', () => {
     // Not supported
     it('should throw', () => {
-      expect(() => toDetails(r`(?~|abc|\O*)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?~|abc|\O*)`)).toThrow();
     });
   });
 
   describe('absent stopper', () => {
     // Not supported
     it('should throw', () => {
-      expect(() => toDetails('(?~|abc)')).toThrow();
+      expect(() => toRegExpDetails('(?~|abc)')).toThrow();
     });
   });
 
   describe('absent clearer', () => {
     // Not supported
     it('should throw', () => {
-      expect(() => toDetails('(?~|)')).toThrow();
-      expect(() => toDetails('(?~|abc)(?~|)')).toThrow();
+      expect(() => toRegExpDetails('(?~|)')).toThrow();
+      expect(() => toRegExpDetails('(?~|abc)(?~|)')).toThrow();
     });
   });
 });

@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {cp, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -32,17 +32,17 @@ describe('Character', () => {
 
     // Not yet supported: control char identifier other than A-Za-z
     it('should throw for unsupported control char', () => {
-      expect(() => toDetails(r`\c.`)).toThrow();
-      expect(() => toDetails(r`\C-.`)).toThrow();
+      expect(() => toRegExpDetails(r`\c.`)).toThrow();
+      expect(() => toRegExpDetails(r`\C-.`)).toThrow();
     });
 
     it(r`should throw for incomplete \c`, () => {
-      expect(() => toDetails(r`\c`)).toThrow();
+      expect(() => toRegExpDetails(r`\c`)).toThrow();
     });
 
     it(r`should throw for incomplete \C`, () => {
-      expect(() => toDetails(r`\C`)).toThrow();
-      expect(() => toDetails(r`\C-`)).toThrow();
+      expect(() => toRegExpDetails(r`\C`)).toThrow();
+      expect(() => toRegExpDetails(r`\C-`)).toThrow();
     });
   });
 
@@ -79,7 +79,7 @@ describe('Character', () => {
     });
 
     it(`should throw for incomplete \\`, () => {
-      expect(() => toDetails(`\\`)).toThrow();
+      expect(() => toRegExpDetails(`\\`)).toThrow();
     });
   });
 
@@ -106,22 +106,22 @@ describe('Character', () => {
   describe('meta', () => {
     // Not yet supported
     it('should throw for unsupported meta', () => {
-      expect(() => toDetails(r`\M-\1`)).toThrow();
+      expect(() => toRegExpDetails(r`\M-\1`)).toThrow();
     });
 
     it('should throw for incomplete meta', () => {
-      expect(() => toDetails(r`\M`)).toThrow();
-      expect(() => toDetails(r`\M-`)).toThrow();
+      expect(() => toRegExpDetails(r`\M`)).toThrow();
+      expect(() => toRegExpDetails(r`\M-`)).toThrow();
     });
 
     // Not yet supported
     it('should throw for unsupported meta control char', () => {
-      expect(() => toDetails(r`\M-\C-A`)).toThrow();
+      expect(() => toRegExpDetails(r`\M-\C-A`)).toThrow();
     });
 
     it('should throw for incomplete meta control char', () => {
-      expect(() => toDetails(r`\M-\C`)).toThrow();
-      expect(() => toDetails(r`\M-\C-`)).toThrow();
+      expect(() => toRegExpDetails(r`\M-\C`)).toThrow();
+      expect(() => toRegExpDetails(r`\M-\C-`)).toThrow();
     });
   });
 
@@ -148,7 +148,7 @@ describe('Character', () => {
     it('should throw for invalid backrefs', () => {
       for (let i = 1; i < 10; i++) {
         // Escaped single digit 1-9 outside char classes is always treated as a backref
-        expect(() => toDetails(`\\${i}`)).toThrow();
+        expect(() => toRegExpDetails(`\\${i}`)).toThrow();
       }
     });
 
@@ -166,11 +166,11 @@ describe('Character', () => {
     });
 
     it(r`should throw for octal UTF-8 encoded byte above \177`, () => {
-      expect(() => toDetails(r`\200`)).toThrow();
-      expect(() => toDetails(r`\777`)).toThrow();
+      expect(() => toRegExpDetails(r`\200`)).toThrow();
+      expect(() => toRegExpDetails(r`\777`)).toThrow();
       // In char class
-      expect(() => toDetails(r`[\200]`)).toThrow();
-      expect(() => toDetails(r`[\777]`)).toThrow();
+      expect(() => toRegExpDetails(r`[\200]`)).toThrow();
+      expect(() => toRegExpDetails(r`[\777]`)).toThrow();
     });
 
     it('should match octals followed by literal digits', () => {
@@ -231,18 +231,18 @@ describe('Character', () => {
     });
 
     it(r`should throw for invalid UTF-8 encoded byte sequences \xNN (above 7F)`, () => {
-      expect(() => toDetails(r`\x80`)).toThrow();
-      expect(() => toDetails(r`\xF4`)).toThrow();
-      expect(() => toDetails(r`\xEF\xC0\xBB`)).toThrow();
+      expect(() => toRegExpDetails(r`\x80`)).toThrow();
+      expect(() => toRegExpDetails(r`\xF4`)).toThrow();
+      expect(() => toRegExpDetails(r`\xEF\xC0\xBB`)).toThrow();
       // In Onig, the unused encoded UTF-8 bytes F5-FF don't throw, but they don't match anything
       // (likely a bug in Onig)
-      expect(() => toDetails(r`\xFF`)).toThrow();
+      expect(() => toRegExpDetails(r`\xFF`)).toThrow();
     });
 
     it(r`should throw for incomplete \x`, () => {
-      expect(() => toDetails(r`\x`)).toThrow();
-      expect(() => toDetails(r`\x.`)).toThrow();
-      expect(() => toDetails(r`[\x]`)).toThrow();
+      expect(() => toRegExpDetails(r`\x`)).toThrow();
+      expect(() => toRegExpDetails(r`\x.`)).toThrow();
+      expect(() => toRegExpDetails(r`[\x]`)).toThrow();
     });
 
     it(r`should match hex char code with \uNNNN`, () => {
@@ -252,12 +252,12 @@ describe('Character', () => {
     });
 
     it(r`should throw for incomplete \u`, () => {
-      expect(() => toDetails(r`\u`)).toThrow();
-      expect(() => toDetails(r`\u.`)).toThrow();
-      expect(() => toDetails(r`[\u]`)).toThrow();
-      expect(() => toDetails(r`\u0`)).toThrow();
-      expect(() => toDetails(r`\u00`)).toThrow();
-      expect(() => toDetails(r`\u000`)).toThrow();
+      expect(() => toRegExpDetails(r`\u`)).toThrow();
+      expect(() => toRegExpDetails(r`\u.`)).toThrow();
+      expect(() => toRegExpDetails(r`[\u]`)).toThrow();
+      expect(() => toRegExpDetails(r`\u0`)).toThrow();
+      expect(() => toRegExpDetails(r`\u00`)).toThrow();
+      expect(() => toRegExpDetails(r`\u000`)).toThrow();
     });
 
     it(r`should match hex char code with \x{N...}`, () => {
@@ -271,41 +271,41 @@ describe('Character', () => {
       expect('\u{1}').toExactlyMatch(r`\x{01}`);
       expect('\u{1}').toExactlyMatch(r`\x{00000001}`);
       expect('\u{10}').toExactlyMatch(r`\x{00000010}`);
-      expect(() => toDetails(r`\x{000000001}`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{000000001}`)).toThrow();
     });
 
     it(r`should throw for incomplete \x{N...}`, () => {
-      expect(() => toDetails(r`\x{`)).toThrow();
-      expect(() => toDetails(r`\x{0`)).toThrow();
-      expect(() => toDetails(r`\x{,2}`)).toThrow();
-      expect(() => toDetails(r`\x{2,}`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{0`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{,2}`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{2,}`)).toThrow();
     });
 
     it(r`should throw for invalid \x{N...}`, () => {
-      expect(() => toDetails(r`\x{G}`)).toThrow();
-      expect(() => toDetails(r`\x{0x0}`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{G}`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{0x0}`)).toThrow();
     });
 
     it(r`should throw for \x{N...} out of range`, () => {
-      expect(() => toDetails(r`\x{110000}`)).toThrow();
-      expect(() => toDetails(r`[\x{110000}]`)).toThrow();
-      expect(() => toDetails(r`[\x{110000}-\x{110000}]`)).toThrow();
+      expect(() => toRegExpDetails(r`\x{110000}`)).toThrow();
+      expect(() => toRegExpDetails(r`[\x{110000}]`)).toThrow();
+      expect(() => toRegExpDetails(r`[\x{110000}-\x{110000}]`)).toThrow();
     });
 
     it(r`should allow \x{N...} out of range at char class range end`, () => {
       expect('\u{10FFFF}').toExactlyMatch(r`[\0-\x{110000}]`);
       expect('\u{10FFFF}').toExactlyMatch(r`[\0-\x{FFFFFFFF}]`);
       // 9 hex digits is invalid
-      expect(() => toDetails(r`[\0-\x{100000000}]`)).toThrow();
+      expect(() => toRegExpDetails(r`[\0-\x{100000000}]`)).toThrow();
     });
   });
 
   describe('enclosed octal', () => {
     // Not yet supported
     it('should throw for unsupported octal code point', () => {
-      expect(() => toDetails(r`\o{0}`)).toThrow();
-      expect(() => toDetails(r`\o{177}`)).toThrow();
-      expect(() => toDetails(r`\o{7777}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{0}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{177}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{7777}`)).toThrow();
     });
 
     it(r`should match \o without { as identity escape`, () => {
@@ -314,19 +314,19 @@ describe('Character', () => {
 
     // Not an error in Onig
     it(r`should throw for incomplete \o{`, () => {
-      expect(() => toDetails(r`\o{`)).toThrow();
-      expect(() => toDetails(r`\o{-}`)).toThrow();
-      expect(() => toDetails(r`\o{A}`)).toThrow();
-      expect(() => toDetails(r`\o{ 1}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{-}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{A}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{ 1}`)).toThrow();
       // Quantified identity escape!
-      expect(() => toDetails(r`\o{,1}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{,1}`)).toThrow();
     });
 
     it(r`should throw for invalid \o{N...}`, () => {
-      expect(() => toDetails(r`\o{1,}`)).toThrow();
-      expect(() => toDetails(r`\o{8}`)).toThrow();
-      expect(() => toDetails(r`\o{18}`)).toThrow();
-      expect(() => toDetails(r`\o{1A}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{1,}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{8}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{18}`)).toThrow();
+      expect(() => toRegExpDetails(r`\o{1A}`)).toThrow();
     });
   });
 });

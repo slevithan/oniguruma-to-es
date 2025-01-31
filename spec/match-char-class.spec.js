@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 
 describe('CharacterClass', () => {
   // See also `match-char-class-range.spec.js` and `match-char-class-intersection.spec.js`
@@ -6,24 +6,24 @@ describe('CharacterClass', () => {
 
   describe('nested class unwrapping', () => {
     it('should unwrap unneeded nested classes', () => {
-      expect(toDetails('[[ab]]').pattern).toBe('[ab]');
-      expect(toDetails('[[[ab]]]').pattern).toBe('[ab]');
-      expect(toDetails('[[ab]cd]').pattern).toBe('[abcd]');
-      expect(toDetails('[[[ab]]cd]').pattern).toBe('[abcd]');
-      expect(toDetails('[[ab][cd]]').pattern).toBe('[abcd]');
-      expect(toDetails('[[a]bc[d]]').pattern).toBe('[abcd]');
-      expect(toDetails('[^[ab]]').pattern).toBe('[^ab]');
-      expect(toDetails('[[^ab]]').pattern).toBe('[^ab]');
-      expect(toDetails('[^[^ab]]').pattern).toBe('[ab]');
-      expect(toDetails('[^[^[ab]]]').pattern).toBe('[ab]');
-      expect(toDetails('[^[^[^ab]]]').pattern).toBe('[^ab]');
+      expect(toRegExpDetails('[[ab]]').pattern).toBe('[ab]');
+      expect(toRegExpDetails('[[[ab]]]').pattern).toBe('[ab]');
+      expect(toRegExpDetails('[[ab]cd]').pattern).toBe('[abcd]');
+      expect(toRegExpDetails('[[[ab]]cd]').pattern).toBe('[abcd]');
+      expect(toRegExpDetails('[[ab][cd]]').pattern).toBe('[abcd]');
+      expect(toRegExpDetails('[[a]bc[d]]').pattern).toBe('[abcd]');
+      expect(toRegExpDetails('[^[ab]]').pattern).toBe('[^ab]');
+      expect(toRegExpDetails('[[^ab]]').pattern).toBe('[^ab]');
+      expect(toRegExpDetails('[^[^ab]]').pattern).toBe('[ab]');
+      expect(toRegExpDetails('[^[^[ab]]]').pattern).toBe('[ab]');
+      expect(toRegExpDetails('[^[^[^ab]]]').pattern).toBe('[^ab]');
     });
 
     it('should not unwrap required nested classes', () => {
-      expect(toDetails('[[^ab]cd]').pattern).toBe('[[^ab]cd]');
-      expect(toDetails('[^[^ab]cd]').pattern).toBe('[^[^ab]cd]');
-      expect(toDetails('[[^a][^b]]').pattern).toBe('[[^a][^b]]');
-      expect(toDetails('[^[^a][^b]]').pattern).toBe('[^[^a][^b]]');
+      expect(toRegExpDetails('[[^ab]cd]').pattern).toBe('[[^ab]cd]');
+      expect(toRegExpDetails('[^[^ab]cd]').pattern).toBe('[^[^ab]cd]');
+      expect(toRegExpDetails('[[^a][^b]]').pattern).toBe('[[^a][^b]]');
+      expect(toRegExpDetails('[^[^a][^b]]').pattern).toBe('[^[^a][^b]]');
     });
   });
 

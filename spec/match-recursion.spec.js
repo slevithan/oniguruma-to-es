@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -11,9 +11,9 @@ describe('Recursion', () => {
 
   // Documenting current behavior
   it('should throw if backref used with recursion when the recursed subpattern contains captures', () => {
-    expect(() => toDetails(r`(a)\1\g<0>?`)).toThrow();
-    expect(() => toDetails(r`((a)\g<1>?)\k<1>`)).toThrow();
-    expect(() => toDetails(r`((a)\g<1>?)()\k<3>`)).toThrow();
+    expect(() => toRegExpDetails(r`(a)\1\g<0>?`)).toThrow();
+    expect(() => toRegExpDetails(r`((a)\g<1>?)\k<1>`)).toThrow();
+    expect(() => toRegExpDetails(r`((a)\g<1>?)()\k<3>`)).toThrow();
   });
 
   it('should match backref used with recursion when the recursed subpattern contains no captures', () => {
@@ -38,16 +38,16 @@ describe('Recursion', () => {
     });
 
     it('should throw for leading 0s', () => {
-      expect(() => toDetails(r`a\g<00>?`)).toThrow();
+      expect(() => toRegExpDetails(r`a\g<00>?`)).toThrow();
     });
 
     it('should throw for relative 0', () => {
-      expect(() => toDetails(r`a\g<-0>?`)).toThrow();
-      expect(() => toDetails(r`a\g<+0>?`)).toThrow();
+      expect(() => toRegExpDetails(r`a\g<-0>?`)).toThrow();
+      expect(() => toRegExpDetails(r`a\g<+0>?`)).toThrow();
     });
 
     it('should throw for overlapping recursions', () => {
-      expect(() => toDetails(r`a\g<0>?\g<0>?`)).toThrow();
+      expect(() => toRegExpDetails(r`a\g<0>?\g<0>?`)).toThrow();
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {
@@ -69,7 +69,7 @@ describe('Recursion', () => {
     });
 
     it('should throw for overlapping recursions', () => {
-      expect(() => toDetails(r`(a\g<2>(\g<1>?))`)).toThrow();
+      expect(() => toRegExpDetails(r`(a\g<2>(\g<1>?))`)).toThrow();
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {
@@ -91,7 +91,7 @@ describe('Recursion', () => {
     });
 
     it('should throw for overlapping recursions', () => {
-      expect(() => toDetails(r`(a\g<+1>(\g<-2>?))`)).toThrow();
+      expect(() => toRegExpDetails(r`(a\g<+1>(\g<-2>?))`)).toThrow();
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {
@@ -120,9 +120,9 @@ describe('Recursion', () => {
     });
 
     it('should throw for overlapping recursions', () => {
-      expect(() => toDetails(r`a\g<0>?(?<r>a\g<r>?)`)).toThrow();
-      expect(() => toDetails(r`(?<r>a\g<r>?\g<r>?)`)).toThrow();
-      expect(() => toDetails(r`(?<a>\g<b>(?<b>a\g<a>?))`)).toThrow();
+      expect(() => toRegExpDetails(r`a\g<0>?(?<r>a\g<r>?)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<r>a\g<r>?\g<r>?)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>\g<b>(?<b>a\g<a>?))`)).toThrow();
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {

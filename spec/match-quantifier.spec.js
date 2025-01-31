@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -83,33 +83,33 @@ describe('Quantifier', () => {
 
   describe('quantifiability', () => {
     it('should throw at start of pattern, group, or alternative', () => {
-      expect(() => toDetails(r`+`)).toThrow();
-      expect(() => toDetails(r`(+)`)).toThrow();
-      expect(() => toDetails(r`|+`)).toThrow();
-      expect(() => toDetails(r`(|+)`)).toThrow();
-      expect(() => toDetails(r`(+|)`)).toThrow();
+      expect(() => toRegExpDetails(r`+`)).toThrow();
+      expect(() => toRegExpDetails(r`(+)`)).toThrow();
+      expect(() => toRegExpDetails(r`|+`)).toThrow();
+      expect(() => toRegExpDetails(r`(|+)`)).toThrow();
+      expect(() => toRegExpDetails(r`(+|)`)).toThrow();
     });
 
     it('should throw if quantifying an assertion', () => {
-      expect(() => toDetails(r`\A+`)).toThrow();
-      expect(() => toDetails(r`\z+`)).toThrow();
-      expect(() => toDetails(r`\Z+`)).toThrow();
-      expect(() => toDetails(r`^+`)).toThrow();
-      expect(() => toDetails(r`$+`)).toThrow();
-      expect(() => toDetails(r`\G+`)).toThrow();
-      expect(() => toDetails(r`\b+`)).toThrow();
-      expect(() => toDetails(r`\B+`)).toThrow();
-      expect(() => toDetails(r`(?=)+`)).toThrow();
-      expect(() => toDetails(r`(?!)+`)).toThrow();
-      expect(() => toDetails(r`(?<=)+`)).toThrow();
-      expect(() => toDetails(r`(?<!)+`)).toThrow();
+      expect(() => toRegExpDetails(r`\A+`)).toThrow();
+      expect(() => toRegExpDetails(r`\z+`)).toThrow();
+      expect(() => toRegExpDetails(r`\Z+`)).toThrow();
+      expect(() => toRegExpDetails(r`^+`)).toThrow();
+      expect(() => toRegExpDetails(r`$+`)).toThrow();
+      expect(() => toRegExpDetails(r`\G+`)).toThrow();
+      expect(() => toRegExpDetails(r`\b+`)).toThrow();
+      expect(() => toRegExpDetails(r`\B+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?=)+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?!)+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<=)+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<!)+`)).toThrow();
     });
 
     it('should throw if quantifying a directive', () => {
-      expect(() => toDetails(r`\K+`)).toThrow();
-      expect(() => toDetails(r`(?i)+`)).toThrow();
-      expect(() => toDetails(r`(?-i)+`)).toThrow();
-      expect(() => toDetails(r`(?i-m)+`)).toThrow();
+      expect(() => toRegExpDetails(r`\K+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?i)+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?-i)+`)).toThrow();
+      expect(() => toRegExpDetails(r`(?i-m)+`)).toThrow();
     });
   });
 });

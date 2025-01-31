@@ -1,4 +1,4 @@
-import {toDetails, toRegExp} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
@@ -14,10 +14,10 @@ describe('Subroutine', () => {
   });
 
   it(r`should throw for incomplete \g< or \g'`, () => {
-    expect(() => toDetails(r`\g<`)).toThrow();
-    expect(() => toDetails(r`\g'`)).toThrow();
-    expect(() => toDetails(r`(?<aa>)\g<aa`)).toThrow();
-    expect(() => toDetails(r`()\g<1`)).toThrow();
+    expect(() => toRegExpDetails(r`\g<`)).toThrow();
+    expect(() => toRegExpDetails(r`\g'`)).toThrow();
+    expect(() => toRegExpDetails(r`(?<aa>)\g<aa`)).toThrow();
+    expect(() => toRegExpDetails(r`()\g<1`)).toThrow();
   });
 
   describe('numbered', () => {
@@ -33,14 +33,14 @@ describe('Subroutine', () => {
     });
 
     it('should throw if referencing a missing group', () => {
-      expect(() => toDetails(r`\g<1>`)).toThrow();
-      expect(() => toDetails(r`()\g<2>`)).toThrow();
-      expect(() => toDetails(r`(\g<2>)`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<1>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\g<2>`)).toThrow();
+      expect(() => toRegExpDetails(r`(\g<2>)`)).toThrow();
     });
 
     it('should throw if referencing a named group by number', () => {
-      expect(() => toDetails(r`(?<a>)\g<1>`)).toThrow();
-      expect(() => toDetails(r`\g<1>(?<a>)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\g<1>`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<1>(?<a>)`)).toThrow();
     });
 
     it('should allow referencing groups that contain subroutines', () => {
@@ -83,17 +83,17 @@ describe('Subroutine', () => {
     });
 
     it('should throw if referencing a missing group', () => {
-      expect(() => toDetails(r`\g<-1>`)).toThrow();
-      expect(() => toDetails(r`\g<+1>`)).toThrow();
-      expect(() => toDetails(r`()\g<-2>`)).toThrow();
-      expect(() => toDetails(r`()\g<+1>`)).toThrow();
-      expect(() => toDetails(r`(\g<-2>)`)).toThrow();
-      expect(() => toDetails(r`(\g<+1>)`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<-1>`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<+1>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\g<-2>`)).toThrow();
+      expect(() => toRegExpDetails(r`()\g<+1>`)).toThrow();
+      expect(() => toRegExpDetails(r`(\g<-2>)`)).toThrow();
+      expect(() => toRegExpDetails(r`(\g<+1>)`)).toThrow();
     });
 
     it('should throw if referencing a named group by relative number', () => {
-      expect(() => toDetails(r`(?<a>)\g<-1>`)).toThrow();
-      expect(() => toDetails(r`\g<+1>(?<a>)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\g<-1>`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<+1>(?<a>)`)).toThrow();
     });
 
     it('should allow referencing groups that contain subroutines', () => {
@@ -117,18 +117,18 @@ describe('Subroutine', () => {
     });
   
     it('should throw if referencing a missing group', () => {
-      expect(() => toDetails(r`\g<a>`)).toThrow();
-      expect(() => toDetails(r`(?<a>)\g<b>`)).toThrow();
-      expect(() => toDetails(r`(?<a>\g<b>)`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<a>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\g<b>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>\g<b>)`)).toThrow();
     });
 
     it('should throw if referencing a duplicate group name', () => {
-      expect(() => toDetails(r`(?<a>)(?<a>)\g<a>`)).toThrow();
-      expect(() => toDetails(r`(?<a>)\g<a>(?<a>)`)).toThrow();
-      expect(() => toDetails(r`\g<a>(?<a>)(?<a>)`)).toThrow();
-      expect(() => toDetails(r`(?<a>(?<a>))\g<a>`)).toThrow();
-      expect(() => toDetails(r`(?<a>)(?<a>\g<a>?)`)).toThrow();
-      expect(() => toDetails(r`(?<a>(?<a>\g<a>?))`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)(?<a>)\g<a>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)\g<a>(?<a>)`)).toThrow();
+      expect(() => toRegExpDetails(r`\g<a>(?<a>)(?<a>)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>(?<a>))\g<a>`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>)(?<a>\g<a>?)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>(?<a>\g<a>?))`)).toThrow();
     });
 
     it('should allow referencing groups that contain subroutines', () => {

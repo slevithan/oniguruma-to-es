@@ -1,4 +1,4 @@
-import {toDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {minTestTargetForFlagV} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -57,25 +57,25 @@ describe('CharacterClassRange', () => {
   });
 
   it('should handle sequences with literal and range hyphens', () => {
-    expect(toDetails('[-]').pattern).toBe(r`[\-]`);
-    expect(toDetails('[--]').pattern).toBe(r`[\-\-]`);
-    expect(toDetails('[---]').pattern).toBe(r`[\--\-]`);
-    expect(toDetails('[----]').pattern).toBe(r`[\--\-\-]`);
-    expect(toDetails('[-----]').pattern).toBe(r`[\--\-\-\-]`);
-    expect(toDetails('[------]').pattern).toBe(r`[\--\-\--\-]`);
+    expect(toRegExpDetails('[-]').pattern).toBe(r`[\-]`);
+    expect(toRegExpDetails('[--]').pattern).toBe(r`[\-\-]`);
+    expect(toRegExpDetails('[---]').pattern).toBe(r`[\--\-]`);
+    expect(toRegExpDetails('[----]').pattern).toBe(r`[\--\-\-]`);
+    expect(toRegExpDetails('[-----]').pattern).toBe(r`[\--\-\-\-]`);
+    expect(toRegExpDetails('[------]').pattern).toBe(r`[\--\-\--\-]`);
   });
 
   it('should throw for range with set', () => {
-    expect(() => toDetails(r`[a-\w]`)).toThrow();
-    expect(() => toDetails(r`[\w-a]`)).toThrow();
-    expect(() => toDetails(r`[\w-a-z]`)).toThrow();
-    expect(() => toDetails(r`[\w-\s]`)).toThrow();
+    expect(() => toRegExpDetails(r`[a-\w]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\w-a]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\w-a-z]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\w-\s]`)).toThrow();
   });
 
   it('should throw for reversed ranges', () => {
-    expect(() => toDetails(r`[z-a]`)).toThrow();
-    expect(() => toDetails(r`[\u{1}-\0]`)).toThrow();
-    expect(() => toDetails(r`[a-0-9]`)).toThrow();
+    expect(() => toRegExpDetails(r`[z-a]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\u{1}-\0]`)).toThrow();
+    expect(() => toRegExpDetails(r`[a-0-9]`)).toThrow();
   });
 
   it(r`should match UTF-8 encoded byte sequences with \xNN above 7F`, () => {
@@ -85,11 +85,11 @@ describe('CharacterClassRange', () => {
   });
 
   it(r`should throw for invalid UTF-8 encoded byte sequences with \xNN above 7F`, () => {
-    expect(() => toDetails(r`[\0-\x80]`)).toThrow();
-    expect(() => toDetails(r`[\0-\xF4]`)).toThrow();
-    expect(() => toDetails(r`[\0-\xEF\xC0\xBB]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\0-\x80]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\0-\xF4]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\0-\xEF\xC0\xBB]`)).toThrow();
     // In Onig, the unused encoded UTF-8 bytes F5-FF don't throw, but they don't match anything and
     // cause buggy, undesirable behavior in ranges
-    expect(() => toDetails(r`[\0-\xFF]`)).toThrow();
+    expect(() => toRegExpDetails(r`[\0-\xFF]`)).toThrow();
   });
 });

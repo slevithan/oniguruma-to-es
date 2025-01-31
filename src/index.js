@@ -21,6 +21,23 @@ import {recursion} from 'regex-recursion';
 //    reinventing the wheel for complex features that Regex+ already knows how to transpile to JS.
 
 /**
+Returns an Oniguruma AST generated from an Oniguruma pattern.
+@param {string} pattern Oniguruma regex pattern.
+@param {{
+  flags?: string;
+  rules?: {
+    captureGroup?: boolean;
+  };
+}} [options]
+@returns {import('./parse.js').OnigurumaAst}
+*/
+function toOnigurumaAst(pattern, options) {
+  const flags = options?.flags ?? '';
+  const captureGroup = options?.rules?.captureGroup ?? false;
+  return parse(tokenize(pattern, flags, {captureGroup}));
+}
+
+/**
 @typedef {{
   accuracy?: keyof Accuracy;
   avoidSubclass?: boolean;
@@ -40,7 +57,21 @@ import {recursion} from 'regex-recursion';
 */
 
 /**
-Accepts an Oniguruma pattern and returns the details needed to construct an equivalent JavaScript `RegExp`.
+Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
+@param {string} pattern Oniguruma regex pattern.
+@param {OnigurumaToEsOptions} [options]
+@returns {RegExp | EmulatedRegExp}
+*/
+function toRegExp(pattern, options) {
+  const result = toRegExpDetails(pattern, options);
+  if (result.options) {
+    return new EmulatedRegExp(result.pattern, result.flags, result.options);
+  }
+  return new RegExp(result.pattern, result.flags);
+}
+
+/**
+Accepts an Oniguruma pattern and returns the details for an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {OnigurumaToEsOptions} [options]
 @returns {{
@@ -49,7 +80,7 @@ Accepts an Oniguruma pattern and returns the details needed to construct an equi
   options?: import('./subclass.js').EmulatedRegExpOptions;
 }}
 */
-function toDetails(pattern, options) {
+function toRegExpDetails(pattern, options) {
   const opts = getOptions(options);
   const tokenized = tokenize(pattern, opts.flags, {
     captureGroup: opts.rules.captureGroup,
@@ -97,37 +128,6 @@ function toDetails(pattern, options) {
   return result;
 }
 
-/**
-Returns an Oniguruma AST generated from an Oniguruma pattern.
-@param {string} pattern Oniguruma regex pattern.
-@param {{
-  flags?: string;
-  rules?: {
-    captureGroup?: boolean;
-  };
-}} [options]
-@returns {import('./parse.js').OnigurumaAst}
-*/
-function toOnigurumaAst(pattern, options) {
-  const flags = options?.flags ?? '';
-  const captureGroup = options?.rules?.captureGroup ?? false;
-  return parse(tokenize(pattern, flags, {captureGroup}));
-}
-
-/**
-Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
-@param {string} pattern Oniguruma regex pattern.
-@param {OnigurumaToEsOptions} [options]
-@returns {RegExp | EmulatedRegExp}
-*/
-function toRegExp(pattern, options) {
-  const result = toDetails(pattern, options);
-  if (result.options) {
-    return new EmulatedRegExp(result.pattern, result.flags, result.options);
-  }
-  return new RegExp(result.pattern, result.flags);
-}
-
 // // Returns a Regex+ AST generated from an Oniguruma pattern
 // function toRegexAst(pattern, options) {
 //   return transform(toOnigurumaAst(pattern, options));
@@ -135,8 +135,8 @@ function toRegExp(pattern, options) {
 
 export {
   EmulatedRegExp,
-  toDetails,
   toOnigurumaAst,
   toRegExp,
+  toRegExpDetails,
   // toRegexAst,
 };
