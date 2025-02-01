@@ -15,8 +15,8 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
       regex-recursion:
-        specifier: ^6.0.1
-        version: 6.0.1
+        specifier: ^6.0.2
+        version: 6.0.2
     devDependencies:
       esbuild:
         specifier: ^0.24.2
@@ -288,8 +288,8 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
-  regex-recursion@6.0.1:
-    resolution: {integrity: sha512-OIPt47yg9WhOBKqYpa6t5qqcb+wzcFKvCLBAWejd4Dv5hH/aWD+lBMRUQpQvNCvlUPO3bdBPWUdoowKefM+/VA==}
+  regex-recursion@6.0.2:
+    resolution: {integrity: sha512-0YCaSCq2VRIebiaUviZNs0cBz1kg5kVS2UKUfNIx8YVs1cN3AV7NTctO5FOKBA+UT2BPJIWZauYHPqJODG50cg==}
 
   regex-utilities@2.3.0:
     resolution: {integrity: sha512-8VhliFJAWRaUiVvREIiW2NXXTmHs4vMNnSzuJVhscgmGav3g9VDxLrQndI3dZZVVdp0ZO/5v0xmX516/7M9cng==}
@@ -547,7 +547,7 @@ snapshots:
       lru-cache: 10.4.3
       minipass: 7.1.2
 
-  regex-recursion@6.0.1:
+  regex-recursion@6.0.2:
     dependencies:
       regex-utilities: 2.3.0
 

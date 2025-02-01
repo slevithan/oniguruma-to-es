@@ -67,6 +67,12 @@ describe('Subroutine', () => {
       expect(match.indices[1]).toEqual([2, 3]);
       expect(match.indices[2]).toEqual([3, 4]);
     });
+
+    it('should skip transfer for nonparticipating captures', () => {
+      expect(toRegExp(r`(\S+) (?:x|\g<1>)`).exec('a x')[1]).toBe('a');
+      expect(toRegExp(r`(?i)(a|(b)) \g<1>`).exec('b a')[2]).toBe('b');
+      expect(toRegExp(r`(?i)(a|(b)) \g<1>`).exec('b B')[2]).toBe('B');
+    });
   });
 
   describe('relative numbered', () => {
@@ -158,6 +164,12 @@ describe('Subroutine', () => {
       expect(match.groups.b).toBe('d');
       expect(match.indices.groups.a).toEqual([2, 3]);
       expect(match.indices.groups.b).toEqual([3, 4]);
+    });
+
+    it('should skip transfer for nonparticipating captures', () => {
+      expect(toRegExp(r`(?<n>\S+) (x|\g<n>)`).exec('a x').groups.n).toBe('a');
+      expect(toRegExp(r`(?i)(?<n>a|(?<b>b)) \g<n>`).exec('b a').groups.b).toBe('b');
+      expect(toRegExp(r`(?i)(?<n>a|(?<b>b)) \g<n>`).exec('b B').groups.b).toBe('B');
     });
   });
 });
