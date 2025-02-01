@@ -108,7 +108,7 @@ const charClassTokenRe = new RegExp(r`
     ${sharedEscapesPattern}
     | .
   )
-  | \[:[^:]*:\]
+  | \[:(?:\^?\p{Alpha}+|\^):\]
   | ${charClassOpenPattern}
   | &&
   | .
