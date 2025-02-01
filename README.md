@@ -28,10 +28,8 @@ Depending on features used, Oniguruma-To-ES might use advanced emulation via a `
 
 - [Examples](#-examples)
 - [Install and use](#️-install-and-use)
-- [API](#-api)
-  - [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
-- [Options](#-options)
-  - [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
+- [API](#-api): [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
+- [Options](#-options): [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
 - [Supported features](#-supported-features)
 - [Unsupported features](#-unsupported-features)
 - [Unicode](#️-unicode)

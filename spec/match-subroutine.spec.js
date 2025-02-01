@@ -51,13 +51,14 @@ describe('Subroutine', () => {
     });
 
     it('should transfer captured values on match results', () => {
-      expect(toRegExp(r`([ab])\g<1>`).exec('ab')[1]).toBe('b');
-      expect(toRegExp(r`\g<1>([ab])`).exec('ab')[1]).toBe('b');
+      expect(toRegExp(r`\g<1>(.)`).exec('ab')[1]).toBe('b');
+      expect(toRegExp(r`(.)\g<1>`).exec('ab')[1]).toBe('b');
+      expect(toRegExp(r`(.)\g<1>\g<1>`).exec('abc')[1]).toBe('c');
     });
 
     it('should transfer captured values on match results for child captures', () => {
-      expect(toRegExp(r`(([ab]))\g<1>`).exec('ab')[2]).toBe('b');
-      expect(toRegExp(r`\g<1>(([ab]))`).exec('ab')[2]).toBe('b');
+      expect(toRegExp(r`\g<1>((.))`).exec('ab')[2]).toBe('b');
+      expect(toRegExp(r`((.))\g<1>`).exec('ab')[2]).toBe('b');
     });
 
     it('should transfer subpattern match indices', () => {
@@ -72,6 +73,7 @@ describe('Subroutine', () => {
       expect(toRegExp(r`(\S+) (?:x|\g<1>)`).exec('a x')[1]).toBe('a');
       expect(toRegExp(r`(?i)(a|(b)) \g<1>`).exec('b a')[2]).toBe('b');
       expect(toRegExp(r`(?i)(a|(b)) \g<1>`).exec('b B')[2]).toBe('B');
+      expect(toRegExp(r`(.)\g<1>\g<1>?`).exec('ab')[1]).toBe('b');
     });
   });
 
@@ -145,13 +147,14 @@ describe('Subroutine', () => {
     });
 
     it('should transfer captured values on match results', () => {
-      expect(toRegExp(r`(?<n>.)\g<n>`).exec('ab').groups.n).toBe('b');
       expect(toRegExp(r`\g<n>(?<n>.)`).exec('ab').groups.n).toBe('b');
+      expect(toRegExp(r`(?<n>.)\g<n>`).exec('ab').groups.n).toBe('b');
+      expect(toRegExp(r`(?<n>.)\g<n>\g<n>`).exec('abc').groups.n).toBe('c');
     });
 
     it('should transfer captured values on match results for child captures', () => {
-      expect(toRegExp(r`(?<n1>(?<n2>.))\g<n1>`).exec('ab').groups.n2).toBe('b');
       expect(toRegExp(r`\g<n1>(?<n1>(?<n2>.))`).exec('ab').groups.n2).toBe('b');
+      expect(toRegExp(r`(?<n1>(?<n2>.))\g<n1>`).exec('ab').groups.n2).toBe('b');
     });
 
     it('should transfer subpattern match indices', () => {
@@ -170,6 +173,7 @@ describe('Subroutine', () => {
       expect(toRegExp(r`(?<n>\S+) (x|\g<n>)`).exec('a x').groups.n).toBe('a');
       expect(toRegExp(r`(?i)(?<n>a|(?<b>b)) \g<n>`).exec('b a').groups.b).toBe('b');
       expect(toRegExp(r`(?i)(?<n>a|(?<b>b)) \g<n>`).exec('b B').groups.b).toBe('B');
+      expect(toRegExp(r`(?<n>.)\g<n>\g<n>?`).exec('ab').groups.n).toBe('b');
     });
   });
 });
