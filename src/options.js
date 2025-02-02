@@ -41,6 +41,8 @@ function getOptions(options) {
     global: false,
     // Include JavaScript flag `d` (`hasIndices`) in the result.
     hasIndices: false,
+    // Pattern length threshold for delaying regex construction until first use.
+    lazyCompileMin: Infinity,
     // JavaScript version used for generated regexes. Using `auto` detects the best value based on
     // your environment. Later targets allow faster processing, simpler generated source, and
     // support for additional features.

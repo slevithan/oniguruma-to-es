@@ -2,7 +2,7 @@ import {transform} from './transform.js';
 import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
-import {EmulatedRegExp} from './subclass.js';
+import {EmulatedRegExp, LazyRegExp} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
@@ -44,6 +44,7 @@ function toOnigurumaAst(pattern, options) {
   flags?: string;
   global?: boolean;
   hasIndices?: boolean;
+  lazyCompileMin?: number;
   rules?: {
     allowOrphanBackrefs?: boolean;
     asciiWordBoundaries?: boolean;
@@ -60,14 +61,15 @@ function toOnigurumaAst(pattern, options) {
 Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {ToRegExpOptions} [options]
-@returns {RegExp | EmulatedRegExp}
+@returns {RegExp | EmulatedRegExp | LazyRegExp}
 */
 function toRegExp(pattern, options) {
-  const result = toRegExpDetails(pattern, options);
-  if (result.options) {
-    return new EmulatedRegExp(result.pattern, result.flags, result.options);
+  const d = toRegExpDetails(pattern, options);
+  const ctor = d.options?.lazyCompile ? LazyRegExp : (d.options ? EmulatedRegExp : RegExp);
+  if (ctor === RegExp) {
+    return new RegExp(d.pattern, d.flags);
   }
-  return new RegExp(result.pattern, result.flags);
+  return new ctor(d.pattern, d.flags, d.options);
 }
 
 /**
@@ -107,7 +109,7 @@ function toRegExpDetails(pattern, options) {
     captureTransfers: recursionResult.captureTransfers,
     hiddenCaptures: recursionResult.hiddenCaptures,
   });
-  const result = {
+  const details = {
     pattern: atomicResult.pattern,
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
@@ -117,15 +119,17 @@ function toRegExpDetails(pattern, options) {
     // Change the map to the `EmulatedRegExp` format, serializable as JSON
     const transfers = Array.from(atomicResult.captureTransfers);
     const strategy = regexAst._strategy;
-    if (hiddenCaptures.length || transfers.length || strategy) {
-      result.options = {
+    const lazyCompile = details.pattern.length >= opts.lazyCompileMin;
+    if (hiddenCaptures.length || transfers.length || strategy || lazyCompile) {
+      details.options = {
         ...(hiddenCaptures.length && {hiddenCaptures}),
         ...(transfers.length && {transfers}),
         ...(strategy && {strategy}),
+        ...(lazyCompile && {lazyCompile}),
       };
     }
   }
-  return result;
+  return details;
 }
 
 // // Returns a Regex+ AST generated from an Oniguruma pattern
@@ -135,6 +139,7 @@ function toRegExpDetails(pattern, options) {
 
 export {
   EmulatedRegExp,
+  LazyRegExp,
   toOnigurumaAst,
   toRegExp,
   toRegExpDetails,

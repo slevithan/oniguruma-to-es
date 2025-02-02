@@ -3,6 +3,7 @@ import {getOrCreate, throwIfNot} from './utils.js';
 /**
 @typedef {{
   hiddenCaptures?: Array<number>;
+  lazyCompile?: boolean;
   strategy?: string | null;
   transfers?: Array<[number, Array<number>]>;
 }} EmulatedRegExpOptions
@@ -64,6 +65,7 @@ class EmulatedRegExp extends RegExp {
       }
     } else {
       super(pattern, flags);
+      this.rawOptions = options ?? {};
       const opts = {
         hiddenCaptures: [],
         strategy: null,
@@ -72,11 +74,6 @@ class EmulatedRegExp extends RegExp {
       };
       this.#captureMap = createCaptureMap(opts.hiddenCaptures, opts.transfers);
       this.#strategy = opts.strategy;
-      this.rawOptions = {
-        ...(opts.hiddenCaptures.length && {hiddenCaptures: opts.hiddenCaptures}),
-        ...(opts.strategy && {strategy: opts.strategy}),
-        ...(opts.transfers.length && {transfers: opts.transfers}),
-      };
     }
   }
 
@@ -166,6 +163,39 @@ class EmulatedRegExp extends RegExp {
   }
 }
 
+class LazyRegExp extends RegExp {
+  _pattern;
+  _flags;
+  _regexp;
+  rawOptions = {};
+
+  get source() {
+    return this._pattern;
+  }
+
+  /**
+  @param {string} pattern
+  @param {string} [flags]
+  @param {EmulatedRegExpOptions} [options]
+  */
+  constructor(pattern, flags, options) {
+    super('', flags);
+    this._pattern = pattern;
+    this._flags = flags;
+    this.rawOptions = options ?? {};
+  }
+
+  exec(str) {
+    if (!this._regexp) {
+      this._regexp = new EmulatedRegExp(this._pattern, this._flags, this.rawOptions);
+    }
+    this._regexp.lastIndex = this.lastIndex;
+    const match = this._regexp.exec(str);
+    this.lastIndex = this._regexp.lastIndex;
+    return match;
+  }
+}
+
 function adjustMatchDetailsForOffset(match, re, input, offset) {
   match.input = input;
   match.index += offset;
@@ -227,7 +257,7 @@ function createNameMap(pattern) {
   let numCharClassesOpen = 0;
   let numCaptures = 0;
   let match;
-  while (match = re.exec(pattern)) {
+  while ((match = re.exec(pattern))) {
     const {0: m, groups: {capture, name}} = match;
     // Relies on no unescaped literal `[` in char classes (valid in JS if not using flag v), but
     // this library's generator never produces unescaped literal `[` even with `target` ES2018 (see
@@ -250,4 +280,5 @@ function createNameMap(pattern) {
 
 export {
   EmulatedRegExp,
+  LazyRegExp,
 };
