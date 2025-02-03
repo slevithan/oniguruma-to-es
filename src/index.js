@@ -27,14 +27,21 @@ Returns an Oniguruma AST generated from an Oniguruma pattern.
   flags?: string;
   rules?: {
     captureGroup?: boolean;
+    singleline?: boolean;
   };
 }} [options]
 @returns {import('./parse.js').OnigurumaAst}
 */
 function toOnigurumaAst(pattern, options) {
-  const flags = options?.flags ?? '';
-  const captureGroup = options?.rules?.captureGroup ?? false;
-  return parse(tokenize(pattern, flags, {captureGroup}));
+  const opts = {
+    flags: options?.flags ?? '',
+    rules: {
+      captureGroup: false,
+      singleline: false,
+      ...(options?.rules),
+    },
+  };
+  return parse(tokenize(pattern, opts.flags, opts.rules));
 }
 
 /**

@@ -153,6 +153,7 @@ function toOnigurumaAst(
     flags?: string;
     rules?: {
       captureGroup?: boolean;
+      singleline?: boolean;
     };
   }
 ): OnigurumaAst;
