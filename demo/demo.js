@@ -21,7 +21,7 @@ const state = {
     avoidSubclass: getValue('option-avoidSubclass'),
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
-    lazyCompileMinLength: getValue('option-lazyCompileMinLength'),
+    lazyCompileLength: getValue('option-lazyCompileLength'),
     rules: {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
@@ -205,6 +205,10 @@ function getValue(id) {
   }
   if (el.type === 'checkbox') {
     return el.checked;
+  }
+  if (id === 'option-lazyCompileLength') {
+    // Turn dropdown values into numbers
+    return el.value === 'Infinity' ? Infinity : parseInt(el.value, 10);
   }
   return el.value;
 }

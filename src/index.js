@@ -44,7 +44,7 @@ function toOnigurumaAst(pattern, options) {
   flags?: string;
   global?: boolean;
   hasIndices?: boolean;
-  lazyCompileMinLength?: number;
+  lazyCompileLength?: number;
   rules?: {
     allowOrphanBackrefs?: boolean;
     asciiWordBoundaries?: boolean;
@@ -112,13 +112,17 @@ function toRegExpDetails(pattern, options) {
     pattern: atomicResult.pattern,
     flags: `${opts.hasIndices ? 'd' : ''}${opts.global ? 'g' : ''}${generated.flags}${generated.options.disable.v ? 'u' : 'v'}`,
   };
-  if (!opts.avoidSubclass) {
+  if (opts.avoidSubclass) {
+    if (opts.lazyCompileLength !== Infinity) {
+      throw new Error('Lazy compilation requires subclass');
+    }
+  } else {
     // Sort isn't required; only for readability when serialized
     const hiddenCaptures = atomicResult.hiddenCaptures.sort((a, b) => a - b);
     // Change the map to the `EmulatedRegExp` format, serializable as JSON
     const transfers = Array.from(atomicResult.captureTransfers);
     const strategy = regexAst._strategy;
-    const lazyCompile = details.pattern.length >= opts.lazyCompileMinLength;
+    const lazyCompile = details.pattern.length >= opts.lazyCompileLength;
     if (hiddenCaptures.length || transfers.length || strategy || lazyCompile) {
       details.options = {
         ...(hiddenCaptures.length && {hiddenCaptures}),

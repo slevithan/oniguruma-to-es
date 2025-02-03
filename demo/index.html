@@ -112,9 +112,14 @@
             </p>
             <p>
               <label>
-                <input type="number" id="option-lazyCompileMinLength" value="100" min="0" max="200" onchange="setOption('lazyCompileMinLength', +this.value)" onkeyup="setOption('lazyCompileMinLength', +this.value)">
-                <code>lazyCompileMinLength</code>
-                <span class="tip tip-xl">Pattern length threshold for delaying regex construction until first use</span>
+                <select id="option-lazyCompileLength" onchange="setOption('lazyCompileLength', this.value === 'Infinity' ? Infinity : parseInt(this.value, 10))">
+                  <option value="Infinity" selected>Infinity</option>
+                  <option value="3000">3000</option>
+                  <option value="500">500</option>
+                  <option value="0">0</option>
+                </select>
+                <code>lazyCompileLength</code>
+                <span class="tip tip-xl">Delay regex construction until first use if the transpiled pattern is at least this length</span>
               </label>
             </p>
           </div>

@@ -15,7 +15,7 @@ import emojiRegex from 'emoji-regex-xs';
   flags: Object;
   options: Object;
   _originMap: Map<Object, Object>;
-  _strategy: string | null;
+  _strategy: string?;
 }} RegexAst
 */
 /**

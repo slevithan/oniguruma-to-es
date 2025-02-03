@@ -27,7 +27,7 @@ Oniguruma-To-ES deeply understands the hundreds of large and small differences b
 - [Examples](#-examples)
 - [Install and use](#️-install-and-use)
 - [API](#-api): [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
-- [Options](#-options): [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
+- [Options](#-options): [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`lazyCompileLength`](#lazycompilelength), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
 - [Supported features](#-supported-features)
 - [Unsupported features](#-unsupported-features)
 - [Unicode](#️-unicode)
@@ -106,6 +106,7 @@ type ToRegExpOptions = {
   flags?: string;
   global?: boolean;
   hasIndices?: boolean;
+  lazyCompileLength?: number;
   rules?: {
     allowOrphanBackrefs?: boolean;
     asciiWordBoundaries?: boolean;
@@ -176,6 +177,7 @@ The `rawOptions` property of `EmulatedRegExp` instances can be used for serializ
 ```ts
 type EmulatedRegExpOptions = {
   hiddenCaptures?: Array<number>;
+  lazyCompile?: boolean;
   strategy?: string | null;
   transfers?: Array<[number, Array<number>]>;
 };
@@ -238,6 +240,16 @@ Include JavaScript flag `g` (`global`) in the result.
 *Default: `false`.*
 
 Include JavaScript flag `d` (`hasIndices`) in the result.
+
+### `lazyCompileLength`
+
+*Default: `Infinity`. In other words, lazy compilation is off by default.*
+
+Delay regex construction until first use if the transpiled pattern is at least this length.
+
+Although regex compilation in JavaScript is fast, it can sometimes be helpful to defer this cost for extremely long regexes. This option defers the time JavaScript spends inside the `RegExp` constructor on building the transpiled pattern into a regex object; it's not about transpilation or search performance.
+
+Lazy compilation is a feature of the `EmulatedRegExp` constructor, so enabling option `avoidSubclass` prevents lazy compilation.
 
 ### `rules`
 

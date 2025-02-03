@@ -34,8 +34,8 @@ function err(i, msg) {
 
 /**
 @typedef {{
-  result: string | null;
-  index: number | null;
+  result: string?;
+  index: number?;
   error?: Error;
 }} MatchDetails
 */

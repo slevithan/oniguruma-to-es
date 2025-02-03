@@ -22,17 +22,23 @@ class EmulatedRegExp extends RegExp {
   */
   #captureMap = new Map();
 
+  /**
+  @type {RegExp | EmulatedRegExp | null}
+  */
+  #compiled = null;
+
+  /**
+  @type {string}
+  */
   #pattern;
 
   /**
-  @type {Map<number, string> | null}
+  @type {Map<number, string>?}
   */
   #nameMap = null;
 
-  #regexp;
-
   /**
-  @type {string | null}
+  @type {string?}
   */
   #strategy = null;
 
@@ -90,7 +96,7 @@ class EmulatedRegExp extends RegExp {
       this.rawOptions = options ?? {};
     }
     if (!lazyCompile) {
-      this.#regexp = this;
+      this.#compiled = this;
     }
   }
 
@@ -98,13 +104,13 @@ class EmulatedRegExp extends RegExp {
   Called internally by all String/RegExp methods that use regexes.
   @override
   @param {string} str
-  @returns {RegExpExecArray | null}
+  @returns {RegExpExecArray?}
   */
   exec(str) {
     // Lazy compilation
-    if (!this.#regexp) {
+    if (!this.#compiled) {
       const {lazyCompile, ...rest} = this.rawOptions;
-      this.#regexp = new EmulatedRegExp(this.#pattern, this.flags, rest);
+      this.#compiled = new EmulatedRegExp(this.#pattern, this.flags, rest);
     }
 
     const useLastIndex = this.global || this.sticky;
@@ -137,22 +143,12 @@ class EmulatedRegExp extends RegExp {
   */
   #execCore(str) {
     // Support lazy compilation
-    this.#regexp.lastIndex = this.lastIndex;
-    const match = super.exec.call(this.#regexp, str);
-    this.lastIndex = this.#regexp.lastIndex;
+    this.#compiled.lastIndex = this.lastIndex;
+    const match = super.exec.call(this.#compiled, str);
+    this.lastIndex = this.#compiled.lastIndex;
 
     if (!match || !this.#captureMap.size) {
       return match;
-    }
-
-    // Treat use of lazy compilation as a license to more aggressively optimize for perf. By
-    // removing `groups` and forcing reliance on numbered subpatterns, we can avoid some work
-    // below. Note that `vscode-oniguruma` doesn't include subpatterns/indices by name in results
-    if (this.rawOptions.lazyCompile) {
-      match.groups = undefined;
-      if (this.hasIndices) {
-        match.indices.groups = undefined;
-      }
     }
 
     const matchCopy = [...match];
