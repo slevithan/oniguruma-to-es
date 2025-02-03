@@ -250,7 +250,7 @@ Include JavaScript flag `d` (`hasIndices`) in the result.
 
 Delay regex construction until first use if the transpiled pattern is at least this length.
 
-Although regex compilation in JavaScript is fast, it can sometimes be helpful to defer this cost for extremely long patterns. This option defers the time JavaScript spends inside the `RegExp` constructor (building the transpiled pattern into a regex object); it's not about transpilation or search performance.
+Although regex construction in JavaScript is fast, it can sometimes be helpful to defer the cost for extremely long patterns. Lazy compilation defers the time JavaScript spends inside the `RegExp` constructor (building the transpiled pattern into a regex object) until the first time the regex is used in a search. The regex object is outwardly identical before and after deferred compilation.
 
 Lazy compilation relies on the `EmulatedRegExp` class.
 
