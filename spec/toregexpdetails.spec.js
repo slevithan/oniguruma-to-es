@@ -30,8 +30,8 @@ describe('toRegExpDetails', () => {
     });
 
     it('should include an options property when the pattern uses lazy compilation', () => {
-      expect(Object.keys(toRegExpDetails('a', {lazyCompileMin: 0}))).toEqual(extProps);
-      expect(Object.keys(toRegExpDetails('a', {lazyCompileMin: Infinity}))).toEqual(props);
+      expect(Object.keys(toRegExpDetails('a', {lazyCompileMinLength: 0}))).toEqual(extProps);
+      expect(Object.keys(toRegExpDetails('a', {lazyCompileMinLength: Infinity}))).toEqual(props);
     });
   });
 });

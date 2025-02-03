@@ -22,10 +22,14 @@ class EmulatedRegExp extends RegExp {
   */
   #captureMap = new Map();
 
+  #pattern;
+
   /**
   @type {Map<number, string> | null}
   */
   #nameMap = null;
+
+  #regexp;
 
   /**
   @type {string | null}
@@ -37,6 +41,11 @@ class EmulatedRegExp extends RegExp {
   @type {EmulatedRegExpOptions}
   */
   rawOptions = {};
+
+  // Override the getter with one that works with lazy-compiled regexes
+  get source() {
+    return this.#pattern || '(?:)';
+  }
 
   /**
   @overload
@@ -50,30 +59,38 @@ class EmulatedRegExp extends RegExp {
   @param {string} [flags]
   */
   constructor(pattern, flags, options) {
-    // Argument `options` isn't provided when regexes are copied via `new EmulatedRegExp(regexp)`,
-    // including as part of the internal handling of string methods `matchAll` and `split`
+    const lazyCompile = !!options?.lazyCompile;
     if (pattern instanceof RegExp) {
+      // Argument `options` isn't provided when regexes are copied, including as part of the
+      // internal handling of string methods `matchAll` and `split`
       if (options) {
         throw new Error('Cannot provide options when copying a regexp');
       }
-      super(pattern, flags);
-      if (pattern instanceof EmulatedRegExp) {
-        this.#captureMap = pattern.#captureMap;
-        this.#nameMap = pattern.#nameMap;
-        this.#strategy = pattern.#strategy;
-        this.rawOptions = pattern.rawOptions;
+      const re = pattern; // Alias for readability
+      super(re, flags);
+      this.#pattern = re.source;
+      if (re instanceof EmulatedRegExp) {
+        this.#captureMap = re.#captureMap;
+        this.#nameMap = re.#nameMap;
+        this.#strategy = re.#strategy;
+        this.rawOptions = re.rawOptions;
       }
     } else {
-      super(pattern, flags);
-      this.rawOptions = options ?? {};
       const opts = {
         hiddenCaptures: [],
         strategy: null,
         transfers: [],
         ...options,
       };
+      super(lazyCompile ? '' : pattern, flags);
+      this.#pattern = pattern;
       this.#captureMap = createCaptureMap(opts.hiddenCaptures, opts.transfers);
       this.#strategy = opts.strategy;
+      // Don't add default values from `opts` since this gets serialized
+      this.rawOptions = options ?? {};
+    }
+    if (!lazyCompile) {
+      this.#regexp = this;
     }
   }
 
@@ -84,6 +101,12 @@ class EmulatedRegExp extends RegExp {
   @returns {RegExpExecArray | null}
   */
   exec(str) {
+    // Lazy compilation
+    if (!this.#regexp) {
+      const {lazyCompile, ...rest} = this.rawOptions;
+      this.#regexp = new EmulatedRegExp(this.#pattern, this.flags, rest);
+    }
+
     const useLastIndex = this.global || this.sticky;
     const pos = this.lastIndex;
 
@@ -98,7 +121,7 @@ class EmulatedRegExp extends RegExp {
       // using strict `accuracy`
       const match = this.#execCore(str.slice(pos));
       if (match) {
-        adjustMatchDetailsForOffset(match, this, str, pos);
+        adjustMatchDetailsForOffset(match, pos, str, this.hasIndices);
         this.lastIndex += pos;
       }
       return match;
@@ -113,10 +136,25 @@ class EmulatedRegExp extends RegExp {
   @returns
   */
   #execCore(str) {
-    const match = super.exec(str);
+    // Support lazy compilation
+    this.#regexp.lastIndex = this.lastIndex;
+    const match = super.exec.call(this.#regexp, str);
+    this.lastIndex = this.#regexp.lastIndex;
+
     if (!match || !this.#captureMap.size) {
       return match;
     }
+
+    // Treat use of lazy compilation as a license to more aggressively optimize for perf. By
+    // removing `groups` and forcing reliance on numbered subpatterns, we can avoid some work
+    // below. Note that `vscode-oniguruma` doesn't include subpatterns/indices by name in results
+    if (this.rawOptions.lazyCompile) {
+      match.groups = undefined;
+      if (this.hasIndices) {
+        match.indices.groups = undefined;
+      }
+    }
+
     const matchCopy = [...match];
     // Empty all but the first value of the array while preserving its other properties
     match.length = 1;
@@ -137,6 +175,7 @@ class EmulatedRegExp extends RegExp {
           match.indices.push(indicesCopy[i]);
         }
       }
+
       // Only transfer if the capture participated in the match
       if (transferTo && matchCopy[i] !== undefined) {
         const to = throwIfNot(mappedNums[transferTo]);
@@ -159,47 +198,15 @@ class EmulatedRegExp extends RegExp {
         }
       }
     }
+
     return match;
   }
 }
 
-class LazyRegExp extends RegExp {
-  _pattern;
-  _flags;
-  _regexp;
-  rawOptions = {};
-
-  get source() {
-    return this._pattern;
-  }
-
-  /**
-  @param {string} pattern
-  @param {string} [flags]
-  @param {EmulatedRegExpOptions} [options]
-  */
-  constructor(pattern, flags, options) {
-    super('', flags);
-    this._pattern = pattern;
-    this._flags = flags;
-    this.rawOptions = options ?? {};
-  }
-
-  exec(str) {
-    if (!this._regexp) {
-      this._regexp = new EmulatedRegExp(this._pattern, this._flags, this.rawOptions);
-    }
-    this._regexp.lastIndex = this.lastIndex;
-    const match = this._regexp.exec(str);
-    this.lastIndex = this._regexp.lastIndex;
-    return match;
-  }
-}
-
-function adjustMatchDetailsForOffset(match, re, input, offset) {
-  match.input = input;
+function adjustMatchDetailsForOffset(match, offset, input, hasIndices) {
   match.index += offset;
-  if (re.hasIndices) {
+  match.input = input;
+  if (hasIndices) {
     const indices = match.indices;
     for (let i = 0; i < indices.length; i++) {
       const arr = indices[i];
@@ -280,5 +287,4 @@ function createNameMap(pattern) {
 
 export {
   EmulatedRegExp,
-  LazyRegExp,
 };

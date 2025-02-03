@@ -21,6 +21,7 @@ const state = {
     avoidSubclass: getValue('option-avoidSubclass'),
     global: getValue('option-global'),
     hasIndices: getValue('option-hasIndices'),
+    lazyCompileMinLength: getValue('option-lazyCompileMinLength'),
     rules: {
       allowOrphanBackrefs: getValue('option-allowOrphanBackrefs'),
       asciiWordBoundaries: getValue('option-asciiWordBoundaries'),
@@ -173,8 +174,9 @@ function areDetailsEqual(a, b) {
     a.pattern === b.pattern &&
     a.flags.replace(/[uv]/, '') === b.flags.replace(/[uv]/, '') &&
     JSON.stringify(a.options?.hiddenCaptures) === JSON.stringify(b.options?.hiddenCaptures) &&
+    JSON.stringify(a.options?.transfers) === JSON.stringify(b.options?.transfers) &&
     a.options?.strategy === b.options?.strategy &&
-    JSON.stringify(a.options?.transfers) === JSON.stringify(b.options?.transfers)
+    a.options?.lazyCompile === b.options?.lazyCompile
   );
 }
 
@@ -182,12 +184,13 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 
-function getFormattedSubclass(pattern, flags, {hiddenCaptures, strategy, transfers}) {
+function getFormattedSubclass(pattern, flags, {hiddenCaptures, transfers, strategy, lazyCompile}) {
   const escStr = str => str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const optionStrs = [];
   hiddenCaptures && optionStrs.push(`hiddenCaptures: [${hiddenCaptures.join(',')}]`);
-  strategy && optionStrs.push(`strategy: '${strategy}'`);
   transfers && optionStrs.push(`transfers: ${JSON.stringify(transfers).replace(/"/g, "'")}`);
+  strategy && optionStrs.push(`strategy: '${strategy}'`);
+  lazyCompile && optionStrs.push(`lazyCompile: ${lazyCompile}`);
   return `new EmulatedRegExp('${escStr(pattern)}', '${flags}', {\n  ${optionStrs.join(',\n  ')},\n})`;
 }
 

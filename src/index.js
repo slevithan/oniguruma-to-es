@@ -2,7 +2,7 @@ import {transform} from './transform.js';
 import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
 import {parse} from './parse.js';
-import {EmulatedRegExp, LazyRegExp} from './subclass.js';
+import {EmulatedRegExp} from './subclass.js';
 import {tokenize} from './tokenize.js';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
@@ -44,7 +44,7 @@ function toOnigurumaAst(pattern, options) {
   flags?: string;
   global?: boolean;
   hasIndices?: boolean;
-  lazyCompileMin?: number;
+  lazyCompileMinLength?: number;
   rules?: {
     allowOrphanBackrefs?: boolean;
     asciiWordBoundaries?: boolean;
@@ -61,15 +61,14 @@ function toOnigurumaAst(pattern, options) {
 Accepts an Oniguruma pattern and returns an equivalent JavaScript `RegExp`.
 @param {string} pattern Oniguruma regex pattern.
 @param {ToRegExpOptions} [options]
-@returns {RegExp | EmulatedRegExp | LazyRegExp}
+@returns {RegExp | EmulatedRegExp}
 */
 function toRegExp(pattern, options) {
   const d = toRegExpDetails(pattern, options);
-  const ctor = d.options?.lazyCompile ? LazyRegExp : (d.options ? EmulatedRegExp : RegExp);
-  if (ctor === RegExp) {
-    return new RegExp(d.pattern, d.flags);
+  if (d.options) {
+    return new EmulatedRegExp(d.pattern, d.flags, d.options);
   }
-  return new ctor(d.pattern, d.flags, d.options);
+  return new RegExp(d.pattern, d.flags);
 }
 
 /**
@@ -119,7 +118,7 @@ function toRegExpDetails(pattern, options) {
     // Change the map to the `EmulatedRegExp` format, serializable as JSON
     const transfers = Array.from(atomicResult.captureTransfers);
     const strategy = regexAst._strategy;
-    const lazyCompile = details.pattern.length >= opts.lazyCompileMin;
+    const lazyCompile = details.pattern.length >= opts.lazyCompileMinLength;
     if (hiddenCaptures.length || transfers.length || strategy || lazyCompile) {
       details.options = {
         ...(hiddenCaptures.length && {hiddenCaptures}),
@@ -139,7 +138,6 @@ function toRegExpDetails(pattern, options) {
 
 export {
   EmulatedRegExp,
-  LazyRegExp,
   toOnigurumaAst,
   toRegExp,
   toRegExpDetails,
