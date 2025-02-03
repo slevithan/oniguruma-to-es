@@ -10,11 +10,13 @@
 An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translator** that runs in the browser and on your server. Use it to:
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
-- Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, [Shiki](https://shiki.style/) syntax highlighter, etc.).
+- Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, GitHub, [Shiki](https://shiki.style/), etc.).
 - Share regexes across your Ruby<sup>✳︎</sup> or PHP (`mb_ereg`, etc.) and JavaScript code.
 - Evaluate the validity of Oniguruma regexes and traverse their ASTs.
 
-Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **~4% of the size** and its regexes often run much faster since they run as native JavaScript. However, you might not need any dependency at all if you precompile your regexes. Some regexes rely on advanced, subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` constructor is needed (~3 kb minzip).
+Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **~4% of the size** and its regexes often run much faster since they run as native JavaScript.
+
+> You might be able to avoid any runtime dependency by precompiling your regexes. Some regex conversions rely on advanced, subclass-based emulation, in which case the `EmulatedRegExp` class is needed (~3 kb minzip), but the rest of the library can be tree-shaken away.
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars.
 
@@ -178,7 +180,7 @@ The `rawOptions` property of `EmulatedRegExp` instances can be used for serializ
 type EmulatedRegExpOptions = {
   hiddenCaptures?: Array<number>;
   lazyCompile?: boolean;
-  strategy?: string | null;
+  strategy?: string?;
   transfers?: Array<[number, Array<number>]>;
 };
 ```
@@ -247,9 +249,9 @@ Include JavaScript flag `d` (`hasIndices`) in the result.
 
 Delay regex construction until first use if the transpiled pattern is at least this length.
 
-Although regex compilation in JavaScript is fast, it can sometimes be helpful to defer this cost for extremely long regexes. This option defers the time JavaScript spends inside the `RegExp` constructor on building the transpiled pattern into a regex object; it's not about transpilation or search performance.
+Although regex compilation in JavaScript is fast, it can sometimes be helpful to defer this cost for extremely long patterns. This option defers the time JavaScript spends inside the `RegExp` constructor (building the transpiled pattern into a regex object); it's not about transpilation or search performance.
 
-Lazy compilation is a feature of the `EmulatedRegExp` constructor, so enabling option `avoidSubclass` prevents lazy compilation.
+Lazy compilation relies on the `EmulatedRegExp` class.
 
 ### `rules`
 

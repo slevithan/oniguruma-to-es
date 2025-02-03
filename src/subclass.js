@@ -4,7 +4,7 @@ import {getOrCreate, throwIfNot} from './utils.js';
 @typedef {{
   hiddenCaptures?: Array<number>;
   lazyCompile?: boolean;
-  strategy?: string | null;
+  strategy?: string?;
   transfers?: Array<[number, Array<number>]>;
 }} EmulatedRegExpOptions
 */
