@@ -90,15 +90,18 @@ const tokenRe = new RegExp(r`
     | [gk]'[^']*'?
     | .
   )
-  | \( (?: \? (?:
-    [:=!>(]
-    | <[=!]
-    | <[^>]*>
-    | '[^']*'
-    | ~\|?
-    | # (?:[^)\\] | \\.?)*
-    | [imx\-]+[:)]
-  )?)?
+  | \( (?:
+    \? (?:
+      [:=!>({]
+      | <[=!]
+      | <[^>]*>
+      | '[^']*'
+      | ~\|?
+      | #(?:[^)\\]|\\.?)*
+      | [^:)]*[:)]
+    )?
+    | \*
+  )?
   | ${quantifierRe.source}
   | ${charClassOpenPattern}
   | .
@@ -225,7 +228,8 @@ function tokenize(pattern, flags = '', rules) {
 }
 
 function getTokenWithDetails(context, pattern, m, lastIndex) {
-  const [m0, m1, m2] = m;
+  const [m0, m1] = m;
+
   if (m0 === '[') {
     const result = getAllTokensForCharClass(pattern, m, lastIndex);
     return {
@@ -235,6 +239,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       lastIndex: result.lastIndex,
     };
   }
+
   if (m0 === '\\') {
     if ('AbBGzZ'.includes(m1)) {
       return {
@@ -295,9 +300,16 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     const result = createTokenForSharedEscape(m, {inCharClass: false});
     return Array.isArray(result) ? {tokens: result} : {token: result};
   }
+
   if (m0 === '(') {
+    if (m === '(*') {
+      throw new Error(`Unsupported named callout "${m}"`);
+    }
+    if (m === '(?{') {
+      throw new Error(`Unsupported callout "${m}"`);
+    }
     // Comment group
-    if (m2 === '#') {
+    if (m === '(?#') {
       // The closing unescaped `)` isn't included in the match
       if (pattern[lastIndex] !== ')') {
         throw new Error('Unclosed comment group "(?#"');
@@ -306,13 +318,13 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         lastIndex: lastIndex + 1,
       };
     }
-    // Flag modifier (directive or group opener); allows solo `-`
-    if ('-imx'.includes(m2)) {
+    // Flag modifier (directive or group opener)
+    if (/^\(\?[-imx]+[:)]$/.test(m)) {
       return {
         token: createTokenForFlagMod(m, context),
       };
     }
-    // Remaining group types all reuse current flag x status
+    // --- Remaining group types all reuse current flag x status ---
     context.pushModX(context.getCurrentModX());
     context.numOpenGroups++;
     if (
@@ -341,14 +353,18 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
     if (m === '(?=' || m === '(?!' || m === '(?<=' || m === '(?<!') {
       return {
         token: createToken(TokenTypes.GroupOpen, m, {
-          kind: m2 === '<' ? TokenGroupKinds.lookbehind : TokenGroupKinds.lookahead,
+          kind: m[2] === '<' ? TokenGroupKinds.lookbehind : TokenGroupKinds.lookahead,
           negate: m.endsWith('!'),
         }),
       };
     }
     // Named capture (checked after lookbehind due to similar syntax), or unnamed capture when
     // `captureGroup` enabled
-    if (m2 === '<' || m2 === "'" || (m === '(' && context.captureGroup)) {
+    if (
+      (m.startsWith('(?<') && m.endsWith('>')) ||
+      (m.startsWith("(?'") && m.endsWith("'")) ||
+      (m === '(' && context.captureGroup)
+    ) {
       const token = createToken(TokenTypes.GroupOpen, m, {
         kind: TokenGroupKinds.capturing,
         // Will add `number` in a second pass
@@ -360,7 +376,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         token,
       };
     }
-    if (m2 === '~') {
+    if (m.startsWith('(?~')) {
       if (m === '(?~|') {
         throw new Error(`Unsupported absent function kind "${m}"`);
       }
@@ -370,14 +386,11 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         }),
       };
     }
-    if (m2 === '(') {
-      // [TODO] Some forms are supportable
+    if (m === '(?(') {
+      // Some forms are supportable; can be added
       throw new Error(`Unsupported conditional "${m}"`);
     }
-    if (m === '(?') {
-      throw new Error('Invalid group');
-    }
-    throw new Error(`Unexpected group "${m}"`);
+    throw new Error(`Invalid or unsupported group option "${m}"`);
   }
   if (m === ')') {
     context.popModX();
@@ -389,6 +402,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       token: createToken(TokenTypes.GroupClose, m),
     };
   }
+
   if (m === '#' && context.getCurrentModX()) {
     // Onig's only line break char is line feed
     const end = pattern.indexOf('\n', lastIndex);
@@ -406,6 +420,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       lastIndex: rest ? re.lastIndex : lastIndex,
     };
   }
+
   if (m === '.') {
     return {
       token: createToken(TokenTypes.CharacterSet, m, {
@@ -413,6 +428,7 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       }),
     };
   }
+
   if (m === '^' || m === '$') {
     const kind = context.singleline ? {
       '^': r`\A`,
@@ -424,16 +440,19 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
       }),
     };
   }
+
   if (m === '|') {
     return {
       token: createToken(TokenTypes.Alternator, m),
     };
   }
+
   if (quantifierRe.test(m)) {
     return {
       token: createTokenForQuantifier(m),
     };
   }
+
   assertSingleCodePoint(m);
   return {
     token: createToken(TokenTypes.Character, m, {
@@ -577,7 +596,7 @@ function createTokenForSharedEscape(raw, {inCharClass}) {
   }
   // Meta `\M-x` and `\M-\C-x` are unsupported; avoid treating as an identity escape
   if (char1 === 'M') {
-    // [TODO] Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>, <https://github.com/ammar/regexp_parser/blob/8851030feda68223d74f502335fb254a20d77016/lib/regexp_parser/expression/classes/escape_sequence.rb#L75>
+    // Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#12-onig_syn_op2_esc_capital_m_bar_meta-enable-m-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>, <https://github.com/ammar/regexp_parser/blob/8851030feda68223d74f502335fb254a20d77016/lib/regexp_parser/expression/classes/escape_sequence.rb#L75>
     throw new Error(`Unsupported meta "${raw}"`);
   }
   // Identity escape; count code point length
@@ -608,7 +627,7 @@ function createTokenForControlChar(raw) {
   const char = raw[1] === 'c' ? raw[2] : raw[3];
   if (!char || !/[A-Za-z]/.test(char)) {
     // Unlike JS, Onig allows any char to follow `\c` or `\C-`, but this is an extreme edge case
-    // [TODO] Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#11-onig_syn_op2_esc_capital_c_bar_control-enable-c-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
+    // Supportable; see <github.com/kkos/oniguruma/blob/master/doc/SYNTAX.md#11-onig_syn_op2_esc_capital_c_bar_control-enable-c-x>, <github.com/kkos/oniguruma/blob/43a8c3f3daf263091f3a74019d4b32ebb6417093/src/regparse.c#L4695>
     throw new Error(`Unsupported control character "${raw}"`);
   }
   return createToken(TokenTypes.Character, raw, {
@@ -618,8 +637,7 @@ function createTokenForControlChar(raw) {
 
 function createTokenForFlagMod(raw, context) {
   // Allows multiple `-` and solo `-` without `on` or `off` flags
-  let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[imx\-]*))?/.exec(raw).groups;
-  // If the capturing group didn't participate
+  let {on, off} = /^\(\?(?<on>[imx]*)(?:-(?<off>[-imx]*))?/.exec(raw).groups;
   off ??= '';
   // Flag x is used directly by the tokenizer since it changes how to interpret the pattern
   const isXOn = (context.getCurrentModX() || on.includes('x')) && !off.includes('x');
