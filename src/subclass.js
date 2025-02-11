@@ -1,4 +1,4 @@
-import {getOrCreate, throwIfNot} from './utils.js';
+import {getOrInsert, throwIfNot} from './utils.js';
 
 /**
 @typedef {{
@@ -244,7 +244,7 @@ function createCaptureMap(hiddenCaptures, transfers) {
   }
   for (const [to, from] of transfers) {
     for (const num of from) {
-      getOrCreate(captureMap, num, {}).transferTo = to;
+      getOrInsert(captureMap, num, {}).transferTo = to;
     }
   }
   return captureMap;

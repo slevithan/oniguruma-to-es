@@ -1,7 +1,7 @@
 import {TokenCharacterSetKinds, TokenDirectiveKinds, TokenGroupKinds, TokenTypes} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodePropertiesMap, JsUnicodePropertiesOfStringsMap, PosixProperties, slug} from './unicode.js';
-import {getOrCreate, r, throwIfNot} from './utils.js';
+import {getOrInsert, r, throwIfNot} from './utils.js';
 import {hasOnlyChild} from './utils-ast.js';
 
 const AstTypes = {
@@ -326,7 +326,7 @@ function parseGroupOpen(context, state) {
   if (node.type === AstTypes.CapturingGroup) {
     capturingGroups.push(node);
     if (node.name) {
-      getOrCreate(namedGroupsByName, node.name, []).push(node);
+      getOrInsert(namedGroupsByName, node.name, []).push(node);
     }
   }
   // Don't allow nested absent functions

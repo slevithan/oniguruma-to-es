@@ -3,7 +3,7 @@ import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, As
 import {tokenize} from './tokenize.js';
 import {traverse} from './traverse.js';
 import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
-import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
+import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import {hasOnlyChild, isAlwaysNonZeroLength, isAlwaysZeroLength, isConsumptiveGroup, isLookaround} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
 
@@ -120,7 +120,7 @@ const FirstPassVisitor = {
       const flagDirectives = node.elements.filter(el => el.kind === AstDirectiveKinds.flags);
       for (let i = key + 1; i < parent.alternatives.length; i++) {
         const forwardSiblingAlt = parent.alternatives[i];
-        getOrCreate(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
+        getOrInsert(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
       }
     },
     exit({node}, {flagDirectivesByAlt}) {
@@ -463,7 +463,7 @@ const SecondPassVisitor = {
       // ## Track data for backref multiplexing
       multiplexCapturesToLeftByRef.set(node.number, []);
       if (node.name) {
-        getOrCreate(multiplexCapturesToLeftByRef, node.name, []);
+        getOrInsert(multiplexCapturesToLeftByRef, node.name, []);
       }
       const multiplexNodes = multiplexCapturesToLeftByRef.get(node.name ?? node.number);
       for (let i = 0; i < multiplexNodes.length; i++) {
@@ -498,7 +498,7 @@ const SecondPassVisitor = {
       // env. So, if using a duplicate name, remove the name from all but the first instance that
       // wasn't created by subroutine expansion
       if (node.name) {
-        const groupsWithSameName = getOrCreate(groupsByName, node.name, new Map());
+        const groupsWithSameName = getOrInsert(groupsByName, node.name, new Map());
         let hasDuplicateNameToRemove = false;
         if (origin) {
           // Subroutines and their child captures shouldn't hold duplicate names in the final state

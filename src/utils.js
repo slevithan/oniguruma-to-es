@@ -28,7 +28,7 @@ function getNewCurrentFlags(current, {enable, disable}) {
   };
 }
 
-function getOrCreate(map, key, defaultValue) {
+function getOrInsert(map, key, defaultValue) {
   if (!map.has(key)) {
     map.set(key, defaultValue);
   }
@@ -56,7 +56,7 @@ export {
   envSupportsFlagGroups,
   envSupportsFlagV,
   getNewCurrentFlags,
-  getOrCreate,
+  getOrInsert,
   isMinTarget,
   r,
   throwIfNot,

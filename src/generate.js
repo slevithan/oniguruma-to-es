@@ -2,7 +2,7 @@ import {getOptions} from './options.js';
 import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, getNewCurrentFlags, getOrCreate, isMinTarget, r} from './utils.js';
+import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-ast.js';
 
 /**
@@ -138,7 +138,7 @@ function generate(ast, options) {
       result._hiddenCaptures.push(key);
     }
     if (value.transferTo) {
-      getOrCreate(result._captureTransfers, value.transferTo, []).push(key);
+      getOrInsert(result._captureTransfers, value.transferTo, []).push(key);
     }
   });
 
