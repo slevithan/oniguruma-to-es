@@ -54,10 +54,10 @@
     "regex-recursion": "^6.0.2"
   },
   "devDependencies": {
-    "esbuild": "^0.24.2",
-    "jasmine": "^5.5.0",
+    "esbuild": "^0.25.0",
+    "jasmine": "^5.6.0",
     "typescript": "^5.7.3",
     "vscode-oniguruma": "^2.0.1"
   },
-  "packageManager": "pnpm@9.15.4"
+  "packageManager": "pnpm@10.4.1"
 }
