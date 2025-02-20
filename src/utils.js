@@ -21,6 +21,18 @@ const envFlags = {
     return true;
   })(),
 };
+// Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/30>
+envFlags.literalHyphenIncorrectlyCreatesRange = (() => {
+  if (!envFlags.unicodeSets) {
+    return false;
+  }
+  try {
+    new RegExp(r`[\d\-a]`, 'v');
+  } catch {
+    return true;
+  }
+  return false;
+})();
 
 function getNewCurrentFlags(current, {enable, disable}) {
   return {

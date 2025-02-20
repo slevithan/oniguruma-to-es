@@ -1,8 +1,8 @@
 import {getOptions} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstTypes} from './parse.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, createCharacter} from './parse.js';
 import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
+import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import {isLookaround} from './utils-ast.js';
 
 /**
@@ -294,6 +294,12 @@ function genCharacter({value}, state) {
 }
 
 function genCharacterClass({negate, parent, elements}, state, gen) {
+  // Work around WebKit bug by moving literal hyphens to the end of the class
+  if (envFlags.literalHyphenIncorrectlyCreatesRange && elements.some(isLiteralHyphen)) {
+    // Remove all hyphens then add one at the end; can't just sort in case of `[\d\-\-]`
+    elements = elements.filter(node => !isLiteralHyphen(node));
+    elements.push(createCharacter(45));
+  }
   const genClass = () => `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;
   if (!state.inCharClass) {
     // For the outermost char class, set state
@@ -323,7 +329,7 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
     )
   ) {
     // Remove unnecessary nesting; unwrap kids into the parent char class. Some basic char class
-    // optimization has already been done in the parser
+    // optimization for intersection has already been done in the parser
     return elements.map(gen).join('');
   }
   if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {
@@ -539,6 +545,10 @@ function getQuantifierStr({min, max, greedy, possessive}) {
 
 function isDigitCharCode(value) {
   return value > 47 && value < 58;
+}
+
+function isLiteralHyphen({type, value}) {
+  return type === AstTypes.Character && value === 45;
 }
 
 export {
