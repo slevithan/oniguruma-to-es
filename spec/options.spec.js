@@ -1,5 +1,5 @@
 import {toRegExpDetails} from '../dist/esm/index.js';
-import {envSupportsFlagV, r} from '../src/utils.js';
+import {envFlags, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -203,7 +203,7 @@ describe('Options', () => {
 
   describe('target', () => {
     it('should set target based on env for target auto', () => {
-      if (envSupportsFlagV) {
+      if (envFlags.unicodeSets) {
         expect(toRegExpDetails('', {target: 'auto'}).flags).toBe('v');
       } else {
         expect(toRegExpDetails('', {target: 'auto'}).flags).toBe('u');
@@ -211,7 +211,7 @@ describe('Options', () => {
     });
 
     it('should use target auto if unspecified', () => {
-      if (envSupportsFlagV) {
+      if (envFlags.unicodeSets) {
         expect(toRegExpDetails('').flags).toBe('v');
       } else {
         expect(toRegExpDetails('').flags).toBe('u');

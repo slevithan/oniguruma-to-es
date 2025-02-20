@@ -1,7 +1,7 @@
-import {envSupportsFlagGroups} from '../../src/utils.js';
+import {envFlags} from '../../src/utils.js';
 
-const maxTestTargetForFlagGroups = envSupportsFlagGroups ? null : 'ES2024';
-const minTestTargetForFlagGroups = envSupportsFlagGroups ? 'ES2025' : Infinity;
+const maxTestTargetForFlagGroups = envFlags.flagGroups ? null : 'ES2024';
+const minTestTargetForFlagGroups = envFlags.flagGroups ? 'ES2025' : Infinity;
 const minTestTargetForFlagV = 'ES2024';
 
 export {

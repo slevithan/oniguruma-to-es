@@ -3,23 +3,24 @@ import {EsVersion, Target} from './options.js';
 const cp = String.fromCodePoint;
 const r = String.raw;
 
-const envSupportsFlagGroups = (() => {
-  try {
-    new RegExp('(?i:)');
-  } catch {
-    return false;
-  }
-  return true;
-})();
-
-const envSupportsFlagV = (() => {
-  try {
-    new RegExp('', 'v');
-  } catch {
-    return false;
-  }
-  return true;
-})();
+const envFlags = {
+  flagGroups: (() => {
+    try {
+      new RegExp('(?i:)');
+    } catch {
+      return false;
+    }
+    return true;
+  })(),
+  unicodeSets: (() => {
+    try {
+      new RegExp('', 'v');
+    } catch {
+      return false;
+    }
+    return true;
+  })(),
+};
 
 function getNewCurrentFlags(current, {enable, disable}) {
   return {
@@ -53,8 +54,7 @@ function throwIfNot(value, msg) {
 
 export {
   cp,
-  envSupportsFlagGroups,
-  envSupportsFlagV,
+  envFlags,
   getNewCurrentFlags,
   getOrInsert,
   isMinTarget,

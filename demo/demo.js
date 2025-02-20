@@ -36,24 +36,26 @@ const state = {
   bench: !!(new URL(location).searchParams.get('bench')),
 };
 
-const envSupportsFlagGroups = (() => {
-  try {
-    new RegExp('(?i:)');
-  } catch {
-    return false;
-  }
-  return true;
-})();
-const envSupportsFlagV = (() => {
-  try {
-    new RegExp('', 'v');
-  } catch {
-    return false;
-  }
-  return true;
-})();
+const envFlags = {
+  flagGroups: (() => {
+    try {
+      new RegExp('(?i:)');
+    } catch {
+      return false;
+    }
+    return true;
+  })(),
+  unicodeSets: (() => {
+    try {
+      new RegExp('', 'v');
+    } catch {
+      return false;
+    }
+    return true;
+  })(),
+};
 // Logic from `src/options.js`
-const autoTarget = envSupportsFlagGroups ? 'ES2025' : (envSupportsFlagV ? 'ES2024' : 'ES2018');
+const autoTarget = envFlags.flagGroups ? 'ES2025' : (envFlags.unicodeSets ? 'ES2024' : 'ES2018');
 
 ui.autoTargetOption.innerHTML += ` [${autoTarget}]`;
 autoGrow();
