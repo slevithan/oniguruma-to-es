@@ -358,16 +358,16 @@ function getTokenWithDetails(context, pattern, m, lastIndex) {
         }),
       };
     }
-    // Named capture (checked after lookbehind due to similar syntax), or unnamed capture when
-    // `captureGroup` enabled
+    // Unnamed capture when `captureGroup` enabled, or named capture (checked after lookbehind due
+    // to similar syntax)
     if (
+      (m === '(' && context.captureGroup) ||
       (m.startsWith('(?<') && m.endsWith('>')) ||
-      (m.startsWith("(?'") && m.endsWith("'")) ||
-      (m === '(' && context.captureGroup)
+      (m.startsWith("(?'") && m.endsWith("'"))
     ) {
       const token = createToken(TokenTypes.GroupOpen, m, {
         kind: TokenGroupKinds.capturing,
-        // Will add `number` in a second pass
+        // Will add `number` prop in a second pass
       });
       if (m !== '(') {
         token.name = m.slice(3, -1);
