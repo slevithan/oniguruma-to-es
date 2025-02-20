@@ -294,9 +294,9 @@ function genCharacter({value}, state) {
 }
 
 function genCharacterClass({negate, parent, elements}, state, gen) {
-  // Work around WebKit bug by moving literal hyphens to the end of the class
-  if (envFlags.literalHyphenIncorrectlyCreatesRange && elements.some(isLiteralHyphen)) {
-    // Remove all hyphens then add one at the end; can't just sort in case of `[\d\-\-]`
+  // Work around WebKit parser bug by moving literal hyphens to the end of the class
+  if (envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV && elements.some(isLiteralHyphen)) {
+    // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
     elements = elements.filter(node => !isLiteralHyphen(node));
     elements.push(createCharacter(45));
   }
@@ -317,7 +317,8 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
       ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
         (!state.useFlagV || !state.verbose) &&
         parent.type === AstTypes.CharacterClass &&
-        firstType !== AstTypes.CharacterClassIntersection
+        firstType !== AstTypes.CharacterClassIntersection &&
+        !(envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV)
       ) ||
       ( !state.verbose &&
         parent.type === AstTypes.CharacterClassIntersection &&
