@@ -1,9 +1,8 @@
 import {getOptions} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, createCharacter} from './parse.js';
-import {traverse} from './traverse.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
-import {isLookaround} from './utils-ast.js';
+import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, createCharacter} from 'oniguruma-parser/parse';
+import {isLookaround, traverse} from 'oniguruma-parser/traverse';
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.

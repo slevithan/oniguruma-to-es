@@ -1,9 +1,10 @@
 import {transform} from './transform.js';
 import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
-import {parse} from './parse.js';
 import {EmulatedRegExp} from './subclass.js';
-import {tokenize} from './tokenize.js';
+import {toOnigurumaAst} from 'oniguruma-parser';
+import {parse} from 'oniguruma-parser/parse';
+import {tokenize} from 'oniguruma-parser/tokenize';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
@@ -19,30 +20,6 @@ import {recursion} from 'regex-recursion';
 //    that aren't native to JS (atomic groups, possessive quantifiers, recursion). Regex+ uses a
 //    strict superset of JS RegExp syntax, so using it allows this library to benefit from not
 //    reinventing the wheel for complex features that Regex+ already knows how to transpile to JS.
-
-/**
-Returns an Oniguruma AST generated from an Oniguruma pattern.
-@param {string} pattern Oniguruma regex pattern.
-@param {{
-  flags?: string;
-  rules?: {
-    captureGroup?: boolean;
-    singleline?: boolean;
-  };
-}} [options]
-@returns {import('./parse.js').OnigurumaAst}
-*/
-function toOnigurumaAst(pattern, options) {
-  const opts = {
-    flags: options?.flags ?? '',
-    rules: {
-      captureGroup: false,
-      singleline: false,
-      ...(options?.rules),
-    },
-  };
-  return parse(tokenize(pattern, opts.flags, opts.rules));
-}
 
 /**
 @typedef {{

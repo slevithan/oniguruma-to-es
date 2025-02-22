@@ -1,11 +1,10 @@
 import {Accuracy, Target} from './options.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createQuantifier, createUnicodeProperty, parse} from './parse.js';
-import {tokenize} from './tokenize.js';
-import {traverse} from './traverse.js';
-import {JsUnicodeProperties, PosixClassesMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
-import {hasOnlyChild, isAlwaysNonZeroLength, isAlwaysZeroLength, isConsumptiveGroup, isLookaround} from './utils-ast.js';
 import emojiRegex from 'emoji-regex-xs';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
+import {tokenize} from 'oniguruma-parser/tokenize';
+import {hasOnlyChild, isConsumptiveGroup, isLookaround, traverse} from 'oniguruma-parser/traverse';
+import {JsUnicodeProperties, PosixClassesMap} from 'oniguruma-parser/unicode';
 
 /**
 @typedef {{
@@ -864,6 +863,23 @@ function hasDescendant(node, descendant) {
     }
   }
   return false;
+}
+
+function isAlwaysZeroLength({type}) {
+  return type === AstTypes.Assertion || type === AstTypes.Directive;
+}
+
+function isAlwaysNonZeroLength(node) {
+  const types = [
+    AstTypes.Character,
+    AstTypes.CharacterClass,
+    AstTypes.CharacterSet,
+  ];
+  return types.includes(node.type) || (
+    node.type === AstTypes.Quantifier &&
+    node.min &&
+    types.includes(node.element.type)
+  );
 }
 
 function isLoneGLookaround(node, options) {

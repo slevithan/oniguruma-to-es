@@ -11,6 +11,9 @@ importers:
       emoji-regex-xs:
         specifier: ^1.0.0
         version: 1.0.0
+      oniguruma-parser:
+        specifier: slevithan/oniguruma-parser
+        version: https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/9e4e2af1eb69163c528174050e37c68b84a6231b
       regex:
         specifier: ^6.0.1
         version: 6.0.1
@@ -277,6 +280,10 @@ packages:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
 
+  oniguruma-parser@https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/9e4e2af1eb69163c528174050e37c68b84a6231b:
+    resolution: {tarball: https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/9e4e2af1eb69163c528174050e37c68b84a6231b}
+    version: 0.0.0
+
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
 
@@ -537,6 +544,8 @@ snapshots:
       brace-expansion: 2.0.1
 
   minipass@7.1.2: {}
+
+  oniguruma-parser@https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/9e4e2af1eb69163c528174050e37c68b84a6231b: {}
 
   package-json-from-dist@1.0.1: {}
 
