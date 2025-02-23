@@ -181,7 +181,7 @@ const FirstPassVisitor = {
 
   Backreference({node}, {jsGroupNameMap}) {
     let {ref} = node;
-    if (typeof ref === 'string' && !isValidGroupNameJs(ref)) {
+    if (typeof ref === 'string' && !isValidJsGroupName(ref)) {
       ref = getAndStoreJsGroupName(ref, jsGroupNameMap);
       node.ref = ref;
     }
@@ -189,7 +189,7 @@ const FirstPassVisitor = {
 
   CapturingGroup({node}, {jsGroupNameMap, subroutineRefMap}) {
     let {name} = node;
-    if (name && !isValidGroupNameJs(name)) {
+    if (name && !isValidJsGroupName(name)) {
       name = getAndStoreJsGroupName(name, jsGroupNameMap);
       node.name = name;
     }
@@ -392,7 +392,7 @@ const FirstPassVisitor = {
 
   Subroutine({node}, {jsGroupNameMap}) {
     let {ref} = node;
-    if (typeof ref === 'string' && !isValidGroupNameJs(ref)) {
+    if (typeof ref === 'string' && !isValidJsGroupName(ref)) {
       ref = getAndStoreJsGroupName(ref, jsGroupNameMap);
       node.ref = ref;
     }
@@ -743,7 +743,7 @@ function getAllParents(node, filterFn) {
   return results;
 }
 
-// See also `isValidGroupNameJs`
+// See also `isValidJsGroupName`
 function getAndStoreJsGroupName(name, map) {
   if (map.has(name)) {
     return map.get(name);
@@ -895,8 +895,8 @@ function isLoneGLookaround(node, options) {
 }
 
 // See also `getAndStoreJsGroupName`
-function isValidGroupNameJs(name) {
-  // JS group names are more restrictive than Onig; see `isValidGroupNameOniguruma` and
+function isValidJsGroupName(name) {
+  // JS group names are more restrictive than Onig; see
   // <developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#identifiers>
   return /^[$_\p{IDS}][$\u200C\u200D\p{IDC}]*$/u.test(name);
 }
