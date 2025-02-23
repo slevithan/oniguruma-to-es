@@ -158,7 +158,7 @@ describe('CharacterSet', () => {
         'RGI_Emoji_Tag_Sequence',
         'RGI_Emoji_ZWJ_Sequence',
       ].forEach(name => {
-        expect(() => toRegExpDetails(r`\p{${name}}`)).toThrow();
+        expect(() => toRegExp(r`\p{${name}}`)).toThrow();
       });
     });
 

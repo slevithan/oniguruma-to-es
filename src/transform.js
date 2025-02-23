@@ -1,10 +1,10 @@
 import {Accuracy, Target} from './options.js';
+import {asciiSpaceChar, defaultWordChar, JsUnicodeProperties, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {hasOnlyChild, isConsumptiveGroup, isLookaround, traverse} from 'oniguruma-parser/traverse';
-import {JsUnicodeProperties, PosixClassesMap} from 'oniguruma-parser/unicode';
 
 /**
 @typedef {{
@@ -251,7 +251,7 @@ const FirstPassVisitor = {
         }
         replaceWith(parseFragment(`[${ascii}]`));
       } else {
-        replaceWith(setNegate(parseFragment(PosixClassesMap.get(value)), negate));
+        replaceWith(setNegate(parseFragment(PosixClassMap.get(value)), negate));
       }
     }
   },
@@ -654,11 +654,6 @@ const ThirdPassVisitor = {
   },
 };
 
-// `\t\n\v\f\r\x20`
-const asciiSpaceChar = '[\t-\r ]';
-// Different than `PosixClassesMap`'s `word`
-const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
-
 function adoptAndSwapKids(parent, kids) {
   kids.forEach(kid => kid.parent = parent);
   parent[getContainerAccessor(parent)] = kids;
@@ -903,7 +898,12 @@ function isValidJsGroupName(name) {
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
 function parseFragment(pattern, options) {
-  const ast = parse(tokenize(pattern), options);
+  const ast = parse(tokenize(pattern), {
+    ...options,
+    // Providing a custom set of Unicode property names avoids converting some JS Unicode
+    // properties (ex: `\p{Alpha}`) to Onig POSIX classes
+    unicodePropertyMap: JsUnicodePropertyMap,
+  });
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
     return adoptAndSwapKids(createGroup(), alts);
