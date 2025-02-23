@@ -3,7 +3,6 @@ import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
 import {EmulatedRegExp} from './subclass.js';
 import {JsUnicodePropertyMap} from './unicode.js';
-import {toOnigurumaAstWithCustomUnicodeData} from 'oniguruma-parser';
 import {parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {atomic, possessive} from 'regex/internals';
@@ -21,14 +20,6 @@ import {recursion} from 'regex-recursion';
 //    that aren't native to JS (atomic groups, possessive quantifiers, recursion). Regex+ uses a
 //    strict superset of JS RegExp syntax, so using it allows this library to benefit from not
 //    reinventing the wheel for complex features that Regex+ already knows how to transpile to JS.
-
-function toOnigurumaAst(pattern, options) {
-  return toOnigurumaAstWithCustomUnicodeData(pattern, {
-    ...options,
-    normalizeUnknownPropertyNames: true,
-    unicodePropertyMap: JsUnicodePropertyMap,
-  });
-}
 
 /**
 @typedef {{
@@ -130,15 +121,21 @@ function toRegExpDetails(pattern, options) {
   return details;
 }
 
-// // Returns a Regex+ AST generated from an Oniguruma pattern
-// function toRegexAst(pattern, options) {
+// function toOnigurumaAst(pattern, options) {
+//   return parse(tokenize(pattern, options.flags, options.rules), {
+//     normalizeUnknownPropertyNames: true,
+//     unicodePropertyMap: JsUnicodePropertyMap,
+//   });
+// }
+
+// function toRegexPlusAst(pattern, options) {
 //   return transform(toOnigurumaAst(pattern, options));
 // }
 
 export {
   EmulatedRegExp,
-  toOnigurumaAst,
   toRegExp,
   toRegExpDetails,
-  // toRegexAst,
+  // toOnigurumaAst,
+  // toRegexPlusAst,
 };

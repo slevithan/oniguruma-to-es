@@ -16,7 +16,7 @@ import {traverse} from 'oniguruma-parser/traverse';
   options: Object;
   _originMap: Map<Object, Object>;
   _strategy: string?;
-}} RegexAst
+}} RegexPlusAst
 */
 /**
 Transforms an Oniguruma AST in-place to a [Regex+](https://github.com/slevithan/regex) AST.
@@ -34,7 +34,7 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
   avoidSubclass?: boolean;
   bestEffortTarget?: keyof Target;
 }} [options]
-@returns {RegexAst}
+@returns {RegexPlusAst}
 */
 function transform(ast, options) {
   const opts = {

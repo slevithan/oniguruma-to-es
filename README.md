@@ -12,7 +12,6 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, GitHub, [Shiki](https://shiki.style/), etc.).
 - Share regexes across your Ruby<sup>✳︎</sup> or PHP (`mb_ereg`, etc.) and JavaScript code.
-- Evaluate the validity of Oniguruma regexes and traverse their ASTs.
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **~4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
@@ -28,7 +27,7 @@ Oniguruma-To-ES deeply understands the hundreds of large and small differences b
 
 - [Examples](#-examples)
 - [Install and use](#️-install-and-use)
-- [API](#-api): [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`toOnigurumaAst`](#toonigurumaast), [`EmulatedRegExp`](#emulatedregexp)
+- [API](#-api): [`toRegExp`](#toregexp), [`toRegExpDetails`](#toregexpdetails), [`EmulatedRegExp`](#emulatedregexp)
 - [Options](#-options): [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`lazyCompileLength`](#lazycompilelength), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
 - [Supported features](#-supported-features)
 - [Unsupported features](#-unsupported-features)
@@ -141,25 +140,6 @@ function toRegExpDetails(
 Note that the returned `flags` might also be different than those provided, as a result of the emulation process. The returned `pattern`, `flags`, and `options` properties can be provided as arguments to the `EmulatedRegExp` constructor to produce the same result as `toRegExp`.
 
 If the only keys returned are `pattern` and `flags`, they can optionally be provided to JavaScript's `RegExp` constructor instead. Setting option `avoidSubclass` to `true` ensures that this is always the case (resulting in an error for any patterns that require `EmulatedRegExp`'s additional handling).
-
-### `toOnigurumaAst`
-
-Returns an Oniguruma AST generated from an Oniguruma pattern.
-
-```ts
-function toOnigurumaAst(
-  pattern: string,
-  options?: {
-    flags?: string;
-    rules?: {
-      captureGroup?: boolean;
-      singleline?: boolean;
-    };
-  }
-): OnigurumaAst;
-```
-
-An error is thrown if the pattern isn't valid in Oniguruma. Unlike `toRegExp` and `toRegExpDetails`, `toOnigurumaAst` doesn't evaluate whether the pattern can be emulated in JavaScript.
 
 ### `EmulatedRegExp`
 
@@ -1057,7 +1037,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 🏷️ About
 
-Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) and [contributors](https://github.com/slevithan/oniguruma-to-es/graphs/contributors).
+Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) and [contributors](https://github.com/slevithan/oniguruma-to-es/graphs/contributors). It uses the [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex) libraries, also by Steven Levithan.
 
 If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
 

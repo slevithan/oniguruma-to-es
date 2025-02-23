@@ -7,7 +7,7 @@ import {traverse} from 'oniguruma-parser/traverse';
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
-@param {import('./transform.js').RegexAst} ast
+@param {import('./transform.js').RegexPlusAst} ast
 @param {import('.').ToRegExpOptions} [options]
 @returns {{
   pattern: string;
