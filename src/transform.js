@@ -2,10 +2,10 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
+import {hasOnlyChild, isConsumptiveGroup, isLookaround, slug} from 'oniguruma-parser';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
-import {hasOnlyChild, isConsumptiveGroup, isLookaround, traverse} from 'oniguruma-parser/traverse';
-import {slug} from 'oniguruma-parser/unicode';
+import {traverse} from 'oniguruma-parser/traverse';
 
 /**
 @typedef {{
