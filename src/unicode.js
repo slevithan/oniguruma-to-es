@@ -50,7 +50,7 @@ function getIgnoreCaseMatchChars(char) {
 // with an `In_` prefix). See also:
 // - Properties supported in Oniguruma: <github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
 // - Properties supported in JS by spec version: <github.com/eslint-community/regexpp/blob/main/src/unicode/properties.ts>
-const JsUnicodePropertyNames = new Set(
+const JsUnicodePropertyMap = new Map(
 `C Other
 Cc Control cntrl
 Cf Format
@@ -142,13 +142,9 @@ Variation_Selector VS
 White_Space space
 XID_Continue XIDC
 XID_Start XIDS`.
-  split(/\s/)
+  split(/\s/).
+  map(p => [slug(p), p])
 );
-
-const JsUnicodePropertyMap = new Map();
-for (const p of JsUnicodePropertyNames) {
-  JsUnicodePropertyMap.set(slug(p), p);
-}
 
 const LowerToAlternativeLowerCaseMap = new Map([
   ['s', cp(0x17F)], // s, ſ
