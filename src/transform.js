@@ -1,10 +1,11 @@
 import {Accuracy, Target} from './options.js';
-import {asciiSpaceChar, defaultWordChar, JsUnicodeProperties, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
+import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {hasOnlyChild, isConsumptiveGroup, isLookaround, traverse} from 'oniguruma-parser/traverse';
+import {slug} from 'oniguruma-parser/unicode';
 
 /**
 @typedef {{
@@ -230,7 +231,7 @@ const FirstPassVisitor = {
     } else if (kind === AstCharacterSetKinds.word) {
       replaceWith(setNegate(parseFragment(defaultWordChar), negate));
     } else if (kind === AstCharacterSetKinds.property) {
-      if (!JsUnicodeProperties.has(value)) {
+      if (!JsUnicodePropertyMap.has(slug(value))) {
         // Assume it's a script; no error checking is the price for avoiding heavyweight Unicode
         // data for all script names
         node.key = 'sc';

@@ -234,7 +234,6 @@ export {
   asciiSpaceChar,
   defaultWordChar,
   getIgnoreCaseMatchChars,
-  JsUnicodeProperties,
   JsUnicodePropertyMap,
   PosixClassMap,
   UnicodePropertiesWithSpecificCase,
