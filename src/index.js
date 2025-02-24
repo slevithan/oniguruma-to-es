@@ -122,7 +122,7 @@ function toRegExpDetails(pattern, options) {
 }
 
 // function toOnigurumaAst(pattern, options) {
-//   return parse(tokenize(pattern, options.flags, options.rules), {
+//   return parse(tokenize(pattern, options?.flags, options?.rules), {
 //     normalizeUnknownPropertyNames: true,
 //     unicodePropertyMap: JsUnicodePropertyMap,
 //   });

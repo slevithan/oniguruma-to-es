@@ -142,7 +142,10 @@ const FirstPassVisitor = {
   Assertion({node, key, container, ast, remove, replaceWith}, state) {
     const {kind, negate} = node;
     const {asciiWordBoundaries, avoidSubclass, supportedGNodes, wordIsAscii} = state;
-    if (kind === AstAssertionKinds.line_end) {
+    if (kind === AstAssertionKinds.grapheme_boundary) {
+      // Supported by the parser but not yet for transpilation
+      throw new Error(`Unsupported grapheme boundary "\\${negate ? 'Y' : 'y'}"`);
+    } else if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(parseFragment(r`(?=\z|\n)`));
     } else if (kind === AstAssertionKinds.line_start) {
