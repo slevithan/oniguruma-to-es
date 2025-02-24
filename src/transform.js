@@ -2,7 +2,7 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {hasOnlyChild, isConsumptiveGroup, slug} from 'oniguruma-parser';
+import {hasOnlyChild, slug} from 'oniguruma-parser';
 import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {traverse} from 'oniguruma-parser/traverse';
@@ -842,7 +842,7 @@ function getLeadingG(els) {
   if (firstToConsider.type === AstTypes.LookaroundAssertion) {
     return firstToConsider.alternatives[0].elements[0];
   }
-  if (isConsumptiveGroup(firstToConsider)) {
+  if (firstToConsider.type === AstTypes.CapturingGroup || firstToConsider.type === AstTypes.Group) {
     const gNodesForGroup = [];
     // Recursively find `\G` nodes for all alternatives in the group
     for (const alt of firstToConsider.alternatives) {
