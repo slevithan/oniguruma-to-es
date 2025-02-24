@@ -194,6 +194,38 @@
     Object.assign(globalThis, OnigurumaToEs);
     const r = String.raw;
     const cp = String.fromCodePoint;
+
+    // Use after uncommenting AST fns in `index.js`
+    function printAst(ast) {
+      if (ast?.type !== 'Regex') {
+        throw new Error('Unexpected AST format');
+      }
+      const isObject = value => ({}).toString.call(value) === '[object Object]';
+      const nodeIds = new Map();
+      let counter = 0;
+      console.log(JSON.stringify(ast, function (key, value) {
+        if (isObject(this) && !nodeIds.get(this) && key !== '') {
+          nodeIds.set(this, ++counter);
+        }
+        if (key === 'type') {
+          return `${value} [ID:${nodeIds.get(this)}]`;
+        }
+        if (key === 'parent') {
+          let parentId = null;
+          if (isObject(value)) {
+            if (!nodeIds.has(value)) {
+              nodeIds.set(value, ++counter);
+            }
+            parentId = nodeIds.get(value);
+          }
+          return value ? `[${value.type}:${parentId}]` : value;
+        }
+        if (key === 'max' && value === Infinity) {
+          return '[Infinity]';
+        }
+        return value;
+      }, '│ '));
+    }
   </script>
 </body>
 </html>
