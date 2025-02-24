@@ -1014,9 +1014,9 @@ The following throw errors since they aren't yet supported. They're all extremel
 
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't yet supported.
 
-Contributions that add support for unsupported features are welcome.
+When considering the list above, keep in mind that some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub. **Oniguruma-To-ES supports ~99.99% of real-world Oniguruma regexes**, based on a sample of ~55k regexes used in TextMate grammars. Conditionals were used in three regexes, *overlapping* recursions in three regexes, and other unsupported features weren't used at all.
 
-When considering the list above, keep in mind that some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub. **Oniguruma-To-ES supports ~99.99% of real-world Oniguruma regexes**, based on a sample of 54,531 regexes used in 219 TextMate grammars. Of the unsupported features listed above, conditionals were used in three regexes, *overlapping* recursions were used in three regexes, and other unsupported features weren't used at all.
+Contributions that add support for remaining features are welcome.
 
 <a name="unicode"></a>
 ## ㊗️ Unicode

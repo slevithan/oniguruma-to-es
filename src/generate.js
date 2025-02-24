@@ -235,8 +235,8 @@ function genAssertion(node, _, gen) {
   if (kind === AstAssertionKinds.word_boundary) {
     return negate ? r`\B` : r`\b`;
   }
-  // Kinds `line_end`, `line_start`, `search_start`, and `string_end_newline` are never included in
-  // transformer output
+  // Kinds `grapheme_boundary`, `line_end`, `line_start`, `search_start`, and `string_end_newline`
+  // are never included in transformer output
   throw new Error(`Unexpected assertion kind "${kind}"`);
 }
 

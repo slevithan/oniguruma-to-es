@@ -288,6 +288,10 @@ const FirstPassVisitor = {
   },
 
   Flags({node, parent}) {
+    if (node.posixIsAscii) {
+      // Supported by the parser but not yet for transpilation
+      throw new Error('Unsupported flag "P"');
+    }
     // Remove Onig flags that aren't available in JS
     [ 'digitIsAscii', // Flag D
       'extended', // Flag x
