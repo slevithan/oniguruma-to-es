@@ -1,8 +1,7 @@
 import {getOptions} from './options.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
-import {isLookaround} from 'oniguruma-parser';
-import {AstAssertionKinds, AstCharacterSetKinds, AstTypes, createCharacter} from 'oniguruma-parser/parse';
+import {AstAssertionKinds, AstCharacterSetKinds, AstLookaroundAssertionKinds, AstTypes, createCharacter} from 'oniguruma-parser/parse';
 import {traverse} from 'oniguruma-parser/traverse';
 
 /**
@@ -89,7 +88,7 @@ function generate(ast, options) {
       case AstTypes.Alternative:
         return node.elements.map(gen).join('');
       case AstTypes.Assertion:
-        return genAssertion(node, state, gen);
+        return genAssertion(node);
       case AstTypes.Backreference:
         return genBackreference(node, state);
       case AstTypes.CapturingGroup:
@@ -111,6 +110,8 @@ function generate(ast, options) {
         return genFlags(node, state);
       case AstTypes.Group:
         return genGroup(node, state, gen);
+      case AstTypes.LookaroundAssertion:
+        return genLookaroundAssertion(node, state, gen);
       case AstTypes.Pattern:
         return node.alternatives.map(gen).join('|');
       case AstTypes.Quantifier:
@@ -216,12 +217,7 @@ function charHasCase(char) {
   return casedRe.test(char);
 }
 
-function genAssertion(node, _, gen) {
-  const {kind, negate, alternatives} = node;
-  if (isLookaround(node)) {
-    const prefix = `${kind === AstAssertionKinds.lookahead ? '' : '<'}${negate ? '!' : '='}`;
-    return `(?${prefix}${alternatives.map(gen).join('|')})`;
-  }
+function genAssertion({kind, negate}) {
   // Can always use `^` and `$` for string boundaries since JS flag m is never relied on; Onig uses
   // different line break chars
   if (kind === AstAssertionKinds.string_end) {
@@ -427,6 +423,11 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
    ) ? contents : `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${contents})`;
   state.currentFlags = currentFlags;
   return result;
+}
+
+function genLookaroundAssertion({kind, negate, alternatives}, _, gen) {
+  const prefix = `${kind === AstLookaroundAssertionKinds.lookahead ? '' : '<'}${negate ? '!' : '='}`;
+  return `(?${prefix}${alternatives.map(gen).join('|')})`;
 }
 
 function genRecursion({ref}, state) {

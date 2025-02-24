@@ -5,7 +5,7 @@ beforeEach(() => {
   jasmine.addMatchers(matchers);
 });
 
-describe('Assertion: lookahead', () => {
+describe('LookaroundAssertion: lookahead', () => {
   it('should match fixed-length positive lookahead', () => {
     expect('ab').toFindMatch('a(?=b)');
     expect([
@@ -49,7 +49,7 @@ describe('Assertion: lookahead', () => {
   });
 });
 
-describe('Assertion: lookbehind', () => {
+describe('LookaroundAssertion: lookbehind', () => {
   it('should match fixed-length positive lookbehind', () => {
     expect('ba').toFindMatch('(?<=b)a');
     expect([

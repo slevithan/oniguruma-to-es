@@ -2,8 +2,8 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {hasOnlyChild, isConsumptiveGroup, isLookaround, slug} from 'oniguruma-parser';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaround, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
+import {hasOnlyChild, isConsumptiveGroup, slug} from 'oniguruma-parser';
+import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {traverse} from 'oniguruma-parser/traverse';
 
@@ -105,7 +105,7 @@ const FirstPassVisitor = {
   AbsentFunction({node, replaceWith}) {
     // Convert absent repeater `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
     const group = prepContainer(createGroup(), [
-      adoptAndSwapKids(createLookaround({negate: true}), node.alternatives),
+      adoptAndSwapKids(createLookaroundAssertion({negate: true}), node.alternatives),
       createUnicodeProperty('Any'),
     ]);
     const quantifier = createQuantifier(group, 0, Infinity);
@@ -152,8 +152,6 @@ const FirstPassVisitor = {
       // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
       // string-terminating line feed
       replaceWith(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}));
-    } else if (kind === AstAssertionKinds.lookbehind) {
-      state.passedLookbehind = true;
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
         ast.flags.sticky = true;
@@ -164,7 +162,7 @@ const FirstPassVisitor = {
         // prev node could block), but blocked `\G` is an edge case so it's okay if some blocked
         // cases resulting in the standard error for being unsupported
         if (prev && isAlwaysNonZeroLength(prev)) {
-          replaceWith(prepContainer(createLookaround({negate: true})));
+          replaceWith(prepContainer(createLookaroundAssertion({negate: true})));
         } else if (avoidSubclass) {
           throw new Error(r`Uses "\G" in a way that requires a subclass`);
         } else {
@@ -179,8 +177,7 @@ const FirstPassVisitor = {
       const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
       replaceWith(parseFragment(negate ? B : b));
     }
-    // Kinds `string_end` and `string_start` don't need transformation since JS flag m isn't used.
-    // Kinds `lookahead` and `lookbehind` also don't need transformation
+    // Kinds `string_end` and `string_start` don't need transformation since JS flag m isn't used
   },
 
   Backreference({node}, {jsGroupNameMap}) {
@@ -283,7 +280,7 @@ const FirstPassVisitor = {
       if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
-      replaceWith(prepContainer(createLookaround({behind: true}), removeAllPrevSiblings()));
+      replaceWith(prepContainer(createLookaroundAssertion({behind: true}), removeAllPrevSiblings()));
     }
   },
 
@@ -295,6 +292,7 @@ const FirstPassVisitor = {
     // Remove Onig flags that aren't available in JS
     [ 'digitIsAscii', // Flag D
       'extended', // Flag x
+      'posixIsAscii', // Flag P
       'spaceIsAscii', // Flag S
       'wordIsAscii', // Flag W
     ].forEach(f => delete node[f]);
@@ -346,6 +344,13 @@ const FirstPassVisitor = {
     enable && !Object.keys(enable).length && delete node.flags.enable;
     disable && !Object.keys(disable).length && delete node.flags.disable;
     !node.flags.enable && !node.flags.disable && delete node.flags;
+  },
+
+  LookaroundAssertion({node}, state) {
+    const {kind} = node;
+    if (kind === AstLookaroundAssertionKinds.lookbehind) {
+      state.passedLookbehind = true;
+    }
   },
 
   Pattern: {
@@ -605,7 +610,7 @@ const ThirdPassVisitor = {
     if (!participants.length) {
       // If no participating capture, convert backref to to `(?!)`; backrefs to nonparticipating
       // groups can't match in Onig but match the empty string in JS
-      replaceWith(prepContainer(createLookaround({negate: true})));
+      replaceWith(prepContainer(createLookaroundAssertion({negate: true})));
     } else if (participants.length > 1) {
       // Multiplex
       const alts = participants.map(reffed => adoptAndSwapKids(
@@ -834,7 +839,7 @@ function getLeadingG(els) {
   if (firstToConsider.kind === AstAssertionKinds.search_start) {
     return firstToConsider;
   }
-  if (isLookaround(firstToConsider)) {
+  if (firstToConsider.type === AstTypes.LookaroundAssertion) {
     return firstToConsider.alternatives[0].elements[0];
   }
   if (isConsumptiveGroup(firstToConsider)) {
@@ -869,7 +874,9 @@ function hasDescendant(node, descendant) {
 }
 
 function isAlwaysZeroLength({type}) {
-  return type === AstTypes.Assertion || type === AstTypes.Directive;
+  return type === AstTypes.Assertion ||
+    type === AstTypes.Directive ||
+    type === AstTypes.LookaroundAssertion;
 }
 
 function isAlwaysNonZeroLength(node) {
@@ -891,7 +898,7 @@ function isLoneGLookaround(node, options) {
     ...options,
   };
   return (
-    isLookaround(node) &&
+    node.type === AstTypes.LookaroundAssertion &&
     (opts.negate === null || node.negate === opts.negate) &&
     hasOnlyChild(node, kid => kid.kind === AstAssertionKinds.search_start)
   );
