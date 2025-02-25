@@ -3,7 +3,7 @@ import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} fr
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
 import {hasOnlyChild, slug} from 'oniguruma-parser';
-import {AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, AstVariableLengthCharacterSetKinds, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
+import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {traverse} from 'oniguruma-parser/traverse';
 
@@ -39,8 +39,8 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
 function transform(ast, options) {
   const opts = {
     // A couple edge cases exist where options `accuracy` and `bestEffortTarget` are used:
-    // - `VariableLengthCharacterSet` kind `grapheme` (`\X`): An exact representation would require
-    //   heavy Unicode data; a best-effort approximation requires knowing the target.
+    // - `CharacterSet` kind `grapheme` (`\X`): An exact representation would require heavy Unicode
+    //   data; a best-effort approximation requires knowing the target.
     // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex Unicode-based
     //   representations would be hard to change to ASCII-based after the fact in the generator
     //   based on `target`/`accuracy`, so produce the appropriate structure here.
@@ -103,14 +103,19 @@ function transform(ast, options) {
 
 const FirstPassVisitor = {
   AbsentFunction({node, replaceWith}) {
-    // Convert absent repeater `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
-    const group = prepContainer(createGroup(), [
-      adoptAndSwapKids(createLookaroundAssertion({negate: true}), node.alternatives),
-      createUnicodeProperty('Any'),
-    ]);
-    const quantifier = createQuantifier(group, 0, Infinity);
-    group.parent = quantifier;
-    replaceWith(prepContainer(createGroup(), [quantifier]));
+    const {kind, alternatives} = node;
+    if (kind === AstAbsentFunctionKinds.repeater) {
+      // Convert `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
+      const group = prepContainer(createGroup(), [
+        adoptAndSwapKids(createLookaroundAssertion({negate: true}), alternatives),
+        createUnicodeProperty('Any'),
+      ]);
+      const quantifier = createQuantifier(group, 0, Infinity);
+      group.parent = quantifier;
+      replaceWith(prepContainer(createGroup(), [quantifier]));
+    } else {
+      throw new Error(`Unexpected absent function kind "${kind}"`);
+    }
   },
 
   Alternative: {
@@ -170,14 +175,19 @@ const FirstPassVisitor = {
           state.strategy = 'clip_search';
         }
       }
+    } else if (kind === AstAssertionKinds.string_end || kind === AstAssertionKinds.string_start) {
+      // Don't need transformation since JS flag m isn't used
     } else if (kind === AstAssertionKinds.string_end_newline) {
       replaceWith(parseFragment(r`(?=\n?\z)`));
-    } else if (kind === AstAssertionKinds.word_boundary && !wordIsAscii && !asciiWordBoundaries) {
-      const b = `(?:(?<=${defaultWordChar})(?!${defaultWordChar})|(?<!${defaultWordChar})(?=${defaultWordChar}))`;
-      const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
-      replaceWith(parseFragment(negate ? B : b));
+    } else if (kind === AstAssertionKinds.word_boundary) {
+      if (!wordIsAscii && !asciiWordBoundaries) {
+        const b = `(?:(?<=${defaultWordChar})(?!${defaultWordChar})|(?<!${defaultWordChar})(?=${defaultWordChar}))`;
+        const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
+        replaceWith(parseFragment(negate ? B : b));
+      }
+    } else {
+      throw new Error(`Unexpected assertion kind "${kind}"`);
     }
-    // Kinds `string_end` and `string_start` don't need transformation since JS flag m isn't used
   },
 
   Backreference({node}, {jsGroupNameMap}) {
@@ -221,21 +231,26 @@ const FirstPassVisitor = {
       replaceWith(createUnicodeProperty('Any'));
     } else if (kind === AstCharacterSetKinds.digit) {
       replaceWith(createUnicodeProperty('Nd', {negate}));
+    } else if (kind === AstCharacterSetKinds.dot) {
+      // Doesn't need transformation
+    } else if (kind === AstCharacterSetKinds.grapheme) {
+      if (accuracy === 'strict') {
+        throw new Error(r`Use of "\X" requires non-strict accuracy`);
+      }
+      // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
+      // emoji using a general pattern that matches any Unicode sequence following the structure of
+      // a valid emoji. That actually makes it more accurate for matching any grapheme
+      const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, `\\x{`);
+      // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
+      // Skip name check to allow `RGI_Emoji` through, which Onig doesn't support
+      replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}));
     } else if (kind === AstCharacterSetKinds.hex) {
       replaceWith(createUnicodeProperty('AHex', {negate}));
-    } else if (kind === AstCharacterSetKinds.non_newline) {
-      replaceWith(parseFragment(r`[^\n]`));
-    } else if (kind === AstCharacterSetKinds.space) {
-      // Can't use JS's Unicode-based `\s` since unlike Onig it includes `\uFEFF`, excludes `\x85`
-      replaceWith(createUnicodeProperty('space', {negate}));
-    } else if (kind === AstCharacterSetKinds.word) {
-      replaceWith(setNegate(parseFragment(defaultWordChar), negate));
-    } else if (kind === AstCharacterSetKinds.property) {
-      if (!JsUnicodePropertyMap.has(slug(value))) {
-        // Assume it's a script; no error checking is the price for avoiding heavyweight Unicode
-        // data for all script names
-        node.key = 'sc';
-      }
+    } else if (kind === AstCharacterSetKinds.newline) {
+      replaceWith(parseFragment(negate ?
+        '[^\n]' :
+        '(?>\r\n?|[\n\v\f\x85\u2028\u2029])'
+      ));
     } else if (kind === AstCharacterSetKinds.posix) {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (accuracy === 'strict') {
@@ -254,6 +269,19 @@ const FirstPassVisitor = {
       } else {
         replaceWith(setNegate(parseFragment(PosixClassMap.get(value)), negate));
       }
+    } else if (kind === AstCharacterSetKinds.property) {
+      if (!JsUnicodePropertyMap.has(slug(value))) {
+        // Assume it's a script; no error checking is the price for avoiding heavyweight Unicode
+        // data for all script names
+        node.key = 'sc';
+      }
+    } else if (kind === AstCharacterSetKinds.space) {
+      // Can't use JS's Unicode-based `\s` since unlike Onig it includes `\uFEFF`, excludes `\x85`
+      replaceWith(createUnicodeProperty('space', {negate}));
+    } else if (kind === AstCharacterSetKinds.word) {
+      replaceWith(setNegate(parseFragment(defaultWordChar), negate));
+    } else {
+      throw new Error(`Unexpected character set kind "${kind}"`);
     }
   },
 
@@ -281,6 +309,8 @@ const FirstPassVisitor = {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
       replaceWith(prepContainer(createLookaroundAssertion({behind: true}), removeAllPrevSiblings()));
+    } else {
+      throw new Error(`Unexpected directive kind "${kind}"`);
     }
   },
 
@@ -408,26 +438,6 @@ const FirstPassVisitor = {
     if (typeof ref === 'string' && !isValidJsGroupName(ref)) {
       ref = getAndStoreJsGroupName(ref, jsGroupNameMap);
       node.ref = ref;
-    }
-  },
-
-  VariableLengthCharacterSet({node, replaceWith}, {accuracy, minTargetEs2024}) {
-    const {kind} = node;
-    if (kind === AstVariableLengthCharacterSetKinds.newline) {
-      replaceWith(parseFragment('(?>\r\n?|[\n\v\f\x85\u2028\u2029])'));
-    } else if (kind === AstVariableLengthCharacterSetKinds.grapheme) {
-      if (accuracy === 'strict') {
-        throw new Error(r`Use of "\X" requires non-strict accuracy`);
-      }
-      // `emojiRegex` is more permissive than `\p{RGI_Emoji}` since it allows over/under-qualified
-      // emoji using a general pattern that matches any Unicode sequence following the structure of
-      // a valid emoji. That actually makes it more accurate for matching any grapheme
-      const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, `\\x{`);
-      // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
-      // Skip name check to allow `RGI_Emoji` through, which Onig doesn't support
-      replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}));
-    } else {
-      throw new Error(`Unexpected varcharset kind "${kind}"`);
     }
   },
 };

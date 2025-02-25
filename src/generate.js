@@ -119,8 +119,8 @@ function generate(ast, options) {
       case AstTypes.Recursion:
         return genRecursion(node, state);
       default:
-        // Node types `AbsentFunction`, `Directive`, `Subroutine`, and `VariableLengthCharacterSet`
-        // are never included in transformer output
+        // Node types `AbsentFunction`, `Directive`, and `Subroutine` are never included in
+        // transformer output
         throw new Error(`Unexpected node type "${node.type}"`);
     }
   }
@@ -389,7 +389,7 @@ function genCharacterSet({kind, negate, value, key}, state) {
   if (kind === AstCharacterSetKinds.word) {
     return negate ? r`\W` : r`\w`;
   }
-  // Kinds `hex`, `posix`, and `space` are never included in transformer output
+  // Kinds `grapheme`, `hex`, `newline`, `posix`, and `space` are never included in transformer output
   throw new Error(`Unexpected character set kind "${kind}"`);
 }
 

@@ -146,7 +146,7 @@ function showTranspiled() {
     }
   }
   // Compose and display message about differences or lack thereof
-  let str = 'Tested all 6 <code>target</code>/<code>accuracy</code> combinations.';
+  let str = 'Compared all 6 <code>target</code>/<code>accuracy</code> combinations.';
   if (differents.length) {
     const withError = [];
     const withDiff = [];
