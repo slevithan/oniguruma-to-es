@@ -210,13 +210,12 @@ const FirstPassVisitor = {
     }
   },
 
-  CharacterClassRange(path, state) {
-    const {node, parent, replaceWith} = path;
+  CharacterClassRange({node, parent, replaceWith}) {
     if (parent.kind === AstCharacterClassKinds.intersection) {
       // JS doesn't allow intersection with ranges without a wrapper class
-      const cc = adoptAndSwapKids(createCharacterClass(), [node]);
-      replaceWith(cc);
-      traverseReplacement(cc, path, state, FirstPassVisitor);
+      replaceWith(adoptAndSwapKids(createCharacterClass(), [node]));
+      // Technically should call `path.skip` and then `traverseReplacement` for the newly created
+      // char class, but that seems unnecessary
     }
   },
 
