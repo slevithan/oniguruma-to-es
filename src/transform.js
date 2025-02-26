@@ -8,15 +8,19 @@ import {tokenize} from 'oniguruma-parser/tokenize';
 import {traverse} from 'oniguruma-parser/traverse';
 
 /**
-@typedef {{
-  type: 'Regex';
-  parent: null;
-  pattern: Object;
-  flags: Object;
-  options: Object;
-  _originMap: Map<Object, Object>;
-  _strategy: string?;
-}} RegexPlusAst
+@typedef {
+  import('oniguruma-parser/parse').OnigurumaAst & {
+    options: {
+      disable: Record<string, boolean>;
+      force: Record<string, boolean>;
+    };
+    _originMap: Map<
+      import('oniguruma-parser/parse').CapturingGroupNode,
+      import('oniguruma-parser/parse').CapturingGroupNode
+    >;
+    _strategy: string?;
+  }
+} RegexPlusAst
 */
 /**
 Transforms an Oniguruma AST in-place to a [Regex+](https://github.com/slevithan/regex) AST.
@@ -27,7 +31,7 @@ to representing native ES2025 `RegExp` but with some added features (atomic grou
 quantifiers, recursion). The AST doesn't use some of Regex+'s extended features like flag x or
 subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The
 AST represents what's needed to precisely reproduce Oniguruma behavior using Regex+.
-@param {import('./parse.js').OnigurumaAst} ast
+@param {import('oniguruma-parser/parse').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
   asciiWordBoundaries?: boolean;
