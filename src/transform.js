@@ -3,7 +3,7 @@ import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} fr
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
 import {hasOnlyChild, slug} from 'oniguruma-parser';
-import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
+import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterClassKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {traverse} from 'oniguruma-parser/traverse';
 
@@ -210,6 +210,16 @@ const FirstPassVisitor = {
     }
   },
 
+  CharacterClassRange(path, state) {
+    const {node, parent, replaceWith} = path;
+    if (parent.kind === AstCharacterClassKinds.intersection) {
+      // JS doesn't allow intersection with ranges without a wrapper class
+      const cc = adoptAndSwapKids(createCharacterClass(), [node]);
+      replaceWith(cc);
+      traverseReplacement(cc, path, state, FirstPassVisitor);
+    }
+  },
+
   CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
     const {kind, negate, value} = node;
     // Flag D with `\d`, `\p{Digit}`, `[[:digit:]]`
@@ -352,7 +362,7 @@ const FirstPassVisitor = {
       },
       force: {
         // Always add flag v because we're generating an AST that relies on it (it enables JS
-        // support for Onig features nested classes, set intersection, Unicode properties, etc.).
+        // support for Onig features nested classes, intersection, Unicode properties, etc.).
         // However, the generator might disable flag v based on its `target` option
         v: true,
       },
@@ -774,7 +784,7 @@ function getAndStoreJsGroupName(name, map) {
 
 // Returns the string key for the container that holds the node's kids
 function getContainerAccessor(node) {
-  for (const accessor of ['alternatives', 'classes', 'elements']) {
+  for (const accessor of ['alternatives', 'elements']) {
     if (node[accessor]) {
       return accessor;
     }

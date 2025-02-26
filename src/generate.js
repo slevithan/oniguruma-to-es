@@ -1,7 +1,7 @@
 import {getOptions} from './options.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
-import {AstAssertionKinds, AstCharacterSetKinds, AstLookaroundAssertionKinds, AstTypes, createCharacter} from 'oniguruma-parser/parse';
+import {AstAssertionKinds, AstCharacterClassKinds, AstCharacterSetKinds, AstLookaroundAssertionKinds, AstTypes, createCharacter} from 'oniguruma-parser/parse';
 import {traverse} from 'oniguruma-parser/traverse';
 
 /**
@@ -97,11 +97,6 @@ function generate(ast, options) {
         return genCharacter(node, state);
       case AstTypes.CharacterClass:
         return genCharacterClass(node, state, gen);
-      case AstTypes.CharacterClassIntersection:
-        if (!state.useFlagV) {
-          throw new Error('Use of class intersection requires min target ES2024');
-        }
-        return node.classes.map(gen).join('&&');
       case AstTypes.CharacterClassRange:
         return genCharacterClassRange(node, state);
       case AstTypes.CharacterSet:
@@ -289,14 +284,20 @@ function genCharacter({value}, state) {
   return char;
 }
 
-function genCharacterClass({negate, parent, elements}, state, gen) {
-  // Work around WebKit parser bug by moving literal hyphens to the end of the class
+function genCharacterClass({kind, negate, parent, elements}, state, gen) {
+  if (kind === AstCharacterClassKinds.intersection && !state.useFlagV) {
+    throw new Error('Use of class intersection requires min target ES2024');
+  }
+  // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
+  // <github.com/slevithan/oniguruma-to-es/issues/30>
   if (envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV && elements.some(isLiteralHyphen)) {
     // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
     elements = elements.filter(node => !isLiteralHyphen(node));
     elements.push(createCharacter(45));
   }
-  const genClass = () => `[${negate ? '^' : ''}${elements.map(gen).join('')}]`;
+  const genClass = () => `[${negate ? '^' : ''}${
+    elements.map(gen).join(kind === AstCharacterClassKinds.intersection ? '&&' : '')
+  }]`;
   if (!state.inCharClass) {
     // For the outermost char class, set state
     state.inCharClass = true;
@@ -305,28 +306,27 @@ function genCharacterClass({negate, parent, elements}, state, gen) {
     return result;
   }
   // No first element for implicit class in empty intersection like `[&&]`
-  const firstType = elements[0]?.type;
+  const firstEl = elements[0];
   if (
+    parent.type === AstTypes.CharacterClass &&
+    kind === AstCharacterClassKinds.union &&
     !negate &&
-    firstType &&
+    firstEl &&
     (
       ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
         (!state.useFlagV || !state.verbose) &&
-        parent.type === AstTypes.CharacterClass &&
-        firstType !== AstTypes.CharacterClassIntersection &&
+        parent.kind === AstCharacterClassKinds.union &&
         !(envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV)
       ) ||
       ( !state.verbose &&
-        parent.type === AstTypes.CharacterClassIntersection &&
+        parent.kind === AstCharacterClassKinds.intersection &&
         // JS doesn't allow intersection with union or ranges
         elements.length === 1 &&
-        firstType !== AstTypes.CharacterClass &&
-        firstType !== AstTypes.CharacterClassRange
+        firstEl.type !== AstTypes.CharacterClassRange
       )
     )
   ) {
-    // Remove unnecessary nesting; unwrap kids into the parent char class. Some basic char class
-    // optimization for intersection has already been done in the parser
+    // Remove unnecessary nesting; unwrap kids into the parent char class
     return elements.map(gen).join('');
   }
   if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {

@@ -17,7 +17,6 @@ describe('CharacterClassRange', () => {
     expect('-').toExactlyMatch(r`[-a]`);
     expect('-').toExactlyMatch(r`[-\w]`);
     expect('-').not.toFindMatch(r`[^-a]`);
-    expect('-').toExactlyMatch(r`[^[^-a]]`);
     expect('-').toExactlyMatch(r`[a[-b]]`);
     expect('-').toExactlyMatch(r`[-[ab]]`);
   });

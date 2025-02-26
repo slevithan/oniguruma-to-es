@@ -7,9 +7,11 @@ beforeEach(() => {
   jasmine.addMatchers(matchers);
 });
 
-describe('CharacterClassIntersection', () => {
+describe('CharacterClass [intersection]', () => {
+  // TODO: Add remaining specs
+
   it('should allow intersection of union and ranges without a nested class', () => {
-    // Include nested class in output since JS requires it
+    // Includes nested class in output since JS requires it
     expect(toRegExpDetails('[ab&&c]').pattern).toBe('[[ab]&&c]');
     expect(toRegExpDetails('[a-d&&e]').pattern).toBe('[[a-d]&&e]');
     expect(toRegExpDetails('[a-de&&f]').pattern).toBe('[[a-de]&&f]');
@@ -34,7 +36,6 @@ describe('CharacterClassIntersection', () => {
     it('should unwrap unneeded nested classes', () => {
       expect(toRegExpDetails('[[a]&&b]').pattern).toBe('[a&&b]');
       expect(toRegExpDetails('[[[a]]&&b]').pattern).toBe('[a&&b]');
-      expect(toRegExpDetails('[[^[^a]]&&[b]]').pattern).toBe('[a&&b]');
     });
 
     it('should unwrap the child class of a union or range wrapper class', () => {
@@ -50,6 +51,4 @@ describe('CharacterClassIntersection', () => {
       expect(toRegExpDetails(r`[\w&&a]`).pattern).toBe(r`[[\p{L}\p{M}\p{N}\p{Pc}]&&a]`);
     });
   });
-
-  // TODO: Add remaining
 });

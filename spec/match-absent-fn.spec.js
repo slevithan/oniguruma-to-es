@@ -2,7 +2,7 @@ import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 
 describe('AbsentFunction', () => {
-  describe('absent repeater', () => {
+  describe('repeater', () => {
     it('should match any input not matched by absent', () => {
       expect('abc'.match(toRegExp('(?~ab)', {global: true}))).toEqual(['', 'bc', '']);
       expect('abc'.match(toRegExp('(?~)', {global: true}))).toEqual(['', '', '', '']);
@@ -27,21 +27,21 @@ describe('AbsentFunction', () => {
     });
   });
 
-  describe('absent expression', () => {
+  describe('expression', () => {
     // Not supported
     it('should throw', () => {
       expect(() => toRegExpDetails(r`(?~|abc|\O*)`)).toThrow();
     });
   });
 
-  describe('absent stopper', () => {
+  describe('stopper', () => {
     // Not supported
     it('should throw', () => {
       expect(() => toRegExpDetails('(?~|abc)')).toThrow();
     });
   });
 
-  describe('absent clearer', () => {
+  describe('clearer', () => {
     // Not supported
     it('should throw', () => {
       expect(() => toRegExpDetails('(?~|)')).toThrow();
