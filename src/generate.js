@@ -268,7 +268,7 @@ function genCapturingGroup(node, state, gen) {
 function genCharacter({value}, state) {
   const char = cp(value);
   const escaped = getCharEscape(value, {
-    isAfterBackref: state.lastNode.type === AstTypes.Backreference,
+    escDigit: state.lastNode.type === AstTypes.Backreference,
     inCharClass: state.inCharClass,
     useFlagV: state.useFlagV,
   });
@@ -339,7 +339,7 @@ function genCharacterClassRange(node, state) {
   const min = node.min.value;
   const max = node.max.value;
   const escOpts = {
-    isAfterBackref: false,
+    escDigit: false,
     inCharClass: true,
     useFlagV: state.useFlagV,
   };
@@ -471,7 +471,7 @@ function getCasesOutsideCharClassRange(node, options) {
 }
 
 // This shouldn't modifiy any char that has case
-function getCharEscape(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
+function getCharEscape(codePoint, {escDigit, inCharClass, useFlagV}) {
   if (CharCodeEscapeMap.has(codePoint)) {
     return CharCodeEscapeMap.get(codePoint);
   }
@@ -481,7 +481,7 @@ function getCharEscape(codePoint, {isAfterBackref, inCharClass, useFlagV}) {
     // Unicode planes 4-16; unassigned, special purpose, and private use area
     codePoint > 0x3FFFF ||
     // Avoid corrupting a preceding backref by immediately following it with a literal digit
-    (isAfterBackref && isDigitCharCode(codePoint))
+    (escDigit && isDigitCharCode(codePoint))
   ) {
     // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
     return codePoint > 0xFF ?
