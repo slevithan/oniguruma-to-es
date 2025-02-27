@@ -2,7 +2,7 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {hasOnlyChild, slug} from 'oniguruma-parser';
+import {slug} from 'oniguruma-parser';
 import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterClassKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
 import {tokenize} from 'oniguruma-parser/tokenize';
 import {traverse} from 'oniguruma-parser/traverse';
@@ -894,6 +894,21 @@ function hasDescendant(node, descendant) {
     }
   }
   return false;
+}
+
+/**
+Check whether the node has exactly one alternative with one child element, and optionally that the
+child satisfies a condition.
+@param {import('oniguruma-parser/parse').AlternativeContainerNode} node
+@param {(node: import('oniguruma-parser/parse').AlternativeElementNode) => boolean} [kidFn]
+@returns {boolean}
+*/
+function hasOnlyChild({alternatives}, kidFn) {
+  return (
+    alternatives.length === 1 &&
+    alternatives[0].elements.length === 1 &&
+    (!kidFn || kidFn(alternatives[0].elements[0]))
+  );
 }
 
 function isAlwaysZeroLength({type}) {

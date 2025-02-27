@@ -75,7 +75,6 @@ function toRegExpDetails(pattern, options) {
     normalizeUnknownPropertyNames: true,
     skipBackrefValidation: opts.rules.allowOrphanBackrefs,
     unicodePropertyMap: JsUnicodePropertyMap,
-    verbose: opts.verbose,
   });
   const regexAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
