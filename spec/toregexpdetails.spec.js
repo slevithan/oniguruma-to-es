@@ -9,6 +9,13 @@ describe('toRegExpDetails', () => {
     }
   });
 
+  it('should throw for non-object/undefined options', () => {
+    expect(() => toRegExpDetails('')).not.toThrow();
+    for (const value of ['', null, 0, false, [], /(?:)/]) {
+      expect(() => toRegExpDetails('', value)).toThrow();
+    }
+  });
+
   it('should return an empty pattern if given an empty string', () => {
     // Not `(?:)` like `new RegExp('').source`
     expect(toRegExpDetails('').pattern).toBe('');

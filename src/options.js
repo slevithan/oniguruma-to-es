@@ -23,8 +23,11 @@ Returns a complete set of options, with default values set for options that were
 @param {import('.').ToRegExpOptions} [options]
 @returns {Required<import('.').ToRegExpOptions>}
 */
-function getOptions(options) {
-  if (options?.target !== undefined && !Target[options.target]) {
+function getOptions(options = {}) {
+  if ({}.toString.call(options) !== '[object Object]') {
+    throw new Error('Unexpected options');
+  }
+  if (options.target !== undefined && !Target[options.target]) {
     throw new Error(`Unexpected target "${options.target}"`)
   }
   // Set default values
@@ -65,7 +68,7 @@ function getOptions(options) {
       // `^` as `\A`; `$` as`\Z`. Improves search performance of generated regexes without changing
       // meaning if searching line by line. This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
       singleline: false,
-      ...(options?.rules),
+      ...(options.rules),
     },
   };
   if (opts.target === 'auto') {
