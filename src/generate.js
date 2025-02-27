@@ -529,7 +529,7 @@ function getGroupPrefix(atomic, flagMods, useFlagMods) {
   return `${mods}:`;
 }
 
-function getQuantifierStr({min, max, greedy, possessive}) {
+function getQuantifierStr({min, max, kind}) {
   let base;
   if (!min && max === 1) {
     base = '?';
@@ -542,7 +542,11 @@ function getQuantifierStr({min, max, greedy, possessive}) {
   } else {
     base = `{${min},${max === Infinity ? '' : max}}`;
   }
-  return base + (possessive ? '+' : (greedy ? '' : '?'));
+  return base + {
+    greedy: '',
+    lazy: '?',
+    possessive: '+',
+  }[kind];
 }
 
 function isDigitCharCode(value) {

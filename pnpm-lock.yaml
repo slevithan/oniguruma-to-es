@@ -13,7 +13,7 @@ importers:
         version: 1.0.0
       oniguruma-parser:
         specifier: slevithan/oniguruma-parser
-        version: https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/4316f93b726973eb6de5821968022053eb855c74
+        version: https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/b806f4f6b4230d33ab82d071ce0db2868d5c7527
       regex:
         specifier: ^6.0.1
         version: 6.0.1
@@ -280,8 +280,8 @@ packages:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  oniguruma-parser@https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/4316f93b726973eb6de5821968022053eb855c74:
-    resolution: {tarball: https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/4316f93b726973eb6de5821968022053eb855c74}
+  oniguruma-parser@https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/b806f4f6b4230d33ab82d071ce0db2868d5c7527:
+    resolution: {tarball: https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/b806f4f6b4230d33ab82d071ce0db2868d5c7527}
     version: 0.0.1
 
   package-json-from-dist@1.0.1:
@@ -545,7 +545,7 @@ snapshots:
 
   minipass@7.1.2: {}
 
-  oniguruma-parser@https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/4316f93b726973eb6de5821968022053eb855c74: {}
+  oniguruma-parser@https://codeload.github.com/slevithan/oniguruma-parser/tar.gz/b806f4f6b4230d33ab82d071ce0db2868d5c7527: {}
 
   package-json-from-dist@1.0.1: {}
 
