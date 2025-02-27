@@ -2,21 +2,19 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {slug} from 'oniguruma-parser';
-import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterClassKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse} from 'oniguruma-parser/parse';
-import {tokenize} from 'oniguruma-parser/tokenize';
-import {traverse} from 'oniguruma-parser/traverse';
+import {parse, slug, tokenize, traverse} from 'oniguruma-parser';
+import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterClassKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty} from 'oniguruma-parser/parser';
 
 /**
 @typedef {
-  import('oniguruma-parser/parse').OnigurumaAst & {
+  import('oniguruma-parser/parser').OnigurumaAst & {
     options: {
       disable: Record<string, boolean>;
       force: Record<string, boolean>;
     };
     _originMap: Map<
-      import('oniguruma-parser/parse').CapturingGroupNode,
-      import('oniguruma-parser/parse').CapturingGroupNode
+      import('oniguruma-parser/parser').CapturingGroupNode,
+      import('oniguruma-parser/parser').CapturingGroupNode
     >;
     _strategy: string?;
   }
@@ -31,7 +29,7 @@ to representing native ES2025 `RegExp` but with some added features (atomic grou
 quantifiers, recursion). The AST doesn't use some of Regex+'s extended features like flag x or
 subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The
 AST represents what's needed to precisely reproduce Oniguruma behavior using Regex+.
-@param {import('oniguruma-parser/parse').OnigurumaAst} ast
+@param {import('oniguruma-parser/parser').OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
   asciiWordBoundaries?: boolean;
@@ -899,8 +897,8 @@ function hasDescendant(node, descendant) {
 /**
 Check whether the node has exactly one alternative with one child element, and optionally that the
 child satisfies a condition.
-@param {import('oniguruma-parser/parse').AlternativeContainerNode} node
-@param {(node: import('oniguruma-parser/parse').AlternativeElementNode) => boolean} [kidFn]
+@param {import('oniguruma-parser/parser').AlternativeContainerNode} node
+@param {(node: import('oniguruma-parser/parser').AlternativeElementNode) => boolean} [kidFn]
 @returns {boolean}
 */
 function hasOnlyChild({alternatives}, kidFn) {

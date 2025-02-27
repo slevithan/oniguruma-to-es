@@ -3,8 +3,7 @@ import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
 import {EmulatedRegExp} from './subclass.js';
 import {JsUnicodePropertyMap} from './unicode.js';
-import {parse} from 'oniguruma-parser/parse';
-import {tokenize} from 'oniguruma-parser/tokenize';
+import {parse, tokenize} from 'oniguruma-parser';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
