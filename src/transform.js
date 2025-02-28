@@ -105,7 +105,7 @@ function transform(ast, options) {
 }
 
 const FirstPassVisitor = {
-  AbsentFunction({node, replaceWith}) {
+  AbsentFunction({node, parent, replaceWith}) {
     const {kind, alternatives} = node;
     if (kind === AstAbsentFunctionKinds.repeater) {
       // Convert `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
@@ -115,7 +115,7 @@ const FirstPassVisitor = {
       ]);
       const quantifier = createQuantifier(group, 0, Infinity);
       group.parent = quantifier;
-      replaceWith(prepContainer(createGroup(), [quantifier]));
+      replaceWith(setParent(prepContainer(createGroup(), [quantifier]), parent));
     } else {
       throw new Error(`Unexpected absent function kind "${kind}"`);
     }
@@ -138,16 +138,14 @@ const FirstPassVisitor = {
       if (flagDirectivesByAlt.get(node)?.length) {
         const flags = getCombinedFlagModsFromFlagNodes(flagDirectivesByAlt.get(node));
         if (flags) {
-          const flagGroup = prepContainer(createGroup({flags}), node.elements);
-          // Manually set the parent since we're not using `replaceWith`
-          flagGroup.parent = node;
+          const flagGroup = setParent(prepContainer(createGroup({flags}), node.elements), node);
           node.elements = [flagGroup];
         }
       }
     },
   },
 
-  Assertion({node, key, container, ast, remove, replaceWith}, state) {
+  Assertion({node, parent, key, container, ast, remove, replaceWith}, state) {
     const {kind, negate} = node;
     const {asciiWordBoundaries, avoidSubclass, supportedGNodes, wordIsAscii} = state;
     if (kind === AstAssertionKinds.grapheme_boundary) {
@@ -155,11 +153,11 @@ const FirstPassVisitor = {
       throw new Error(`Unsupported grapheme boundary "\\${negate ? 'Y' : 'y'}"`);
     } else if (kind === AstAssertionKinds.line_end) {
       // Onig's only line break char is line feed, unlike JS
-      replaceWith(parseFragment(r`(?=\z|\n)`));
+      replaceWith(setParent(parseFragment(r`(?=\z|\n)`), parent));
     } else if (kind === AstAssertionKinds.line_start) {
       // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
       // string-terminating line feed
-      replaceWith(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}));
+      replaceWith(setParent(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
         ast.flags.sticky = true;
@@ -170,23 +168,23 @@ const FirstPassVisitor = {
         // prev node could block), but blocked `\G` is an edge case so it's okay if some blocked
         // cases resulting in the standard error for being unsupported
         if (prev && isAlwaysNonZeroLength(prev)) {
-          replaceWith(prepContainer(createLookaroundAssertion({negate: true})));
+          replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
         } else if (avoidSubclass) {
           throw new Error(r`Uses "\G" in a way that requires a subclass`);
         } else {
-          replaceWith(createAssertion(AstAssertionKinds.string_start));
+          replaceWith(setParent(createAssertion(AstAssertionKinds.string_start), parent));
           state.strategy = 'clip_search';
         }
       }
     } else if (kind === AstAssertionKinds.string_end || kind === AstAssertionKinds.string_start) {
       // Don't need transformation since JS flag m isn't used
     } else if (kind === AstAssertionKinds.string_end_newline) {
-      replaceWith(parseFragment(r`(?=\n?\z)`));
+      replaceWith(setParent(parseFragment(r`(?=\n?\z)`), parent));
     } else if (kind === AstAssertionKinds.word_boundary) {
       if (!wordIsAscii && !asciiWordBoundaries) {
         const b = `(?:(?<=${defaultWordChar})(?!${defaultWordChar})|(?<!${defaultWordChar})(?=${defaultWordChar}))`;
         const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
-        replaceWith(parseFragment(negate ? B : b));
+        replaceWith(setParent(parseFragment(negate ? B : b), parent));
       }
     } else {
       throw new Error(`Unexpected assertion kind "${kind}"`);
@@ -216,33 +214,33 @@ const FirstPassVisitor = {
   CharacterClassRange({node, parent, replaceWith}) {
     if (parent.kind === AstCharacterClassKinds.intersection) {
       // JS doesn't allow intersection with ranges without a wrapper class
-      replaceWith(adoptAndSwapKids(createCharacterClass(), [node]));
+      replaceWith(setParent(adoptAndSwapKids(createCharacterClass(), [node]), parent));
       // Technically should call `path.skip` and then `traverseReplacement` for the newly created
       // char class, but that seems unnecessary
     }
   },
 
-  CharacterSet({node, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
+  CharacterSet({node, parent, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
     const {kind, negate, value} = node;
     // Flag D with `\d`, `\p{Digit}`, `[[:digit:]]`
     if (digitIsAscii && (kind === AstCharacterSetKinds.digit || value === 'digit')) {
-      replaceWith(createCharacterSet(AstCharacterSetKinds.digit, {negate}));
+      replaceWith(setParent(createCharacterSet(AstCharacterSetKinds.digit, {negate}), parent));
       return;
     }
     // Flag S with `\s`, `\p{Space}`, `[[:space:]]`
     if (spaceIsAscii && (kind === AstCharacterSetKinds.space || value === 'space')) {
-      replaceWith(setNegate(parseFragment(asciiSpaceChar), negate));
+      replaceWith(setParent(setNegate(parseFragment(asciiSpaceChar), negate), parent));
       return;
     }
     // Flag W with `\w`, `\p{Word}`, `[[:word:]]`
     if (wordIsAscii && (kind === AstCharacterSetKinds.word || value === 'word')) {
-      replaceWith(createCharacterSet(AstCharacterSetKinds.word, {negate}));
+      replaceWith(setParent(createCharacterSet(AstCharacterSetKinds.word, {negate}), parent));
       return;
     }
     if (kind === AstCharacterSetKinds.any) {
-      replaceWith(createUnicodeProperty('Any'));
+      replaceWith(setParent(createUnicodeProperty('Any'), parent));
     } else if (kind === AstCharacterSetKinds.digit) {
-      replaceWith(createUnicodeProperty('Nd', {negate}));
+      replaceWith(setParent(createUnicodeProperty('Nd', {negate}), parent));
     } else if (kind === AstCharacterSetKinds.dot) {
       // Doesn't need transformation
     } else if (kind === AstCharacterSetKinds.grapheme) {
@@ -254,15 +252,12 @@ const FirstPassVisitor = {
       // a valid emoji. That actually makes it more accurate for matching any grapheme
       const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, `\\x{`);
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
-      // Skip name check to allow `RGI_Emoji` through, which Onig doesn't support
-      replaceWith(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}));
+      // Skip property name validation to allow `RGI_Emoji` through, since Onig doesn't support it
+      replaceWith(setParent(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}), parent));
     } else if (kind === AstCharacterSetKinds.hex) {
-      replaceWith(createUnicodeProperty('AHex', {negate}));
+      replaceWith(setParent(createUnicodeProperty('AHex', {negate}), parent));
     } else if (kind === AstCharacterSetKinds.newline) {
-      replaceWith(parseFragment(negate ?
-        '[^\n]' :
-        '(?>\r\n?|[\n\v\f\x85\u2028\u2029])'
-      ));
+      replaceWith(setParent(parseFragment(negate ? '[^\n]' : '(?>\r\n?|[\n\v\f\x85\u2028\u2029])'), parent));
     } else if (kind === AstCharacterSetKinds.posix) {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (accuracy === 'strict') {
@@ -277,9 +272,9 @@ const FirstPassVisitor = {
           // using `[^…]` so it can be unwrapped since ES2018 doesn't support nested classes
           ascii = `\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
         }
-        replaceWith(parseFragment(`[${ascii}]`));
+        replaceWith(setParent(parseFragment(`[${ascii}]`), parent));
       } else {
-        replaceWith(setNegate(parseFragment(PosixClassMap.get(value)), negate));
+        replaceWith(setParent(setNegate(parseFragment(PosixClassMap.get(value)), negate), parent));
       }
     } else if (kind === AstCharacterSetKinds.property) {
       if (!JsUnicodePropertyMap.has(slug(value))) {
@@ -289,9 +284,9 @@ const FirstPassVisitor = {
       }
     } else if (kind === AstCharacterSetKinds.space) {
       // Can't use JS's Unicode-based `\s` since unlike Onig it includes `\uFEFF`, excludes `\x85`
-      replaceWith(createUnicodeProperty('space', {negate}));
+      replaceWith(setParent(createUnicodeProperty('space', {negate}), parent));
     } else if (kind === AstCharacterSetKinds.word) {
-      replaceWith(setNegate(parseFragment(defaultWordChar), negate));
+      replaceWith(setParent(setNegate(parseFragment(defaultWordChar), negate), parent));
     } else {
       throw new Error(`Unexpected character set kind "${kind}"`);
     }
@@ -305,7 +300,7 @@ const FirstPassVisitor = {
         // Flag directive without flags; ex: `(?-)`, `(?--)`
         remove();
       } else {
-        const flagGroup = prepContainer(createGroup({flags}), removeAllNextSiblings());
+        const flagGroup = setParent(prepContainer(createGroup({flags}), removeAllNextSiblings()), parent);
         replaceWith(flagGroup);
         traverseReplacement(flagGroup, path, state, FirstPassVisitor);
       }
@@ -320,7 +315,7 @@ const FirstPassVisitor = {
       if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
-      replaceWith(prepContainer(createLookaroundAssertion({behind: true}), removeAllPrevSiblings()));
+      replaceWith(setParent(prepContainer(createLookaroundAssertion({behind: true}), removeAllPrevSiblings()), parent));
     } else {
       throw new Error(`Unexpected directive kind "${kind}"`);
     }
@@ -438,9 +433,7 @@ const FirstPassVisitor = {
   Quantifier({node}) {
     if (node.element.type === AstTypes.Quantifier) {
       // Change e.g. `a**` to `(?:a*)*`
-      const group = prepContainer(createGroup(), [node.element]);
-      // Manually set the parent since we're not using `replaceWith`
-      group.parent = node;
+      const group = setParent(prepContainer(createGroup(), [node.element]), node);
       node.element = group;
     }
   },
@@ -467,6 +460,7 @@ const SecondPassVisitor = {
   CapturingGroup: {
     enter(
       { node,
+        parent,
         replaceWith,
         skip,
       },
@@ -485,7 +479,7 @@ const SecondPassVisitor = {
         // Recursion doesn't affect any following backrefs to its `ref` (unlike other subroutines),
         // so don't wrap with a capture. The reffed group might have its name removed due to later
         // subroutine expansion
-        const recursion = createRecursion(node.number);
+        const recursion = setParent(createRecursion(node.number), parent);
         reffedNodesByReferencer.set(recursion, openRefs.get(node.number));
         replaceWith(recursion);
         // This node's kids have been removed from the tree, so no need to traverse them
@@ -585,7 +579,7 @@ const SecondPassVisitor = {
   },
 
   Subroutine(path, state) {
-    const {node, replaceWith} = path;
+    const {node, parent, replaceWith} = path;
     const {ref} = node;
     const reffedGroupNode = state.subroutineRefMap.get(ref);
     // Other forms of recursion are handled by the `CapturingGroup` visitor
@@ -609,7 +603,7 @@ const SecondPassVisitor = {
         }), [expandedSubroutine]);
       }
     }
-    replaceWith(replacement);
+    replaceWith(setParent(replacement, parent));
     if (!isGlobalRecursion) {
       traverseReplacement(replacement, path, state, SecondPassVisitor);
     }
@@ -617,7 +611,7 @@ const SecondPassVisitor = {
 };
 
 const ThirdPassVisitor = {
-  Backreference({node, replaceWith}, state) {
+  Backreference({node, parent, replaceWith}, state) {
     if (node.orphan) {
       state.highestOrphanBackref = Math.max(state.highestOrphanBackref, node.ref);
       // Don't renumber; used with `allowOrphanBackrefs`
@@ -632,14 +626,14 @@ const ThirdPassVisitor = {
     if (!participants.length) {
       // If no participating capture, convert backref to to `(?!)`; backrefs to nonparticipating
       // groups can't match in Onig but match the empty string in JS
-      replaceWith(prepContainer(createLookaroundAssertion({negate: true})));
+      replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
     } else if (participants.length > 1) {
       // Multiplex
       const alts = participants.map(reffed => adoptAndSwapKids(
         createAlternative(),
         [createBackreference(reffed.number)]
       ));
-      replaceWith(adoptAndSwapKids(createGroup(), alts));
+      replaceWith(setParent(adoptAndSwapKids(createGroup(), alts), parent));
     } else {
       node.ref = participants[0].number;
     }
@@ -985,6 +979,11 @@ function prepContainer(node, kids) {
 
 function setNegate(node, negate) {
   node.negate = negate;
+  return node;
+}
+
+function setParent(node, parent) {
+  node.parent = parent;
   return node;
 }
 
