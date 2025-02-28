@@ -51,7 +51,7 @@
   ],
   "dependencies": {
     "emoji-regex-xs": "^1.0.0",
-    "oniguruma-parser": "slevithan/oniguruma-parser",
+    "oniguruma-parser": "file:../oniguruma-parser",
     "regex": "^6.0.1",
     "regex-recursion": "^6.0.2"
   },

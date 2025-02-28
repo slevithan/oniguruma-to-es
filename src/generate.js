@@ -142,17 +142,21 @@ function generate(ast, options) {
 }
 
 const FlagModifierVisitor = {
-  AnyGroup: {
+  '*': {
     enter({node}, state) {
-      const currentModI = state.getCurrentModI();
-      state.pushModI(
-        node.flags ?
-          getNewCurrentFlags({ignoreCase: currentModI}, node.flags).ignoreCase :
-          currentModI
-      );
+      if (isAnyGroup(node)) {
+        const currentModI = state.getCurrentModI();
+        state.pushModI(
+          node.flags ?
+            getNewCurrentFlags({ignoreCase: currentModI}, node.flags).ignoreCase :
+            currentModI
+        );
+      }
     },
-    exit(_, state) {
-      state.popModI();
+    exit({node}, state) {
+      if (isAnyGroup(node)) {
+        state.popModI();
+      }
     },
   },
   Backreference(_, state) {
@@ -547,6 +551,12 @@ function getQuantifierStr({min, max, kind}) {
     lazy: '?',
     possessive: '+',
   }[kind];
+}
+
+function isAnyGroup({type}) {
+  return type === AstTypes.Group ||
+    type === AstTypes.CapturingGroup ||
+    type === AstTypes.LookaroundAssertion;
 }
 
 function isDigitCharCode(value) {
