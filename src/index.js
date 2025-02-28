@@ -65,7 +65,8 @@ Accepts an Oniguruma pattern and returns the details for an equivalent JavaScrip
 */
 function toRegExpDetails(pattern, options) {
   const opts = getOptions(options);
-  const onigurumaAst = parse(pattern, opts.flags, {
+  const onigurumaAst = parse(pattern, {
+    flags: opts.flags,
     normalizeUnknownPropertyNames: true,
     rules: {
       captureGroup: opts.rules.captureGroup,
@@ -119,7 +120,8 @@ function toRegExpDetails(pattern, options) {
 }
 
 // function toOnigurumaAst(pattern, options) {
-//   return parse(pattern, options?.flags, {
+//   return parse(pattern, {
+//     flags: options?.flags ?? '',
 //     normalizeUnknownPropertyNames: true,
 //     rules: options?.rules ?? {},
 //     unicodePropertyMap: JsUnicodePropertyMap,
