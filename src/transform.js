@@ -52,6 +52,7 @@ function transform(ast, options) {
     bestEffortTarget: 'ES2025',
     ...options,
   };
+  addParentProperties(ast);
   const firstPassState = {
     accuracy: opts.accuracy,
     asciiWordBoundaries: opts.asciiWordBoundaries,
@@ -688,6 +689,15 @@ const ThirdPassVisitor = {
   },
 };
 
+// Add `parent` properties to all nodes for easier traversal; also expected by the generator
+function addParentProperties(ast) {
+  traverse({node: ast}, null, {
+    '*'({node, parent}) {
+      node.parent = parent;
+    },
+  });
+}
+
 function adoptAndSwapKids(parent, kids) {
   kids.forEach(kid => kid.parent = parent);
   parent[getContainerAccessor(parent)] = kids;
@@ -955,6 +965,7 @@ function parseFragment(pattern, options) {
     // properties (ex: `\p{Alpha}`) to Onig POSIX classes
     unicodePropertyMap: JsUnicodePropertyMap,
   });
+  addParentProperties(ast);
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
     return adoptAndSwapKids(createGroup(), alts);
@@ -977,13 +988,14 @@ function setNegate(node, negate) {
   return node;
 }
 
-function traverseReplacement(replacement, {parent, key, container}, state, visitor) {
+function traverseReplacement(replacement, {parent, key, container, ast}, state, visitor) {
   traverse({
     // Don't use the `node` from `path`
     node: replacement,
     parent,
     key,
     container,
+    ast,
   }, state, visitor);
 }
 
