@@ -2,7 +2,7 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {parse, slug, tokenize, traverse} from 'oniguruma-parser';
+import {parse, slug, traverse} from 'oniguruma-parser';
 import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterClassKinds, AstCharacterSetKinds, AstDirectiveKinds, AstLookaroundAssertionKinds, AstTypes, createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty} from 'oniguruma-parser/parser';
 
 /**
@@ -157,7 +157,7 @@ const FirstPassVisitor = {
     } else if (kind === AstAssertionKinds.line_start) {
       // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
       // string-terminating line feed
-      replaceWith(setParent(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
+      replaceWith(setParent(parseFragment(r`(?<=\A|\n(?!\z))`, '', {skipLookbehindValidation: true}), parent));
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
         ast.flags.sticky = true;
@@ -253,7 +253,7 @@ const FirstPassVisitor = {
       const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, `\\x{`);
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
       // Skip property name validation to allow `RGI_Emoji` through, since Onig doesn't support it
-      replaceWith(setParent(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}), parent));
+      replaceWith(setParent(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, '', {skipPropertyNameValidation: true}), parent));
     } else if (kind === AstCharacterSetKinds.hex) {
       replaceWith(setParent(createUnicodeProperty('AHex', {negate}), parent));
     } else if (kind === AstCharacterSetKinds.newline) {
@@ -952,8 +952,8 @@ function isValidJsGroupName(name) {
 }
 
 // Returns a single node, either the given node or all nodes wrapped in a noncapturing group
-function parseFragment(pattern, options) {
-  const ast = parse(tokenize(pattern), {
+function parseFragment(pattern, flags, options) {
+  const ast = parse(pattern, flags, {
     ...options,
     // Providing a custom set of Unicode property names avoids converting some JS Unicode
     // properties (ex: `\p{Alpha}`) to Onig POSIX classes

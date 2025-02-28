@@ -3,22 +3,21 @@ import {generate} from './generate.js';
 import {Accuracy, getOptions, Target} from './options.js';
 import {EmulatedRegExp} from './subclass.js';
 import {JsUnicodePropertyMap} from './unicode.js';
-import {parse, tokenize} from 'oniguruma-parser';
+import {parse} from 'oniguruma-parser';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
-// The transformation and error checking for Oniguruma's unique syntax and behavior differences
+// The validation and transformation for Oniguruma's unique syntax and behavior differences
 // compared to native JS RegExp is layered into all steps of the compilation process:
-// 1. Tokenizer: Understands Oniguruma syntax, with many large and small differences from JS.
-// 2. Parser: Builds an Oniguruma AST from the tokens, with understanding of Oniguruma differences.
-// 3. Transformer: Converts the Oniguruma AST to a Regex+ AST that preserves all Oniguruma
+// 1. Parser: Builds an Oniguruma AST, with understanding of Oniguruma's many differences from JS.
+// 2. Transformer: Converts the Oniguruma AST to a Regex+ AST that preserves all Oniguruma
 //    behavior. This is true even in cases of non-native-JS features that are supported by both
 //    Regex+ and Oniguruma but with subtly different behavior in each (subroutines, flag x).
-// 4. Generator: Converts the Regex+ AST to a Regex+ pattern, flags, and options.
-// 5. Compiler: Components of the Regex+ libray are used to transpile several remaining features
-//    that aren't native to JS (atomic groups, possessive quantifiers, recursion). Regex+ uses a
-//    strict superset of JS RegExp syntax, so using it allows this library to benefit from not
-//    reinventing the wheel for complex features that Regex+ already knows how to transpile to JS.
+// 3. Generator: Converts the Regex+ AST to a Regex+ pattern, flags, and options.
+// 4. Postprocessing: Components of the Regex+ libray are used to transpile several remaining
+//    features that aren't native to JS (atomic groups, possessive quantifiers, recursion). Regex+
+//    uses a strict superset of JS RegExp syntax, so using it allows this library to benefit from
+//    not reinventing the wheel for complex features that it already knows how to transpile to JS.
 
 /**
 @typedef {{
@@ -66,22 +65,22 @@ Accepts an Oniguruma pattern and returns the details for an equivalent JavaScrip
 */
 function toRegExpDetails(pattern, options) {
   const opts = getOptions(options);
-  const tokenized = tokenize(pattern, opts.flags, {
-    captureGroup: opts.rules.captureGroup,
-    singleline: opts.rules.singleline,
-  });
-  const onigurumaAst = parse(tokenized, {
+  const onigurumaAst = parse(pattern, opts.flags, {
     normalizeUnknownPropertyNames: true,
+    rules: {
+      captureGroup: opts.rules.captureGroup,
+      singleline: opts.rules.singleline,
+    },
     skipBackrefValidation: opts.rules.allowOrphanBackrefs,
     unicodePropertyMap: JsUnicodePropertyMap,
   });
-  const regexAst = transform(onigurumaAst, {
+  const regexPlusAst = transform(onigurumaAst, {
     accuracy: opts.accuracy,
     asciiWordBoundaries: opts.rules.asciiWordBoundaries,
     avoidSubclass: opts.avoidSubclass,
     bestEffortTarget: opts.target,
   });
-  const generated = generate(regexAst, opts);
+  const generated = generate(regexPlusAst, opts);
   const recursionResult = recursion(generated.pattern, {
     captureTransfers: generated._captureTransfers,
     hiddenCaptures: generated._hiddenCaptures,
@@ -105,7 +104,7 @@ function toRegExpDetails(pattern, options) {
     const hiddenCaptures = atomicResult.hiddenCaptures.sort((a, b) => a - b);
     // Change the map to the `EmulatedRegExp` format, serializable as JSON
     const transfers = Array.from(atomicResult.captureTransfers);
-    const strategy = regexAst._strategy;
+    const strategy = regexPlusAst._strategy;
     const lazyCompile = details.pattern.length >= opts.lazyCompileLength;
     if (hiddenCaptures.length || transfers.length || strategy || lazyCompile) {
       details.options = {
@@ -120,8 +119,9 @@ function toRegExpDetails(pattern, options) {
 }
 
 // function toOnigurumaAst(pattern, options) {
-//   return parse(tokenize(pattern, options?.flags, options?.rules), {
+//   return parse(pattern, options?.flags, {
 //     normalizeUnknownPropertyNames: true,
+//     rules: options?.rules ?? {},
 //     unicodePropertyMap: JsUnicodePropertyMap,
 //   });
 // }

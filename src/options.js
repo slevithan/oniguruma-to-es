@@ -68,7 +68,7 @@ function getOptions(options = {}) {
       // `^` as `\A`; `$` as`\Z`. Improves search performance of generated regexes without changing
       // meaning if searching line by line. This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
       singleline: false,
-      ...(options.rules),
+      ...options.rules,
     },
   };
   if (opts.target === 'auto') {
