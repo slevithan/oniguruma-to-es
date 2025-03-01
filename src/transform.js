@@ -115,7 +115,7 @@ const FirstPassVisitor = {
       ]);
       const quantifier = createQuantifier(group, 0, Infinity);
       group.parent = quantifier;
-      replaceWith(setParent(prepContainer(createGroup(), [quantifier]), parent));
+      replaceWith(setParent(prepContainer(createGroup(), [quantifier]), parent), {traverse: true});
     } else {
       throw new Error(`Unexpected absent function kind "${kind}"`);
     }
@@ -214,9 +214,7 @@ const FirstPassVisitor = {
   CharacterClassRange({node, parent, replaceWith}) {
     if (parent.kind === AstCharacterClassKinds.intersection) {
       // JS doesn't allow intersection with ranges without a wrapper class
-      replaceWith(setParent(adoptAndSwapKids(createCharacterClass(), [node]), parent));
-      // Technically should call `path.skip` and then `traverseReplacement` for the newly created
-      // char class, but that seems unnecessary
+      replaceWith(setParent(adoptAndSwapKids(createCharacterClass(), [node]), parent), {traverse: true});
     }
   },
 
@@ -292,17 +290,14 @@ const FirstPassVisitor = {
     }
   },
 
-  Directive(path, state) {
-    const {node, parent, ast, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings} = path;
+  Directive({node, parent, ast, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}) {
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
       if (!flags.enable && !flags.disable) {
         // Flag directive without flags; ex: `(?-)`, `(?--)`
         remove();
       } else {
-        const flagGroup = setParent(prepContainer(createGroup({flags}), removeAllNextSiblings()), parent);
-        replaceWith(flagGroup);
-        traverseReplacement(flagGroup, path, state, FirstPassVisitor);
+        replaceWith(setParent(prepContainer(createGroup({flags}), removeAllNextSiblings()), parent), {traverse: true});
       }
     } else if (kind === AstDirectiveKinds.keep) {
       const firstAltFirstEl = ast.pattern.alternatives[0].elements[0];
@@ -482,8 +477,6 @@ const SecondPassVisitor = {
         const recursion = setParent(createRecursion(node.number), parent);
         reffedNodesByReferencer.set(recursion, openRefs.get(node.number));
         replaceWith(recursion);
-        // This node's kids have been removed from the tree, so no need to traverse them
-        skip();
         return;
       }
       openRefs.set(node.number, node);
@@ -578,8 +571,7 @@ const SecondPassVisitor = {
     reffedNodesByReferencer.set(node, reffed);
   },
 
-  Subroutine(path, state) {
-    const {node, parent, replaceWith} = path;
+  Subroutine({node, parent, replaceWith}, state) {
     const {ref} = node;
     const reffedGroupNode = state.subroutineRefMap.get(ref);
     // Other forms of recursion are handled by the `CapturingGroup` visitor
@@ -603,10 +595,7 @@ const SecondPassVisitor = {
         }), [expandedSubroutine]);
       }
     }
-    replaceWith(setParent(replacement, parent));
-    if (!isGlobalRecursion) {
-      traverseReplacement(replacement, path, state, SecondPassVisitor);
-    }
+    replaceWith(setParent(replacement, parent), {traverse: !isGlobalRecursion});
   },
 };
 
@@ -985,17 +974,6 @@ function setNegate(node, negate) {
 function setParent(node, parent) {
   node.parent = parent;
   return node;
-}
-
-function traverseReplacement(replacement, {parent, key, container, ast}, state, visitor) {
-  traverse({
-    // Don't use the `node` from `path`
-    node: replacement,
-    parent,
-    key,
-    container,
-    ast,
-  }, state, visitor);
 }
 
 export {
