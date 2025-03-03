@@ -2,7 +2,7 @@ import {getOptions} from './options.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import {traverse} from 'oniguruma-parser';
-import {AstAssertionKinds, AstCharacterClassKinds, AstCharacterSetKinds, AstLookaroundAssertionKinds, AstTypes, createCharacter} from 'oniguruma-parser/parser';
+import {createCharacter, NodeAssertionKinds, NodeCharacterClassKinds, NodeCharacterSetKinds, NodeLookaroundAssertionKinds, NodeTypes} from 'oniguruma-parser/parser';
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
@@ -78,40 +78,40 @@ function generate(ast, options) {
     state.lastNode = lastNode;
     lastNode = node;
     switch (node.type) {
-      case AstTypes.Regex:
+      case NodeTypes.Regex:
         // Final result is an object; other node types return strings
         return {
           pattern: gen(node.pattern),
           flags: gen(node.flags),
           options: {...node.options},
         };
-      case AstTypes.Alternative:
+      case NodeTypes.Alternative:
         return node.elements.map(gen).join('');
-      case AstTypes.Assertion:
+      case NodeTypes.Assertion:
         return genAssertion(node);
-      case AstTypes.Backreference:
+      case NodeTypes.Backreference:
         return genBackreference(node, state);
-      case AstTypes.CapturingGroup:
+      case NodeTypes.CapturingGroup:
         return genCapturingGroup(node, state, gen);
-      case AstTypes.Character:
+      case NodeTypes.Character:
         return genCharacter(node, state);
-      case AstTypes.CharacterClass:
+      case NodeTypes.CharacterClass:
         return genCharacterClass(node, state, gen);
-      case AstTypes.CharacterClassRange:
+      case NodeTypes.CharacterClassRange:
         return genCharacterClassRange(node, state);
-      case AstTypes.CharacterSet:
+      case NodeTypes.CharacterSet:
         return genCharacterSet(node, state);
-      case AstTypes.Flags:
+      case NodeTypes.Flags:
         return genFlags(node, state);
-      case AstTypes.Group:
+      case NodeTypes.Group:
         return genGroup(node, state, gen);
-      case AstTypes.LookaroundAssertion:
+      case NodeTypes.LookaroundAssertion:
         return genLookaroundAssertion(node, state, gen);
-      case AstTypes.Pattern:
+      case NodeTypes.Pattern:
         return node.alternatives.map(gen).join('|');
-      case AstTypes.Quantifier:
+      case NodeTypes.Quantifier:
         return gen(node.element) + getQuantifierStr(node);
-      case AstTypes.Recursion:
+      case NodeTypes.Recursion:
         return genRecursion(node, state);
       default:
         // Node types `AbsentFunction`, `Directive`, and `Subroutine` are never included in
@@ -178,7 +178,7 @@ const FlagModifierVisitor = {
   },
   CharacterSet({node}, state) {
     if (
-      node.kind === AstCharacterSetKinds.property &&
+      node.kind === NodeCharacterSetKinds.property &&
       UnicodePropertiesWithSpecificCase.has(node.value)
     ) {
       state.setHasCasedChar();
@@ -219,15 +219,15 @@ function charHasCase(char) {
 function genAssertion({kind, negate}) {
   // Can always use `^` and `$` for string boundaries since JS flag m is never relied on; Onig uses
   // different line break chars
-  if (kind === AstAssertionKinds.string_end) {
+  if (kind === NodeAssertionKinds.string_end) {
     return '$';
   }
-  if (kind === AstAssertionKinds.string_start) {
+  if (kind === NodeAssertionKinds.string_start) {
     return '^';
   }
   // If a word boundary came through the transformer unaltered, that means `wordIsAscii` or
   // `asciiWordBoundaries` is enabled
-  if (kind === AstAssertionKinds.word_boundary) {
+  if (kind === NodeAssertionKinds.word_boundary) {
     return negate ? r`\B` : r`\b`;
   }
   // Kinds `grapheme_boundary`, `line_end`, `line_start`, `search_start`, and `string_end_newline`
@@ -272,7 +272,7 @@ function genCapturingGroup(node, state, gen) {
 function genCharacter({value}, state) {
   const char = cp(value);
   const escaped = getCharEscape(value, {
-    escDigit: state.lastNode.type === AstTypes.Backreference,
+    escDigit: state.lastNode.type === NodeTypes.Backreference,
     inCharClass: state.inCharClass,
     useFlagV: state.useFlagV,
   });
@@ -289,7 +289,7 @@ function genCharacter({value}, state) {
 }
 
 function genCharacterClass({kind, negate, parent, elements}, state, gen) {
-  if (kind === AstCharacterClassKinds.intersection && !state.useFlagV) {
+  if (kind === NodeCharacterClassKinds.intersection && !state.useFlagV) {
     throw new Error('Use of class intersection requires min target ES2024');
   }
   // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
@@ -300,7 +300,7 @@ function genCharacterClass({kind, negate, parent, elements}, state, gen) {
     elements.push(createCharacter(45));
   }
   const genClass = () => `[${negate ? '^' : ''}${
-    elements.map(gen).join(kind === AstCharacterClassKinds.intersection ? '&&' : '')
+    elements.map(gen).join(kind === NodeCharacterClassKinds.intersection ? '&&' : '')
   }]`;
   if (!state.inCharClass) {
     // For the outermost char class, set state
@@ -312,28 +312,28 @@ function genCharacterClass({kind, negate, parent, elements}, state, gen) {
   // No first element for implicit class in empty intersection like `[&&]`
   const firstEl = elements[0];
   if (
-    parent.type === AstTypes.CharacterClass &&
-    kind === AstCharacterClassKinds.union &&
+    parent.type === NodeTypes.CharacterClass &&
+    kind === NodeCharacterClassKinds.union &&
     !negate &&
     firstEl &&
     (
       ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
         (!state.useFlagV || !state.verbose) &&
-        parent.kind === AstCharacterClassKinds.union &&
+        parent.kind === NodeCharacterClassKinds.union &&
         !(envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV)
       ) ||
       ( !state.verbose &&
-        parent.kind === AstCharacterClassKinds.intersection &&
+        parent.kind === NodeCharacterClassKinds.intersection &&
         // JS doesn't allow intersection with union or ranges
         elements.length === 1 &&
-        firstEl.type !== AstTypes.CharacterClassRange
+        firstEl.type !== NodeTypes.CharacterClassRange
       )
     )
   ) {
     // Remove unnecessary nesting; unwrap kids into the parent char class
     return elements.map(gen).join('');
   }
-  if (!state.useFlagV && parent.type === AstTypes.CharacterClass) {
+  if (!state.useFlagV && parent.type === NodeTypes.CharacterClass) {
     throw new Error('Use of nested character class requires min target ES2024');
   }
   return genClass();
@@ -367,16 +367,16 @@ function genCharacterClassRange(node, state) {
 }
 
 function genCharacterSet({kind, negate, value, key}, state) {
-  if (kind === AstCharacterSetKinds.dot) {
+  if (kind === NodeCharacterSetKinds.dot) {
     return state.currentFlags.dotAll ?
       ((state.appliedGlobalFlags.dotAll || state.useFlagMods) ? '.' : '[^]') :
       // Onig's only line break char is line feed, unlike JS
       r`[^\n]`;
   }
-  if (kind === AstCharacterSetKinds.digit) {
+  if (kind === NodeCharacterSetKinds.digit) {
     return negate ? r`\D` : r`\d`;
   }
-  if (kind === AstCharacterSetKinds.property) {
+  if (kind === NodeCharacterSetKinds.property) {
     if (
       state.useAppliedIgnoreCase &&
       state.currentFlags.ignoreCase &&
@@ -390,7 +390,7 @@ function genCharacterSet({kind, negate, value, key}, state) {
     }
     return `${negate ? r`\P` : r`\p`}{${key ? `${key}=` : ''}${value}}`;
   }
-  if (kind === AstCharacterSetKinds.word) {
+  if (kind === NodeCharacterSetKinds.word) {
     return negate ? r`\W` : r`\w`;
   }
   // Kinds `grapheme`, `hex`, `newline`, `posix`, and `space` are never included in transformer output
@@ -421,7 +421,7 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
   const result = (
     !state.verbose &&
     alternatives.length === 1 &&
-    parent.type !== AstTypes.Quantifier &&
+    parent.type !== NodeTypes.Quantifier &&
     !atomic &&
     (!state.useFlagMods || !flags)
    ) ? contents : `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${contents})`;
@@ -430,7 +430,7 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
 }
 
 function genLookaroundAssertion({kind, negate, alternatives}, _, gen) {
-  const prefix = `${kind === AstLookaroundAssertionKinds.lookahead ? '' : '<'}${negate ? '!' : '='}`;
+  const prefix = `${kind === NodeLookaroundAssertionKinds.lookahead ? '' : '<'}${negate ? '!' : '='}`;
   return `(?${prefix}${alternatives.map(gen).join('|')})`;
 }
 
@@ -554,9 +554,9 @@ function getQuantifierStr({min, max, kind}) {
 }
 
 function isAnyGroup({type}) {
-  return type === AstTypes.Group ||
-    type === AstTypes.CapturingGroup ||
-    type === AstTypes.LookaroundAssertion;
+  return type === NodeTypes.Group ||
+    type === NodeTypes.CapturingGroup ||
+    type === NodeTypes.LookaroundAssertion;
 }
 
 function isDigitCharCode(value) {
@@ -564,7 +564,7 @@ function isDigitCharCode(value) {
 }
 
 function isLiteralHyphen({type, value}) {
-  return type === AstTypes.Character && value === 45;
+  return type === NodeTypes.Character && value === 45;
 }
 
 export {
