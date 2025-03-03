@@ -12,8 +12,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       oniguruma-parser:
-        specifier: file:../oniguruma-parser
-        version: file:../oniguruma-parser
+        specifier: ^0.1.0
+        version: 0.1.0
       regex:
         specifier: ^6.0.1
         version: 6.0.1
@@ -28,8 +28,8 @@ importers:
         specifier: ^5.6.0
         version: 5.6.0
       typescript:
-        specifier: ^5.7.3
-        version: 5.7.3
+        specifier: ^5.8.2
+        version: 5.8.2
       vscode-oniguruma:
         specifier: ^2.0.1
         version: 2.0.1
@@ -280,8 +280,8 @@ packages:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  oniguruma-parser@file:../oniguruma-parser:
-    resolution: {directory: ../oniguruma-parser, type: directory}
+  oniguruma-parser@0.1.0:
+    resolution: {integrity: sha512-PoU5WXIMoZn/kfaISjELmVd+RSyKjfwlk4ePkaQwo6bsu6/sGGbPDU+x0OPnb/WIXNuAnIACbb5K5PR5iLcFWg==}
 
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
@@ -331,8 +331,8 @@ packages:
     resolution: {integrity: sha512-iq6eVVI64nQQTRYq2KtEg2d2uU7LElhTJwsH4YzIHZshxlgZms/wIc4VoDQTlG/IvVIrBKG06CrZnp0qv7hkcQ==}
     engines: {node: '>=12'}
 
-  typescript@5.7.3:
-    resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
+  typescript@5.8.2:
+    resolution: {integrity: sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -544,7 +544,7 @@ snapshots:
 
   minipass@7.1.2: {}
 
-  oniguruma-parser@file:../oniguruma-parser: {}
+  oniguruma-parser@0.1.0: {}
 
   package-json-from-dist@1.0.1: {}
 
@@ -593,7 +593,7 @@ snapshots:
     dependencies:
       ansi-regex: 6.1.0
 
-  typescript@5.7.3: {}
+  typescript@5.8.2: {}
 
   vscode-oniguruma@2.0.1: {}
 
