@@ -1,5 +1,5 @@
 import {cp, r} from './utils.js';
-import {slug} from 'oniguruma-parser';
+import {slug} from 'oniguruma-parser/unicode';
 
 // `\t\n\v\f\r\x20`
 const asciiSpaceChar = '[\t-\r ]';
@@ -50,7 +50,7 @@ function getIgnoreCaseMatchChars(char) {
 // with an `In_` prefix). See also:
 // - Properties supported in Oniguruma: <github.com/kkos/oniguruma/blob/master/doc/UNICODE_PROPERTIES>
 // - Properties supported in JS by spec version: <github.com/eslint-community/regexpp/blob/main/src/unicode/properties.ts>
-const JsUnicodePropertyMap = new Map(
+const JsUnicodePropertyMap = /* @__PURE__ */ new Map(
 `C Other
 Cc Control cntrl
 Cf Format

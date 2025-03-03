@@ -1,8 +1,8 @@
 import {getOptions} from './options.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
-import {traverse} from 'oniguruma-parser';
 import {createCharacter, NodeAssertionKinds, NodeCharacterClassKinds, NodeCharacterSetKinds, NodeLookaroundAssertionKinds, NodeTypes} from 'oniguruma-parser/parser';
+import {traverse} from 'oniguruma-parser/traverser';
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
