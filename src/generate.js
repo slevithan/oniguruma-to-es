@@ -34,7 +34,7 @@ function generate(ast, options) {
   let hasCaseSensitiveNode = null;
   if (!minTargetEs2025) {
     const iStack = [ast.flags.ignoreCase];
-    traverse({node: ast}, {
+    traverse(ast, FlagModifierVisitor, {
       getCurrentModI: () => iStack.at(-1),
       popModI() {iStack.pop()},
       pushModI(isIOn) {iStack.push(isIOn)},
@@ -45,7 +45,7 @@ function generate(ast, options) {
           hasCaseSensitiveNode = true;
         }
       },
-    }, FlagModifierVisitor);
+    });
   }
 
   const appliedGlobalFlags = {

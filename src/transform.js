@@ -69,7 +69,7 @@ function transform(ast, options) {
     spaceIsAscii: ast.flags.spaceIsAscii,
     wordIsAscii: ast.flags.wordIsAscii,
   };
-  traverse({node: ast}, firstPassState, FirstPassVisitor);
+  traverse(ast, FirstPassVisitor, firstPassState);
   // Global flags modified by the first pass
   const globalFlags = {
     dotAll: ast.flags.dotAll,
@@ -91,14 +91,14 @@ function transform(ast, options) {
     reffedNodesByReferencer: new Map(),
     subroutineRefMap: firstPassState.subroutineRefMap,
   };
-  traverse({node: ast}, secondPassState, SecondPassVisitor);
+  traverse(ast, SecondPassVisitor, secondPassState);
   const thirdPassState = {
     groupsByName: secondPassState.groupsByName,
     highestOrphanBackref: 0,
     numCapturesToLeft: 0,
     reffedNodesByReferencer: secondPassState.reffedNodesByReferencer,
   };
-  traverse({node: ast}, thirdPassState, ThirdPassVisitor);
+  traverse(ast, ThirdPassVisitor, thirdPassState);
   ast._originMap = secondPassState.groupOriginByCopy;
   ast._strategy = firstPassState.strategy;
   return ast;
@@ -145,7 +145,7 @@ const FirstPassVisitor = {
     },
   },
 
-  Assertion({node, parent, key, container, ast, remove, replaceWith}, state) {
+  Assertion({node, parent, key, container, root, remove, replaceWith}, state) {
     const {kind, negate} = node;
     const {asciiWordBoundaries, avoidSubclass, supportedGNodes, wordIsAscii} = state;
     if (kind === AstAssertionKinds.grapheme_boundary) {
@@ -160,7 +160,7 @@ const FirstPassVisitor = {
       replaceWith(setParent(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
     } else if (kind === AstAssertionKinds.search_start) {
       if (supportedGNodes.has(node)) {
-        ast.flags.sticky = true;
+        root.flags.sticky = true;
         remove();
       } else {
         const prev = container[key - 1]; // parent.elements[key - 1]
@@ -290,7 +290,7 @@ const FirstPassVisitor = {
     }
   },
 
-  Directive({node, parent, ast, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}) {
+  Directive({node, parent, root, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}) {
     const {kind, flags} = node;
     if (kind === AstDirectiveKinds.flags) {
       if (!flags.enable && !flags.disable) {
@@ -300,13 +300,13 @@ const FirstPassVisitor = {
         replaceWith(setParent(prepContainer(createGroup({flags}), removeAllNextSiblings()), parent), {traverse: true});
       }
     } else if (kind === AstDirectiveKinds.keep) {
-      const firstAltFirstEl = ast.pattern.alternatives[0].elements[0];
+      const firstAltFirstEl = root.pattern.alternatives[0].elements[0];
       // Supporting a full-pattern wrapper around `\K` enables use with flag modifiers
       const hasWrapperGroup =
         // Not emulatable if within a `CapturingGroup`
-        hasOnlyChild(ast.pattern, kid => kid.type === AstTypes.Group) &&
+        hasOnlyChild(root.pattern, kid => kid.type === AstTypes.Group) &&
         firstAltFirstEl.alternatives.length === 1;
-      const topLevel = hasWrapperGroup ? firstAltFirstEl : ast.pattern;
+      const topLevel = hasWrapperGroup ? firstAltFirstEl : root.pattern;
       if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
@@ -672,9 +672,9 @@ const ThirdPassVisitor = {
   },
 };
 
-// Add `parent` properties to all nodes for easier traversal; also expected by the generator
+// Add `parent` properties to all nodes to help during traversal; also expected by the generator
 function addParentProperties(ast) {
-  traverse({node: ast}, null, {
+  traverse(ast, {
     '*'({node, parent}) {
       node.parent = parent;
     },
