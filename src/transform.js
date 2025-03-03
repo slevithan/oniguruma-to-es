@@ -9,8 +9,8 @@ import {AstAbsentFunctionKinds, AstAssertionKinds, AstCharacterClassKinds, AstCh
 @typedef {
   import('oniguruma-parser/parser').OnigurumaAst & {
     options: {
-      disable: Record<string, boolean>;
-      force: Record<string, boolean>;
+      disable: {[key: string]: boolean};
+      force: {[key: string]: boolean};
     };
     _originMap: Map<
       import('oniguruma-parser/parser').CapturingGroupNode,
