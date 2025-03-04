@@ -183,12 +183,12 @@ const PosixClassMap = new Map([
   ['alpha', r`\p{Alpha}`],
   ['ascii', r`\p{ASCII}`],
   ['blank', r`[\p{Zs}\t]`],
-  ['cntrl', r`\p{cntrl}`],
+  ['cntrl', r`\p{Cc}`],
   ['digit', r`\p{Nd}`],
-  ['graph', r`[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]`],
+  ['graph', r`[\P{space}&&\P{Cc}&&\P{Cn}&&\P{Cs}]`],
   ['lower', r`\p{Lower}`],
-  ['print', r`[[\P{space}&&\P{cntrl}&&\P{Cn}&&\P{Cs}]\p{Zs}]`],
-  ['punct', r`[\p{P}\p{S}]`], // Updated value from Oniguruma 6.9.9
+  ['print', r`[[\P{space}&&\P{Cc}&&\P{Cn}&&\P{Cs}]\p{Zs}]`],
+  ['punct', r`[\p{P}\p{S}]`], // Updated value from Oniguruma 6.9.9; not Unicode `\p{punct}`
   ['space', r`\p{space}`],
   ['upper', r`\p{Upper}`],
   ['word', r`[\p{Alpha}\p{M}\p{Nd}\p{Pc}]`],
