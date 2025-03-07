@@ -12,8 +12,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       oniguruma-parser:
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.5.1
+        version: 0.5.1
       regex:
         specifier: ^6.0.1
         version: 6.0.1
@@ -280,8 +280,8 @@ packages:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  oniguruma-parser@0.1.0:
-    resolution: {integrity: sha512-PoU5WXIMoZn/kfaISjELmVd+RSyKjfwlk4ePkaQwo6bsu6/sGGbPDU+x0OPnb/WIXNuAnIACbb5K5PR5iLcFWg==}
+  oniguruma-parser@0.5.1:
+    resolution: {integrity: sha512-toh0nQscldfzNKW4u86o4UFwXW36b5C67tYiekafLb7gR/qT1aBVm5mUQXlTK4eQJAM7sWUR3GGX1FQDL6T3UQ==}
 
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
@@ -544,7 +544,7 @@ snapshots:
 
   minipass@7.1.2: {}
 
-  oniguruma-parser@0.1.0: {}
+  oniguruma-parser@0.5.1: {}
 
   package-json-from-dist@1.0.1: {}
 
