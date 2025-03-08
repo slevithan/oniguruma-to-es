@@ -1,5 +1,5 @@
 import {cp, r} from './utils.js';
-import {slug} from 'oniguruma-parser/unicode';
+import {slug} from 'oniguruma-parser/parser';
 
 // `\t\n\v\f\r\x20`
 const asciiSpaceChar = '[\t-\r ]';
