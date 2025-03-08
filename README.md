@@ -13,9 +13,9 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 - Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, GitHub, [Shiki](https://shiki.style/), etc.).
 - Share regexes across your Ruby<sup>✳︎</sup> or PHP (`mb_ereg`, etc.) and JavaScript code.
 
-Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **~5% of the size** and its regexes often run much faster since they run as native JavaScript.
+Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **~4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
-> You can further reduce bundle size by precompiling your regexes. In many cases that avoids the need for any runtime dependency. Some regex conversions rely on advanced, subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class is still needed after precompilation.
+> You can further reduce bundle size by precompiling your regexes. In many cases that avoids the need for any runtime dependency. Some regex conversions rely on advanced, subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars.
 
