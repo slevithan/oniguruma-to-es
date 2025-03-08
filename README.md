@@ -15,7 +15,7 @@ An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translat
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **~4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
-> You can further reduce bundle size by precompiling your regexes. In many cases that avoids the need for any runtime dependency. Some regex conversions rely on advanced, subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
+> You can further reduce bundle size by precompiling your regexes. In many cases, that avoids the need for any runtime dependency. Some regex conversions rely on advanced, subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars.
 
@@ -250,13 +250,13 @@ Advanced options that override standard behavior, error checking, and flags when
 
 One of `'auto'` *(default)*, `'ES2025'`, `'ES2024'`, or `'ES2018'`.
 
-JavaScript version used for generated regexes. Using `auto` detects the best value based on your environment. Later targets allow faster processing, simpler generated source, and support for additional features.
+JavaScript version used for generated regexes. Using `auto` detects the best value for your environment. Later targets enable faster transpilation, simpler generated source, and support for additional features.
 
 <details>
   <summary>More details</summary>
 
 - `ES2018`: Uses JS flag `u`.
-  - Emulation restrictions: Character class intersection and nested negated character classes are not allowed.
+  - Emulation restrictions: Character class intersection and nested negated character classes aren't supported.
   - Generated regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case). Minimum requirement for any regex is Node.js 6 or a 2016-era browser.
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
@@ -1002,12 +1002,11 @@ The following throw errors since they aren't yet supported. They're all extremel
   - Rarely-used character specifiers: Non-A-Za-z with `\cx`, `\C-x`; meta `\M-x`, `\M-\C-x`; bracketed octals `\o{…}`; octal UTF-8 encoded bytes (≥ `\200`).
   - Code point sequences: `\x{H H …}`, `\o{O O …}`.
   - Grapheme boundaries: `\y`, `\Y`.
-  - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes).
-  - Whole-pattern modifier: Don't capture group `(?C)`.
+  - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes); whole-pattern modifier `C` (don't capture group).
   - Named callout: `(*FAIL)`.
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
-  - Whole-pattern modifiers: Ignore-case is ASCII `(?I)`, find longest `(?L)`.
+  - Whole-pattern modifiers: `I` (ignore-case is ASCII), `L` (find longest).
   - Named callout pair: `(*SKIP)(*FAIL)`.
 - Not supportable:
   - Other callouts: `(?{…})`, `(*…)`, etc.
