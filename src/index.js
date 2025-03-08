@@ -9,15 +9,16 @@ import {recursion} from 'regex-recursion';
 
 // The validation and transformation for Oniguruma's unique syntax and behavior differences
 // compared to native JS RegExp is layered into all steps of the compilation process:
-// 1. Parser: Builds an Oniguruma AST, with understanding of Oniguruma's many differences from JS.
+// 1. Parser: Uses `oniguruma-parser` to build an Oniguruma AST, which accounts for many
+//    differences between Oniguruma and JS.
 // 2. Transformer: Converts the Oniguruma AST to a Regex+ AST that preserves all Oniguruma
 //    behavior. This is true even in cases of non-native-JS features that are supported by both
 //    Regex+ and Oniguruma but with subtly different behavior in each (subroutines, flag x).
 // 3. Generator: Converts the Regex+ AST to a Regex+ pattern, flags, and options.
-// 4. Postprocessing: Components of the Regex+ libray are used to transpile several remaining
-//    features that aren't native to JS (atomic groups, possessive quantifiers, recursion). Regex+
-//    uses a strict superset of JS RegExp syntax, so using it allows this library to benefit from
-//    not reinventing the wheel for complex features that it already knows how to transpile to JS.
+// 4. Postprocessing: Regex+ internals and plugins are used to transpile several remaining features
+//    (atomic groups, possessive quantifiers, recursion). Regex+ uses a strict superset of JS
+//    RegExp syntax, so using it allows this library to benefit from not reinventing the wheel for
+//    complex features that Regex+ already knows how to transpile to JS.
 
 /**
 @typedef {{
