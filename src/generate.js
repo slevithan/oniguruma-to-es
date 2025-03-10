@@ -1,7 +1,7 @@
 import {getOptions} from './options.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
-import {createCharacter, NodeAssertionKinds, NodeCharacterClassKinds, NodeCharacterSetKinds, NodeLookaroundAssertionKinds, NodeTypes} from 'oniguruma-parser/parser';
+import {createAlternative, createCharacter, createGroup, NodeAssertionKinds, NodeCharacterClassKinds, NodeCharacterSetKinds, NodeLookaroundAssertionKinds, NodeTypes} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
@@ -288,7 +288,9 @@ function genCharacter({value}, state) {
   return char;
 }
 
-function genCharacterClass({kind, negate, parent, elements}, state, gen) {
+function genCharacterClass(node, state, gen) {
+  const {kind, negate, parent} = node;
+  let {elements} = node;
   if (kind === NodeCharacterClassKinds.intersection && !state.useFlagV) {
     throw new Error('Use of class intersection requires min target ES2024');
   }
@@ -296,13 +298,42 @@ function genCharacterClass({kind, negate, parent, elements}, state, gen) {
   // <github.com/slevithan/oniguruma-to-es/issues/30>
   if (envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV && elements.some(isLiteralHyphen)) {
     // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
-    elements = elements.filter(node => !isLiteralHyphen(node));
+    elements = elements.filter(kid => !isLiteralHyphen(kid));
     elements.push(createCharacter(45));
   }
   const genClass = () => `[${negate ? '^' : ''}${
     elements.map(gen).join(kind === NodeCharacterClassKinds.intersection ? '&&' : '')
   }]`;
   if (!state.inCharClass) {
+    // Hack to support top-level-nested, negated classes in non-negated classes with target ES2018.
+    // Already established that this isn't an intersection class if `!state.useFlagV`, so don't check again
+    if (!state.useFlagV && !negate) {
+      const negatedChildClasses = elements.filter(
+        kid => kid.type === NodeTypes.CharacterClass && kid.kind === NodeCharacterClassKinds.union && kid.negate
+      );
+      if (negatedChildClasses.length) {
+        const group = createGroup();
+        const groupFirstAlt = group.alternatives[0];
+        group.parent = parent;
+        groupFirstAlt.parent = group;
+        elements = elements.filter(kid => !negatedChildClasses.includes(kid));
+        node.elements = elements;
+        if (elements.length) {
+          node.parent = groupFirstAlt;
+          groupFirstAlt.elements.push(node);
+        } else {
+          group.alternatives.pop();
+        }
+        negatedChildClasses.forEach(cc => {
+          const newAlt = createAlternative();
+          newAlt.parent = group;
+          cc.parent = newAlt;
+          newAlt.elements.push(cc);
+          group.alternatives.push(newAlt);
+        });
+        return gen(group);
+      }
+    }
     // For the outermost char class, set state
     state.inCharClass = true;
     const result = genClass();
@@ -312,7 +343,7 @@ function genCharacterClass({kind, negate, parent, elements}, state, gen) {
   // No first element for implicit class in empty intersection like `[&&]`
   const firstEl = elements[0];
   if (
-    parent.type === NodeTypes.CharacterClass &&
+    // Already established that the parent is a char class via `inCharClass`, so don't check again
     kind === NodeCharacterClassKinds.union &&
     !negate &&
     firstEl &&
