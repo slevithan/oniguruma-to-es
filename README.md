@@ -7,19 +7,19 @@
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![bundle][bundle-src]][bundle-href]
 
-An **[Oniguruma](https://github.com/kkos/oniguruma) to JavaScript regex translator** that runs in the browser and on your server. Use it to:
+[Oniguruma](https://github.com/kkos/oniguruma) is an advanced regular expression engine written in C that's used in Ruby (via a fork named Onigmo), PHP (`mb_ereg`, etc.), TextMate grammars (used by VS Code, GitHub, [Shiki](https://shiki.style/), etc. for syntax highlighting), and many other tools.
+
+Oniguruma-To-ES is an **Oniguruma to JavaScript regex translator** that runs in the browser and on your server. Use it to:
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
-- Run regexes written for Oniguruma from JavaScript, such as those used in TextMate grammars (used by VS Code, GitHub, [Shiki](https://shiki.style/), etc.).
-- Share regexes across your Ruby<sup>✳︎</sup> or PHP (`mb_ereg`, etc.) and JavaScript code.
+- Run regexes written for Oniguruma from JavaScript.
+- Share regexes across your Ruby or PHP and JavaScript code.
 
 Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is **~4% of the size** and its regexes often run much faster since they run as native JavaScript.
 
 > You can further reduce bundle size by precompiling your regexes. In many cases, that avoids the need for any runtime dependency. Some regex conversions rely on advanced, subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
 
-Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It uses [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) to build an AST, as part of the transpilation process.
-
-<sup>✳︎: Ruby 2.0+ uses [Onigmo](https://github.com/k-takata/Onigmo), a fork of Oniguruma with similar syntax and behavior.</sup>
+Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It uses [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex), under the hood.
 
 ## 🔮 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
