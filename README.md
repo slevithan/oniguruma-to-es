@@ -19,7 +19,7 @@ Compared to running the Oniguruma C library via WASM bindings using [vscode-onig
 
 > You can further reduce bundle size by precompiling your regexes. In many cases, that avoids the need for any runtime dependency. Some regex conversions rely on subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
 
-Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It uses [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex), under the hood.
+Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have **exactly the same behavior**, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It's built on top of [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex).
 
 ## 🔮 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
