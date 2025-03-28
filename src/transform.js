@@ -2,20 +2,21 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, NodeAbsentFunctionKinds, NodeAssertionKinds, NodeCharacterClassKinds, NodeCharacterSetKinds, NodeDirectiveKinds, NodeLookaroundAssertionKinds, NodeTypes, parse, slug} from 'oniguruma-parser/parser';
+import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse, slug} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
+@import {AbsentFunctionNode, AlternativeContainerNode, AlternativeElementNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
+*/
+
+/**
 @typedef {
-  import('oniguruma-parser/parser').OnigurumaAst & {
+  OnigurumaAst & {
     options: {
       disable: {[key: string]: boolean};
       force: {[key: string]: boolean};
     };
-    _originMap: Map<
-      import('oniguruma-parser/parser').CapturingGroupNode,
-      import('oniguruma-parser/parser').CapturingGroupNode
-    >;
+    _originMap: Map<CapturingGroupNode, CapturingGroupNode>;
     _strategy: string?;
   }
 } RegexPlusAst
@@ -29,7 +30,7 @@ to representing native ES2025 `RegExp` but with some added features (atomic grou
 quantifiers, recursion). The AST doesn't use some of Regex+'s extended features like flag x or
 subroutines because they follow PCRE behavior and work somewhat differently than in Oniguruma. The
 AST represents what's needed to precisely reproduce Oniguruma behavior using Regex+.
-@param {import('oniguruma-parser/parser').OnigurumaAst} ast
+@param {OnigurumaAst} ast
 @param {{
   accuracy?: keyof Accuracy;
   asciiWordBoundaries?: boolean;
@@ -105,15 +106,18 @@ function transform(ast, options) {
 }
 
 const FirstPassVisitor = {
+  /**
+  @param {{node: AbsentFunctionNode}} path
+  */
   AbsentFunction({node, parent, replaceWith}) {
     const {kind, alternatives} = node;
-    if (kind === NodeAbsentFunctionKinds.repeater) {
+    if (kind === 'repeater') {
       // Convert `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
       const group = prepContainer(createGroup(), [
         adoptAndSwapKids(createLookaroundAssertion({negate: true}), alternatives),
         createUnicodeProperty('Any'),
       ]);
-      const quantifier = createQuantifier(group, 0, Infinity);
+      const quantifier = createQuantifier('greedy', 0, Infinity, group);
       group.parent = quantifier;
       replaceWith(setParent(prepContainer(createGroup(), [quantifier]), parent), {traverse: true});
     } else {
@@ -125,7 +129,7 @@ const FirstPassVisitor = {
     enter({node, parent, key}, {flagDirectivesByAlt}) {
       // Look for own-level flag directives when entering an alternative because after traversing
       // the directive itself, any subsequent flag directives will no longer be at the same level
-      const flagDirectives = node.elements.filter(el => el.kind === NodeDirectiveKinds.flags);
+      const flagDirectives = node.elements.filter(el => el.kind === 'flags');
       for (let i = key + 1; i < parent.alternatives.length; i++) {
         const forwardSiblingAlt = parent.alternatives[i];
         getOrInsert(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
@@ -145,20 +149,23 @@ const FirstPassVisitor = {
     },
   },
 
+  /**
+  @param {{node: AssertionNode}} path
+  */
   Assertion({node, parent, key, container, root, remove, replaceWith}, state) {
     const {kind, negate} = node;
     const {asciiWordBoundaries, avoidSubclass, supportedGNodes, wordIsAscii} = state;
-    if (kind === NodeAssertionKinds.grapheme_boundary) {
+    if (kind === 'grapheme_boundary') {
       // Supported by the parser but not yet for transpilation
       throw new Error(`Unsupported grapheme boundary "\\${negate ? 'Y' : 'y'}"`);
-    } else if (kind === NodeAssertionKinds.line_end) {
+    } else if (kind === 'line_end') {
       // Onig's only line break char is line feed, unlike JS
       replaceWith(setParent(parseFragment(r`(?=\z|\n)`), parent));
-    } else if (kind === NodeAssertionKinds.line_start) {
+    } else if (kind === 'line_start') {
       // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
       // string-terminating line feed
       replaceWith(setParent(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
-    } else if (kind === NodeAssertionKinds.search_start) {
+    } else if (kind === 'search_start') {
       if (supportedGNodes.has(node)) {
         root.flags.sticky = true;
         remove();
@@ -172,15 +179,15 @@ const FirstPassVisitor = {
         } else if (avoidSubclass) {
           throw new Error(r`Uses "\G" in a way that requires a subclass`);
         } else {
-          replaceWith(setParent(createAssertion(NodeAssertionKinds.string_start), parent));
+          replaceWith(setParent(createAssertion('string_start'), parent));
           state.strategy = 'clip_search';
         }
       }
-    } else if (kind === NodeAssertionKinds.string_end || kind === NodeAssertionKinds.string_start) {
+    } else if (kind === 'string_end' || kind === 'string_start') {
       // Don't need transformation since JS flag m isn't used
-    } else if (kind === NodeAssertionKinds.string_end_newline) {
+    } else if (kind === 'string_end_newline') {
       replaceWith(setParent(parseFragment(r`(?=\n?\z)`), parent));
-    } else if (kind === NodeAssertionKinds.word_boundary) {
+    } else if (kind === 'word_boundary') {
       if (!wordIsAscii && !asciiWordBoundaries) {
         const b = `(?:(?<=${defaultWordChar})(?!${defaultWordChar})|(?<!${defaultWordChar})(?=${defaultWordChar}))`;
         const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
@@ -211,37 +218,43 @@ const FirstPassVisitor = {
     }
   },
 
+  /**
+  @param {{parent: CharacterClassNode}} path
+  */
   CharacterClassRange({node, parent, replaceWith}) {
-    if (parent.kind === NodeCharacterClassKinds.intersection) {
+    if (parent.kind === 'intersection') {
       // JS doesn't allow intersection with ranges without a wrapper class
       replaceWith(setParent(adoptAndSwapKids(createCharacterClass(), [node]), parent), {traverse: true});
     }
   },
 
+  /**
+  @param {{node: CharacterSetNode}} path
+  */
   CharacterSet({node, parent, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
     const {kind, negate, value} = node;
     // Flag D with `\d`, `\p{Digit}`, `[[:digit:]]`
-    if (digitIsAscii && (kind === NodeCharacterSetKinds.digit || value === 'digit')) {
-      replaceWith(setParent(createCharacterSet(NodeCharacterSetKinds.digit, {negate}), parent));
+    if (digitIsAscii && (kind === 'digit' || value === 'digit')) {
+      replaceWith(setParent(createCharacterSet('digit', {negate}), parent));
       return;
     }
     // Flag S with `\s`, `\p{Space}`, `[[:space:]]`
-    if (spaceIsAscii && (kind === NodeCharacterSetKinds.space || value === 'space')) {
+    if (spaceIsAscii && (kind === 'space' || value === 'space')) {
       replaceWith(setParent(setNegate(parseFragment(asciiSpaceChar), negate), parent));
       return;
     }
     // Flag W with `\w`, `\p{Word}`, `[[:word:]]`
-    if (wordIsAscii && (kind === NodeCharacterSetKinds.word || value === 'word')) {
-      replaceWith(setParent(createCharacterSet(NodeCharacterSetKinds.word, {negate}), parent));
+    if (wordIsAscii && (kind === 'word' || value === 'word')) {
+      replaceWith(setParent(createCharacterSet('word', {negate}), parent));
       return;
     }
-    if (kind === NodeCharacterSetKinds.any) {
+    if (kind === 'any') {
       replaceWith(setParent(createUnicodeProperty('Any'), parent));
-    } else if (kind === NodeCharacterSetKinds.digit) {
+    } else if (kind === 'digit') {
       replaceWith(setParent(createUnicodeProperty('Nd', {negate}), parent));
-    } else if (kind === NodeCharacterSetKinds.dot) {
-      // Doesn't need transformation
-    } else if (kind === NodeCharacterSetKinds.grapheme) {
+    } else if (kind === 'dot') {
+      // No-op; doesn't need transformation
+    } else if (kind === 'grapheme') {
       if (accuracy === 'strict') {
         throw new Error(r`Use of "\X" requires non-strict accuracy`);
       }
@@ -252,11 +265,11 @@ const FirstPassVisitor = {
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
       // Skip property name validation to allow `RGI_Emoji` through, since Onig doesn't support it
       replaceWith(setParent(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}), parent));
-    } else if (kind === NodeCharacterSetKinds.hex) {
+    } else if (kind === 'hex') {
       replaceWith(setParent(createUnicodeProperty('AHex', {negate}), parent));
-    } else if (kind === NodeCharacterSetKinds.newline) {
+    } else if (kind === 'newline') {
       replaceWith(setParent(parseFragment(negate ? '[^\n]' : '(?>\r\n?|[\n\v\f\x85\u2028\u2029])'), parent));
-    } else if (kind === NodeCharacterSetKinds.posix) {
+    } else if (kind === 'posix') {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (accuracy === 'strict') {
           throw new Error(`POSIX class "${value}" requires min target ES2024 or non-strict accuracy`);
@@ -274,37 +287,40 @@ const FirstPassVisitor = {
       } else {
         replaceWith(setParent(setNegate(parseFragment(PosixClassMap.get(value)), negate), parent));
       }
-    } else if (kind === NodeCharacterSetKinds.property) {
+    } else if (kind === 'property') {
       if (!JsUnicodePropertyMap.has(slug(value))) {
         // Assume it's a script; no error checking is the price for avoiding heavyweight Unicode
         // data for all script names
         node.key = 'sc';
       }
-    } else if (kind === NodeCharacterSetKinds.space) {
+    } else if (kind === 'space') {
       // Can't use JS's Unicode-based `\s` since unlike Onig it includes `\uFEFF`, excludes `\x85`
       replaceWith(setParent(createUnicodeProperty('space', {negate}), parent));
-    } else if (kind === NodeCharacterSetKinds.word) {
+    } else if (kind === 'word') {
       replaceWith(setParent(setNegate(parseFragment(defaultWordChar), negate), parent));
     } else {
       throw new Error(`Unexpected character set kind "${kind}"`);
     }
   },
 
+  /**
+  @param {{node: DirectiveNode}} path
+  */
   Directive({node, parent, root, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}) {
     const {kind, flags} = node;
-    if (kind === NodeDirectiveKinds.flags) {
+    if (kind === 'flags') {
       if (!flags.enable && !flags.disable) {
         // Flag directive without flags; ex: `(?-)`, `(?--)`
         remove();
       } else {
         replaceWith(setParent(prepContainer(createGroup({flags}), removeAllNextSiblings()), parent), {traverse: true});
       }
-    } else if (kind === NodeDirectiveKinds.keep) {
+    } else if (kind === 'keep') {
       const firstAltFirstEl = root.pattern.alternatives[0].elements[0];
       // Supporting a full-pattern wrapper around `\K` enables use with flag modifiers
       const hasWrapperGroup =
         // Not emulatable if within a `CapturingGroup`
-        hasOnlyChild(root.pattern, kid => kid.type === NodeTypes.Group) &&
+        hasOnlyChild(root.pattern, kid => kid.type === 'Group') &&
         firstAltFirstEl.alternatives.length === 1;
       const topLevel = hasWrapperGroup ? firstAltFirstEl : root.pattern;
       if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
@@ -378,9 +394,12 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
+  /**
+  @param {{node: LookaroundAssertionNode}} path
+  */
   LookaroundAssertion({node}, state) {
     const {kind} = node;
-    if (kind === NodeLookaroundAssertionKinds.lookbehind) {
+    if (kind === 'lookbehind') {
       state.passedLookbehind = true;
     }
   },
@@ -394,7 +413,7 @@ const FirstPassVisitor = {
       let hasAltWithLeadG = false;
       let hasAltWithoutLeadG = false;
       for (const alt of node.alternatives) {
-        if (alt.elements.length === 1 && alt.elements[0].kind === NodeAssertionKinds.search_start) {
+        if (alt.elements.length === 1 && alt.elements[0].kind === 'search_start') {
           // Remove the `\G` (leaving behind an empty alternative, and without adding JS flag y)
           // since a top-level alternative that includes only `\G` always matches at the start of the
           // match attempt. Note that this is based on Oniguruma's rules, and is different than other
@@ -425,8 +444,11 @@ const FirstPassVisitor = {
     },
   },
 
+  /**
+  @param {{node: QuantifierNode}} path
+  */
   Quantifier({node}) {
-    if (node.element.type === NodeTypes.Quantifier) {
+    if (node.element.type === 'Quantifier') {
       // Change e.g. `a**` to `(?:a*)*`
       const group = setParent(prepContainer(createGroup(), [node.element]), node);
       node.element = group;
@@ -562,7 +584,7 @@ const SecondPassVisitor = {
     // Immediate parent is an alternative or quantifier; can skip
     let reffed = parent;
     while ((reffed = reffed.parent)) {
-      if (reffed.type === NodeTypes.CapturingGroup && (reffed.name === ref || reffed.number === ref)) {
+      if (reffed.type === 'CapturingGroup' && (reffed.name === ref || reffed.number === ref)) {
         break;
       }
     }
@@ -584,7 +606,7 @@ const SecondPassVisitor = {
     if (!isGlobalRecursion) {
       // Subroutines take their flags from the reffed group, not the flags surrounding themselves
       const reffedGroupFlagMods = getCombinedFlagModsFromFlagNodes(getAllParents(reffedGroupNode, node => {
-        return node.type === NodeTypes.Group && !!node.flags;
+        return node.type === 'Group' && !!node.flags;
       }));
       const reffedGroupFlags = reffedGroupFlagMods ?
         getNewCurrentFlags(state.globalFlags, reffedGroupFlagMods) :
@@ -696,11 +718,11 @@ function canParticipateWithNode(capture, node) {
   // (parent's prev sibling descendants) the tree in a loop
   let rightmostPoint = node;
   do {
-    if (rightmostPoint.type === NodeTypes.Pattern) {
+    if (rightmostPoint.type === 'Pattern') {
       // End of the line; capture is not in node's alternation path
       return false;
     }
-    if (rightmostPoint.type === NodeTypes.Alternative) {
+    if (rightmostPoint.type === 'Alternative') {
       // Skip past alts to their parent because we don't want to look at the kids of preceding alts
       continue;
     }
@@ -737,7 +759,7 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
     } else if (value && typeof value === 'object') {
       store[key] = cloneCapturingGroup(value, originMap, store, up);
     } else {
-      if (key === 'type' && value === NodeTypes.CapturingGroup) {
+      if (key === 'type' && value === 'CapturingGroup') {
         // Key is the copied node, value is the origin node
         originMap.set(store, originMap.get(obj) ?? obj);
       }
@@ -750,7 +772,7 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
 // `Recursion` nodes are used only by the transformer
 function createRecursion(ref) {
   return {
-    type: NodeTypes.Recursion,
+    type: 'Recursion',
     ref,
   };
 }
@@ -834,7 +856,7 @@ function getKids(node) {
   }
   // [NOTE] Not handling `Regex` kids (`pattern`, `flags`) and `CharacterClassRange` kids (`min`,
   // `max`) only because not needed by current callers
-  if (node.type === NodeTypes.Quantifier) {
+  if (node.type === 'Quantifier') {
     return [node.element];
   }
   const accessor = getContainerAccessor(node);
@@ -843,20 +865,20 @@ function getKids(node) {
 
 function getLeadingG(els) {
   const firstToConsider = els.find(el => (
-    el.kind === NodeAssertionKinds.search_start ||
+    el.kind === 'search_start' ||
     isLoneGLookaround(el, {negate: false}) ||
     !isAlwaysZeroLength(el)
   ));
   if (!firstToConsider) {
     return null;
   }
-  if (firstToConsider.kind === NodeAssertionKinds.search_start) {
+  if (firstToConsider.kind === 'search_start') {
     return firstToConsider;
   }
-  if (firstToConsider.type === NodeTypes.LookaroundAssertion) {
+  if (firstToConsider.type === 'LookaroundAssertion') {
     return firstToConsider.alternatives[0].elements[0];
   }
-  if (firstToConsider.type === NodeTypes.CapturingGroup || firstToConsider.type === NodeTypes.Group) {
+  if (firstToConsider.type === 'CapturingGroup' || firstToConsider.type === 'Group') {
     const gNodesForGroup = [];
     // Recursively find `\G` nodes for all alternatives in the group
     for (const alt of firstToConsider.alternatives) {
@@ -890,8 +912,8 @@ function hasDescendant(node, descendant) {
 /**
 Check whether the node has exactly one alternative with one child element, and optionally that the
 child satisfies a condition.
-@param {import('oniguruma-parser/parser').AlternativeContainerNode} node
-@param {(node: import('oniguruma-parser/parser').AlternativeElementNode) => boolean} [kidFn]
+@param {AlternativeContainerNode} node
+@param {(node: AlternativeElementNode) => boolean} [kidFn]
 @returns {boolean}
 */
 function hasOnlyChild({alternatives}, kidFn) {
@@ -902,20 +924,30 @@ function hasOnlyChild({alternatives}, kidFn) {
   );
 }
 
+/**
+@param {Node} node
+@returns {boolean}
+*/
 function isAlwaysZeroLength({type}) {
-  return type === NodeTypes.Assertion ||
-    type === NodeTypes.Directive ||
-    type === NodeTypes.LookaroundAssertion;
+  return (
+    type === 'Assertion' ||
+    type === 'Directive' ||
+    type === 'LookaroundAssertion'
+  );
 }
 
+/**
+@param {Node} node
+@returns {boolean}
+*/
 function isAlwaysNonZeroLength(node) {
   const types = [
-    NodeTypes.Character,
-    NodeTypes.CharacterClass,
-    NodeTypes.CharacterSet,
+    'Character',
+    'CharacterClass',
+    'CharacterSet',
   ];
   return types.includes(node.type) || (
-    node.type === NodeTypes.Quantifier &&
+    node.type === 'Quantifier' &&
     node.min &&
     types.includes(node.element.type)
   );
@@ -927,9 +959,9 @@ function isLoneGLookaround(node, options) {
     ...options,
   };
   return (
-    node.type === NodeTypes.LookaroundAssertion &&
+    node.type === 'LookaroundAssertion' &&
     (opts.negate === null || node.negate === opts.negate) &&
-    hasOnlyChild(node, kid => kid.kind === NodeAssertionKinds.search_start)
+    hasOnlyChild(node, kid => kid.kind === 'search_start')
   );
 }
 

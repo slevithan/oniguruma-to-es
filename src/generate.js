@@ -1,8 +1,12 @@
 import {getOptions} from './options.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
-import {createAlternative, createCharacter, createGroup, NodeAssertionKinds, NodeCharacterClassKinds, NodeCharacterSetKinds, NodeLookaroundAssertionKinds, NodeTypes} from 'oniguruma-parser/parser';
+import {createAlternative, createCharacter, createGroup} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
+
+/**
+@import {AssertionNode, CharacterClassNode, CharacterSetNode, LookaroundAssertionNode, Node} from 'oniguruma-parser/parser';
+*/
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
@@ -56,7 +60,7 @@ function generate(ast, options) {
     //   forced without the use of ES2025 flag groups)
     ignoreCase: !!((ast.flags.ignoreCase || hasCaseInsensitiveNode) && !hasCaseSensitiveNode),
   };
-  let lastNode = null;
+  let /** @type {Node} */ lastNode = null;
   const state = {
     accuracy: opts.accuracy,
     appliedGlobalFlags,
@@ -74,44 +78,44 @@ function generate(ast, options) {
     useFlagV: minTargetEs2024,
     verbose: opts.verbose,
   };
-  function gen(node) {
+  function gen(/** @type {Node} */ node) {
     state.lastNode = lastNode;
     lastNode = node;
     switch (node.type) {
-      case NodeTypes.Regex:
+      case 'Regex':
         // Final result is an object; other node types return strings
         return {
           pattern: gen(node.pattern),
           flags: gen(node.flags),
           options: {...node.options},
         };
-      case NodeTypes.Alternative:
+      case 'Alternative':
         return node.elements.map(gen).join('');
-      case NodeTypes.Assertion:
+      case 'Assertion':
         return genAssertion(node);
-      case NodeTypes.Backreference:
+      case 'Backreference':
         return genBackreference(node, state);
-      case NodeTypes.CapturingGroup:
+      case 'CapturingGroup':
         return genCapturingGroup(node, state, gen);
-      case NodeTypes.Character:
+      case 'Character':
         return genCharacter(node, state);
-      case NodeTypes.CharacterClass:
+      case 'CharacterClass':
         return genCharacterClass(node, state, gen);
-      case NodeTypes.CharacterClassRange:
+      case 'CharacterClassRange':
         return genCharacterClassRange(node, state);
-      case NodeTypes.CharacterSet:
+      case 'CharacterSet':
         return genCharacterSet(node, state);
-      case NodeTypes.Flags:
+      case 'Flags':
         return genFlags(node, state);
-      case NodeTypes.Group:
+      case 'Group':
         return genGroup(node, state, gen);
-      case NodeTypes.LookaroundAssertion:
+      case 'LookaroundAssertion':
         return genLookaroundAssertion(node, state, gen);
-      case NodeTypes.Pattern:
+      case 'Pattern':
         return node.alternatives.map(gen).join('|');
-      case NodeTypes.Quantifier:
+      case 'Quantifier':
         return gen(node.element) + getQuantifierStr(node);
-      case NodeTypes.Recursion:
+      case 'Recursion':
         return genRecursion(node, state);
       default:
         // Node types `AbsentFunction`, `Directive`, and `Subroutine` are never included in
@@ -176,9 +180,12 @@ const FlagModifierVisitor = {
       state.setHasCasedChar();
     }
   },
+  /**
+  @param {{node: CharacterSetNode}} path
+  */
   CharacterSet({node}, state) {
     if (
-      node.kind === NodeCharacterSetKinds.property &&
+      node.kind === 'property' &&
       UnicodePropertiesWithSpecificCase.has(node.value)
     ) {
       state.setHasCasedChar();
@@ -216,18 +223,22 @@ function charHasCase(char) {
   return casedRe.test(char);
 }
 
+/**
+@param {AssertionNode} node
+@returns {string}
+*/
 function genAssertion({kind, negate}) {
   // Can always use `^` and `$` for string boundaries since JS flag m is never relied on; Onig uses
   // different line break chars
-  if (kind === NodeAssertionKinds.string_end) {
+  if (kind === 'string_end') {
     return '$';
   }
-  if (kind === NodeAssertionKinds.string_start) {
+  if (kind === 'string_start') {
     return '^';
   }
   // If a word boundary came through the transformer unaltered, that means `wordIsAscii` or
   // `asciiWordBoundaries` is enabled
-  if (kind === NodeAssertionKinds.word_boundary) {
+  if (kind === 'word_boundary') {
     return negate ? r`\B` : r`\b`;
   }
   // Kinds `grapheme_boundary`, `line_end`, `line_start`, `search_start`, and `string_end_newline`
@@ -272,7 +283,7 @@ function genCapturingGroup(node, state, gen) {
 function genCharacter({value}, state) {
   const char = cp(value);
   const escaped = getCharEscape(value, {
-    escDigit: state.lastNode.type === NodeTypes.Backreference,
+    escDigit: state.lastNode.type === 'Backreference',
     inCharClass: state.inCharClass,
     useFlagV: state.useFlagV,
   });
@@ -288,10 +299,14 @@ function genCharacter({value}, state) {
   return char;
 }
 
+/**
+@param {CharacterClassNode} node
+@returns {string}
+*/
 function genCharacterClass(node, state, gen) {
   const {kind, negate, parent} = node;
   let {elements} = node;
-  if (kind === NodeCharacterClassKinds.intersection && !state.useFlagV) {
+  if (kind === 'intersection' && !state.useFlagV) {
     throw new Error('Use of class intersection requires min target ES2024');
   }
   // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
@@ -302,14 +317,14 @@ function genCharacterClass(node, state, gen) {
     elements.push(createCharacter(45));
   }
   const genClass = () => `[${negate ? '^' : ''}${
-    elements.map(gen).join(kind === NodeCharacterClassKinds.intersection ? '&&' : '')
+    elements.map(gen).join(kind === 'intersection' ? '&&' : '')
   }]`;
   if (!state.inCharClass) {
     // Hack to support top-level-nested, negated classes in non-negated classes with target ES2018.
     // Already established that this isn't an intersection class if `!state.useFlagV`, so don't check again
     if (!state.useFlagV && !negate) {
       const negatedChildClasses = elements.filter(
-        kid => kid.type === NodeTypes.CharacterClass && kid.kind === NodeCharacterClassKinds.union && kid.negate
+        kid => kid.type === 'CharacterClass' && kid.kind === 'union' && kid.negate
       );
       if (negatedChildClasses.length) {
         const group = createGroup();
@@ -344,27 +359,27 @@ function genCharacterClass(node, state, gen) {
   const firstEl = elements[0];
   if (
     // Already established that the parent is a char class via `inCharClass`, so don't check again
-    kind === NodeCharacterClassKinds.union &&
+    kind === 'union' &&
     !negate &&
     firstEl &&
     (
       ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
         (!state.useFlagV || !state.verbose) &&
-        parent.kind === NodeCharacterClassKinds.union &&
+        parent.kind === 'union' &&
         !(envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV)
       ) ||
       ( !state.verbose &&
-        parent.kind === NodeCharacterClassKinds.intersection &&
+        parent.kind === 'intersection' &&
         // JS doesn't allow intersection with union or ranges
         elements.length === 1 &&
-        firstEl.type !== NodeTypes.CharacterClassRange
+        firstEl.type !== 'CharacterClassRange'
       )
     )
   ) {
     // Remove unnecessary nesting; unwrap kids into the parent char class
     return elements.map(gen).join('');
   }
-  if (!state.useFlagV && parent.type === NodeTypes.CharacterClass) {
+  if (!state.useFlagV && parent.type === 'CharacterClass') {
     throw new Error('Use of nested character class requires min target ES2024');
   }
   return genClass();
@@ -397,17 +412,21 @@ function genCharacterClassRange(node, state) {
   return `${minStr}-${maxStr}${[...extraChars].join('')}`;
 }
 
+/**
+@param {CharacterSetNode} node
+@returns {string}
+*/
 function genCharacterSet({kind, negate, value, key}, state) {
-  if (kind === NodeCharacterSetKinds.dot) {
+  if (kind === 'dot') {
     return state.currentFlags.dotAll ?
       ((state.appliedGlobalFlags.dotAll || state.useFlagMods) ? '.' : '[^]') :
       // Onig's only line break char is line feed, unlike JS
       r`[^\n]`;
   }
-  if (kind === NodeCharacterSetKinds.digit) {
+  if (kind === 'digit') {
     return negate ? r`\D` : r`\d`;
   }
-  if (kind === NodeCharacterSetKinds.property) {
+  if (kind === 'property') {
     if (
       state.useAppliedIgnoreCase &&
       state.currentFlags.ignoreCase &&
@@ -421,7 +440,7 @@ function genCharacterSet({kind, negate, value, key}, state) {
     }
     return `${negate ? r`\P` : r`\p`}{${key ? `${key}=` : ''}${value}}`;
   }
-  if (kind === NodeCharacterSetKinds.word) {
+  if (kind === 'word') {
     return negate ? r`\W` : r`\w`;
   }
   // Kinds `grapheme`, `hex`, `newline`, `posix`, and `space` are never included in transformer output
@@ -452,7 +471,7 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
   const result = (
     !state.verbose &&
     alternatives.length === 1 &&
-    parent.type !== NodeTypes.Quantifier &&
+    parent.type !== 'Quantifier' &&
     !atomic &&
     (!state.useFlagMods || !flags)
    ) ? contents : `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${contents})`;
@@ -460,8 +479,12 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
   return result;
 }
 
+/**
+@param {LookaroundAssertionNode} node
+@returns {string}
+*/
 function genLookaroundAssertion({kind, negate, alternatives}, _, gen) {
-  const prefix = `${kind === NodeLookaroundAssertionKinds.lookahead ? '' : '<'}${negate ? '!' : '='}`;
+  const prefix = `${kind === 'lookahead' ? '' : '<'}${negate ? '!' : '='}`;
   return `(?${prefix}${alternatives.map(gen).join('|')})`;
 }
 
@@ -584,18 +607,26 @@ function getQuantifierStr({min, max, kind}) {
   }[kind];
 }
 
+/**
+@param {Node} node
+@returns {boolean}
+*/
 function isAnyGroup({type}) {
-  return type === NodeTypes.Group ||
-    type === NodeTypes.CapturingGroup ||
-    type === NodeTypes.LookaroundAssertion;
+  return type === 'CapturingGroup' ||
+    type === 'Group' ||
+    type === 'LookaroundAssertion';
 }
 
 function isDigitCharCode(value) {
   return value > 47 && value < 58;
 }
 
+/**
+@param {Node} node
+@returns {boolean}
+*/
 function isLiteralHyphen({type, value}) {
-  return type === NodeTypes.Character && value === 45;
+  return type === 'Character' && value === 45;
 }
 
 export {
