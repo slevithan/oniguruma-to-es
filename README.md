@@ -15,7 +15,7 @@ Oniguruma-To-ES is an advanced **Oniguruma to JavaScript regex translator** that
 - Run regexes written for Oniguruma from JavaScript.
 - Share regexes across your Ruby or PHP and JavaScript code.
 
-Compared to running the Oniguruma C library via WASM bindings using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is ~4% of the size and its regexes often run much faster since they run as native JavaScript.
+Compared to running the Oniguruma C library via WASM using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is ~4% of the size and its regexes often run much faster since they run as native JavaScript.
 
 > You can further reduce bundle size by precompiling your regexes. In many cases, that avoids the need for any runtime dependency. Some regex conversions rely on subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
 
@@ -161,7 +161,7 @@ The `rawOptions` property of `EmulatedRegExp` instances can be used for serializ
 type EmulatedRegExpOptions = {
   hiddenCaptures?: Array<number>;
   lazyCompile?: boolean;
-  strategy?: string?;
+  strategy?: string | null;
   transfers?: Array<[number, Array<number>]>;
 };
 ```
