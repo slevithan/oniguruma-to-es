@@ -8,11 +8,12 @@ import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiled
 exec(process.argv.slice(2));
 
 // Basic Oniguruma tester for the console; also reports a comparison with Oniguruma-To-ES
-async function exec([pattern, str]) {
+async function exec([pattern, str, ...rest]) {
   if (!(typeof pattern === 'string' && typeof str === 'string')) {
     err(null, 'pattern and str args expected');
     return;
   }
+  const compareLib = !rest.includes('no-compare');
   // [HACK] Replace unescaped `\u{…}` in the target string with the referenced code point
   str = str.replace(
     /\\u\{([^\}]+)\}|\\?./gsu,
@@ -20,13 +21,16 @@ async function exec([pattern, str]) {
   );
 
   const libMatches = [];
-  const libT0 = performance.now();
-  let libMatch = transpiledRegExpResult(pattern, str, 0);
-  while (libMatch.result !== null) {
-    libMatches.push(libMatch);
-    libMatch = transpiledRegExpResult(pattern, str, libMatch.index + (libMatch.result.length || 1));
+  let libMatch, libT0, libT1;
+  if (compareLib) {
+    libT0 = performance.now();
+    libMatch = transpiledRegExpResult(pattern, str, 0);
+    while (libMatch.result !== null) {
+      libMatches.push(libMatch);
+      libMatch = transpiledRegExpResult(pattern, str, libMatch.index + (libMatch.result.length || 1));
+    }
+    libT1 = performance.now();
   }
-  const libT1 = performance.now();
 
   const onigMatches = [];
   const onigT0 = performance.now();
@@ -52,24 +56,28 @@ async function exec([pattern, str]) {
       (onigMatches.length > 1 ? onigMatches : onigMatches[0]);
     console.log(`Oniguruma results (${onigMatches.length}):`, result);
   }
-  if (!!libMatch.error !== !!onigMatch.error) {
-    err(null, `Oniguruma and library results differed (only ${libMatch.error ? 'library' : 'Oniguruma'} threw error)`);
-  } else if (libMatches.length !== onigMatches.length) {
-    err(null, `Oniguruma and library had different number of results (${onigMatches.length}, ${libMatches.length})`);
-  } else {
-    let hasDiff = false;
-    for (let i = 0; i < libMatches.length; i++) {
-      if (!areMatchDetailsEqual(libMatches[i], onigMatches[i])) {
-        hasDiff = true;
-        break;
+  if (compareLib) {
+    if (!!libMatch.error !== !!onigMatch.error) {
+      err(null, `Oniguruma and library results differed (only ${libMatch.error ? 'library' : 'Oniguruma'} threw error)`);
+    } else if (libMatches.length !== onigMatches.length) {
+      err(null, `Oniguruma and library had different number of results (${onigMatches.length}, ${libMatches.length})`);
+    } else {
+      let hasDiff = false;
+      for (let i = 0; i < libMatches.length; i++) {
+        if (!areMatchDetailsEqual(libMatches[i], onigMatches[i])) {
+          hasDiff = true;
+          break;
+        }
+      }
+      if (hasDiff) {
+        err(null, 'Oniguruma and library results differed');
+        console.log('Library results:', libMatches);
+      } else {
+        ok(null, 'Results same for Oniguruma and library');
+        console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
       }
     }
-    if (hasDiff) {
-      err(null, 'Oniguruma and library results differed');
-      console.log('Library results:', libMatches);
-    } else {
-      ok(null, 'Results same for Oniguruma and library');
-      console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
-    }
+  } else {
+    console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms`));
   }
 }
