@@ -20,12 +20,16 @@ async function exec([pattern, str]) {
   );
 
   const libMatches = [];
+  const libT0 = performance.now();
   let libMatch = transpiledRegExpResult(pattern, str, 0);
   while (libMatch.result !== null) {
     libMatches.push(libMatch);
     libMatch = transpiledRegExpResult(pattern, str, libMatch.index + (libMatch.result.length || 1));
   }
+  const libT1 = performance.now();
+
   const onigMatches = [];
+  const onigT0 = performance.now();
   let onigMatch = await onigurumaResult(pattern, str, 0);
   while (onigMatch.result !== null) {
     onigMatches.push(onigMatch);
@@ -36,6 +40,7 @@ async function exec([pattern, str]) {
     }
     onigMatch = await onigurumaResult(pattern, str, onigMatch.index + (onigMatch.result.length || 1));
   }
+  const onigT1 = performance.now();
 
   console.log('Pattern:', color('yellow', `/${pattern}/`));
   console.log('String:', `${value(str)} ${color('gray', `(len ${str.length})`)}`);
@@ -64,6 +69,7 @@ async function exec([pattern, str]) {
       console.log('Library results:', libMatches);
     } else {
       ok(null, 'Results same for Oniguruma and library');
+      console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
     }
   }
 }
