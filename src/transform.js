@@ -412,7 +412,7 @@ const FirstPassVisitor = {
     if (kind === 'fail') {
       replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
     } else {
-      throw new Error(`Unsupported named callout kind "${kind}"`);
+      throw new Error(`Unsupported named callout "(*${kind.toUpperCase()}"`);
     }
   },
 
