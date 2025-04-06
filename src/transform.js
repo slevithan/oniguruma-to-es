@@ -6,7 +6,7 @@ import {createAlternative, createAssertion, createBackreference, createCapturing
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
-@import {AbsentFunctionNode, AlternativeContainerNode, AlternativeElementNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
+@import {AbsentFunctionNode, AlternativeContainerNode, AlternativeElementNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, NamedCalloutNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
 */
 
 /**
@@ -171,9 +171,9 @@ const FirstPassVisitor = {
         remove();
       } else {
         const prev = container[key - 1]; // parent.elements[key - 1]
-        // Not all ways of blocking the `\G` from matching are covered (ex: a node prior to the
-        // prev node could block), but blocked `\G` is an edge case so it's okay if some blocked
-        // cases resulting in the standard error for being unsupported
+        // Not all ways of blocking the `\G` from matching are covered here (ex: a node prior to
+        // the `prev` node could block), but blocked `\G` is an edge case and it's okay if some
+        // blocked cases result in the standard error for being unsupported without a subclass
         if (prev && isAlwaysNonZeroLength(prev)) {
           replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
         } else if (avoidSubclass) {
@@ -401,6 +401,18 @@ const FirstPassVisitor = {
     const {kind} = node;
     if (kind === 'lookbehind') {
       state.passedLookbehind = true;
+    }
+  },
+
+  /**
+  @param {{node: NamedCalloutNode}} path
+  */
+  NamedCallout({node, parent, replaceWith}) {
+    const {kind} = node;
+    if (kind === 'fail') {
+      replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
+    } else {
+      throw new Error(`Unsupported named callout kind "${kind}"`);
     }
   },
 

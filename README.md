@@ -906,18 +906,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="6">Other</th>
-    <td>Comment group</td>
-    <td><code>(?#…)</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Allows escaping <code>\)</code>, <code>\\</code><br>
-      ✔ Comments allowed between a token and its quantifier<br>
-      ✔ Comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a quantifier chain<br>
-    </td>
-  </tr>
-  <tr valign="top">
+    <th align="left" rowspan="7">Other</th>
     <td>Alternation</td>
     <td><code>…|…</code></td>
     <td align="middle">✅</td>
@@ -936,6 +925,26 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
+    <td>Comment group</td>
+    <td><code>(?#…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Allows escaping <code>\)</code>, <code>\\</code><br>
+      ✔ Comments allowed between a token and its quantifier<br>
+      ✔ Comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a quantifier chain<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Fail<sup>[7]</sup></td>
+    <td><code>(*FAIL)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Supported<br>
+    </td>
+  </tr>
+  <tr valign="top">
     <td>Keep</td>
     <td><code>\K</code></td>
     <td align="middle">☑️</td>
@@ -945,7 +954,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">JS features unknown to Oniguruma are handled using Oniguruma syntax</td>
+    <td colspan="2">JS features unknown to Oniguruma are handled using Oniguruma syntax rules</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -993,6 +1002,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 4. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 5. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
 6. Other absent function types (which start with `(?~|` and are extremely rare) aren't yet supported. Note that absent functions behave differently in Oniguruma and Onigmo.
+7. Other named callouts `(*…)` aren't yet supported.
 
 ## ❌ Unsupported features
 
@@ -1003,13 +1013,12 @@ The following throw errors since they aren't yet supported. They're all extremel
   - Code point sequences: `\x{H H …}`, `\o{O O …}`.
   - Grapheme boundaries: `\y`, `\Y`.
   - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes); whole-pattern modifier `C` (don't capture group).
-  - Named callout: `(*FAIL)`.
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: `I` (ignore-case is ASCII), `L` (find longest).
-  - Named callout pair: `(*SKIP)(*FAIL)`.
+  - Named callout pair `(*SKIP)(*FAIL)`.
 - Not supportable:
-  - Other callouts: `(?{…})`, `(*…)`, etc.
+  - Callouts: `(?{…})`, etc.
 
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't yet supported.
 
@@ -1032,7 +1041,15 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles Onigmo regexes to JavaScript (Onigmo is a fork of Oniguruma with similar syntax and behavior). It's written in Ruby, which means regexes must be pre-transpiled on the server to use them in JavaScript. Note that JsRegex doesn't always translate edge case behavior differences or accurately reproduce subpattern results.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a (seemingly abandoned) fork of Oniguruma with similar syntax and behavior. That makes these projects similar, though there are some important differences. However, JsRegex might be a better fit for some Ruby projects.
+
+<details>
+  <summary>Some high-level JsRegex differences</summary>
+
+- It's written in Ruby, so regexes must be pre-transpiled on the server to use them in JavaScript.
+- It doesn't always include the same level of support for advanced features, translate edge case JavaScript behavior differences, or accurately reproduce subpattern results.
+- Supporting TextMate grammars isn't one of its goals, so it doesn't include features needed to do so.
+</details>
 
 ## 🏷️ About
 
