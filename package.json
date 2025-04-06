@@ -51,15 +51,15 @@
   ],
   "dependencies": {
     "emoji-regex-xs": "^1.0.0",
-    "oniguruma-parser": "^0.8.0",
+    "oniguruma-parser": "^0.9.0",
     "regex": "^6.0.1",
     "regex-recursion": "^6.0.2"
   },
   "devDependencies": {
-    "esbuild": "^0.25.1",
+    "esbuild": "^0.25.2",
     "jasmine": "^5.6.0",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vscode-oniguruma": "^2.0.1"
   },
-  "packageManager": "pnpm@10.7.0"
+  "packageManager": "pnpm@10.7.1"
 }
