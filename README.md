@@ -19,7 +19,7 @@ Compared to running the Oniguruma C library via WASM using [vscode-oniguruma](ht
 
 > You can further reduce bundle size by precompiling your regexes. In many cases, that avoids the need for any runtime dependency. Some regex conversions rely on subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
 
-Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have exactly the same behavior, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It's built on top of [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex).
+Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have exactly the same behavior, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It's built on top of [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex), both by the same author as this library.
 
 ## 🔮 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
@@ -1041,7 +1041,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a (seemingly abandoned) fork of Oniguruma with similar syntax and behavior. That makes these projects similar, though there are some important differences. However, JsRegex might be a better fit for some Ruby projects.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a (seemingly abandoned) fork of Oniguruma with similar syntax and behavior. Although there are important differences, JsRegex might be a better fit for some Ruby projects.
 
 <details>
   <summary>Some high-level JsRegex differences</summary>
