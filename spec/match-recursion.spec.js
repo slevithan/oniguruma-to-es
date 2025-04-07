@@ -130,6 +130,13 @@ describe('Recursion', () => {
       expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\z`).exec('aa')).toHaveSize(3);
       expect(toRegExp(r`\A(?<a>(?<b>a)\g<a>?)\g<a>\z`).exec('aaaa')).toHaveSize(3);
     });
+
+    // AFAIK recursion doesn't have any special effects on backref multiplexing, but nevertheless
+    // support for such cases in the future should be handled with care
+    it('should throw for backreference multiplexing with recursed subpatterns', () => {
+      expect(() => toRegExpDetails(r`(?<a>.)(?<r>(?<a>.)\k<a>\g<r>?)`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>.)(?<r>(?<a>.)\g<r>?)\k<a>`)).toThrow();
+    });
   });
 
   describe('capture transfer', () => {
