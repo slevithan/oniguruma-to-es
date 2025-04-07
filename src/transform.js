@@ -758,7 +758,7 @@ function canParticipateWithNode(capture, node) {
       if (kid === capture) {
         return true;
       }
-      if (hasDescendant(kid, capture)) {
+      if (isDescendant(kid, capture)) {
         return true;
       }
     }
@@ -915,12 +915,12 @@ function getLeadingG(els) {
   return null;
 }
 
-function hasDescendant(node, descendant) {
+function isDescendant(node, descendant) {
   const kids = getKids(node) ?? [];
   for (const kid of kids) {
     if (
       kid === descendant ||
-      hasDescendant(kid, descendant)
+      isDescendant(kid, descendant)
     ) {
       return true;
     }
