@@ -118,8 +118,8 @@ function generate(ast, options) {
       case 'Recursion':
         return genRecursion(node, state);
       default:
-        // Node types `AbsentFunction`, `Directive`, and `Subroutine` are never included in
-        // transformer output
+        // Node types `AbsentFunction`, `Directive`, `NamedCallout`, and `Subroutine` are never
+        // included in transformer output
         throw new Error(`Unexpected node type "${node.type}"`);
     }
   }

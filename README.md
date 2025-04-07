@@ -256,7 +256,7 @@ JavaScript version used for generated regexes. Using `auto` detects the best val
   <summary>More details</summary>
 
 - `ES2018`: Uses JS flag `u`.
-  - Emulation restrictions: Character class intersection and nested negated character classes aren't supported.
+  - Emulation restrictions: Character class intersection and some uses of nested, negated character classes aren't supported.
   - Generated regexes might use ES2018 features that require Node.js 10 or a browser version released during 2018 to 2023 (in Safari's case). Minimum requirement for any regex is Node.js 6 or a 2016-era browser.
 - `ES2024`: Uses JS flag `v`.
   - No emulation restrictions.
@@ -916,7 +916,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Absent repeater<sup>[6]</sup></td>
+    <td>Absence repeater<sup>[6]</sup></td>
     <td><code>(?~…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -998,11 +998,11 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 
 1. Unicode blocks (which in Oniguruma are specified with an `In` prefix) are easily emulatable but their character data would significantly increase library weight. They're also rarely used, fundamentally flawed, and arguably unuseful given the availability of Unicode scripts and other properties.
 2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
-3. Target `ES2018` doesn't support nested *negated* character classes.
+3. Target `ES2018` has limited support for nested, negated character classes.
 4. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 5. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
-6. Other absent function types (which start with `(?~|` and are extremely rare) aren't yet supported. Note that absent functions behave differently in Oniguruma and Onigmo.
-7. Other named callouts `(*…)` aren't yet supported.
+6. Other absence function types aren't yet supported. They start with `(?~|` and are extremely rare. Note that absence functions behave differently in Oniguruma and Onigmo.
+7. Other named callouts aren't yet supported. They use the syntax `(*…)` and are extremely rare.
 
 ## ❌ Unsupported features
 
@@ -1033,7 +1033,7 @@ Oniguruma-To-ES fully supports mixed case-sensitivity (ex: `(?i)a(?-i)a`) and ha
 
 Oniguruma-To-ES focuses on being lightweight to make it better for use in browsers. This is partly achieved by not including heavyweight Unicode character data, which imposes a few minor/rare restrictions:
 
-- Character class intersection and nested negated character classes are unsupported with target `ES2018`. Use target `ES2024` (supported by Node.js 20 and 2023-era browsers) or later if you need support for these features.
+- Character class intersection and some uses of nested, negated character classes are unsupported with target `ES2018`. Use target `ES2024` (supported by Node.js 20 and 2023-era browsers) or later if you need support for these features.
 - With targets before `ES2025`, a handful of Unicode properties that target a specific character case (ex: `\p{Lower}`) can't be used case-insensitively in patterns that contain other characters with a specific case that are used case-sensitively.
   - In other words, almost every usage is fine, including `A\p{Lower}`, `(?i)A\p{Lower}`, `(?i:A)\p{Lower}`, `(?i)A(?-i)\p{Lower}`, and `\w(?i)\p{Lower}`, but not `A(?i)\p{Lower}`.
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.

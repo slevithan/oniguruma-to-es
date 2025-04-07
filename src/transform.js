@@ -121,7 +121,7 @@ const FirstPassVisitor = {
       group.parent = quantifier;
       replaceWith(setParent(prepContainer(createGroup(), [quantifier]), parent), {traverse: true});
     } else {
-      throw new Error(`Unexpected absent function kind "${kind}"`);
+      throw new Error(`Unsupported absence function "(?~|"`);
     }
   },
 

@@ -3,7 +3,7 @@ import {r} from '../src/utils.js';
 
 describe('AbsentFunction', () => {
   describe('repeater', () => {
-    it('should match any input not matched by absent', () => {
+    it('should match any input not matched by absence pattern', () => {
       expect('abc'.match(toRegExp('(?~ab)', {global: true}))).toEqual(['', 'bc', '']);
       expect('abc'.match(toRegExp('(?~)', {global: true}))).toEqual(['', '', '', '']);
       expect('abc'.match(toRegExp('(?~a|b)', {global: true}))).toEqual(['', '', 'c', '']);
@@ -19,7 +19,7 @@ describe('AbsentFunction', () => {
       expect('abc'.match(toRegExp('(?~ab)?+.', {global: true}))).toEqual(['a']);
     });
 
-    it('should throw for nested absent repeaters', () => {
+    it('should throw for nested absence repeaters', () => {
       expect(() => toRegExpDetails('(?~(?~))')).toThrow();
       expect(() => toRegExpDetails('(?~a(?~))')).toThrow();
       expect(() => toRegExpDetails('(?~(?~a))')).toThrow();
