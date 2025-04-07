@@ -1,4 +1,4 @@
-import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {matchers} from './helpers/matchers.js';
 
 beforeEach(() => {
@@ -9,7 +9,7 @@ describe('CharacterClass [union]', () => {
   // See also `match-char-class-range.spec.js` and `match-char-class-intersection.spec.js`
   // Tests for specific tokens within char classes are mixed into specs elsewhere
   // TODO: Add remaining specs (leading `]`, unbalanced brackets, etc.)
-  // TODO: Test that nested negated classes throw for target ES2018
+  // TODO: Test that unsupported nested, negated classes throw for target ES2018
 
   // <github.com/slevithan/oniguruma-to-es/issues/23#issuecomment-2597598227>
   describe('posix class vs nested class', () => {
