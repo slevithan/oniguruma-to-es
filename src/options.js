@@ -1,5 +1,9 @@
 import {envFlags} from './utils.js';
 
+/**
+@import {ToRegExpOptions} from './index.js';
+*/
+
 const Accuracy = /** @type {const} */ ({
   default: 'default',
   strict: 'strict',
@@ -20,8 +24,8 @@ const Target = /** @type {const} */ ({
 
 /**
 Returns a complete set of options, with default values set for options that weren't provided.
-@param {import('.').ToRegExpOptions} [options]
-@returns {Required<import('.').ToRegExpOptions>}
+@param {ToRegExpOptions} [options]
+@returns {Required<ToRegExpOptions>}
 */
 function getOptions(options = {}) {
   if ({}.toString.call(options) !== '[object Object]') {

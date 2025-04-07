@@ -5,13 +5,15 @@ import {createAlternative, createCharacter, createGroup} from 'oniguruma-parser/
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
+@import {ToRegExpOptions} from './index.js';
+@import {RegexPlusAst} from './transform.js';
 @import {AssertionNode, CharacterClassNode, CharacterSetNode, LookaroundAssertionNode, Node} from 'oniguruma-parser/parser';
 */
 
 /**
 Generates a Regex+ compatible `pattern`, `flags`, and `options` from a Regex+ AST.
-@param {import('./transform.js').RegexPlusAst} ast
-@param {import('.').ToRegExpOptions} [options]
+@param {RegexPlusAst} ast
+@param {ToRegExpOptions} [options]
 @returns {{
   pattern: string;
   flags: string;

@@ -7,6 +7,10 @@ import {parse} from 'oniguruma-parser/parser';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
 
+/**
+@import {EmulatedRegExpOptions} from './subclass.js';
+*/
+
 // The validation and transformation for Oniguruma's unique syntax and behavior differences
 // compared to native JS RegExp is layered into all steps of the compilation process:
 // 1. Parser: Uses `oniguruma-parser` to build an Oniguruma AST, which accounts for many
@@ -61,7 +65,7 @@ Accepts an Oniguruma pattern and returns the details for an equivalent JavaScrip
 @returns {{
   pattern: string;
   flags: string;
-  options?: import('./subclass.js').EmulatedRegExpOptions;
+  options?: EmulatedRegExpOptions;
 }}
 */
 function toRegExpDetails(pattern, options) {
