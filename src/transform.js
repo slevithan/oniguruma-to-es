@@ -53,6 +53,7 @@ function transform(ast, options) {
     bestEffortTarget: 'ES2025',
     ...options,
   };
+  // Add `parent` properties to all nodes to help during traversal; also expected by the generator
   addParentProperties(ast);
   const firstPassState = {
     accuracy: opts.accuracy,
@@ -113,13 +114,14 @@ const FirstPassVisitor = {
     const {kind, alternatives} = node;
     if (kind === 'repeater') {
       // Convert `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
-      const group = prepContainer(createGroup(), [
-        adoptAndSwapKids(createLookaroundAssertion({negate: true}), alternatives),
-        createUnicodeProperty('Any'),
-      ]);
-      const quantifier = createQuantifier('greedy', 0, Infinity, group);
-      group.parent = quantifier;
-      replaceWith(setParent(prepContainer(createGroup(), [quantifier]), parent), {traverse: true});
+      const negLookahead = createLookaroundAssertion({negate: true});
+      negLookahead.alternatives = alternatives;
+      const innerGroup = createGroup();
+      innerGroup.alternatives[0].elements.push(negLookahead, createUnicodeProperty('Any'));
+      const quantifier = createQuantifier('greedy', 0, Infinity, innerGroup);
+      const outerGroup = createGroup();
+      outerGroup.alternatives[0].elements.push(quantifier);
+      replaceWith(setParentDeep(outerGroup, parent), {traverse: true});
     } else {
       throw new Error(`Unsupported absence function "(?~|"`);
     }
@@ -142,8 +144,9 @@ const FirstPassVisitor = {
       if (flagDirectivesByAlt.get(node)?.length) {
         const flags = getCombinedFlagModsFromFlagNodes(flagDirectivesByAlt.get(node));
         if (flags) {
-          const flagGroup = setParent(prepContainer(createGroup({flags}), node.elements), node);
-          node.elements = [flagGroup];
+          const flagGroup = createGroup({flags});
+          flagGroup.alternatives[0].elements = node.elements;
+          node.elements = [setParentDeep(flagGroup, node)];
         }
       }
     },
@@ -160,11 +163,11 @@ const FirstPassVisitor = {
       throw new Error(`Unsupported grapheme boundary "\\${negate ? 'Y' : 'y'}"`);
     } else if (kind === 'line_end') {
       // Onig's only line break char is line feed, unlike JS
-      replaceWith(setParent(parseFragment(r`(?=\z|\n)`), parent));
+      replaceWith(setParentDeep(parseFragment(r`(?=\z|\n)`), parent));
     } else if (kind === 'line_start') {
       // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
       // string-terminating line feed
-      replaceWith(setParent(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
+      replaceWith(setParentDeep(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
     } else if (kind === 'search_start') {
       if (supportedGNodes.has(node)) {
         root.flags.sticky = true;
@@ -175,7 +178,7 @@ const FirstPassVisitor = {
         // the `prev` node could block), but blocked `\G` is an edge case and it's okay if some
         // blocked cases result in the standard error for being unsupported without a subclass
         if (prev && isAlwaysNonZeroLength(prev)) {
-          replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
+          replaceWith(setParentDeep(createLookaroundAssertion({negate: true}), parent));
         } else if (avoidSubclass) {
           throw new Error(r`Uses "\G" in a way that requires a subclass`);
         } else {
@@ -186,12 +189,12 @@ const FirstPassVisitor = {
     } else if (kind === 'string_end' || kind === 'string_start') {
       // Don't need transformation since JS flag m isn't used
     } else if (kind === 'string_end_newline') {
-      replaceWith(setParent(parseFragment(r`(?=\n?\z)`), parent));
+      replaceWith(setParentDeep(parseFragment(r`(?=\n?\z)`), parent));
     } else if (kind === 'word_boundary') {
       if (!wordIsAscii && !asciiWordBoundaries) {
         const b = `(?:(?<=${defaultWordChar})(?!${defaultWordChar})|(?<!${defaultWordChar})(?=${defaultWordChar}))`;
         const B = `(?:(?<=${defaultWordChar})(?=${defaultWordChar})|(?<!${defaultWordChar})(?!${defaultWordChar}))`;
-        replaceWith(setParent(parseFragment(negate ? B : b), parent));
+        replaceWith(setParentDeep(parseFragment(negate ? B : b), parent));
       }
     } else {
       throw new Error(`Unexpected assertion kind "${kind}"`);
@@ -224,7 +227,9 @@ const FirstPassVisitor = {
   CharacterClassRange({node, parent, replaceWith}) {
     if (parent.kind === 'intersection') {
       // JS doesn't allow intersection with ranges without a wrapper class
-      replaceWith(setParent(adoptAndSwapKids(createCharacterClass(), [node]), parent), {traverse: true});
+      const cc = createCharacterClass();
+      cc.elements.push(node);
+      replaceWith(setParentDeep(cc, parent), {traverse: true});
     }
   },
 
@@ -240,7 +245,7 @@ const FirstPassVisitor = {
     }
     // Flag S with `\s`, `\p{Space}`, `[[:space:]]`
     if (spaceIsAscii && (kind === 'space' || value === 'space')) {
-      replaceWith(setParent(setNegate(parseFragment(asciiSpaceChar), negate), parent));
+      replaceWith(setParentDeep(setNegate(parseFragment(asciiSpaceChar), negate), parent));
       return;
     }
     // Flag W with `\w`, `\p{Word}`, `[[:word:]]`
@@ -264,11 +269,11 @@ const FirstPassVisitor = {
       const emoji = minTargetEs2024 ? r`\p{RGI_Emoji}` : emojiRegex().source.replace(/\\u\{/g, `\\x{`);
       // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
       // Skip property name validation to allow `RGI_Emoji` through, since Onig doesn't support it
-      replaceWith(setParent(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}), parent));
+      replaceWith(setParentDeep(parseFragment(r`(?>\r\n|${emoji}|\P{M}\p{M}*)`, {skipPropertyNameValidation: true}), parent));
     } else if (kind === 'hex') {
       replaceWith(setParent(createUnicodeProperty('AHex', {negate}), parent));
     } else if (kind === 'newline') {
-      replaceWith(setParent(parseFragment(negate ? '[^\n]' : '(?>\r\n?|[\n\v\f\x85\u2028\u2029])'), parent));
+      replaceWith(setParentDeep(parseFragment(negate ? '[^\n]' : '(?>\r\n?|[\n\v\f\x85\u2028\u2029])'), parent));
     } else if (kind === 'posix') {
       if (!minTargetEs2024 && (value === 'graph' || value === 'print')) {
         if (accuracy === 'strict') {
@@ -283,9 +288,9 @@ const FirstPassVisitor = {
           // using `[^…]` so it can be unwrapped since ES2018 doesn't support nested classes
           ascii = `\0-${cp(ascii.codePointAt(0) - 1)}${cp(ascii.codePointAt(2) + 1)}-\u{10FFFF}`;
         }
-        replaceWith(setParent(parseFragment(`[${ascii}]`), parent));
+        replaceWith(setParentDeep(parseFragment(`[${ascii}]`), parent));
       } else {
-        replaceWith(setParent(setNegate(parseFragment(PosixClassMap.get(value)), negate), parent));
+        replaceWith(setParentDeep(setNegate(parseFragment(PosixClassMap.get(value)), negate), parent));
       }
     } else if (kind === 'property') {
       if (!JsUnicodePropertyMap.has(slug(value))) {
@@ -297,7 +302,7 @@ const FirstPassVisitor = {
       // Can't use JS's Unicode-based `\s` since unlike Onig it includes `\uFEFF`, excludes `\x85`
       replaceWith(setParent(createUnicodeProperty('space', {negate}), parent));
     } else if (kind === 'word') {
-      replaceWith(setParent(setNegate(parseFragment(defaultWordChar), negate), parent));
+      replaceWith(setParentDeep(setNegate(parseFragment(defaultWordChar), negate), parent));
     } else {
       throw new Error(`Unexpected character set kind "${kind}"`);
     }
@@ -313,7 +318,9 @@ const FirstPassVisitor = {
         // Flag directive without flags; ex: `(?-)`, `(?--)`
         remove();
       } else {
-        replaceWith(setParent(prepContainer(createGroup({flags}), removeAllNextSiblings()), parent), {traverse: true});
+        const flagGroup = createGroup({flags});
+        flagGroup.alternatives[0].elements = removeAllNextSiblings();
+        replaceWith(setParentDeep(flagGroup, parent), {traverse: true});
       }
     } else if (kind === 'keep') {
       const firstAltFirstEl = root.pattern.alternatives[0].elements[0];
@@ -326,7 +333,9 @@ const FirstPassVisitor = {
       if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
-      replaceWith(setParent(prepContainer(createLookaroundAssertion({behind: true}), removeAllPrevSiblings()), parent));
+      const lookbehind = createLookaroundAssertion({behind: true});
+      lookbehind.alternatives[0].elements = removeAllPrevSiblings();
+      replaceWith(setParentDeep(lookbehind, parent));
     } else {
       throw new Error(`Unexpected directive kind "${kind}"`);
     }
@@ -410,7 +419,7 @@ const FirstPassVisitor = {
   NamedCallout({node, parent, replaceWith}) {
     const {kind} = node;
     if (kind === 'fail') {
-      replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
+      replaceWith(setParentDeep(createLookaroundAssertion({negate: true}), parent));
     } else {
       throw new Error(`Unsupported named callout "(*${kind.toUpperCase()}"`);
     }
@@ -462,8 +471,9 @@ const FirstPassVisitor = {
   Quantifier({node}) {
     if (node.element.type === 'Quantifier') {
       // Change e.g. `a**` to `(?:a*)*`
-      const group = setParent(prepContainer(createGroup(), [node.element]), node);
-      node.element = group;
+      const group = createGroup();
+      group.alternatives[0].elements.push(node.element);
+      node.element = setParentDeep(group, node);
     }
   },
 
@@ -624,12 +634,13 @@ const SecondPassVisitor = {
         getNewCurrentFlags(state.globalFlags, reffedGroupFlagMods) :
         state.globalFlags;
       if (!areFlagsEqual(reffedGroupFlags, state.currentFlags)) {
-        replacement = prepContainer(createGroup({
+        replacement = createGroup({
           flags: getFlagModsFromFlags(reffedGroupFlags),
-        }), [expandedSubroutine]);
+        });
+        replacement.alternatives[0].elements.push(expandedSubroutine);
       }
     }
-    replaceWith(setParent(replacement, parent), {traverse: !isGlobalRecursion});
+    replaceWith(setParentDeep(replacement, parent), {traverse: !isGlobalRecursion});
   },
 };
 
@@ -649,14 +660,17 @@ const ThirdPassVisitor = {
     if (!participants.length) {
       // If no participating capture, convert backref to to `(?!)`; backrefs to nonparticipating
       // groups can't match in Onig but match the empty string in JS
-      replaceWith(setParent(prepContainer(createLookaroundAssertion({negate: true})), parent));
+      replaceWith(setParentDeep(createLookaroundAssertion({negate: true}), parent));
     } else if (participants.length > 1) {
       // Multiplex
-      const alts = participants.map(reffed => adoptAndSwapKids(
-        createAlternative(),
-        [createBackreference(reffed.number)]
-      ));
-      replaceWith(setParent(adoptAndSwapKids(createGroup(), alts), parent));
+      const alts = participants.map(reffed => {
+        const alt = createAlternative();
+        alt.elements.push(createBackreference(reffed.number));
+        return alt;
+      });
+      const group = createGroup();
+      group.alternatives = alts;
+      replaceWith(setParentDeep(group, parent));
     } else {
       node.ref = participants[0].number;
     }
@@ -706,19 +720,12 @@ const ThirdPassVisitor = {
   },
 };
 
-// Add `parent` properties to all nodes to help during traversal; also expected by the generator
-function addParentProperties(ast) {
-  traverse(ast, {
+function addParentProperties(root) {
+  traverse(root, {
     '*'({node, parent}) {
       node.parent = parent;
     },
   });
-}
-
-function adoptAndSwapKids(parent, kids) {
-  kids.forEach(kid => kid.parent = parent);
-  parent[getContainerAccessor(parent)] = kids;
-  return parent;
 }
 
 function areFlagsEqual(a, b) {
@@ -992,22 +999,13 @@ function parseFragment(pattern, options) {
     // properties (ex: `\p{Alpha}`) to Onig POSIX classes
     unicodePropertyMap: JsUnicodePropertyMap,
   });
-  addParentProperties(ast);
   const alts = ast.pattern.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
-    return adoptAndSwapKids(createGroup(), alts);
+    const group = createGroup();
+    group.alternatives = alts;
+    return group;
   }
   return alts[0].elements[0];
-}
-
-function prepContainer(node, kids) {
-  const accessor = getContainerAccessor(node);
-  // Set the parent for the default container of a new node
-  node[accessor][0].parent = node;
-  if (kids) {
-    adoptAndSwapKids(node[accessor][0], kids);
-  }
-  return node;
 }
 
 function setNegate(node, negate) {
@@ -1016,6 +1014,12 @@ function setNegate(node, negate) {
 }
 
 function setParent(node, parent) {
+  node.parent = parent;
+  return node;
+}
+
+function setParentDeep(node, parent) {
+  addParentProperties(node);
   node.parent = parent;
   return node;
 }
