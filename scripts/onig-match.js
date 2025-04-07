@@ -14,7 +14,7 @@ async function exec([pattern, str, ...rest]) {
     return;
   }
   const compareLib = !rest.includes('no-compare');
-  // [HACK] Replace unescaped `\u{…}` in the target string with the referenced code point
+  // HACK: Replace unescaped `\u{…}` in the target string with the referenced code point
   str = str.replace(
     /\\u\{([^\}]+)\}|\\?./gsu,
     (m, code) => m.startsWith(r`\u{`) ? cp(parseInt(code, 16)) : m

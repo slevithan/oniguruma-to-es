@@ -35,7 +35,7 @@ function generate(ast, options) {
   // case in case sensitive/insensitive states. This minimizes the need for case expansions (though
   // expansions are lossless, even given Unicode case complexities) and allows supporting case
   // insensitive backrefs in more cases
-  // [TODO] Consider gathering this data in the transformer's final traversal to avoid work here
+  // TODO: Consider gathering this data in the transformer's final traversal to avoid work here
   let hasCaseInsensitiveNode = null;
   let hasCaseSensitiveNode = null;
   if (!minTargetEs2025) {
@@ -399,7 +399,7 @@ function genCharacterClassRange(node, state) {
   const maxStr = getCharEscape(max, escOpts);
   const extraChars = new Set();
   if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
-    // [TODO] Avoid duplication by considering other chars in the parent char class when expanding
+    // TODO: Avoid duplication by considering other chars in the parent char class when expanding
     const charsOutsideRange = getCasesOutsideCharClassRange(node);
     const ranges = getCodePointRangesFromChars(charsOutsideRange);
     ranges.forEach(value => {

@@ -702,7 +702,7 @@ const ThirdPassVisitor = {
 
   Regex: {
     exit({node}, state) {
-      // [HACK] Add unnamed captures to the end of the regex if needed to allow orphaned backrefs
+      // HACK: Add unnamed captures to the end of the regex if needed to allow orphaned backrefs
       // to be valid in JS with flag u/v. This is needed to support TextMate grammars, which
       // replace numbered backrefs in their `end` pattern with values matched by captures in their
       // `begin` pattern! See <github.com/microsoft/vscode-textmate/blob/7e0ea282f4f25fef12a6c84fa4fa7266f67b58dc/src/rule.ts#L661-L663>
@@ -873,7 +873,7 @@ function getKids(node) {
   if (!node) {
     throw new Error('Node expected');
   }
-  // [NOTE] Not handling `Regex` kids (`pattern`, `flags`) and `CharacterClassRange` kids (`min`,
+  // NOTE: Not handling `Regex` kids (`pattern`, `flags`) and `CharacterClassRange` kids (`min`,
   // `max`) only because not needed by current callers
   if (node.type === 'Quantifier') {
     return [node.element];
