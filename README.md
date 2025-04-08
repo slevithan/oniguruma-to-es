@@ -464,7 +464,10 @@ Even for features not marked with one of the above symbols, notice that nearly e
   </tr>
   <tr valign="top">
     <td>Caret notation</td>
-    <td><code>\cA</code>, 🆚 <code>\C-A</code></td>
+    <td>
+      <code>\cA</code>,<br>
+      🆚 <code>\C-A</code>
+    </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -802,7 +805,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
       ✔ Error if named capture used<br>
       ✔ Allows leading 0s<br>
       ✔ Refs the most recent of a capture/subroutine set<br>
-      ✔ <code>\k</code> without <code>&lt;</code> <code>'</code> is an identity escape<br>
+      ✔ <code>\k</code> without <code>&lt;</code> or <code>'</code> is an identity escape<br>
     </td>
   </tr>
   <tr valign="top">
@@ -854,7 +857,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
       ✔ Can be nested (any depth)<br>
       ✔ Reuses flags from the reffed group (ignores local flags)<br>
       ✔ Replaces most recent captured values (for backrefs)<br>
-      ✔ <code>\g</code> without <code>&lt;</code> <code>'</code> is an identity escape<br>
+      ✔ <code>\g</code> without <code>&lt;</code> or <code>'</code> is an identity escape<br>
     </td>
   </tr>
   <tr valign="top">
@@ -952,9 +955,9 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td>
       ✔ <code>\u{…}</code> is an error<br>
+      ✔ <code>[]</code>, <code>[^]</code> are errors<br>
       ✔ <code>[\q{…}]</code> matches <code>q</code>, etc.<br>
       ✔ <code>[a--b]</code> includes the invalid reversed range <code>a</code> to <code>-</code><br>
-      ✔ <code>[]</code>, <code>[^]</code> are errors<br>
     </td>
   </tr>
   <tr valign="top">
@@ -1010,9 +1013,9 @@ The following throw errors since they aren't yet supported. They're all extremel
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: `I` (ignore-case is ASCII), `L` (find longest).
-  - Named callout pair `(*SKIP)(*FAIL)`.
+  - Named callout `(*SKIP)`.
 - Not supportable:
-  - Callouts: `(?{…})`, etc.
+  - Other callouts: `(?{…})`, etc.
 
 See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't yet supported.
 
