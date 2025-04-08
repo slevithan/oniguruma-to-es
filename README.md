@@ -279,7 +279,10 @@ Following are the supported features by target. The official Oniguruma [syntax d
 > [!NOTE]
 > Targets `ES2024` and `ES2025` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings. See [`target`](#target).
 
-Notice that nearly every feature below has at least subtle differences from JavaScript. Some features listed as unsupported are not emulatable using native JavaScript regexes, but support for others might be added in future versions of this library. Unsupported features throw an error.
+🆕 = Syntax not available in JavaScript.<br>
+🆚 = JavaScript uses slightly different syntax for the same concept; ex: `\x{…}` → `\u{…}`.
+
+Even for features not marked with one of the above symbols, notice that nearly every feature below has at least subtle differences from JavaScript. Unsupported features throw an error.
 
 <table>
   <tr>
@@ -292,7 +295,7 @@ Notice that nearly every feature below has at least subtle differences from Java
 
   <tr valign="top">
     <th align="left" rowspan="8">Flags</th>
-    <td colspan="5"><i>Supported in top-level flags and pattern modifiers</i></td>
+    <td colspan="5"><i>Supported in top-level flags and flag modifiers</i></td>
   </tr>
   <tr valign="top">
     <td>Ignore case</td>
@@ -304,7 +307,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Dot all</td>
+    <td>🆚 Dot all</td>
     <td><code>m</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -313,7 +316,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Extended</td>
+    <td>🆕 Extended</td>
     <td><code>x</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -330,7 +333,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td colspan="5"><i>Currently supported only in top-level flags</i></td>
   </tr>
   <tr valign="top">
-    <td>Digit is ASCII</td>
+    <td>🆕 Digit is ASCII</td>
     <td><code>D</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -339,7 +342,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Space is ASCII</td>
+    <td>🆕 Space is ASCII</td>
     <td><code>S</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -348,7 +351,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Word is ASCII</td>
+    <td>🆕 Word is ASCII</td>
     <td><code>W</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -358,7 +361,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="2" valign="top">Pattern modifiers</th>
+    <th align="left" rowspan="2" valign="top">Flag modifiers</th>
     <td>Group</td>
     <td><code>(?im-x:…)</code></td>
     <td align="middle">✅</td>
@@ -370,7 +373,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Directive</td>
+    <td>🆕 Directive</td>
     <td><code>(?im-x)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -439,7 +442,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td><code>\x{…}</code></td>
+    <td>🆚 <code>\x{…}</code></td>
     <td><code>\x{A}</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -461,7 +464,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
   <tr valign="top">
     <td>Caret notation</td>
-    <td><code>\cA</code>, <code>\C-A</code></td>
+    <td><code>\cA</code>, 🆚 <code>\C-A</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -477,15 +480,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td align="middle">✅</td>
     <td>
       ✔ Unicode by default (≠ JS)<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Hex digit</td>
-    <td><code>\h</code>, <code>\H</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ ASCII<br>
     </td>
   </tr>
   <tr valign="top">
@@ -508,6 +502,15 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
+    <td>🆕 Hex digit</td>
+    <td><code>\h</code>, <code>\H</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ ASCII<br>
+    </td>
+  </tr>
+  <tr valign="top">
     <td>Dot</td>
     <td><code>.</code></td>
     <td align="middle">✅</td>
@@ -517,7 +520,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Any</td>
+    <td>🆕 Any</td>
     <td><code>\O</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -527,7 +530,16 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Newline</td>
+    <td>🆕 Not <code>\n</code></td>
+    <td><code>\N</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Identity escape in char class<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Newline</td>
     <td><code>\R</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -537,16 +549,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Not newline</td>
-    <td><code>\N</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Identity escape in char class<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Grapheme</td>
+    <td>🆕 Grapheme</td>
     <td><code>\X</code></td>
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
@@ -580,25 +583,15 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="6">Character classes</th>
+    <th align="left" rowspan="5">Character classes</th>
     <td>Base</td>
     <td><code>[…]</code>, <code>[^…]</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
       ✔ Unescaped <code>-</code> outside of range is literal in some contexts (different than JS rules in any mode)<br>
-      ✔ Error for unescaped <code>[</code> that doesn't form nested class<br>
-      ✔ Leading unescaped <code>]</code> OK<br>
+      ✔ Leading unescaped <code>]</code> is literal<br>
       ✔ Fewer chars require escaping than JS<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Empty</td>
-    <td><code>[]</code>, <code>[^]</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Error<br>
     </td>
   </tr>
   <tr valign="top">
@@ -612,7 +605,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>POSIX class</td>
+    <td>🆕 POSIX class</td>
     <td>
       <code>[[:word:]]</code>,<br>
       <code>[[:^word:]]</code>
@@ -656,7 +649,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>String start, end</td>
+    <td>🆕 String start, end</td>
     <td><code>\A</code>, <code>\z</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -665,7 +658,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>String end or before terminating newline</td>
+    <td>🆕 String end or before terminating newline</td>
     <td><code>\Z</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -674,12 +667,21 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Search start</td>
+    <td>🆕 Search start</td>
     <td><code>\G</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
       ✔ Matches at start of match attempt (not end of prev match; advances after 0-length match)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Word boundary</td>
+    <td><code>\b</code>, <code>\B</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode based (≠ JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -699,15 +701,6 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Negative lookbehind invalid within positive lookbehind<br>
     </td>
   </tr>
-  <tr valign="top">
-    <td>Word boundary</td>
-    <td><code>\b</code>, <code>\B</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Unicode based (≠ JS)<br>
-    </td>
-  </tr>
 
   <tr valign="top">
     <th align="left" rowspan="3">Quantifiers</th>
@@ -723,7 +716,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Possessive</td>
+    <td>🆕 Possessive</td>
     <td><code>?+</code>, <code>*+</code>, <code>++</code>, <code>{3,2}</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -733,7 +726,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Chained</td>
+    <td>🆕 Chained</td>
     <td><code>**</code>, <code>??+*</code>, <code>{2,3}+</code>, etc.</td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -753,7 +746,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Atomic</td>
+    <td>🆕 Atomic</td>
     <td><code>(?>…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -774,7 +767,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>Named capturing</td>
     <td>
       <code>(?&lt;a>…)</code>,<br>
-      <code>(?'a'…)</code>
+      🆚 <code>(?'a'…)</code>
     </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -796,7 +789,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Enclosed numbered, relative</td>
+    <td>🆕 Enclosed numbered, relative</td>
     <td>
       <code>\k&lt;1></code>,<br>
       <code>\k'1'</code>,<br>
@@ -816,7 +809,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>Named</td>
     <td>
       <code>\k&lt;a></code>,<br>
-      <code>\k'a'</code>
+      🆚 <code>\k'a'</code>
     </td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -841,7 +834,7 @@ Notice that nearly every feature below has at least subtle differences from Java
 
   <tr valign="top">
     <th align="left" rowspan="2">Subroutines</th>
-    <td>Numbered, relative</td>
+    <td>🆕 Numbered, relative</td>
     <td>
       <code>\g&lt;1></code>,<br>
       <code>\g'1'</code>,<br>
@@ -865,7 +858,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Named</td>
+    <td>🆕 Named</td>
     <td>
       <code>\g&lt;a></code>,<br>
       <code>\g'a'</code>
@@ -880,7 +873,7 @@ Notice that nearly every feature below has at least subtle differences from Java
 
   <tr valign="top">
     <th align="left" rowspan="2">Recursion</th>
-    <td>Full pattern</td>
+    <td>🆕 Full pattern</td>
     <td>
       <code>\g&lt;0></code>,<br>
       <code>\g'0'</code>
@@ -892,7 +885,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Numbered, relative, named</td>
+    <td>🆕 Numbered, relative, named</td>
     <td>
       <code>(…\g&lt;1>?…)</code>,<br>
       <code>(…\g&lt;-1>?…)</code>,<br>
@@ -916,7 +909,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Absence repeater<sup>[6]</sup></td>
+    <td>🆕 Absence repeater<sup>[6]</sup></td>
     <td><code>(?~…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -925,7 +918,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Comment group</td>
+    <td>🆕 Comment group</td>
     <td><code>(?#…)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -936,7 +929,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Fail<sup>[7]</sup></td>
+    <td>🆕 Fail<sup>[7]</sup></td>
     <td><code>(*FAIL)</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -945,7 +938,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td>Keep</td>
+    <td>🆕 Keep</td>
     <td><code>\K</code></td>
     <td align="middle">☑️</td>
     <td align="middle">☑️</td>
@@ -961,6 +954,7 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ <code>\u{…}</code> is an error<br>
       ✔ <code>[\q{…}]</code> matches <code>q</code>, etc.<br>
       ✔ <code>[a--b]</code> includes the invalid reversed range <code>a</code> to <code>-</code><br>
+      ✔ <code>[]</code>, <code>[^]</code> are errors<br>
     </td>
   </tr>
   <tr valign="top">
@@ -974,7 +968,7 @@ Notice that nearly every feature below has at least subtle differences from Java
 
   <tr valign="top">
     <th align="left" rowspan="2">Compile-time options</th>
-    <td colspan="2"><code>ONIG_OPTION_CAPTURE_GROUP</code></td>
+    <td colspan="2">🆕 <code>ONIG_OPTION_CAPTURE_GROUP</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -982,7 +976,7 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2"><code>ONIG_OPTION_SINGLELINE</code></td>
+    <td colspan="2">🆕 <code>ONIG_OPTION_SINGLELINE</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -1011,8 +1005,8 @@ The following throw errors since they aren't yet supported. They're all extremel
 - Supportable:
   - Rarely-used character specifiers: Non-A-Za-z with `\cx` `\C-x`, meta `\M-x` `\M-\C-x`, octal code points `\o{…}`, and octal encoded bytes ≥ `\200`.
   - Code point sequences: `\x{H H …}`, `\o{O O …}`.
-  - Grapheme boundaries: `\y`, `\Y`.
-  - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes); whole-pattern modifier `C` (don't capture group).
+  - Grapheme boundaries: `\y` `\Y`.
+  - Flags `P` (POSIX is ASCII) and `y{g}` `y{w}` (grapheme boundary modes); whole-pattern modifier `C` (don't capture group).
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers: `I` (ignore-case is ASCII), `L` (find longest).
