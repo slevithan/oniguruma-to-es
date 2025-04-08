@@ -755,10 +755,7 @@ function canParticipateWithNode(capture, node) {
         // Reached rightmost node in sibling list that we want to consider; break to parent loop
         break;
       }
-      if (kid === capture) {
-        return true;
-      }
-      if (isDescendant(kid, capture)) {
+      if (kid === capture || isAncestorOf(kid, capture)) {
         return true;
       }
     }
@@ -915,12 +912,12 @@ function getLeadingG(els) {
   return null;
 }
 
-function isDescendant(node, descendant) {
+function isAncestorOf(node, descendant) {
   const kids = getKids(node) ?? [];
   for (const kid of kids) {
     if (
       kid === descendant ||
-      isDescendant(kid, descendant)
+      isAncestorOf(kid, descendant)
     ) {
       return true;
     }

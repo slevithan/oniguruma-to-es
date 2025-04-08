@@ -1009,7 +1009,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 The following throw errors since they aren't yet supported. They're all extremely rare.
 
 - Supportable:
-  - Rarely-used character specifiers: Non-A-Za-z with `\cx` `\C-x`, meta `\M-x` `\M-\C-x`, bracketed octals `\o{…}`, and octal encoded bytes ≥ `\200`.
+  - Rarely-used character specifiers: Non-A-Za-z with `\cx` `\C-x`, meta `\M-x` `\M-\C-x`, octal code points `\o{…}`, and octal encoded bytes ≥ `\200`.
   - Code point sequences: `\x{H H …}`, `\o{O O …}`.
   - Grapheme boundaries: `\y`, `\Y`.
   - Flags `P` (POSIX is ASCII) and `y{g}`/`y{w}` (grapheme boundary modes); whole-pattern modifier `C` (don't capture group).
