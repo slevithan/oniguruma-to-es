@@ -470,7 +470,7 @@ Notice that nearly every feature below has at least subtle differences from Java
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="8">Character sets</th>
+    <th align="left" rowspan="10">Character sets</th>
     <td>Digit</td>
     <td><code>\d</code>, <code>\D</code></td>
     <td align="middle">✅</td>
@@ -489,6 +489,15 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
+    <td>Word</td>
+    <td><code>\w</code>, <code>\W</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode by default (≠ JS)<br>
+    </td>
+  </tr>
+  <tr valign="top">
     <td>Whitespace</td>
     <td><code>\s</code>, <code>\S</code></td>
     <td align="middle">✅</td>
@@ -496,15 +505,6 @@ Notice that nearly every feature below has at least subtle differences from Java
     <td>
       ✔ Unicode by default<br>
       ✔ No JS adjustments to Unicode set (−<code>\uFEFF</code>, +<code>\x85</code>)<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Word</td>
-    <td><code>\w</code>, <code>\W</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Unicode by default (≠ JS)<br>
     </td>
   </tr>
   <tr valign="top">
@@ -527,11 +527,32 @@ Notice that nearly every feature below has at least subtle differences from Java
     </td>
   </tr>
   <tr valign="top">
+    <td>Newline</td>
+    <td><code>\R</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Matched atomically<br>
+      ✔ Identity escape in char class<br>
+    </td>
+  </tr>
+  <tr valign="top">
     <td>Not newline</td>
     <td><code>\N</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
+      ✔ Identity escape in char class<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>Grapheme</td>
+    <td><code>\X</code></td>
+    <td align="middle">☑️</td>
+    <td align="middle">☑️</td>
+    <td>
+      ● Uses a close approximation<br>
+      ✔ Matched atomically<br>
       ✔ Identity escape in char class<br>
     </td>
   </tr>
@@ -555,27 +576,6 @@ Notice that nearly every feature below has at least subtle differences from Java
       ✔ Error for key prefixes<br>
       ✔ Error for props of strings<br>
       ❌ Blocks (wontfix<sup>[1]</sup>)<br>
-    </td>
-  </tr>
-
-  <tr valign="top">
-    <th align="left" rowspan="2">Variable-length sets</th>
-    <td>Newline</td>
-    <td><code>\R</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Matched atomically<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>Grapheme</td>
-    <td><code>\X</code></td>
-    <td align="middle">☑️</td>
-    <td align="middle">☑️</td>
-    <td>
-      ● Uses a close approximation<br>
-      ✔ Matched atomically<br>
     </td>
   </tr>
 
