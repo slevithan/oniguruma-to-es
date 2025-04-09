@@ -280,7 +280,7 @@ Following are the supported features by target. The official Oniguruma [syntax d
 > Targets `ES2024` and `ES2025` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings. See [`target`](#target).
 
 🆕 = Syntax not available in JavaScript.<br>
-🆚 = JavaScript uses slightly different syntax for the same concept; ex: `\x{…}` → `\u{…}`.
+🆚 = JavaScript uses slightly different syntax for the same concept; ex: `\u{…}` → `\x{…}`.
 
 Even for features not marked with one of the above symbols, notice that nearly every feature below has at least subtle differences from JavaScript. Unsupported features throw an error.
 
@@ -971,7 +971,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
 
   <tr valign="top">
     <th align="left" rowspan="2">Compile-time options</th>
-    <td colspan="2">🆕 <code>ONIG_OPTION_CAPTURE_GROUP</code></td>
+    <td colspan="2"><code>ONIG_OPTION_CAPTURE_GROUP</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
@@ -979,7 +979,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
     </td>
   </tr>
   <tr valign="top">
-    <td colspan="2">🆕 <code>ONIG_OPTION_SINGLELINE</code></td>
+    <td colspan="2"><code>ONIG_OPTION_SINGLELINE</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
