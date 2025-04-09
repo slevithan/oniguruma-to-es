@@ -7,7 +7,7 @@ import {traverse} from 'oniguruma-parser/traverser';
 /**
 @import {ToRegExpOptions} from './index.js';
 @import {RegexPlusAst} from './transform.js';
-@import {AssertionNode, CharacterClassNode, CharacterSetNode, LookaroundAssertionNode, Node} from 'oniguruma-parser/parser';
+@import {AssertionNode, CharacterClassNode, CharacterSetNode, LookaroundAssertionNode, Node, SubroutineNode} from 'oniguruma-parser/parser';
 */
 
 /**
@@ -117,11 +117,11 @@ function generate(ast, options) {
         return node.alternatives.map(gen).join('|');
       case 'Quantifier':
         return gen(node.element) + getQuantifierStr(node);
-      case 'Recursion':
-        return genRecursion(node, state);
+      case 'Subroutine':
+        return genSubroutine(node, state);
       default:
-        // Node types `AbsentFunction`, `Directive`, `NamedCallout`, and `Subroutine` are never
-        // included in transformer output
+        // Node types `AbsentFunction`, `Directive`, and `NamedCallout` are never included in
+        // transformer output
         throw new Error(`Unexpected node type "${node.type}"`);
     }
   }
@@ -490,11 +490,22 @@ function genLookaroundAssertion({kind, negate, alternatives}, _, gen) {
   return `(?${prefix}${alternatives.map(gen).join('|')})`;
 }
 
-function genRecursion({ref}, state) {
+/**
+@param {SubroutineNode & {isRecursive: true}} node
+@returns {string}
+*/
+function genSubroutine({isRecursive, ref}, state) {
+  if (!isRecursive) {
+    throw new Error('Unexpected non-recursive subroutine in transformed AST');
+  }
   const limit = state.recursionLimit;
   // Using the syntax supported by `regex-recursion`
   return ref === 0 ? `(?R=${limit})` : r`\g<${ref}&R=${limit}>`;
 }
+
+// ---------------
+// --- Helpers ---
+// ---------------
 
 /**
 Given a `CharacterClassRange` node, returns an array of chars that are a case variant of a char in

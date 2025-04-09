@@ -1012,7 +1012,7 @@ The following throw errors since they aren't yet supported. They're all extremel
   - Flags `P` (POSIX is ASCII) and `y{g}` `y{w}` (grapheme boundary modes); whole-pattern modifier `C` (don't capture group).
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
-  - Whole-pattern modifiers: `I` (ignore-case is ASCII), `L` (find longest).
+  - Whole-pattern modifiers `I` (ignore-case is ASCII), `L` (find longest).
   - Named callout `(*SKIP)`.
 - Not supportable:
   - Other callouts: `(?{…})`, etc.

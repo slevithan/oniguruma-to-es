@@ -2,7 +2,7 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createUnicodeProperty, parse, slug} from 'oniguruma-parser/parser';
+import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createSubroutine, createUnicodeProperty, parse, slug} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
@@ -515,9 +515,9 @@ const SecondPassVisitor = {
 
       // ## Handle recursion; runs after subroutine expansion
       if (origin && openRefs.has(node.number)) {
-        // Recursion doesn't affect any following backrefs to its `ref` (unlike other subroutines),
-        // so don't wrap with a capture. The reffed group might have its name removed due to later
-        // subroutine expansion
+        // Recursive subroutines don't affect any following backrefs to their `ref` (unlike other
+        // subroutines), so don't wrap with a capture. The reffed group might have its name removed
+        // due to later subroutine expansion
         const recursion = setParent(createRecursion(node.number), parent);
         reffedNodesByReferencer.set(recursion, openRefs.get(node.number));
         replaceWith(recursion);
@@ -598,25 +598,26 @@ const SecondPassVisitor = {
     },
   },
 
-  Recursion({node, parent}, {reffedNodesByReferencer}) {
-    // Recursion nodes are created during the current traversal; they're only traversed here if a
-    // recursion node created during traversal is then copied by a subroutine expansion, e.g. with
-    // `(?<a>\g<a>)\g<a>`
-    const {ref} = node;
-    // Immediate parent is an alternative or quantifier; can skip
-    let reffed = parent;
-    while ((reffed = reffed.parent)) {
-      if (reffed.type === 'CapturingGroup' && (reffed.name === ref || reffed.number === ref)) {
-        break;
-      }
-    }
-    // Track the referenced node because `ref`s are rewritten in a subsequent pass; capturing group
-    // names and numbers might change due to subroutine expansion and duplicate group names
-    reffedNodesByReferencer.set(node, reffed);
-  },
-
   Subroutine({node, parent, replaceWith}, state) {
-    const {ref} = node;
+    const {isRecursive, ref} = node;
+
+    // Subroutine nodes with `isRecursive` are created during the current traversal; they're only
+    // traversed here if a recursive subroutine created during traversal is then copied by a
+    // subroutine expansion, e.g. with `(?<a>\g<a>)\g<a>`
+    if (isRecursive) {
+      // Immediate parent is an alternative or quantifier; can skip
+      let reffed = parent;
+      while ((reffed = reffed.parent)) {
+        if (reffed.type === 'CapturingGroup' && (reffed.name === ref || reffed.number === ref)) {
+          break;
+        }
+      }
+      // Track the referenced node because `ref`s are rewritten in a subsequent pass; capturing
+      // group names and numbers might change due to subroutine expansion and duplicate group names
+      state.reffedNodesByReferencer.set(node, reffed);
+      return;
+    }
+
     const reffedGroupNode = state.subroutineRefMap.get(ref);
     // Other forms of recursion are handled by the `CapturingGroup` visitor
     const isGlobalRecursion = ref === 0;
@@ -627,9 +628,10 @@ const SecondPassVisitor = {
     let replacement = expandedSubroutine;
     if (!isGlobalRecursion) {
       // Subroutines take their flags from the reffed group, not the flags surrounding themselves
-      const reffedGroupFlagMods = getCombinedFlagModsFromFlagNodes(getAllParents(reffedGroupNode, node => {
-        return node.type === 'Group' && !!node.flags;
-      }));
+      const reffedGroupFlagMods = getCombinedFlagModsFromFlagNodes(getAllParents(
+        reffedGroupNode,
+        p => p.type === 'Group' && !!p.flags
+      ));
       const reffedGroupFlags = reffedGroupFlagMods ?
         getNewCurrentFlags(state.globalFlags, reffedGroupFlagMods) :
         state.globalFlags;
@@ -688,18 +690,6 @@ const ThirdPassVisitor = {
     }
   },
 
-  Recursion({node}, state) {
-    if (node.ref === 0) {
-      return;
-    }
-    // For the recursion's `ref`, use `number` rather than `name` because group names might have
-    // been removed if they're duplicates within their alternation path, or they might be removed
-    // later by the generator (depending on target) if they're duplicates within the overall
-    // pattern. Since recursion appears within the group it refs, the reffed node's `number` has
-    // already been recalculated
-    node.ref = state.reffedNodesByReferencer.get(node).number;
-  },
-
   Regex: {
     exit({node}, state) {
       // HACK: Add unnamed captures to the end of the regex if needed to allow orphaned backrefs
@@ -717,6 +707,18 @@ const ThirdPassVisitor = {
         node.pattern.alternatives.at(-1).elements.push(emptyCapture);
       }
     },
+  },
+
+  Subroutine({node}, state) {
+    if (!node.isRecursive || node.ref === 0) {
+      return;
+    }
+    // For the recursion's `ref`, use `number` rather than `name` because group names might have
+    // been removed if they're duplicates within their alternation path, or they might be removed
+    // later by the generator (depending on target) if they're duplicates within the overall
+    // pattern. Since recursion appears within the group it refs, the reffed node's `number` has
+    // already been recalculated
+    node.ref = state.reffedNodesByReferencer.get(node).number;
   },
 };
 
@@ -785,12 +787,13 @@ function cloneCapturingGroup(obj, originMap, up, up2) {
   return store;
 }
 
-// `Recursion` nodes are used only by the transformer
 function createRecursion(ref) {
-  return {
-    type: 'Recursion',
-    ref,
-  };
+  const node = createSubroutine(ref);
+  // In the future, the parser will set a `recursive` property on subroutines:
+  // <github.com/slevithan/oniguruma-parser/issues/3>. When that's available, this function won't
+  // be needed and the related logic in this transformer should change (simplify) to use it
+  node.isRecursive = true;
+  return node;
 }
 
 function getAllParents(node, filterFn) {

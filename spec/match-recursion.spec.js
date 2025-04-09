@@ -6,7 +6,7 @@ beforeEach(() => {
   jasmine.addMatchers(matchers);
 });
 
-describe('Recursion', () => {
+describe('Subroutine [recursive]', () => {
   // Note: See specs for option `rules.recursionLimit` in `options.spec.js`
 
   // Documenting current behavior

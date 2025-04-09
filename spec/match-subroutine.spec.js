@@ -7,6 +7,7 @@ beforeEach(() => {
 });
 
 describe('Subroutine', () => {
+  // For recursion tests, see `match-recursion.spec.js`
   // TODO: Test that subroutines use the flags that apply to their reffed group
 
   it(r`should match incomplete \g as identity escape`, () => {
