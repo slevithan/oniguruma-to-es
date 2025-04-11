@@ -87,7 +87,7 @@ function generate(ast, options) {
       case 'Regex':
         // Final result is an object; other node types return strings
         return {
-          pattern: node.alternatives.map(gen).join('|'),
+          pattern: node.body.map(gen).join('|'),
           flags: gen(node.flags),
           options: {...node.options},
         };
@@ -262,7 +262,7 @@ function genBackreference({ref}, state) {
 }
 
 function genCapturingGroup(node, state, gen) {
-  const {name, number, alternatives} = node;
+  const {body, name, number} = node;
   const data = {ignoreCase: state.currentFlags.ignoreCase};
   // Has origin if the capture is from an expanded subroutine
   const origin = state.originMap.get(node);
@@ -277,7 +277,7 @@ function genCapturingGroup(node, state, gen) {
     }
   }
   state.captureMap.set(number, data);
-  return `(${name ? `?<${name}>` : ''}${alternatives.map(gen).join('|')})`;
+  return `(${name ? `?<${name}>` : ''}${body.map(gen).join('|')})`;
 }
 
 function genCharacter({value}, state) {
@@ -328,7 +328,7 @@ function genCharacterClass(node, state, gen) {
       );
       if (negatedChildClasses.length) {
         const group = createGroup();
-        const groupFirstAlt = group.alternatives[0];
+        const groupFirstAlt = group.body[0];
         group.parent = parent;
         groupFirstAlt.parent = group;
         elements = elements.filter(kid => !negatedChildClasses.includes(kid));
@@ -337,14 +337,14 @@ function genCharacterClass(node, state, gen) {
           node.parent = groupFirstAlt;
           groupFirstAlt.elements.push(node);
         } else {
-          group.alternatives.pop();
+          group.body.pop();
         }
         negatedChildClasses.forEach(cc => {
           const newAlt = createAlternative();
           newAlt.parent = group;
           cc.parent = newAlt;
           newAlt.elements.push(cc);
-          group.alternatives.push(newAlt);
+          group.body.push(newAlt);
         });
         return gen(group);
       }
@@ -462,15 +462,15 @@ function genFlags(node, state) {
   );
 }
 
-function genGroup({atomic, flags, parent, alternatives}, state, gen) {
+function genGroup({atomic, body, flags, parent}, state, gen) {
   const currentFlags = state.currentFlags;
   if (flags) {
     state.currentFlags = getNewCurrentFlags(currentFlags, flags);
   }
-  const contents = alternatives.map(gen).join('|');
+  const contents = body.map(gen).join('|');
   const result = (
     !state.verbose &&
-    alternatives.length === 1 &&
+    body.length === 1 && // Single alt
     parent.type !== 'Quantifier' &&
     !atomic &&
     (!state.useFlagMods || !flags)
@@ -483,9 +483,9 @@ function genGroup({atomic, flags, parent, alternatives}, state, gen) {
 @param {LookaroundAssertionNode} node
 @returns {string}
 */
-function genLookaroundAssertion({kind, negate, alternatives}, _, gen) {
+function genLookaroundAssertion({body, kind, negate}, _, gen) {
   const prefix = `${kind === 'lookahead' ? '' : '<'}${negate ? '!' : '='}`;
-  return `(?${prefix}${alternatives.map(gen).join('|')})`;
+  return `(?${prefix}${body.map(gen).join('|')})`;
 }
 
 /**

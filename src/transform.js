@@ -111,16 +111,16 @@ const FirstPassVisitor = {
   @param {{node: AbsenceFunctionNode}} path
   */
   AbsenceFunction({node, parent, replaceWith}) {
-    const {kind, alternatives} = node;
+    const {body, kind} = node;
     if (kind === 'repeater') {
       // Convert `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
       const negLookahead = createLookaroundAssertion({negate: true});
-      negLookahead.alternatives = alternatives;
+      negLookahead.body = body;
       const innerGroup = createGroup();
-      innerGroup.alternatives[0].elements.push(negLookahead, createUnicodeProperty('Any'));
+      innerGroup.body[0].elements.push(negLookahead, createUnicodeProperty('Any'));
       const quantifier = createQuantifier('greedy', 0, Infinity, innerGroup);
       const outerGroup = createGroup();
-      outerGroup.alternatives[0].elements.push(quantifier);
+      outerGroup.body[0].elements.push(quantifier);
       replaceWith(setParentDeep(outerGroup, parent), {traverse: true});
     } else {
       throw new Error(`Unsupported absence function "(?~|"`);
@@ -132,20 +132,20 @@ const FirstPassVisitor = {
       // Look for own-level flag directives when entering an alternative because after traversing
       // the directive itself, any subsequent flag directives will no longer be at the same level
       const flagDirectives = node.elements.filter(el => el.kind === 'flags');
-      for (let i = key + 1; i < parent.alternatives.length; i++) {
-        const forwardSiblingAlt = parent.alternatives[i];
+      for (let i = key + 1; i < parent.body.length; i++) {
+        const forwardSiblingAlt = parent.body[i];
         getOrInsert(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
       }
     },
     exit({node}, {flagDirectivesByAlt}) {
       // Wait until exiting to wrap an alternative's nodes with flag groups that extend flag
-      // directives from prior sibling alternatives because doing this at the end allows inner
+      // directives from prior sibling alternatives, because doing this at the end allows inner
       // nodes to accurately check their level in the tree
       if (flagDirectivesByAlt.get(node)?.length) {
         const flags = getCombinedFlagModsFromFlagNodes(flagDirectivesByAlt.get(node));
         if (flags) {
           const flagGroup = createGroup({flags});
-          flagGroup.alternatives[0].elements = node.elements;
+          flagGroup.body[0].elements = node.elements;
           node.elements = [setParentDeep(flagGroup, node)];
         }
       }
@@ -319,22 +319,22 @@ const FirstPassVisitor = {
         remove();
       } else {
         const flagGroup = createGroup({flags});
-        flagGroup.alternatives[0].elements = removeAllNextSiblings();
+        flagGroup.body[0].elements = removeAllNextSiblings();
         replaceWith(setParentDeep(flagGroup, parent), {traverse: true});
       }
     } else if (kind === 'keep') {
-      const firstAltFirstEl = root.alternatives[0].elements[0];
+      const firstAltFirstEl = root.body[0].elements[0];
       // Supporting a full-pattern wrapper around `\K` enables use with flag modifiers
       const hasWrapperGroup =
         // Not emulatable if within a `CapturingGroup`
         hasOnlyChild(root, kid => kid.type === 'Group') &&
-        firstAltFirstEl.alternatives.length === 1;
+        firstAltFirstEl.body.length === 1;
       const topLevel = hasWrapperGroup ? firstAltFirstEl : root;
-      if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
+      if (parent.parent !== topLevel || topLevel.body.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
       const lookbehind = createLookaroundAssertion({behind: true});
-      lookbehind.alternatives[0].elements = removeAllPrevSiblings();
+      lookbehind.body[0].elements = removeAllPrevSiblings();
       replaceWith(setParentDeep(lookbehind, parent));
     } else {
       throw new Error(`Unexpected directive kind "${kind}"`);
@@ -432,7 +432,7 @@ const FirstPassVisitor = {
     if (node.element.type === 'Quantifier') {
       // Change e.g. `a**` to `(?:a*)*`
       const group = createGroup();
-      group.alternatives[0].elements.push(node.element);
+      group.body[0].elements.push(node.element);
       node.element = setParentDeep(group, node);
     }
   },
@@ -445,7 +445,7 @@ const FirstPassVisitor = {
       const leadingGs = [];
       let hasAltWithLeadG = false;
       let hasAltWithoutLeadG = false;
-      for (const alt of node.alternatives) {
+      for (const alt of node.body) {
         if (alt.elements.length === 1 && alt.elements[0].kind === 'search_start') {
           // Remove the `\G` (leaving behind an empty alternative, and without adding JS flag y)
           // since a top-level alternative that includes only `\G` always matches at the start of the
@@ -639,7 +639,7 @@ const SecondPassVisitor = {
         replacement = createGroup({
           flags: getFlagModsFromFlags(reffedGroupFlags),
         });
-        replacement.alternatives[0].elements.push(expandedSubroutine);
+        replacement.body[0].elements.push(expandedSubroutine);
       }
     }
     replaceWith(setParentDeep(replacement, parent), {traverse: !isGlobalRecursion});
@@ -671,7 +671,7 @@ const ThirdPassVisitor = {
         return alt;
       });
       const group = createGroup();
-      group.alternatives = alts;
+      group.body = alts;
       replaceWith(setParentDeep(group, parent));
     } else {
       node.ref = participants[0].number;
@@ -704,7 +704,7 @@ const ThirdPassVisitor = {
       const numCapsNeeded = Math.max(state.highestOrphanBackref - state.numCapturesToLeft, 0);
       for (let i = 0; i < numCapsNeeded; i++) {
         const emptyCapture = createCapturingGroup();
-        node.alternatives.at(-1).elements.push(emptyCapture);
+        node.body.at(-1).elements.push(emptyCapture);
       }
     },
   },
@@ -819,7 +819,7 @@ function getAndStoreJsGroupName(name, map) {
 
 // Returns the string key for the container that holds the node's kids
 function getContainerAccessor(node) {
-  for (const accessor of ['alternatives', 'elements']) {
+  for (const accessor of ['body', 'elements']) {
     if (node[accessor]) {
       return accessor;
     }
@@ -895,12 +895,12 @@ function getLeadingG(els) {
     return firstToConsider;
   }
   if (firstToConsider.type === 'LookaroundAssertion') {
-    return firstToConsider.alternatives[0].elements[0];
+    return firstToConsider.body[0].elements[0];
   }
   if (firstToConsider.type === 'CapturingGroup' || firstToConsider.type === 'Group') {
     const gNodesForGroup = [];
     // Recursively find `\G` nodes for all alternatives in the group
-    for (const alt of firstToConsider.alternatives) {
+    for (const alt of firstToConsider.body) {
       const leadingG = getLeadingG(alt.elements);
       if (!leadingG) {
         // Don't return `gNodesForGroup` collected so far since this alt didn't qualify
@@ -935,11 +935,11 @@ child satisfies a condition.
 @param {(node: AlternativeElementNode) => boolean} [kidFn]
 @returns {boolean}
 */
-function hasOnlyChild({alternatives}, kidFn) {
+function hasOnlyChild({body}, kidFn) {
   return (
-    alternatives.length === 1 &&
-    alternatives[0].elements.length === 1 &&
-    (!kidFn || kidFn(alternatives[0].elements[0]))
+    body.length === 1 &&
+    body[0].elements.length === 1 &&
+    (!kidFn || kidFn(body[0].elements[0]))
   );
 }
 
@@ -999,10 +999,10 @@ function parseFragment(pattern, options) {
     // properties (ex: `\p{Alpha}`) to Onig POSIX classes
     unicodePropertyMap: JsUnicodePropertyMap,
   });
-  const alts = ast.alternatives;
+  const alts = ast.body;
   if (alts.length > 1 || alts[0].elements.length > 1) {
     const group = createGroup();
-    group.alternatives = alts;
+    group.body = alts;
     return group;
   }
   return alts[0].elements[0];
