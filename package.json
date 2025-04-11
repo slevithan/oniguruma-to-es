@@ -51,7 +51,7 @@
   ],
   "dependencies": {
     "emoji-regex-xs": "^1.0.0",
-    "oniguruma-parser": "^0.9.0",
+    "oniguruma-parser": "^0.10.0",
     "regex": "^6.0.1",
     "regex-recursion": "^6.0.2"
   },
@@ -61,5 +61,5 @@
     "typescript": "^5.8.3",
     "vscode-oniguruma": "^2.0.1"
   },
-  "packageManager": "pnpm@10.7.1"
+  "packageManager": "pnpm@10.8.0"
 }
