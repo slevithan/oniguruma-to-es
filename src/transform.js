@@ -117,10 +117,10 @@ const FirstPassVisitor = {
       const negLookahead = createLookaroundAssertion({negate: true});
       negLookahead.body = body;
       const innerGroup = createGroup();
-      innerGroup.body[0].elements.push(negLookahead, createUnicodeProperty('Any'));
+      innerGroup.body[0].body.push(negLookahead, createUnicodeProperty('Any'));
       const quantifier = createQuantifier('greedy', 0, Infinity, innerGroup);
       const outerGroup = createGroup();
-      outerGroup.body[0].elements.push(quantifier);
+      outerGroup.body[0].body.push(quantifier);
       replaceWith(setParentDeep(outerGroup, parent), {traverse: true});
     } else {
       throw new Error(`Unsupported absence function "(?~|"`);
@@ -131,7 +131,7 @@ const FirstPassVisitor = {
     enter({node, parent, key}, {flagDirectivesByAlt}) {
       // Look for own-level flag directives when entering an alternative because after traversing
       // the directive itself, any subsequent flag directives will no longer be at the same level
-      const flagDirectives = node.elements.filter(el => el.kind === 'flags');
+      const flagDirectives = node.body.filter(el => el.kind === 'flags');
       for (let i = key + 1; i < parent.body.length; i++) {
         const forwardSiblingAlt = parent.body[i];
         getOrInsert(flagDirectivesByAlt, forwardSiblingAlt, []).push(...flagDirectives);
@@ -145,8 +145,8 @@ const FirstPassVisitor = {
         const flags = getCombinedFlagModsFromFlagNodes(flagDirectivesByAlt.get(node));
         if (flags) {
           const flagGroup = createGroup({flags});
-          flagGroup.body[0].elements = node.elements;
-          node.elements = [setParentDeep(flagGroup, node)];
+          flagGroup.body[0].body = node.body;
+          node.body = [setParentDeep(flagGroup, node)];
         }
       }
     },
@@ -173,7 +173,7 @@ const FirstPassVisitor = {
         root.flags.sticky = true;
         remove();
       } else {
-        const prev = container[key - 1]; // parent.elements[key - 1]
+        const prev = container[key - 1]; // parent.body[key - 1]
         // Not all ways of blocking the `\G` from matching are covered here (ex: a node prior to
         // the `prev` node could block), but blocked `\G` is an edge case and it's okay if some
         // blocked cases result in the standard error for being unsupported without a subclass
@@ -228,7 +228,7 @@ const FirstPassVisitor = {
     if (parent.kind === 'intersection') {
       // JS doesn't allow intersection with ranges without a wrapper class
       const cc = createCharacterClass();
-      cc.elements.push(node);
+      cc.body.push(node);
       replaceWith(setParentDeep(cc, parent), {traverse: true});
     }
   },
@@ -319,11 +319,11 @@ const FirstPassVisitor = {
         remove();
       } else {
         const flagGroup = createGroup({flags});
-        flagGroup.body[0].elements = removeAllNextSiblings();
+        flagGroup.body[0].body = removeAllNextSiblings();
         replaceWith(setParentDeep(flagGroup, parent), {traverse: true});
       }
     } else if (kind === 'keep') {
-      const firstAltFirstEl = root.body[0].elements[0];
+      const firstAltFirstEl = root.body[0].body[0];
       // Supporting a full-pattern wrapper around `\K` enables use with flag modifiers
       const hasWrapperGroup =
         // Not emulatable if within a `CapturingGroup`
@@ -334,7 +334,7 @@ const FirstPassVisitor = {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
       const lookbehind = createLookaroundAssertion({behind: true});
-      lookbehind.body[0].elements = removeAllPrevSiblings();
+      lookbehind.body[0].body = removeAllPrevSiblings();
       replaceWith(setParentDeep(lookbehind, parent));
     } else {
       throw new Error(`Unexpected directive kind "${kind}"`);
@@ -432,7 +432,7 @@ const FirstPassVisitor = {
     if (node.element.type === 'Quantifier') {
       // Change e.g. `a**` to `(?:a*)*`
       const group = createGroup();
-      group.body[0].elements.push(node.element);
+      group.body[0].body.push(node.element);
       node.element = setParentDeep(group, node);
     }
   },
@@ -446,15 +446,15 @@ const FirstPassVisitor = {
       let hasAltWithLeadG = false;
       let hasAltWithoutLeadG = false;
       for (const alt of node.body) {
-        if (alt.elements.length === 1 && alt.elements[0].kind === 'search_start') {
+        if (alt.body.length === 1 && alt.body[0].kind === 'search_start') {
           // Remove the `\G` (leaving behind an empty alternative, and without adding JS flag y)
           // since a top-level alternative that includes only `\G` always matches at the start of the
           // match attempt. Note that this is based on Oniguruma's rules, and is different than other
           // regex flavors where `\G` matches at the end of the previous match (a subtle distinction
           // that's relevant after zero-length matches)
-          alt.elements.pop();
+          alt.body.pop();
         } else {
-          const leadingG = getLeadingG(alt.elements);
+          const leadingG = getLeadingG(alt.body);
           if (leadingG) {
             hasAltWithLeadG = true;
             Array.isArray(leadingG) ?
@@ -639,7 +639,7 @@ const SecondPassVisitor = {
         replacement = createGroup({
           flags: getFlagModsFromFlags(reffedGroupFlags),
         });
-        replacement.body[0].elements.push(expandedSubroutine);
+        replacement.body[0].body.push(expandedSubroutine);
       }
     }
     replaceWith(setParentDeep(replacement, parent), {traverse: !isGlobalRecursion});
@@ -667,7 +667,7 @@ const ThirdPassVisitor = {
       // Multiplex
       const alts = participants.map(reffed => {
         const alt = createAlternative();
-        alt.elements.push(createBackreference(reffed.number));
+        alt.body.push(createBackreference(reffed.number));
         return alt;
       });
       const group = createGroup();
@@ -704,7 +704,7 @@ const ThirdPassVisitor = {
       const numCapsNeeded = Math.max(state.highestOrphanBackref - state.numCapturesToLeft, 0);
       for (let i = 0; i < numCapsNeeded; i++) {
         const emptyCapture = createCapturingGroup();
-        node.body.at(-1).elements.push(emptyCapture);
+        node.body.at(-1).body.push(emptyCapture);
       }
     },
   },
@@ -817,16 +817,6 @@ function getAndStoreJsGroupName(name, map) {
   return jsName;
 }
 
-// Returns the string key for the container that holds the node's kids
-function getContainerAccessor(node) {
-  for (const accessor of ['body', 'elements']) {
-    if (node[accessor]) {
-      return accessor;
-    }
-  }
-  return null;
-}
-
 function getCombinedFlagModsFromFlagNodes(flagNodes) {
   const flagProps = ['dotAll', 'ignoreCase'];
   const combinedFlags = {enable: {}, disable: {}};
@@ -878,8 +868,7 @@ function getKids(node) {
   if (node.type === 'Quantifier') {
     return [node.element];
   }
-  const accessor = getContainerAccessor(node);
-  return accessor && node[accessor];
+  return node.body ?? null;
 }
 
 function getLeadingG(els) {
@@ -895,13 +884,13 @@ function getLeadingG(els) {
     return firstToConsider;
   }
   if (firstToConsider.type === 'LookaroundAssertion') {
-    return firstToConsider.body[0].elements[0];
+    return firstToConsider.body[0].body[0];
   }
   if (firstToConsider.type === 'CapturingGroup' || firstToConsider.type === 'Group') {
     const gNodesForGroup = [];
     // Recursively find `\G` nodes for all alternatives in the group
     for (const alt of firstToConsider.body) {
-      const leadingG = getLeadingG(alt.elements);
+      const leadingG = getLeadingG(alt.body);
       if (!leadingG) {
         // Don't return `gNodesForGroup` collected so far since this alt didn't qualify
         return null;
@@ -938,8 +927,8 @@ child satisfies a condition.
 function hasOnlyChild({body}, kidFn) {
   return (
     body.length === 1 &&
-    body[0].elements.length === 1 &&
-    (!kidFn || kidFn(body[0].elements[0]))
+    body[0].body.length === 1 &&
+    (!kidFn || kidFn(body[0].body[0]))
   );
 }
 
@@ -1000,12 +989,12 @@ function parseFragment(pattern, options) {
     unicodePropertyMap: JsUnicodePropertyMap,
   });
   const alts = ast.body;
-  if (alts.length > 1 || alts[0].elements.length > 1) {
+  if (alts.length > 1 || alts[0].body.length > 1) {
     const group = createGroup();
     group.body = alts;
     return group;
   }
-  return alts[0].elements[0];
+  return alts[0].body[0];
 }
 
 function setNegate(node, negate) {

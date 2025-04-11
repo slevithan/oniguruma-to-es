@@ -92,7 +92,7 @@ function generate(ast, options) {
           options: {...node.options},
         };
       case 'Alternative':
-        return node.elements.map(gen).join('');
+        return node.body.map(gen).join('');
       case 'Assertion':
         return genAssertion(node);
       case 'Backreference':
@@ -305,25 +305,25 @@ function genCharacter({value}, state) {
 */
 function genCharacterClass(node, state, gen) {
   const {kind, negate, parent} = node;
-  let {elements} = node;
+  let {body} = node;
   if (kind === 'intersection' && !state.useFlagV) {
     throw new Error('Use of class intersection requires min target ES2024');
   }
   // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
   // <github.com/slevithan/oniguruma-to-es/issues/30>
-  if (envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV && elements.some(isLiteralHyphen)) {
+  if (envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV && body.some(isLiteralHyphen)) {
     // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
-    elements = elements.filter(kid => !isLiteralHyphen(kid));
-    elements.push(createCharacter(45));
+    body = body.filter(kid => !isLiteralHyphen(kid));
+    body.push(createCharacter(45));
   }
   const genClass = () => `[${negate ? '^' : ''}${
-    elements.map(gen).join(kind === 'intersection' ? '&&' : '')
+    body.map(gen).join(kind === 'intersection' ? '&&' : '')
   }]`;
   if (!state.inCharClass) {
     // Hack to support top-level-nested, negated classes in non-negated classes with target ES2018.
     // Already established that this isn't an intersection class if `!state.useFlagV`, so don't check again
     if (!state.useFlagV && !negate) {
-      const negatedChildClasses = elements.filter(
+      const negatedChildClasses = body.filter(
         kid => kid.type === 'CharacterClass' && kid.kind === 'union' && kid.negate
       );
       if (negatedChildClasses.length) {
@@ -331,11 +331,11 @@ function genCharacterClass(node, state, gen) {
         const groupFirstAlt = group.body[0];
         group.parent = parent;
         groupFirstAlt.parent = group;
-        elements = elements.filter(kid => !negatedChildClasses.includes(kid));
-        node.elements = elements;
-        if (elements.length) {
+        body = body.filter(kid => !negatedChildClasses.includes(kid));
+        node.body = body;
+        if (body.length) {
           node.parent = groupFirstAlt;
-          groupFirstAlt.elements.push(node);
+          groupFirstAlt.body.push(node);
         } else {
           group.body.pop();
         }
@@ -343,7 +343,7 @@ function genCharacterClass(node, state, gen) {
           const newAlt = createAlternative();
           newAlt.parent = group;
           cc.parent = newAlt;
-          newAlt.elements.push(cc);
+          newAlt.body.push(cc);
           group.body.push(newAlt);
         });
         return gen(group);
@@ -356,7 +356,7 @@ function genCharacterClass(node, state, gen) {
     return result;
   }
   // No first element for implicit class in empty intersection like `[&&]`
-  const firstEl = elements[0];
+  const firstEl = body[0];
   if (
     // Already established that the parent is a char class via `inCharClass`, so don't check again
     kind === 'union' &&
@@ -371,13 +371,13 @@ function genCharacterClass(node, state, gen) {
       ( !state.verbose &&
         parent.kind === 'intersection' &&
         // JS doesn't allow intersection with union or ranges
-        elements.length === 1 &&
+        body.length === 1 &&
         firstEl.type !== 'CharacterClassRange'
       )
     )
   ) {
     // Remove unnecessary nesting; unwrap kids into the parent char class
-    return elements.map(gen).join('');
+    return body.map(gen).join('');
   }
   if (!state.useFlagV && parent.type === 'CharacterClass') {
     throw new Error('Use of nested character class requires min target ES2024');
