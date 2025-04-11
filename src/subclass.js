@@ -1,4 +1,4 @@
-import {getOrInsert, throwIfNot} from './utils.js';
+import {getOrInsert} from './utils.js';
 
 /**
 @typedef {{
@@ -174,7 +174,10 @@ class EmulatedRegExp extends RegExp {
 
       // Only transfer if the capture participated in the match
       if (transferTo && matchCopy[i] !== undefined) {
-        const to = throwIfNot(mappedNums[transferTo]);
+        const to = mappedNums[transferTo];
+        if (!to) {
+          throw new Error(`Invalid capture transfer to "${to}"`);
+        }
         match[to] = matchCopy[i];
         if (this.hasIndices) {
           match.indices[to] = indicesCopy[i];
