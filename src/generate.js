@@ -114,7 +114,7 @@ function generate(ast, options) {
       case 'LookaroundAssertion':
         return genLookaroundAssertion(node, state, gen);
       case 'Quantifier':
-        return gen(node.element) + getQuantifierStr(node);
+        return gen(node.body) + getQuantifierStr(node);
       case 'Subroutine':
         return genSubroutine(node, state);
       default:

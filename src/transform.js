@@ -429,11 +429,11 @@ const FirstPassVisitor = {
   @param {{node: QuantifierNode}} path
   */
   Quantifier({node}) {
-    if (node.element.type === 'Quantifier') {
+    if (node.body.type === 'Quantifier') {
       // Change e.g. `a**` to `(?:a*)*`
       const group = createGroup();
-      group.body[0].body.push(node.element);
-      node.element = setParentDeep(group, node);
+      group.body[0].body.push(node.body);
+      node.body = setParentDeep(group, node);
     }
   },
 
@@ -865,10 +865,8 @@ function getKids(node) {
   }
   // NOTE: Not handling `CharacterClassRange`'s `min`/`max` and `Regex`'s `flags`, only because
   // they haven't been needed by current callers
-  if (node.type === 'Quantifier') {
-    return [node.element];
-  }
-  return node.body ?? null;
+  const {body} = node;
+  return Array.isArray(body) ? body : (body ? [body] : null);
 }
 
 function getLeadingG(els) {
@@ -957,7 +955,7 @@ function isAlwaysNonZeroLength(node) {
   return types.includes(node.type) || (
     node.type === 'Quantifier' &&
     node.min &&
-    types.includes(node.element.type)
+    types.includes(node.body.type)
   );
 }
 
