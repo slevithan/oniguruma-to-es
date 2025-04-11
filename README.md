@@ -9,7 +9,7 @@
 
 [Oniguruma](https://github.com/kkos/oniguruma) is a regular expression engine written in C that's used in Ruby (via a fork named Onigmo), PHP (`mb_ereg`, etc.), TextMate grammars (used by VS Code, GitHub, [Shiki](https://shiki.style/), etc. for syntax highlighting), and many other tools.
 
-Oniguruma-To-ES is an advanced **Oniguruma to JavaScript regex translator** that runs in the browser and on your server, with support for ~99.99% of real-world Oniguruma regexes (more details below). Use it to:
+Oniguruma-To-ES is an advanced **Oniguruma to JavaScript regex translator** that runs in the browser and on your server, with support for ~99.99% of Oniguruma regexes (more details below). Use it to:
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript.
@@ -1007,21 +1007,19 @@ The following throw errors since they aren't yet supported. They're all extremel
 
 - Supportable:
   - Rarely-used character specifiers: Non-A-Za-z with `\cx` `\C-x`, meta `\M-x` `\M-\C-x`, octal code points `\o{…}`, and octal encoded bytes ≥ `\200`.
-  - Code point sequences: `\x{H H …}`, `\o{O O …}`.
+  - Code point sequences: `\x{H H …}` `\o{O O …}`.
   - Grapheme boundaries: `\y` `\Y`.
-  - Flags `P` (POSIX is ASCII) and `y{g}` `y{w}` (grapheme boundary modes); whole-pattern modifier `C` (don't capture group).
+  - Flags `P` (POSIX is ASCII) and `y{g}` `y{w}` (grapheme boundary modes), and whole-pattern modifier `C` (don't capture group).
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
-  - Whole-pattern modifiers `I` (ignore-case is ASCII), `L` (find longest).
+  - Whole-pattern modifiers `I` (ignore-case is ASCII) and `L` (find longest).
   - Named callout `(*SKIP)`.
 - Not supportable:
   - Other callouts: `(?{…})`, etc.
 
-See also the [supported features](#-supported-features) table (above) which describes some additional rarely-used sub-features that aren't yet supported.
+See also the [supported features](#-supported-features) table (above) which describes some additional, rarely-used sub-features that aren't yet supported.
 
 Despite these gaps, ~99.99% of real-world Oniguruma regexes are supported, based on a sample of ~55k regexes used in TextMate grammars. Conditionals were used in three regexes, *overlapping* recursions in three regexes, and other unsupported features weren't used at all. Some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub.
-
-Contributions that add support for remaining features are welcome.
 
 <a name="unicode"></a>
 ## ㊗️ Unicode
