@@ -323,13 +323,13 @@ const FirstPassVisitor = {
         replaceWith(setParentDeep(flagGroup, parent), {traverse: true});
       }
     } else if (kind === 'keep') {
-      const firstAltFirstEl = root.pattern.alternatives[0].elements[0];
+      const firstAltFirstEl = root.alternatives[0].elements[0];
       // Supporting a full-pattern wrapper around `\K` enables use with flag modifiers
       const hasWrapperGroup =
         // Not emulatable if within a `CapturingGroup`
-        hasOnlyChild(root.pattern, kid => kid.type === 'Group') &&
+        hasOnlyChild(root, kid => kid.type === 'Group') &&
         firstAltFirstEl.alternatives.length === 1;
-      const topLevel = hasWrapperGroup ? firstAltFirstEl : root.pattern;
+      const topLevel = hasWrapperGroup ? firstAltFirstEl : root;
       if (parent.parent !== topLevel || topLevel.alternatives.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
@@ -425,7 +425,19 @@ const FirstPassVisitor = {
     }
   },
 
-  Pattern: {
+  /**
+  @param {{node: QuantifierNode}} path
+  */
+  Quantifier({node}) {
+    if (node.element.type === 'Quantifier') {
+      // Change e.g. `a**` to `(?:a*)*`
+      const group = createGroup();
+      group.alternatives[0].elements.push(node.element);
+      node.element = setParentDeep(group, node);
+    }
+  },
+
+  Regex: {
     enter({node}, {supportedGNodes}) {
       // For `\G` to be accurately emulatable using JS flag y, it must be at (and only at) the start
       // of every top-level alternative (with complex rules for what determines being at the start).
@@ -463,18 +475,6 @@ const FirstPassVisitor = {
         throw new Error(r`Uses "\G" in a way that requires non-strict accuracy`);
       }
     },
-  },
-
-  /**
-  @param {{node: QuantifierNode}} path
-  */
-  Quantifier({node}) {
-    if (node.element.type === 'Quantifier') {
-      // Change e.g. `a**` to `(?:a*)*`
-      const group = createGroup();
-      group.alternatives[0].elements.push(node.element);
-      node.element = setParentDeep(group, node);
-    }
   },
 
   Subroutine({node}, {jsGroupNameMap}) {
@@ -704,7 +704,7 @@ const ThirdPassVisitor = {
       const numCapsNeeded = Math.max(state.highestOrphanBackref - state.numCapturesToLeft, 0);
       for (let i = 0; i < numCapsNeeded; i++) {
         const emptyCapture = createCapturingGroup();
-        node.pattern.alternatives.at(-1).elements.push(emptyCapture);
+        node.alternatives.at(-1).elements.push(emptyCapture);
       }
     },
   },
@@ -739,7 +739,7 @@ function canParticipateWithNode(capture, node) {
   // (parent's prev sibling descendants) the tree in a loop
   let rightmostPoint = node;
   do {
-    if (rightmostPoint.type === 'Pattern') {
+    if (rightmostPoint.type === 'Regex') {
       // End of the line; capture is not in node's alternation path
       return false;
     }
@@ -873,8 +873,8 @@ function getKids(node) {
   if (!node) {
     throw new Error('Node expected');
   }
-  // NOTE: Not handling `Regex` kids (`pattern`, `flags`) and `CharacterClassRange` kids (`min`,
-  // `max`) only because not needed by current callers
+  // NOTE: Not handling `CharacterClassRange`'s `min`/`max` and `Regex`'s `flags`, only because
+  // they haven't been needed by current callers
   if (node.type === 'Quantifier') {
     return [node.element];
   }
@@ -999,7 +999,7 @@ function parseFragment(pattern, options) {
     // properties (ex: `\p{Alpha}`) to Onig POSIX classes
     unicodePropertyMap: JsUnicodePropertyMap,
   });
-  const alts = ast.pattern.alternatives;
+  const alts = ast.alternatives;
   if (alts.length > 1 || alts[0].elements.length > 1) {
     const group = createGroup();
     group.alternatives = alts;

@@ -87,7 +87,7 @@ function generate(ast, options) {
       case 'Regex':
         // Final result is an object; other node types return strings
         return {
-          pattern: gen(node.pattern),
+          pattern: node.alternatives.map(gen).join('|'),
           flags: gen(node.flags),
           options: {...node.options},
         };
@@ -113,8 +113,6 @@ function generate(ast, options) {
         return genGroup(node, state, gen);
       case 'LookaroundAssertion':
         return genLookaroundAssertion(node, state, gen);
-      case 'Pattern':
-        return node.alternatives.map(gen).join('|');
       case 'Quantifier':
         return gen(node.element) + getQuantifierStr(node);
       case 'Subroutine':
