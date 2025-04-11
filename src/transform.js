@@ -114,13 +114,16 @@ const FirstPassVisitor = {
     const {body, kind} = node;
     if (kind === 'repeater') {
       // Convert `(?~…)` to `(?:(?:(?!…)\p{Any})*)`
-      const negLookahead = createLookaroundAssertion({negate: true});
-      negLookahead.body = body;
       const innerGroup = createGroup();
-      innerGroup.body[0].body.push(negLookahead, createUnicodeProperty('Any'));
-      const quantifier = createQuantifier('greedy', 0, Infinity, innerGroup);
+      innerGroup.body[0].body.push(
+        // Insert own alts as `body`
+        createLookaroundAssertion({negate: true, body}),
+        createUnicodeProperty('Any')
+      );
       const outerGroup = createGroup();
-      outerGroup.body[0].body.push(quantifier);
+      outerGroup.body[0].body.push(
+        createQuantifier('greedy', 0, Infinity, innerGroup)
+      );
       replaceWith(setParentDeep(outerGroup, parent), {traverse: true});
     } else {
       throw new Error(`Unsupported absence function "(?~|"`);
@@ -227,8 +230,7 @@ const FirstPassVisitor = {
   CharacterClassRange({node, parent, replaceWith}) {
     if (parent.kind === 'intersection') {
       // JS doesn't allow intersection with ranges without a wrapper class
-      const cc = createCharacterClass();
-      cc.body.push(node);
+      const cc = createCharacterClass({body: [node]});
       replaceWith(setParentDeep(cc, parent), {traverse: true});
     }
   },
@@ -665,14 +667,12 @@ const ThirdPassVisitor = {
       // groups can't match in Onig but match the empty string in JS
       replaceWith(setParentDeep(createLookaroundAssertion({negate: true}), parent));
     } else if (participants.length > 1) {
-      // Multiplex
-      const alts = participants.map(reffed => {
-        const alt = createAlternative();
-        alt.body.push(createBackreference(reffed.number));
-        return alt;
+      const group = createGroup({
+        // Multiplex
+        body: participants.map(reffed => createAlternative({
+          body: [createBackreference(reffed.number)],
+        })),
       });
-      const group = createGroup();
-      group.body = alts;
       replaceWith(setParentDeep(group, parent));
     } else {
       node.ref = participants[0].number;
@@ -978,9 +978,7 @@ function parseFragment(pattern, options) {
   });
   const alts = ast.body;
   if (alts.length > 1 || alts[0].body.length > 1) {
-    const group = createGroup();
-    group.body = alts;
-    return group;
+    return createGroup({body: alts});
   }
   return alts[0].body[0];
 }

@@ -320,9 +320,15 @@ function genCharacterClass(node, state, gen) {
     body.map(gen).join(kind === 'intersection' ? '&&' : '')
   }]`;
   if (!state.inCharClass) {
-    // Hack to support top-level-nested, negated classes in non-negated classes with target ES2018.
-    // Already established that this isn't an intersection class if `!state.useFlagV`, so don't check again
-    if (!state.useFlagV && !negate) {
+    // HACK: Transform the AST to support top-level-nested, negated classes in non-negated classes
+    // (ex: `[…[^…]]`) with pre-ES2024 `target`, via `(?:[…]|[^…])` or `(?:[^…])`, possibly with
+    // multiple alts that contain negated classes. Would be better to do this in the transformer,
+    // but it doesn't have true `target` since that's supposed to be a concern of the generator
+    if (
+      // Already established `kind !== 'intersection'` if `!state.useFlagV`, so don't check again
+      !state.useFlagV &&
+      !negate
+    ) {
       const negatedChildClasses = body.filter(
         kid => kid.type === 'CharacterClass' && kid.kind === 'union' && kid.negate
       );
@@ -337,13 +343,15 @@ function genCharacterClass(node, state, gen) {
           node.parent = groupFirstAlt;
           groupFirstAlt.body.push(node);
         } else {
+          // Remove the group's only alt thus far, but since the class's `body` is empty, that
+          // implies there's at least one negated class we removed from it, so we'll add at least
+          // one alt back to the group, next
           group.body.pop();
         }
         negatedChildClasses.forEach(cc => {
-          const newAlt = createAlternative();
-          newAlt.parent = group;
+          const newAlt = createAlternative({body: [cc]});
           cc.parent = newAlt;
-          newAlt.body.push(cc);
+          newAlt.parent = group;
           group.body.push(newAlt);
         });
         return gen(group);
