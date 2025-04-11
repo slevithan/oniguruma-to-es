@@ -2,11 +2,11 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createSubroutine, createUnicodeProperty, parse, slug} from 'oniguruma-parser/parser';
+import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createSubroutine, createUnicodeProperty, hasOnlyChild, parse, slug} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
-@import {AbsenceFunctionNode, AlternativeContainerNode, AlternativeElementNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, NamedCalloutNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
+@import {AbsenceFunctionNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, NamedCalloutNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
 */
 
 /**
@@ -323,13 +323,14 @@ const FirstPassVisitor = {
         replaceWith(setParentDeep(flagGroup, parent), {traverse: true});
       }
     } else if (kind === 'keep') {
-      const firstAltFirstEl = root.body[0].body[0];
+      const firstAlt = root.body[0];
       // Supporting a full-pattern wrapper around `\K` enables use with flag modifiers
       const hasWrapperGroup =
+        root.body.length === 1 &&
         // Not emulatable if within a `CapturingGroup`
-        hasOnlyChild(root, kid => kid.type === 'Group') &&
-        firstAltFirstEl.body.length === 1;
-      const topLevel = hasWrapperGroup ? firstAltFirstEl : root;
+        hasOnlyChild(firstAlt, {type: 'Group'}) &&
+        firstAlt.body[0].body.length === 1;
+      const topLevel = hasWrapperGroup ? firstAlt.body[0] : root;
       if (parent.parent !== topLevel || topLevel.body.length > 1) {
         throw new Error(r`Uses "\K" in a way that's unsupported`);
       }
@@ -916,21 +917,6 @@ function isAncestorOf(node, descendant) {
 }
 
 /**
-Check whether the node has exactly one alternative with one child element, and optionally that the
-child satisfies a condition.
-@param {AlternativeContainerNode} node
-@param {(node: AlternativeElementNode) => boolean} [kidFn]
-@returns {boolean}
-*/
-function hasOnlyChild({body}, kidFn) {
-  return (
-    body.length === 1 &&
-    body[0].body.length === 1 &&
-    (!kidFn || kidFn(body[0].body[0]))
-  );
-}
-
-/**
 @param {Node} node
 @returns {boolean}
 */
@@ -967,7 +953,11 @@ function isLoneGLookaround(node, options) {
   return (
     node.type === 'LookaroundAssertion' &&
     (opts.negate === null || node.negate === opts.negate) &&
-    hasOnlyChild(node, kid => kid.kind === 'search_start')
+    node.body.length === 1 &&
+    hasOnlyChild(node.body[0], {
+      type: 'Assertion',
+      kind: 'search_start',
+    })
   );
 }
 
