@@ -1,7 +1,7 @@
 import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 
-describe('AbsentFunction', () => {
+describe('AbsenceFunction', () => {
   describe('repeater', () => {
     it('should match any input not matched by absence pattern', () => {
       expect('abc'.match(toRegExp('(?~ab)', {global: true}))).toEqual(['', 'bc', '']);

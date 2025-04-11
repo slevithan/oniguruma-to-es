@@ -6,7 +6,7 @@ import {createAlternative, createAssertion, createBackreference, createCapturing
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
-@import {AbsentFunctionNode, AlternativeContainerNode, AlternativeElementNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, NamedCalloutNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
+@import {AbsenceFunctionNode, AlternativeContainerNode, AlternativeElementNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, NamedCalloutNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
 */
 
 /**
@@ -108,9 +108,9 @@ function transform(ast, options) {
 
 const FirstPassVisitor = {
   /**
-  @param {{node: AbsentFunctionNode}} path
+  @param {{node: AbsenceFunctionNode}} path
   */
-  AbsentFunction({node, parent, replaceWith}) {
+  AbsenceFunction({node, parent, replaceWith}) {
     const {kind, alternatives} = node;
     if (kind === 'repeater') {
       // Convert `(?~…)` to `(?:(?:(?!…)\p{Any})*)`

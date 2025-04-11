@@ -120,7 +120,7 @@ function generate(ast, options) {
       case 'Subroutine':
         return genSubroutine(node, state);
       default:
-        // Node types `AbsentFunction`, `Directive`, and `NamedCallout` are never included in
+        // Node types `AbsenceFunction`, `Directive`, and `NamedCallout` are never included in
         // transformer output
         throw new Error(`Unexpected node type "${node.type}"`);
     }
