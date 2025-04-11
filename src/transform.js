@@ -170,7 +170,7 @@ const FirstPassVisitor = {
         createAlternative({body: [createCharacter(10)]}), // `\n`
       ]}), parent));
     } else if (kind === 'line_start') {
-      // Onig's `^` doesn't match after a tring-terminating line feed
+      // Onig's `^` doesn't match after a string-terminating line feed
       replaceWith(setParentDeep(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
     } else if (kind === 'search_start') {
       if (supportedGNodes.has(node)) {
