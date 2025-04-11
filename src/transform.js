@@ -2,7 +2,7 @@ import {Accuracy, Target} from './options.js';
 import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
-import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createSubroutine, createUnicodeProperty, hasOnlyChild, parse, slug} from 'oniguruma-parser/parser';
+import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacter, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createSubroutine, createUnicodeProperty, hasOnlyChild, parse, slug} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
@@ -165,11 +165,12 @@ const FirstPassVisitor = {
       // Supported by the parser but not yet for transpilation
       throw new Error(`Unsupported grapheme boundary "\\${negate ? 'Y' : 'y'}"`);
     } else if (kind === 'line_end') {
-      // Onig's only line break char is line feed, unlike JS
-      replaceWith(setParentDeep(parseFragment(r`(?=\z|\n)`), parent));
+      replaceWith(setParentDeep(createLookaroundAssertion({body: [
+        createAlternative({body: [createAssertion('string_end')]}),
+        createAlternative({body: [createCharacter(10)]}), // `\n`
+      ]}), parent));
     } else if (kind === 'line_start') {
-      // Onig's only line break char is line feed, unlike JS. Onig's `^` doesn't match after a
-      // string-terminating line feed
+      // Onig's `^` doesn't match after a tring-terminating line feed
       replaceWith(setParentDeep(parseFragment(r`(?<=\A|\n(?!\z))`, {skipLookbehindValidation: true}), parent));
     } else if (kind === 'search_start') {
       if (supportedGNodes.has(node)) {
