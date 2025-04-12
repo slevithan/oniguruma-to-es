@@ -888,10 +888,7 @@ function getLeadingG(els) {
 function isAncestorOf(node, descendant) {
   const kids = getKids(node) ?? [];
   for (const kid of kids) {
-    if (
-      kid === descendant ||
-      isAncestorOf(kid, descendant)
-    ) {
+    if (kid === descendant || isAncestorOf(kid, descendant)) {
       return true;
     }
   }
