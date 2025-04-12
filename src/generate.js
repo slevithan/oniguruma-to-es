@@ -1,13 +1,14 @@
 import {getOptions} from './options.js';
 import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unicode.js';
-import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
+import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r, throwIfNullish} from './utils.js';
 import {createAlternative, createCharacter, createGroup} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
 @import {ToRegExpOptions} from './index.js';
 @import {RegexPlusAst} from './transform.js';
-@import {AssertionNode, CharacterClassNode, CharacterSetNode, LookaroundAssertionNode, Node, SubroutineNode} from 'oniguruma-parser/parser';
+@import {AlternativeNode, AssertionNode, BackreferenceNode, CapturingGroupNode, CharacterClassNode, CharacterClassRangeNode, CharacterNode, CharacterSetNode, FlagsNode, GroupNode, LookaroundAssertionNode, Node, QuantifierNode, SubroutineNode} from 'oniguruma-parser/parser';
+@import {Visitor} from 'oniguruma-parser/traverser';
 */
 
 /**
@@ -62,7 +63,7 @@ function generate(ast, options) {
     //   forced without the use of ES2025 flag groups)
     ignoreCase: !!((ast.flags.ignoreCase || hasCaseInsensitiveNode) && !hasCaseSensitiveNode),
   };
-  let /** @type {Node} */ lastNode = null;
+  let /** @type {Node} */ lastNode = ast;
   const state = {
     accuracy: opts.accuracy,
     appliedGlobalFlags,
@@ -82,49 +83,17 @@ function generate(ast, options) {
   };
   function gen(/** @type {Node} */ node) {
     state.lastNode = lastNode;
-    lastNode = node;
-    switch (node.type) {
-      case 'Regex':
-        // Final result is an object; other node types return strings
-        return {
-          pattern: node.body.map(gen).join('|'),
-          flags: gen(node.flags),
-          options: {...node.options},
-        };
-      case 'Alternative':
-        return node.body.map(gen).join('');
-      case 'Assertion':
-        return genAssertion(node);
-      case 'Backreference':
-        return genBackreference(node, state);
-      case 'CapturingGroup':
-        return genCapturingGroup(node, state, gen);
-      case 'Character':
-        return genCharacter(node, state);
-      case 'CharacterClass':
-        return genCharacterClass(node, state, gen);
-      case 'CharacterClassRange':
-        return genCharacterClassRange(node, state);
-      case 'CharacterSet':
-        return genCharacterSet(node, state);
-      case 'Flags':
-        return genFlags(node, state);
-      case 'Group':
-        return genGroup(node, state, gen);
-      case 'LookaroundAssertion':
-        return genLookaroundAssertion(node, state, gen);
-      case 'Quantifier':
-        return gen(node.body) + getQuantifierStr(node);
-      case 'Subroutine':
-        return genSubroutine(node, state);
-      default:
-        // Node types `AbsenceFunction`, `Directive`, and `NamedCallout` are never included in
-        // transformer output
-        throw new Error(`Unexpected node type "${node.type}"`);
-    }
+    lastNode = node; // For the next iteration
+    const fn = throwIfNullish(generator[node.type], `Unexpected node type "${node.type}"`);
+    return fn(node, state, gen);
   }
 
-  const result = gen(ast);
+  const result = {
+    pattern: ast.body.map(gen).join('|'),
+    // Could reset `lastNode` at this point via `lastNode = ast`, but it isn't needed by flags
+    flags: gen(ast.flags),
+    options: {...ast.options},
+  };
   if (!minTargetEs2024) {
     // Switch from flag v to u; Regex+ implicitly chooses by default
     delete result.options.force.v;
@@ -145,7 +114,7 @@ function generate(ast, options) {
   return result;
 }
 
-const FlagModifierVisitor = {
+const /** @type {Visitor} */ FlagModifierVisitor = {
   '*': {
     enter({node}, state) {
       if (isAnyGroup(node)) {
@@ -180,9 +149,6 @@ const FlagModifierVisitor = {
       state.setHasCasedChar();
     }
   },
-  /**
-  @param {{node: CharacterSetNode}} path
-  */
   CharacterSet({node}, state) {
     if (
       node.kind === 'property' &&
@@ -193,20 +159,345 @@ const FlagModifierVisitor = {
   },
 };
 
+// `AbsenceFunction`, `Directive`, and `NamedCallout` nodes aren't included in transformer output
+const generator = {
+  /**
+  @param {AlternativeNode} node
+  */
+  Alternative({body}, _, gen) {
+    return body.map(gen).join('');
+  },
+
+  /**
+  @param {AssertionNode} node
+  */
+  Assertion({kind, negate}) {
+    // Can always use `^` and `$` for string boundaries since JS flag m is never used (Onig uses
+    // different line break chars)
+    if (kind === 'string_end') {
+      return '$';
+    }
+    if (kind === 'string_start') {
+      return '^';
+    }
+    // If a word boundary came through the transformer unaltered, that means `wordIsAscii` or
+    // `asciiWordBoundaries` is enabled
+    if (kind === 'word_boundary') {
+      return negate ? r`\B` : r`\b`;
+    }
+    // Kinds `grapheme_boundary`, `line_end`, `line_start`, `search_start`, and
+    // `string_end_newline` are never included in transformer output
+    throw new Error(`Unexpected assertion kind "${kind}"`);
+  },
+
+  /**
+  @param {BackreferenceNode} node
+  */
+  Backreference({ref}, state) {
+    if (typeof ref !== 'number') {
+      throw new Error('Unexpected named backref in transformed AST');
+    }
+    if (
+      !state.useFlagMods &&
+      state.accuracy === 'strict' &&
+      state.currentFlags.ignoreCase &&
+      !state.captureMap.get(ref).ignoreCase
+    ) {
+      throw new Error('Use of case-insensitive backref to case-sensitive group requires target ES2025 or non-strict accuracy');
+    }
+    return '\\' + ref;
+  },
+
+  /**
+  @param {CapturingGroupNode} node
+  */
+  CapturingGroup(node, state, gen) {
+    const {body, name, number} = node;
+    const data = {ignoreCase: state.currentFlags.ignoreCase};
+    // Has origin if the capture is from an expanded subroutine
+    const origin = state.originMap.get(node);
+    if (origin) {
+      // All captures from/within expanded subroutines are marked as hidden
+      data.hidden = true;
+      // If a subroutine (or descendant capture) occurs after its origin group, it's marked to have
+      // its captured value transferred to the origin's capture slot. `number` and `origin.number`
+      // are the capture numbers *after* subroutine expansion
+      if (number > origin.number) {
+        data.transferTo = origin.number;
+      }
+    }
+    state.captureMap.set(number, data);
+    return `(${name ? `?<${name}>` : ''}${body.map(gen).join('|')})`;
+  },
+
+  /**
+  @param {CharacterNode} node
+  */
+  Character({value}, state) {
+    const char = cp(value);
+    const escaped = getCharEscape(value, {
+      escDigit: state.lastNode.type === 'Backreference',
+      inCharClass: state.inCharClass,
+      useFlagV: state.useFlagV,
+    });
+    if (escaped !== char) {
+      return escaped;
+    }
+    if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && charHasCase(char)) {
+      const cases = getIgnoreCaseMatchChars(char);
+      return state.inCharClass ?
+        cases.join('') :
+        (cases.length > 1 ? `[${cases.join('')}]` : cases[0]);
+    }
+    return char;
+  },
+
+  /**
+  @param {CharacterClassNode} node
+  */
+  CharacterClass(node, state, gen) {
+    const {kind, negate, parent} = node;
+    let {body} = node;
+    if (kind === 'intersection' && !state.useFlagV) {
+      throw new Error('Use of class intersection requires min target ES2024');
+    }
+    // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
+    // <github.com/slevithan/oniguruma-to-es/issues/30>
+    if (envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV && body.some(isLiteralHyphen)) {
+      // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
+      body = body.filter(kid => !isLiteralHyphen(kid));
+      body.push(createCharacter(45));
+    }
+    const genClass = () => `[${negate ? '^' : ''}${
+      body.map(gen).join(kind === 'intersection' ? '&&' : '')
+    }]`;
+    if (!state.inCharClass) {
+      // HACK: Transform the AST to support top-level-nested, negated classes in non-negated
+      // classes (ex: `[…[^…]]`) with pre-ES2024 `target`, via `(?:[…]|[^…])` or `(?:[^…])`,
+      // possibly with multiple alts that contain negated classes. Would be better to do this in
+      // the transformer, but it doesn't have true `target` since that's supposed to be a concern
+      // of the generator
+      if (
+        // Already established `kind !== 'intersection'` if `!state.useFlagV`; don't check again
+        !state.useFlagV &&
+        !negate
+      ) {
+        const negatedChildClasses = body.filter(
+          kid => kid.type === 'CharacterClass' && kid.kind === 'union' && kid.negate
+        );
+        if (negatedChildClasses.length) {
+          const group = createGroup();
+          const groupFirstAlt = group.body[0];
+          group.parent = parent;
+          groupFirstAlt.parent = group;
+          body = body.filter(kid => !negatedChildClasses.includes(kid));
+          node.body = body;
+          if (body.length) {
+            node.parent = groupFirstAlt;
+            groupFirstAlt.body.push(node);
+          } else {
+            // Remove the group's only alt thus far, but since the class's `body` is empty, that
+            // implies there's at least one negated class we removed from it, so we'll add at least
+            // one alt back to the group, next
+            group.body.pop();
+          }
+          negatedChildClasses.forEach(cc => {
+            const newAlt = createAlternative({body: [cc]});
+            cc.parent = newAlt;
+            newAlt.parent = group;
+            group.body.push(newAlt);
+          });
+          return gen(group);
+        }
+      }
+      // For the outermost char class, set state
+      state.inCharClass = true;
+      const result = genClass();
+      state.inCharClass = false;
+      return result;
+    }
+    // No first element for implicit class in empty intersection like `[&&]`
+    const firstEl = body[0];
+    if (
+      // Already established that the parent is a char class via `inCharClass`; don't check again
+      kind === 'union' &&
+      !negate &&
+      firstEl &&
+      (
+        ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
+          (!state.useFlagV || !state.verbose) &&
+          parent.kind === 'union' &&
+          !(envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV)
+        ) ||
+        ( !state.verbose &&
+          parent.kind === 'intersection' &&
+          // JS doesn't allow intersection with union or ranges
+          body.length === 1 &&
+          firstEl.type !== 'CharacterClassRange'
+        )
+      )
+    ) {
+      // Remove unnecessary nesting; unwrap kids into the parent char class
+      return body.map(gen).join('');
+    }
+    if (!state.useFlagV && parent.type === 'CharacterClass') {
+      throw new Error('Use of nested character class requires min target ES2024');
+    }
+    return genClass();
+  },
+
+  /**
+  @param {CharacterClassRangeNode} node
+  */
+  CharacterClassRange(node, state) {
+    const min = node.min.value;
+    const max = node.max.value;
+    const escOpts = {
+      escDigit: false,
+      inCharClass: true,
+      useFlagV: state.useFlagV,
+    };
+    const minStr = getCharEscape(min, escOpts);
+    const maxStr = getCharEscape(max, escOpts);
+    const extraChars = new Set();
+    if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
+      // TODO: Avoid duplication by considering other chars in the parent char class when expanding
+      const charsOutsideRange = getCasesOutsideCharClassRange(node);
+      const ranges = getCodePointRangesFromChars(charsOutsideRange);
+      ranges.forEach(value => {
+        extraChars.add(
+          Array.isArray(value) ?
+            `${getCharEscape(value[0], escOpts)}-${getCharEscape(value[1], escOpts)}` :
+            getCharEscape(value, escOpts)
+        );
+      });
+    }
+    // Create the range without calling `gen` on the `min`/`max` kids
+    return `${minStr}-${maxStr}${[...extraChars].join('')}`;
+  },
+
+  /**
+  @param {CharacterSetNode} node
+  */
+  CharacterSet({kind, negate, value, key}, state) {
+    if (kind === 'dot') {
+      return state.currentFlags.dotAll ?
+        ((state.appliedGlobalFlags.dotAll || state.useFlagMods) ? '.' : '[^]') :
+        // Onig's only line break char is line feed, unlike JS
+        r`[^\n]`;
+    }
+    if (kind === 'digit') {
+      return negate ? r`\D` : r`\d`;
+    }
+    if (kind === 'property') {
+      if (
+        state.useAppliedIgnoreCase &&
+        state.currentFlags.ignoreCase &&
+        UnicodePropertiesWithSpecificCase.has(value)
+      ) {
+        // Support for this would require heavy Unicode data. Could change e.g. `\p{Lu}` to
+        // `\p{LC}` if not using strict `accuracy` (since it's close but not 100%), but this
+        // wouldn't work for e.g. `\p{Lt}`, and in any case, it's probably user error if using
+        // these case-specific props case-insensitively
+        throw new Error(`Unicode property "${value}" can't be case-insensitive when other chars have specific case`);
+      }
+      return `${negate ? r`\P` : r`\p`}{${key ? `${key}=` : ''}${value}}`;
+    }
+    if (kind === 'word') {
+      return negate ? r`\W` : r`\w`;
+    }
+    // Kinds `any`, `grapheme`, `hex`, `newline`, `posix`, and `space` are never included in
+    // transformer output
+    throw new Error(`Unexpected character set kind "${kind}"`);
+  },
+
+  /**
+  @param {FlagsNode} node
+  */
+  Flags(node, state) {
+    return (
+      // The transformer should never turn on the properties for flags d, g, m since Onig doesn't
+      // have equivs. Flag m is never used since Onig uses different line break chars than JS
+      // (node.hasIndices ? 'd' : '') +
+      // (node.global ? 'g' : '') +
+      // (node.multiline ? 'm' : '') +
+      (state.appliedGlobalFlags.ignoreCase ? 'i' : '') +
+      (node.dotAll ? 's' : '') +
+      (node.sticky ? 'y' : '')
+      // Regex+ doesn't allow explicitly adding flags it handles implicitly, so there are no
+      // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added separately
+    );
+  },
+
+  /**
+  @param {GroupNode} node
+  */
+  Group({atomic, body, flags, parent}, state, gen) {
+    const currentFlags = state.currentFlags;
+    if (flags) {
+      state.currentFlags = getNewCurrentFlags(currentFlags, flags);
+    }
+    const contents = body.map(gen).join('|');
+    const result = (
+      !state.verbose &&
+      body.length === 1 && // Single alt
+      parent.type !== 'Quantifier' &&
+      !atomic &&
+      (!state.useFlagMods || !flags)
+     ) ? contents : `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${contents})`;
+    state.currentFlags = currentFlags;
+    return result;
+  },
+
+  /**
+  @param {LookaroundAssertionNode} node
+  */
+  LookaroundAssertion({body, kind, negate}, _, gen) {
+    const prefix = `${kind === 'lookahead' ? '' : '<'}${negate ? '!' : '='}`;
+    return `(?${prefix}${body.map(gen).join('|')})`;
+  },
+
+  /**
+  @param {QuantifierNode} node
+  */
+  Quantifier(node, _, gen) {
+    return gen(node.body) + getQuantifierStr(node);
+  },
+
+  /**
+  @param {SubroutineNode & {isRecursive: true}} node
+  */
+  Subroutine({isRecursive, ref}, state) {
+    if (!isRecursive) {
+      throw new Error('Unexpected non-recursive subroutine in transformed AST');
+    }
+    const limit = state.recursionLimit;
+    // Using the syntax supported by `regex-recursion`
+    return ref === 0 ? `(?R=${limit})` : r`\g<${ref}&R=${limit}>`;
+  },
+};
+
+// ---------------
+// --- Helpers ---
+// ---------------
+
 const BaseEscapeChars = new Set([
   '$', '(', ')', '*', '+', '.', '?', '[', '\\', ']', '^', '{', '|', '}',
 ]);
+
 const CharClassEscapeChars = new Set([
   '-', '\\', ']', '^',
   // Literal `[` doesn't require escaping with flag u, but this can help work around regex source
   // linters and regex syntax processors that expect unescaped `[` to create a nested class
   '[',
 ]);
+
 const CharClassEscapeCharsFlagV = new Set([
   '(', ')', '-', '/', '[', '\\', ']', '^', '{', '|', '}',
   // Double punctuators; also includes already-listed `-` and `^`
   '!', '#', '$', '%', '&', '*', '+', ',', '.', ':', ';', '<', '=', '>', '?', '@', '`', '~',
 ]);
+
 const CharCodeEscapeMap = new Map([
   [ 9, r`\t`], // horizontal tab
   [10, r`\n`], // line feed
@@ -222,296 +513,6 @@ const casedRe = /^\p{Cased}$/u;
 function charHasCase(char) {
   return casedRe.test(char);
 }
-
-/**
-@param {AssertionNode} node
-@returns {string}
-*/
-function genAssertion({kind, negate}) {
-  // Can always use `^` and `$` for string boundaries since JS flag m is never relied on; Onig uses
-  // different line break chars
-  if (kind === 'string_end') {
-    return '$';
-  }
-  if (kind === 'string_start') {
-    return '^';
-  }
-  // If a word boundary came through the transformer unaltered, that means `wordIsAscii` or
-  // `asciiWordBoundaries` is enabled
-  if (kind === 'word_boundary') {
-    return negate ? r`\B` : r`\b`;
-  }
-  // Kinds `grapheme_boundary`, `line_end`, `line_start`, `search_start`, and `string_end_newline`
-  // are never included in transformer output
-  throw new Error(`Unexpected assertion kind "${kind}"`);
-}
-
-function genBackreference({ref}, state) {
-  if (typeof ref !== 'number') {
-    throw new Error('Unexpected named backref in transformed AST');
-  }
-  if (
-    !state.useFlagMods &&
-    state.accuracy === 'strict' &&
-    state.currentFlags.ignoreCase &&
-    !state.captureMap.get(ref).ignoreCase
-  ) {
-    throw new Error('Use of case-insensitive backref to case-sensitive group requires target ES2025 or non-strict accuracy');
-  }
-  return '\\' + ref;
-}
-
-function genCapturingGroup(node, state, gen) {
-  const {body, name, number} = node;
-  const data = {ignoreCase: state.currentFlags.ignoreCase};
-  // Has origin if the capture is from an expanded subroutine
-  const origin = state.originMap.get(node);
-  if (origin) {
-    // All captures from/within expanded subroutines are marked as hidden
-    data.hidden = true;
-    // If a subroutine (or descendant capture) occurs after its origin group, it's marked to have
-    // its captured value transferred to the origin's capture slot. `number` and `origin.number`
-    // are the capture numbers *after* subroutine expansion
-    if (number > origin.number) {
-      data.transferTo = origin.number;
-    }
-  }
-  state.captureMap.set(number, data);
-  return `(${name ? `?<${name}>` : ''}${body.map(gen).join('|')})`;
-}
-
-function genCharacter({value}, state) {
-  const char = cp(value);
-  const escaped = getCharEscape(value, {
-    escDigit: state.lastNode.type === 'Backreference',
-    inCharClass: state.inCharClass,
-    useFlagV: state.useFlagV,
-  });
-  if (escaped !== char) {
-    return escaped;
-  }
-  if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase && charHasCase(char)) {
-    const cases = getIgnoreCaseMatchChars(char);
-    return state.inCharClass ?
-      cases.join('') :
-      (cases.length > 1 ? `[${cases.join('')}]` : cases[0]);
-  }
-  return char;
-}
-
-/**
-@param {CharacterClassNode} node
-@returns {string}
-*/
-function genCharacterClass(node, state, gen) {
-  const {kind, negate, parent} = node;
-  let {body} = node;
-  if (kind === 'intersection' && !state.useFlagV) {
-    throw new Error('Use of class intersection requires min target ES2024');
-  }
-  // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
-  // <github.com/slevithan/oniguruma-to-es/issues/30>
-  if (envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV && body.some(isLiteralHyphen)) {
-    // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
-    body = body.filter(kid => !isLiteralHyphen(kid));
-    body.push(createCharacter(45));
-  }
-  const genClass = () => `[${negate ? '^' : ''}${
-    body.map(gen).join(kind === 'intersection' ? '&&' : '')
-  }]`;
-  if (!state.inCharClass) {
-    // HACK: Transform the AST to support top-level-nested, negated classes in non-negated classes
-    // (ex: `[…[^…]]`) with pre-ES2024 `target`, via `(?:[…]|[^…])` or `(?:[^…])`, possibly with
-    // multiple alts that contain negated classes. Would be better to do this in the transformer,
-    // but it doesn't have true `target` since that's supposed to be a concern of the generator
-    if (
-      // Already established `kind !== 'intersection'` if `!state.useFlagV`, so don't check again
-      !state.useFlagV &&
-      !negate
-    ) {
-      const negatedChildClasses = body.filter(
-        kid => kid.type === 'CharacterClass' && kid.kind === 'union' && kid.negate
-      );
-      if (negatedChildClasses.length) {
-        const group = createGroup();
-        const groupFirstAlt = group.body[0];
-        group.parent = parent;
-        groupFirstAlt.parent = group;
-        body = body.filter(kid => !negatedChildClasses.includes(kid));
-        node.body = body;
-        if (body.length) {
-          node.parent = groupFirstAlt;
-          groupFirstAlt.body.push(node);
-        } else {
-          // Remove the group's only alt thus far, but since the class's `body` is empty, that
-          // implies there's at least one negated class we removed from it, so we'll add at least
-          // one alt back to the group, next
-          group.body.pop();
-        }
-        negatedChildClasses.forEach(cc => {
-          const newAlt = createAlternative({body: [cc]});
-          cc.parent = newAlt;
-          newAlt.parent = group;
-          group.body.push(newAlt);
-        });
-        return gen(group);
-      }
-    }
-    // For the outermost char class, set state
-    state.inCharClass = true;
-    const result = genClass();
-    state.inCharClass = false;
-    return result;
-  }
-  // No first element for implicit class in empty intersection like `[&&]`
-  const firstEl = body[0];
-  if (
-    // Already established that the parent is a char class via `inCharClass`, so don't check again
-    kind === 'union' &&
-    !negate &&
-    firstEl &&
-    (
-      ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
-        (!state.useFlagV || !state.verbose) &&
-        parent.kind === 'union' &&
-        !(envFlags.literalHyphenIncorrectlyCreatesRange && state.useFlagV)
-      ) ||
-      ( !state.verbose &&
-        parent.kind === 'intersection' &&
-        // JS doesn't allow intersection with union or ranges
-        body.length === 1 &&
-        firstEl.type !== 'CharacterClassRange'
-      )
-    )
-  ) {
-    // Remove unnecessary nesting; unwrap kids into the parent char class
-    return body.map(gen).join('');
-  }
-  if (!state.useFlagV && parent.type === 'CharacterClass') {
-    throw new Error('Use of nested character class requires min target ES2024');
-  }
-  return genClass();
-}
-
-function genCharacterClassRange(node, state) {
-  const min = node.min.value;
-  const max = node.max.value;
-  const escOpts = {
-    escDigit: false,
-    inCharClass: true,
-    useFlagV: state.useFlagV,
-  };
-  const minStr = getCharEscape(min, escOpts);
-  const maxStr = getCharEscape(max, escOpts);
-  const extraChars = new Set();
-  if (state.useAppliedIgnoreCase && state.currentFlags.ignoreCase) {
-    // TODO: Avoid duplication by considering other chars in the parent char class when expanding
-    const charsOutsideRange = getCasesOutsideCharClassRange(node);
-    const ranges = getCodePointRangesFromChars(charsOutsideRange);
-    ranges.forEach(value => {
-      extraChars.add(
-        Array.isArray(value) ?
-          `${getCharEscape(value[0], escOpts)}-${getCharEscape(value[1], escOpts)}` :
-          getCharEscape(value, escOpts)
-      );
-    });
-  }
-  // Create the range without calling `gen` on the `min`/`max` kids
-  return `${minStr}-${maxStr}${[...extraChars].join('')}`;
-}
-
-/**
-@param {CharacterSetNode} node
-@returns {string}
-*/
-function genCharacterSet({kind, negate, value, key}, state) {
-  if (kind === 'dot') {
-    return state.currentFlags.dotAll ?
-      ((state.appliedGlobalFlags.dotAll || state.useFlagMods) ? '.' : '[^]') :
-      // Onig's only line break char is line feed, unlike JS
-      r`[^\n]`;
-  }
-  if (kind === 'digit') {
-    return negate ? r`\D` : r`\d`;
-  }
-  if (kind === 'property') {
-    if (
-      state.useAppliedIgnoreCase &&
-      state.currentFlags.ignoreCase &&
-      UnicodePropertiesWithSpecificCase.has(value)
-    ) {
-      // Support for this would require heavy Unicode data. Could change e.g. `\p{Lu}` to `\p{LC}`
-      // if not using strict `accuracy` (since it's close but not 100%), but this wouldn't work
-      // for e.g. `\p{Lt}`, and in any case, it's probably user error if using these case-specific
-      // props case-insensitively
-      throw new Error(`Unicode property "${value}" can't be case-insensitive when other chars have specific case`);
-    }
-    return `${negate ? r`\P` : r`\p`}{${key ? `${key}=` : ''}${value}}`;
-  }
-  if (kind === 'word') {
-    return negate ? r`\W` : r`\w`;
-  }
-  // Kinds `grapheme`, `hex`, `newline`, `posix`, and `space` are never included in transformer output
-  throw new Error(`Unexpected character set kind "${kind}"`);
-}
-
-function genFlags(node, state) {
-  return (
-    // The transformer should never turn on the properties for flags d, g, and m since Onig doesn't
-    // have equivs. Flag m is never relied on since Onig uses different line break chars than JS
-    // (node.hasIndices ? 'd' : '') +
-    // (node.global ? 'g' : '') +
-    // (node.multiline ? 'm' : '') +
-    (state.appliedGlobalFlags.ignoreCase ? 'i' : '') +
-    (node.dotAll ? 's' : '') +
-    (node.sticky ? 'y' : '')
-    // Regex+ doesn't allow explicitly adding flags it handles implicitly, so there are no
-    // `unicode` (flag u) or `unicodeSets` (flag v) props; those flags are added separately
-  );
-}
-
-function genGroup({atomic, body, flags, parent}, state, gen) {
-  const currentFlags = state.currentFlags;
-  if (flags) {
-    state.currentFlags = getNewCurrentFlags(currentFlags, flags);
-  }
-  const contents = body.map(gen).join('|');
-  const result = (
-    !state.verbose &&
-    body.length === 1 && // Single alt
-    parent.type !== 'Quantifier' &&
-    !atomic &&
-    (!state.useFlagMods || !flags)
-   ) ? contents : `(?${getGroupPrefix(atomic, flags, state.useFlagMods)}${contents})`;
-  state.currentFlags = currentFlags;
-  return result;
-}
-
-/**
-@param {LookaroundAssertionNode} node
-@returns {string}
-*/
-function genLookaroundAssertion({body, kind, negate}, _, gen) {
-  const prefix = `${kind === 'lookahead' ? '' : '<'}${negate ? '!' : '='}`;
-  return `(?${prefix}${body.map(gen).join('|')})`;
-}
-
-/**
-@param {SubroutineNode & {isRecursive: true}} node
-@returns {string}
-*/
-function genSubroutine({isRecursive, ref}, state) {
-  if (!isRecursive) {
-    throw new Error('Unexpected non-recursive subroutine in transformed AST');
-  }
-  const limit = state.recursionLimit;
-  // Using the syntax supported by `regex-recursion`
-  return ref === 0 ? `(?R=${limit})` : r`\g<${ref}&R=${limit}>`;
-}
-
-// ---------------
-// --- Helpers ---
-// ---------------
 
 /**
 Given a `CharacterClassRange` node, returns an array of chars that are a case variant of a char in

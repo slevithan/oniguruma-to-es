@@ -57,6 +57,13 @@ function isMinTarget(target, min) {
   return EsVersion[target] >= EsVersion[min];
 }
 
+function throwIfNullish(value, msg) {
+  if (value == null) {
+    throw new Error(msg ?? 'Value expected');
+  }
+  return value;
+}
+
 export {
   cp,
   envFlags,
@@ -64,4 +71,5 @@ export {
   getOrInsert,
   isMinTarget,
   r,
+  throwIfNullish,
 };
