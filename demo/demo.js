@@ -197,7 +197,8 @@ function getFormattedSubclass(pattern, flags, {hiddenCaptures, transfers, strate
 }
 
 function getRegExpLiteralPattern(str) {
-  return str ? str.replace(/\\?./gsu, m => m === '/' ? '\\/' : m) : '(?:)';
+  // Escape any unescaped forward slashes
+  return str ? str.replace(/\\([\\\/])|(\/)/g, '\\$1$2') : '(?:)';
 }
 
 function getValue(id) {
