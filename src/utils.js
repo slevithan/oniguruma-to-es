@@ -21,8 +21,8 @@ const envFlags = {
     return true;
   })(),
 };
-// Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/30>
-envFlags.literalHyphenIncorrectlyCreatesRange = (() => {
+// Detect WebKit parser bug: <github.com/slevithan/oniguruma-to-es/issues/30>
+envFlags.bugEscapedHyphenIsRange = (() => {
   if (!envFlags.unicodeSets) {
     return false;
   }
