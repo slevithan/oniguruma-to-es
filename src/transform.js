@@ -6,7 +6,8 @@ import {createAlternative, createAssertion, createBackreference, createCapturing
 import {traverse} from 'oniguruma-parser/traverser';
 
 /**
-@import {AbsenceFunctionNode, AssertionNode, CapturingGroupNode, CharacterClassNode, CharacterSetNode, DirectiveNode, LookaroundAssertionNode, NamedCalloutNode, OnigurumaAst, QuantifierNode, Node} from 'oniguruma-parser/parser';
+@import {CapturingGroupNode, OnigurumaAst, Node} from 'oniguruma-parser/parser';
+@import {Visitor} from 'oniguruma-parser/traverser';
 */
 
 /**
@@ -106,10 +107,7 @@ function transform(ast, options) {
   return ast;
 }
 
-const FirstPassVisitor = {
-  /**
-  @param {{node: AbsenceFunctionNode}} path
-  */
+const /** @type {Visitor} */ FirstPassVisitor = {
   AbsenceFunction({node, parent, replaceWith}) {
     const {body, kind} = node;
     if (kind === 'repeater') {
@@ -155,9 +153,6 @@ const FirstPassVisitor = {
     },
   },
 
-  /**
-  @param {{node: AssertionNode}} path
-  */
   Assertion({node, parent, key, container, root, remove, replaceWith}, state) {
     const {kind, negate} = node;
     const {asciiWordBoundaries, avoidSubclass, supportedGNodes, wordIsAscii} = state;
@@ -225,9 +220,6 @@ const FirstPassVisitor = {
     }
   },
 
-  /**
-  @param {{parent: CharacterClassNode}} path
-  */
   CharacterClassRange({node, parent, replaceWith}) {
     if (parent.kind === 'intersection') {
       // JS doesn't allow intersection with ranges without a wrapper class
@@ -236,9 +228,6 @@ const FirstPassVisitor = {
     }
   },
 
-  /**
-  @param {{node: CharacterSetNode}} path
-  */
   CharacterSet({node, parent, replaceWith}, {accuracy, minTargetEs2024, digitIsAscii, spaceIsAscii, wordIsAscii}) {
     const {kind, negate, value} = node;
     // Flag D with `\d`, `\p{Digit}`, `[[:digit:]]`
@@ -311,9 +300,6 @@ const FirstPassVisitor = {
     }
   },
 
-  /**
-  @param {{node: DirectiveNode}} path
-  */
   Directive({node, parent, root, remove, replaceWith, removeAllPrevSiblings, removeAllNextSiblings}) {
     const {kind, flags} = node;
     if (kind === 'flags') {
@@ -407,9 +393,6 @@ const FirstPassVisitor = {
     !node.flags.enable && !node.flags.disable && delete node.flags;
   },
 
-  /**
-  @param {{node: LookaroundAssertionNode}} path
-  */
   LookaroundAssertion({node}, state) {
     const {kind} = node;
     if (kind === 'lookbehind') {
@@ -417,9 +400,6 @@ const FirstPassVisitor = {
     }
   },
 
-  /**
-  @param {{node: NamedCalloutNode}} path
-  */
   NamedCallout({node, parent, replaceWith}) {
     const {kind} = node;
     if (kind === 'fail') {
@@ -429,9 +409,6 @@ const FirstPassVisitor = {
     }
   },
 
-  /**
-  @param {{node: QuantifierNode}} path
-  */
   Quantifier({node}) {
     if (node.body.type === 'Quantifier') {
       // Change e.g. `a**` to `(?:a*)*`
@@ -490,7 +467,7 @@ const FirstPassVisitor = {
   },
 };
 
-const SecondPassVisitor = {
+const /** @type {Visitor} */ SecondPassVisitor = {
   Backreference({node}, {multiplexCapturesToLeftByRef, reffedNodesByReferencer}) {
     const {orphan, ref} = node;
     if (!orphan) {
@@ -650,7 +627,7 @@ const SecondPassVisitor = {
   },
 };
 
-const ThirdPassVisitor = {
+const /** @type {Visitor} */ ThirdPassVisitor = {
   Backreference({node, parent, replaceWith}, state) {
     if (node.orphan) {
       state.highestOrphanBackref = Math.max(state.highestOrphanBackref, node.ref);
@@ -723,6 +700,10 @@ const ThirdPassVisitor = {
     node.ref = state.reffedNodesByReferencer.get(node).number;
   },
 };
+
+// ---------------
+// --- Helpers ---
+// ---------------
 
 function addParentProperties(root) {
   traverse(root, {

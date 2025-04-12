@@ -607,7 +607,11 @@ function getGroupPrefix(atomic, flagMods, useFlagMods) {
   return `${mods}:`;
 }
 
-function getQuantifierStr({min, max, kind}) {
+/**
+@param {QuantifierNode} node
+@returns {string}
+*/
+function getQuantifierStr({kind, max, min}) {
   let base;
   if (!min && max === 1) {
     base = '?';
