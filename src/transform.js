@@ -647,6 +647,7 @@ const /** @type {Visitor} */ ThirdPassVisitor = {
     } else if (participants.length > 1) {
       // Multiplex for backrefs to duplicate capture names; try them in reverse order
       const group = createGroup({
+        atomic: true,
         body: participants.reverse().map(reffed => createAlternative({
           body: [createBackreference(reffed.number)],
         })),

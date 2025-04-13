@@ -332,6 +332,14 @@ describe('Backreference', () => {
       expect(['xxxx', 'xxxxx']).toExactlyMatch(r`(?<n>x)(?<n>xx)\k<n>`);
     });
 
+    it('should not allow backtracking to change the value of a backreference to a duplicate name', () => {
+      expect('xxxxx').not.toFindMatch(r`(?<n>x)(?<n>xx)\k<n>x`);
+      const doubleK = r`(?<n>x)(?<n>xx)\k<n>\k<n>x`;
+      expect('xxxxxx').not.toFindMatch(doubleK); // 6 `x`s
+      expect('xxxxxxx').not.toFindMatch(doubleK); // 7 `x`s
+      expect('xxxxxxxx').toExactlyMatch(doubleK); // 8 `x`s
+    });
+
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
       expect('abb').toExactlyMatch(r`(?<a>\w)\g<a>\k<a>`);
       expect('aba').not.toFindMatch(r`(?<a>\w)\g<a>\k<a>`);
