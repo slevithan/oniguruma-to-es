@@ -337,8 +337,9 @@ describe('Backreference', () => {
       const doubleK = r`(?<n>x)(?<n>xx)\k<n>\k<n>x`;
       expect(['xxxxxx', 'xxxxxxx']).not.toFindMatch(doubleK); // 6 or 7 `x`s
       expect('xxxxxxxx').toExactlyMatch(doubleK); // 8 `x`s
-      // Fails, matching 'xx' instead of 'xxxx', because this is a case of capture nonparticipation
-      // that isn't able to be detected at compile time, so the backref matches ''
+      // Fails, matching 'xx' instead of 'xxxx', because the nonparticipation of the second `n`
+      // capture can't be detected at compile time (so the backref matches ''). See:
+      // <github.com/slevithan/oniguruma-to-es/issues/14#issuecomment-2800000969>
       // expect(toRegExp(r`(?<n>xx)(?<n>x)??\k<n>`).exec('xxxxx')[0]).toBe('xxxx');
     });
 
