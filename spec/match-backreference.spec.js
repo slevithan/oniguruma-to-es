@@ -1,4 +1,4 @@
-import {toRegExpDetails} from '../dist/esm/index.js';
+import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {cp, r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups, minTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
@@ -332,12 +332,14 @@ describe('Backreference', () => {
       expect(['xxxx', 'xxxxx']).toExactlyMatch(r`(?<n>x)(?<n>xx)\k<n>`);
     });
 
-    it('should not allow backtracking to change the value of a backreference to a duplicate name', () => {
+    it('should not allow backtracking to change the value of a backref to a duplicate name', () => {
       expect('xxxxx').not.toFindMatch(r`(?<n>x)(?<n>xx)\k<n>x`);
       const doubleK = r`(?<n>x)(?<n>xx)\k<n>\k<n>x`;
-      expect('xxxxxx').not.toFindMatch(doubleK); // 6 `x`s
-      expect('xxxxxxx').not.toFindMatch(doubleK); // 7 `x`s
+      expect(['xxxxxx', 'xxxxxxx']).not.toFindMatch(doubleK); // 6 or 7 `x`s
       expect('xxxxxxxx').toExactlyMatch(doubleK); // 8 `x`s
+      // Fails, matching 'xx' instead of 'xxxx', because this is a case of capture nonparticipation
+      // that isn't able to be detected at compile time, so the backref matches ''
+      // expect(toRegExp(r`(?<n>xx)(?<n>x)??\k<n>`).exec('xxxxx')[0]).toBe('xxxx');
     });
 
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
