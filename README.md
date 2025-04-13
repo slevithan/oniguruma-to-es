@@ -17,6 +17,7 @@ Oniguruma-To-ES is an advanced **Oniguruma to JavaScript regex translator** that
 
 Compared to running the Oniguruma C library via WASM using [vscode-oniguruma](https://github.com/microsoft/vscode-oniguruma), this library is ~4% of the size and its regexes often run much faster since they run as native JavaScript.
 
+> [!TIP]
 > You can further reduce bundle size by precompiling your regexes. In many cases, that avoids the need for any runtime dependency. Some regex conversions rely on subclass-based emulation, in which case the tree-shakable `EmulatedRegExp` class (3 kB minzip) is still needed after precompilation.
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have exactly the same behavior, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It's built on top of [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex), both by the same author as this library.
@@ -243,7 +244,7 @@ Advanced options that override standard behavior, error checking, and flags when
 - `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
   - This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
 - `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
-- `singleline`: `^` as `\A`; `$` as `\Z`. Improves search performance of generated regexes without changing meaning if searching line by line.
+- `singleline`: `^` as `\A`; `$` as `\Z`. Improves search performance of generated regexes without changing the meaning if searching line by line.
   - This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
 
 ### `target`
@@ -283,7 +284,7 @@ Following are the supported features by target. The official Oniguruma [syntax d
 > Targets `ES2024` and `ES2025` have the same emulation capabilities. Resulting regexes might have different source and flags, but they match the same strings. See [`target`](#target).
 
 🆕 = Syntax not available in JavaScript.<br>
-🆚 = JavaScript uses slightly different syntax for the same concept; ex: `\u{…}` → `\x{…}`.
+🆚 = JavaScript uses slightly different syntax for the same concept; ex: `\x{…}` → `\u{…}`.
 
 Even for features not marked with one of the above symbols, notice that nearly every feature below has at least subtle differences from JavaScript. Unsupported features throw an error.
 

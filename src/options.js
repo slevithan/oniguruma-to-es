@@ -70,7 +70,7 @@ function getOptions(options = {}) {
       // Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
       recursionLimit: 20,
       // `^` as `\A`; `$` as`\Z`. Improves search performance of generated regexes without changing
-      // meaning if searching line by line. This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
+      // the meaning if searching line by line. This is Oniguruma option `ONIG_OPTION_SINGLELINE`.
       singleline: false,
       ...options.rules,
     },
