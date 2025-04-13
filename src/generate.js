@@ -263,7 +263,7 @@ const generator = {
     }
     // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
     // <github.com/slevithan/oniguruma-to-es/issues/30>
-    if (envFlags.bugEscapedHyphenIsRange && state.useFlagV && body.some(isLiteralHyphen)) {
+    if (envFlags.bugLiteralHyphenIsRange && state.useFlagV && body.some(isLiteralHyphen)) {
       // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
       body = body.filter(kid => !isLiteralHyphen(kid));
       body.push(createCharacter(45));
@@ -327,7 +327,7 @@ const generator = {
         ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
           (!state.useFlagV || !state.verbose) &&
           parent.kind === 'union' &&
-          !(envFlags.bugEscapedHyphenIsRange && state.useFlagV)
+          !(envFlags.bugLiteralHyphenIsRange && state.useFlagV)
         ) ||
         ( !state.verbose &&
           parent.kind === 'intersection' &&
