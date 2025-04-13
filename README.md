@@ -9,7 +9,7 @@
 
 [Oniguruma](https://github.com/kkos/oniguruma) is a regular expression engine written in C that's used in Ruby (via a fork named Onigmo), PHP (`mb_ereg`, etc.), TextMate grammars (used by VS Code, GitHub, [Shiki](https://shiki.style/), etc. for syntax highlighting), and many other tools.
 
-Oniguruma-To-ES is an advanced **Oniguruma to JavaScript regex translator** that runs in the browser and on your server, with support for ~99.99% of Oniguruma regexes (more details below). Use it to:
+Oniguruma-To-ES is an advanced **Oniguruma to JavaScript regex translator** that runs in the browser or the server, with support for ~99.99% of Oniguruma regexes (more details below). Use it to:
 
 - Take advantage of Oniguruma's many extended regex features in JavaScript.
 - Run regexes written for Oniguruma from JavaScript.
