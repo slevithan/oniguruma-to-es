@@ -327,6 +327,11 @@ describe('Backreference', () => {
       expect(['abba', 'abbb']).not.toFindMatch(r`(?<n>a)\k<n>(?<n>b)\k<n>`);
     });
 
+    it('should try matching captured values for duplicate names in reverse order', () => {
+      // Would only match part of `xxxxx` if it wasn't tried in reverse order
+      expect(['xxxx', 'xxxxx']).toExactlyMatch(r`(?<n>x)(?<n>xx)\k<n>`);
+    });
+
     it('should ref the most recent of a capture/subroutine set without multiplexing', () => {
       expect('abb').toExactlyMatch(r`(?<a>\w)\g<a>\k<a>`);
       expect('aba').not.toFindMatch(r`(?<a>\w)\g<a>\k<a>`);

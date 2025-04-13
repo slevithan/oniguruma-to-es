@@ -645,9 +645,9 @@ const /** @type {Visitor} */ ThirdPassVisitor = {
       // groups can't match in Onig but match the empty string in JS
       replaceWith(setParentDeep(createLookaroundAssertion({negate: true}), parent));
     } else if (participants.length > 1) {
+      // Multiplex for backrefs to duplicate capture names; try them in reverse order
       const group = createGroup({
-        // Multiplex
-        body: participants.map(reffed => createAlternative({
+        body: participants.reverse().map(reffed => createAlternative({
           body: [createBackreference(reffed.number)],
         })),
       });
