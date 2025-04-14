@@ -43,10 +43,12 @@ toRegExp(String.raw`(?x)
   (?<n>\d) (?<n>\p{greek}) \k<n>
   ([0a-z&&\h]){,2}
 `);
-// → /(?<n>\p{Nd})(\p{sc=Greek})(?:\1|\2)(?:[[0a-z]&&\p{AHex}]){0,2}/v
+// → /(?<n>\p{Nd})(\p{sc=Greek})(?>\2|\1)(?:[[0a-z]&&\p{AHex}]){0,2}/v
 ```
 
 Although the example above is fairly straightforward, you can see several translations that might not be obvious. Apart from the `(?x)` free-spacing modifier and the `\h` hex-digit shorthand that aren't available in JavaScript, you can also see that Oniguruma's `\d` is Unicode-based by default, backreferences to duplicate group names match the captured value of any of the groups, `(…)` groups are noncapturing by default if named groups are present, character class intersection doesn't follow JavaScript's requirement of using nested classes for union and ranges, and `{…}` interval quantifiers can use an implicit `0` min. Many advanced features are supported that would produce more complicated transformations.
+
+> If you have a keen eye, you might have noticed that the result used an atomic group `(?>…)` which isn't supported natively by JavaScript. That was a simplification for readability, since the actual result uses `(?=(\2|\1))\3` to accomplish the same effect, and then uses a `RegExp` subclass to remove the added capturing group from match results.
 
 This next example shows support for Unicode case folding with mixed case-sensitivity. Notice that code points `ſ` ([U+017F](https://codepoints.net/U+017F)) and `K` ([U+212A](https://codepoints.net/U+212A)) are added to the second, case-insensitive range if using a `target` prior to `ES2025`, and that modern JavaScript regex features (like flag groups) are used if supported by the `target`.
 
