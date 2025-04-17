@@ -46,13 +46,13 @@ async function exec(args) {
       libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
     }
     const libT1 = performance.now();
-    const same = printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
+    printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
     // Run time for Oniguruma includes the time to load the WASM module (i.e., it's the time to run
     // the regex in Oniguruma *from JS*). Run time for the library includes the time to transpile
-    // the pattern to JS, which is not included in the Oniguruma time
-    console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
+    // the pattern to JS
+    console.log(color('gray', `⚡ Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
   } else {
-    console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms`));
+    console.log(color('gray', `⚡ Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms`));
   }
 }
 
@@ -62,8 +62,8 @@ function getArgs([pattern, target, ...rest]) {
     return;
   }
   const compare = !rest.includes('no-compare');
-  // HACK: pnpm, unlike npm, auto-escapes backslashes in string args, so undo this
-  if (process.env.npm_config_user_agent.startsWith('pnpm/')) {
+  // HACK: pnpm, unlike npm, auto-escapes backslashes in string args, so undo that here
+  if (process.env.npm_config_user_agent?.startsWith('pnpm/')) {
     pattern = pattern.replace(/\\\\/g, '\\');
     target = target.replace(/\\\\/g, '\\');
   }
