@@ -20,12 +20,17 @@ $ pnpm onig:match '\n' '\u{A}'
 
 Don't compare to Oniguruma-To-ES results:
 $ pnpm onig:match '…' '…' no-compare
+
+The reported run time for Oniguruma includes the time to load the WASM module (in other words, it's
+the time to run the regex in Oniguruma *from JS*). The run time for the library includes the time
+to transpile the pattern to JS.
 */
 
 exec(process.argv.slice(2));
 
 async function exec(args) {
   const {pattern, target, options} = getArgs(args);
+  printInput(pattern, target);
 
   const onigMatches = [];
   const onigT0 = performance.now();
@@ -40,25 +45,24 @@ async function exec(args) {
     onigMatch = await onigurumaResult(pattern, target, onigMatch.index + (onigMatch.result.length || 1));
   }
   const onigT1 = performance.now();
-  printOnigResults(pattern, target, onigMatch, onigMatches);
+  printOnigResults(onigMatch, onigMatches);
+  console.log(color('gray', `⚡ Oniguruma: ${(onigT1 - onigT0).toFixed(3)}ms`));
 
-  if (options.compare) {
-    const libMatches = [];
-    const libT0 = performance.now();
-    let libMatch = transpiledRegExpResult(pattern, target, 0);
-    while (libMatch.result !== null) {
-      libMatches.push(libMatch);
-      libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
-    }
-    const libT1 = performance.now();
-    printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
-    // Run time for Oniguruma includes the time to load the WASM module (i.e., it's the time to run
-    // the regex in Oniguruma *from JS*). Run time for the library includes the time to transpile
-    // the pattern to JS
-    console.log(color('gray', `⚡ Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
-  } else {
-    console.log(color('gray', `⚡ Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms`));
+  if (!options.compare) {
+    console.log(color('gray', '⏩ Skipped library comparison'));
+    return;
   }
+
+  const libMatches = [];
+  const libT0 = performance.now();
+  let libMatch = transpiledRegExpResult(pattern, target, 0);
+  while (libMatch.result !== null) {
+    libMatches.push(libMatch);
+    libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
+  }
+  const libT1 = performance.now();
+  console.log(color('gray', `⚡ Library: ${(libT1 - libT0).toFixed(3)}ms`));
+  printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
 }
 
 function getArgs([pattern, target, ...rest]) {
@@ -89,12 +93,17 @@ function getArgs([pattern, target, ...rest]) {
 /**
 @param {string} pattern
 @param {string} target
+*/
+function printInput(pattern, target) {
+  console.log('Pattern:', color('yellow', `/${pattern}/`));
+  console.log('String:', `${value(target)} ${color('gray', `(len ${target.length})`)}`);
+}
+
+/**
 @param {MatchDetails} result
 @param {Array<MatchDetails>} matches
 */
-function printOnigResults(pattern, target, result, matches) {
-  console.log('Pattern:', color('yellow', `/${pattern}/`));
-  console.log('String:', `${value(target)} ${color('gray', `(len ${target.length})`)}`);
+function printOnigResults(result, matches) {
   if (result.error) {
     err(null, `Oniguruma error: ${result.error.message}`);
   } else {
