@@ -99,7 +99,7 @@ function getArgs([pattern, target, ...rest]) {
 @param {string} target
 */
 function printInput(pattern, target) {
-  console.log('Pattern:', color('yellow', `/${pattern}/`));
+  console.log('Pattern:', color('yellow', `/${pattern}/`), color('gray', 'ONIG_OPTION_CAPTURE_GROUP enabled'));
   console.log('String:', `${value(target)} ${color('gray', `(len ${target.length})`)}`);
 }
 
