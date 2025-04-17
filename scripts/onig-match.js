@@ -7,14 +7,19 @@ import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiled
 /*
 Oniguruma tester for the command line that also reports a comparison with Oniguruma-To-ES.
 
-Example of running this script:
-> npm run onig:match '\w' 'a'
+You can run it using any of the following commands:
+$ node scripts/onig-match.js '…' '…'
+$ pnpm onig:match '…' '…'
+$ npm run onig:match '…' '…'
+
+The first argument is the pattern; the second is the target string. Additional, optional arguments
+can be provided in any order.
 
 Insert characters by code point in the target string using `\u{…}`:
-> npm run onig:match '\n' '\u{A}'
+$ pnpm onig:match '\n' '\u{A}'
 
 Don't compare to Oniguruma-To-ES results:
-> npm run onig:match '…' '…' no-compare
+$ pnpm onig:match '…' '…' no-compare
 */
 
 exec(process.argv.slice(2));

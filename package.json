@@ -27,11 +27,10 @@
     "bundle:cjs": "esbuild src/index.js --format=cjs --bundle --sourcemap --outfile=dist/cjs/index.js",
     "types": "tsc src/index.js --rootDir src --declaration --allowJs --emitDeclarationOnly --outDir types --lib ESNext",
     "prebuild": "rm -rf dist/* types/*",
-    "build": "pnpm run bundle:global && pnpm run bundle:esm && pnpm run bundle:cjs && pnpm run types",
+    "build": "pnpm bundle:global && pnpm bundle:esm && pnpm bundle:cjs && pnpm types",
     "postbuild": "node scripts/postbuild.js",
-    "pretest": "pnpm run build",
+    "pretest": "pnpm build",
     "test": "jasmine",
-    "onig:compare": "node scripts/onig-compare.js",
     "onig:match": "node scripts/onig-match.js",
     "prepublishOnly": "pnpm test"
   },
