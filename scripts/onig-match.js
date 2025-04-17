@@ -1,19 +1,32 @@
 import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './utils.js';
 
-// To run this script:
-// - npm run onig:match '\w' 'a'
-// - npm run onig:match '\n' '\u{A}'
-// Don't use pnpm because it auto-escapes backslashes in string args
+/*
+Example of running this script:
+> npm run onig:match '\w' 'a'
+
+Insert characters by code point in the target string using `\u{…}`:
+> npm run onig:match '\n' '\u{A}'
+
+Don't compare to Oniguruma-To-ES results:
+> npm run onig:match '…' '…' no-compare
+*/
 
 exec(process.argv.slice(2));
 
-// Basic Oniguruma tester for the console; also reports a comparison with Oniguruma-To-ES
+console.log(process.env.npm_config_user_agent)
+
+// Oniguruma tester for the console that also reports a comparison with Oniguruma-To-ES
 async function exec([pattern, str, ...rest]) {
-  if (!(typeof pattern === 'string' && typeof str === 'string')) {
+  if (typeof pattern !== 'string' || typeof str !== 'string') {
     err(null, 'pattern and str args expected');
     return;
   }
-  const compareLib = !rest.includes('no-compare');
+  const compare = !rest.includes('no-compare');
+  // HACK: pnpm, unlike npm, auto-escapes backslashes in string args, so undo this
+  if (process.env.npm_config_user_agent.startsWith('pnpm/')) {
+    pattern = pattern.replace(/\\\\/g, '\\');
+    str = str.replace(/\\\\/g, '\\');
+  }
   // HACK: Replace unescaped `\u{…}` in the target string with the referenced code point
   str = str.replace(
     /\\u\{([^\}]+)\}|\\?./gsu,
@@ -22,7 +35,7 @@ async function exec([pattern, str, ...rest]) {
 
   const libMatches = [];
   let libMatch, libT0, libT1;
-  if (compareLib) {
+  if (compare) {
     libT0 = performance.now();
     libMatch = transpiledRegExpResult(pattern, str, 0);
     while (libMatch.result !== null) {
@@ -56,7 +69,7 @@ async function exec([pattern, str, ...rest]) {
       (onigMatches.length > 1 ? onigMatches : onigMatches[0]);
     console.log(`Oniguruma results (${onigMatches.length}):`, result);
   }
-  if (compareLib) {
+  if (compare) {
     if (!!libMatch.error !== !!onigMatch.error) {
       err(null, `Oniguruma and library results differed (only ${libMatch.error ? 'library' : 'Oniguruma'} threw error)`);
     } else if (libMatches.length !== onigMatches.length) {
