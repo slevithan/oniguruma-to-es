@@ -18,7 +18,7 @@ import {traverse} from 'oniguruma-parser/traverser';
       force: {[key: string]: boolean};
     };
     _originMap: Map<CapturingGroupNode, CapturingGroupNode>;
-    _strategy: string?;
+    _strategy: string | null;
   }
 } RegexPlusAst
 */
