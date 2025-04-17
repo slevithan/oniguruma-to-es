@@ -1,3 +1,4 @@
+import {toRegExpDetails} from '../src/index.js';
 import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './script-utils.js';
 /**
 @import {MatchDetails} from './script-utils.js';
@@ -62,6 +63,9 @@ async function exec(args) {
     libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
   }
   console.log(color('gray', `⚡ Library: ${(libT1 - libT0).toFixed(3)}ms`));
+  if (toRegExpDetails(pattern).options) {
+    console.log(color('gray', '✨ Library used a RegExp subclass'));
+  }
   printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
 }
 
