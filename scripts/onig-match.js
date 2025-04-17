@@ -1,6 +1,8 @@
 import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './utils.js';
 
 /*
+Oniguruma tester for the command line that also reports a comparison with Oniguruma-To-ES.
+
 Example of running this script:
 > npm run onig:match '\w' 'a'
 
@@ -13,9 +15,6 @@ Don't compare to Oniguruma-To-ES results:
 
 exec(process.argv.slice(2));
 
-console.log(process.env.npm_config_user_agent)
-
-// Oniguruma tester for the console that also reports a comparison with Oniguruma-To-ES
 async function exec([pattern, str, ...rest]) {
   if (typeof pattern !== 'string' || typeof str !== 'string') {
     err(null, 'pattern and str args expected');
