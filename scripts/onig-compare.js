@@ -1,8 +1,7 @@
-import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './utils.js';
+import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './script-utils.js';
 
-// Help with improving this script and/or comparing with Oniguruma automaticlly in Jasmine specs
+// Note: Help with comparing to Oniguruma results automaticlly in all tests (beyond this script)
 // would be very welcome
-
 compare([
   [r`\0`, `\u{0}`],
   [r`\00`, `\u{0}`],
