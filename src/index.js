@@ -6,7 +6,6 @@ import {JsUnicodePropertyMap} from './unicode.js';
 import {parse} from 'oniguruma-parser/parser';
 import {atomic, possessive} from 'regex/internals';
 import {recursion} from 'regex-recursion';
-
 /**
 @import {EmulatedRegExpOptions} from './subclass.js';
 */

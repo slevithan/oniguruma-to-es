@@ -1,5 +1,4 @@
 import {areMatchDetailsEqual, color, cp, err, ok, onigurumaResult, r, transpiledRegExpResult, value} from './script-utils.js';
-
 /**
 @import {MatchDetails} from './script-utils.js';
 */

@@ -3,7 +3,6 @@ import {getIgnoreCaseMatchChars, UnicodePropertiesWithSpecificCase} from './unic
 import {cp, envFlags, getNewCurrentFlags, getOrInsert, isMinTarget, r, throwIfNullish} from './utils.js';
 import {createAlternative, createCharacter, createGroup} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
-
 /**
 @import {ToRegExpOptions} from './index.js';
 @import {RegexPlusAst} from './transform.js';

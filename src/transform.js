@@ -4,7 +4,6 @@ import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import emojiRegex from 'emoji-regex-xs';
 import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacter, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createSubroutine, createUnicodeProperty, hasOnlyChild, parse, slug} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
-
 /**
 @import {CapturingGroupNode, OnigurumaAst, Node} from 'oniguruma-parser/parser';
 @import {Visitor} from 'oniguruma-parser/traverser';

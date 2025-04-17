@@ -1,5 +1,4 @@
 import {envFlags} from './utils.js';
-
 /**
 @import {ToRegExpOptions} from './index.js';
 */
