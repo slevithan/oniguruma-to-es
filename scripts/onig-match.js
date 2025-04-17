@@ -47,12 +47,10 @@ async function exec(args) {
     }
     const libT1 = performance.now();
     const same = printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
-    if (same) {
-      // Run time for Oniguruma includes the time to load the WASM module (i.e., it's the time to
-      // run the regex in Oniguruma *from JS*). Run time for the library includes the time to
-      // transpile the pattern to JS, which is not included in the Oniguruma time
-      console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
-    }
+    // Run time for Oniguruma includes the time to load the WASM module (i.e., it's the time to run
+    // the regex in Oniguruma *from JS*). Run time for the library includes the time to transpile
+    // the pattern to JS, which is not included in the Oniguruma time
+    console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms, library ${(libT1 - libT0).toFixed(3)}ms`));
   } else {
     console.log(color('gray', `🚀 Oniguruma ${(onigT1 - onigT0).toFixed(3)}ms`));
   }
