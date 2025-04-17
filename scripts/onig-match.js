@@ -27,6 +27,9 @@ regex in Oniguruma *from JS*). For the library, it includes the time to transpil
 addition to time spent running the search using the resulting native `RegExp`.
 */
 
+const agent = process.env.npm_config_user_agent;
+const env = agent ? (agent.startsWith('pnpm/') ? 'pnpm' : 'npm') : 'node';
+
 exec(process.argv.slice(2));
 
 async function exec(args) {
@@ -80,7 +83,7 @@ function getArgs([pattern, target, ...rest]) {
   }
   const compare = !rest.includes('no-compare');
   // HACK: pnpm, unlike npm, auto-escapes backslashes in string args, so undo that here
-  if (process.env.npm_config_user_agent?.startsWith('pnpm/')) {
+  if (env === 'pnpm') {
     pattern = pattern.replace(/\\\\/g, '\\');
     target = target.replace(/\\\\/g, '\\');
   }
@@ -103,6 +106,10 @@ function getArgs([pattern, target, ...rest]) {
 @param {string} target
 */
 function printInput(pattern, target) {
+  if (env === 'node') {
+    // Add a blank line for readability
+    console.log('');
+  }
   console.log('Pattern:', color('yellow', `/${pattern}/`), color('gray', 'ONIG_OPTION_CAPTURE_GROUP enabled'));
   console.log('String:', `${value(target)} ${color('gray', `(len ${target.length})`)}`);
 }
