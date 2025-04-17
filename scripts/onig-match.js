@@ -63,8 +63,12 @@ async function exec(args) {
     libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
   }
   console.log(color('gray', `⚡ Library: ${(libT1 - libT0).toFixed(3)}ms`));
-  if (toRegExpDetails(pattern).options) {
-    console.log(color('gray', '✨ Library used a RegExp subclass'));
+  try {
+    if (toRegExpDetails(pattern).options) {
+      console.log(color('gray', '✨ Library used a RegExp subclass'));
+    }
+  } catch {
+    // Ignore error; it's already been captured in the `libMatch` result
   }
   printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
 }
