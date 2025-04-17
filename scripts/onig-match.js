@@ -20,9 +20,10 @@ $ pnpm onig:match '\n' '\u{A}'
 Don't compare to Oniguruma-To-ES results:
 $ pnpm onig:match '…' '…' no-compare
 
-The reported run time for Oniguruma includes the time to load the WASM module (in other words, it's
-the time to run the regex in Oniguruma *from JS*). The run time for the library includes the time
-to transpile the pattern to JS.
+The reported run times include only the first search; not the time to find all results. For
+Oniguruma, it includes the time to load the WASM module (in other words, it's the time to run the
+regex in Oniguruma *from JS*). For the library, it includes the time to transpile the pattern, in
+addition to time spent running the search using the resulting native `RegExp`.
 */
 
 exec(process.argv.slice(2));
@@ -34,6 +35,7 @@ async function exec(args) {
   const onigMatches = [];
   const onigT0 = performance.now();
   let onigMatch = await onigurumaResult(pattern, target, 0);
+  const onigT1 = performance.now();
   while (onigMatch.result !== null) {
     onigMatches.push(onigMatch);
     if (onigMatch.index === target.length) {
@@ -43,7 +45,6 @@ async function exec(args) {
     }
     onigMatch = await onigurumaResult(pattern, target, onigMatch.index + (onigMatch.result.length || 1));
   }
-  const onigT1 = performance.now();
   printOnigResults(onigMatch, onigMatches);
   console.log(color('gray', `⚡ Oniguruma: ${(onigT1 - onigT0).toFixed(3)}ms`));
 
@@ -55,11 +56,11 @@ async function exec(args) {
   const libMatches = [];
   const libT0 = performance.now();
   let libMatch = transpiledRegExpResult(pattern, target, 0);
+  const libT1 = performance.now();
   while (libMatch.result !== null) {
     libMatches.push(libMatch);
     libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
   }
-  const libT1 = performance.now();
   console.log(color('gray', `⚡ Library: ${(libT1 - libT0).toFixed(3)}ms`));
   printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
 }
