@@ -228,6 +228,7 @@ describe('Character', () => {
       expect('\u{20AC}\u{7F}\u{20AC}').toExactlyMatch(r`\xE2\x82\xAC\x7F\xE2\x82\xAC`); // €€
       expect('\u{9A69}').toExactlyMatch(r`\xE9\xA9\xA9`); // 驩
       expect('\u{FEFF}').toExactlyMatch(r`\xEF\xBB\xBF`); // ZWNBSP/BOM
+      expect('\u{17F}').toExactlyMatch(r`\xC5\xBF`); // ſ
     });
 
     it(r`should throw for invalid UTF-8 encoded byte sequences \xNN (above 7F)`, () => {
