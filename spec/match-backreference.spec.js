@@ -1,13 +1,13 @@
-import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
+import {toRegExpDetails} from '../dist/esm/index.js';
 import {cp, r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups, minTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Backreference', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   it(r`should match incomplete \k as identity escape`, () => {
     expect('k').toExactlyMatch(r`\k`);
   });

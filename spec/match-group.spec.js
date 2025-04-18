@@ -1,11 +1,11 @@
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Group', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   describe('atomic', () => {
     it('should not remember backtracking positions within atomic groups', () => {
       expect('abc').not.toFindMatch(`a(?>bc|b)c`);

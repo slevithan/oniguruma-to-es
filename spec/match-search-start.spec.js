@@ -3,11 +3,11 @@ import {r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Assertion [search_start]', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   it('should be identity escape within a char class', () => {
     expect('G').toExactlyMatch(r`[\G]`);
     expect('\\').not.toFindMatch(r`[\G]`);

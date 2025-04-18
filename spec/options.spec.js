@@ -2,11 +2,11 @@ import {toRegExpDetails} from '../dist/esm/index.js';
 import {envFlags, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Options', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   describe('accuracy', () => {
     it(r`should throw for subclass-based \G emulation if lookbehind present`, () => {
       expect(() => toRegExpDetails(r`\Ga|(?<=)`, {accuracy: 'strict'})).toThrow();
@@ -53,6 +53,13 @@ describe('Options', () => {
 
   // TODO: Add me
   // describe('hasIndices', () => {
+  //   it('should', () => {
+  //     expect('').toExactlyMatch(r``);
+  //   });
+  // });
+
+  // TODO: Add me
+  // describe('lazyCompileLength', () => {
   //   it('should', () => {
   //     expect('').toExactlyMatch(r``);
   //   });

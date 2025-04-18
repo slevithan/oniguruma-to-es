@@ -3,11 +3,11 @@
 // import {r} from '../src/utils.js';
 // import {matchers} from './helpers/matchers.js';
 
-// beforeEach(() => {
-//   jasmine.addMatchers(matchers);
-// });
-
 // describe('Flags', () => {
+//   beforeEach(() => {
+//     jasmine.addMatchers(matchers);
+//   });
+
 //   it('should', () => {
 //     expect('').toExactlyMatch(r``);
 //   });

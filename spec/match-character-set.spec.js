@@ -3,11 +3,11 @@ import {r} from '../src/utils.js';
 import {maxTestTargetForFlagGroups} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('CharacterSet', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   describe('any', () => {
     it('should match any character', () => {
       expect([

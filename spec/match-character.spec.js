@@ -2,11 +2,11 @@ import {toRegExpDetails} from '../dist/esm/index.js';
 import {cp, r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Character', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   describe('literal', () => {
     it('should match literal chars', () => {
       expect('a').toExactlyMatch('a');

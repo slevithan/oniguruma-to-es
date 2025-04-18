@@ -2,12 +2,12 @@ import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Assertion', () => {
-  // For kind `search_start`, see `match-search-start.spec.js`
+  // Note: For kind `search_start`, see `match-search-start.spec.js`
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   // TODO: Test handling of assertion syntax within char classes
 
   describe('line_end', () => {

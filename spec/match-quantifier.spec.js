@@ -2,11 +2,11 @@ import {toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Quantifier', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   // TODO: Add me
   // describe('greedy', () => {
   //   it('should', () => {

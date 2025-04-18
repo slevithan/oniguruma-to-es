@@ -1,11 +1,11 @@
 import {toRegExpDetails} from '../dist/esm/index.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('NamedCallout', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   describe('FAIL', () => {
     it('should never match', () => {
       expect('').not.toFindMatch('(*FAIL)');

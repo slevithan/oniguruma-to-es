@@ -2,12 +2,11 @@ import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Subroutine [recursive]', () => {
   // Note: See specs for option `rules.recursionLimit` in `options.spec.js`
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
 
   // Documenting current behavior
   it('should throw if backref used with recursion when the recursed subpattern contains captures', () => {

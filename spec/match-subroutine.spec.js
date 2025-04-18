@@ -2,12 +2,12 @@ import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Subroutine', () => {
-  // For recursion tests, see `match-recursion.spec.js`
+  // Note: For recursion tests, see `match-recursion.spec.js`
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   // TODO: Test that subroutines use the flags that apply to their reffed group
 
   it(r`should match incomplete \g as identity escape`, () => {

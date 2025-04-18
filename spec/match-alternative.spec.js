@@ -1,11 +1,11 @@
 import {r} from '../src/utils.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('Alternative', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   it('should match any top-level alternative', () => {
     expect(['a', 'bb', 'c']).toExactlyMatch(r`a|bb|\w`);
   });

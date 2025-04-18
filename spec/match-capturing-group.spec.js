@@ -1,11 +1,11 @@
 import {toRegExp, toRegExpDetails} from '../dist/esm/index.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('CapturingGroup', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   // TODO: Add me
   // describe('numbered', () => {
   //   it('should', () => {

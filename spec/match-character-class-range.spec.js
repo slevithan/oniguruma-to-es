@@ -3,11 +3,11 @@ import {r} from '../src/utils.js';
 import {minTestTargetForFlagV} from './helpers/features.js';
 import {matchers} from './helpers/matchers.js';
 
-beforeEach(() => {
-  jasmine.addMatchers(matchers);
-});
-
 describe('CharacterClassRange', () => {
+  beforeEach(() => {
+    jasmine.addMatchers(matchers);
+  });
+
   it('should match any char from range', () => {
     expect(['a', 'b', 'c']).toExactlyMatch(r`[a-c]`);
     expect('d').not.toFindMatch(r`[a-c]`);
