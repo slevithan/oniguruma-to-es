@@ -1040,6 +1040,10 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
 - Oniguruma-To-ES uses the version of Unicode supported natively by your JavaScript environment. Using Unicode properties via `\p{…}` that were added in a later version of Unicode than the environment supports results in a runtime error. This is an extreme edge case since modern JavaScript environments support recent versions of Unicode.
 
+## 🤝 Contributing
+
+Contributions are welcome. See the [guide](https://github.com/slevithan/oniguruma-to-es/blob/main/CONTRIBUTING.md) to help you get started.
+
 ## 👀 Similar projects
 
 [JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a (seemingly abandoned) fork of Oniguruma with similar syntax and behavior. Although there are important differences, JsRegex might be a better fit for some Ruby projects.
@@ -1056,7 +1060,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
 
 Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) and [contributors](https://github.com/slevithan/oniguruma-to-es/graphs/contributors).
 
-If you want to support this project, I'd love your help by contributing improvements, sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
+If you want to support this project, I'd love your help by contributing improvements ([guide](https://github.com/slevithan/oniguruma-to-es/blob/main/CONTRIBUTING.md)), sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
 
 MIT License.
 
