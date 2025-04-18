@@ -1,4 +1,9 @@
 import {toRegExpDetails} from '../dist/esm/index.js';
+import {matchers} from './helpers/matchers.js';
+
+beforeEach(() => {
+  jasmine.addMatchers(matchers);
+});
 
 describe('NamedCallout', () => {
   describe('FAIL', () => {
