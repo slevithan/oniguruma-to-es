@@ -22,7 +22,7 @@ Compared to running the Oniguruma C library via WASM using [vscode-oniguruma](ht
 
 Oniguruma-To-ES deeply understands the hundreds of large and small differences between Oniguruma and JavaScript regex syntax and behavior, across multiple JavaScript version targets. It's *obsessive* about ensuring that the emulated features it supports have exactly the same behavior, even in extreme edge cases. And it's been battle-tested on tens of thousands of real-world Oniguruma regexes used in TextMate grammars. It's built on top of [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) and [Regex+](https://github.com/slevithan/regex), both by the same author as this library.
 
-## 🔮 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
+## 🧪 [Try the demo REPL](https://slevithan.github.io/oniguruma-to-es/demo/)
 
 ## 📜 Contents
 
@@ -1028,7 +1028,7 @@ See also the [supported features](#-supported-features) table (above) which desc
 Despite these gaps, ~99.99% of real-world Oniguruma regexes are supported, based on a sample of ~55k regexes used in TextMate grammars. Conditionals were used in three regexes, *overlapping* recursions in three regexes, and other unsupported features weren't used at all. Some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub.
 
 <a name="unicode"></a>
-## ㊗️ Unicode
+## 🌏 Unicode
 
 Oniguruma-To-ES fully supports mixed case-sensitivity (ex: `(?i)a(?-i)a`) and handles the Unicode edge cases regardless of JavaScript [target](#target).
 
@@ -1040,7 +1040,7 @@ Oniguruma-To-ES focuses on being lightweight to make it better for use in browse
   - Using these properties case-insensitively is basically never done intentionally, so you're unlikely to encounter this error unless it's catching a mistake.
 - Oniguruma-To-ES uses the version of Unicode supported natively by your JavaScript environment. Using Unicode properties via `\p{…}` that were added in a later version of Unicode than the environment supports results in a runtime error. This is an extreme edge case since modern JavaScript environments support recent versions of Unicode.
 
-## 🤝 Contributing
+## 🧩 Contributing
 
 Contributions are welcome. See the [guide](https://github.com/slevithan/oniguruma-to-es/blob/main/CONTRIBUTING.md) to help you get started.
 
