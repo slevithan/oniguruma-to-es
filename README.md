@@ -823,10 +823,10 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ For duplicate group names, rematch any of their matches (multiplex)<br>
+      ✔ For duplicate group names, rematch any of their matches (multiplex), atomically<br>
       ✔ Refs the most recent of a capture/subroutine set (no multiplex)<br>
       ✔ Combination of multiplex and most recent of capture/subroutine set if duplicate name is indirectly created by a subroutine<br>
-      ✔ Error for <code>-</code>/<code>+</code> in backref names, though valid in group names<br>
+      ✔ Error for backref to valid group name that includes <code>-</code>/<code>+</code><br>
     </td>
   </tr>
   <tr valign="top">
