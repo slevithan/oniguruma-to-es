@@ -1046,14 +1046,14 @@ Contributions are welcome. See the [guide](https://github.com/slevithan/onigurum
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a (seemingly abandoned) fork of Oniguruma with similar syntax and behavior. Although there are important differences, JsRegex might be a better fit for some Ruby projects.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a (seemingly abandoned) fork of Oniguruma with similar syntax and behavior. Although JsRegex and this library have important differences, JsRegex might be a better fit for some Ruby projects.
 
 <details>
   <summary>Some high-level JsRegex differences</summary>
 
 - It's written in Ruby, so regexes must be pre-transpiled on the server to use them in JavaScript.
-- It doesn't always include the same level of support for advanced features, translate edge case JavaScript behavior differences, or accurately reproduce subpattern results.
-- Supporting TextMate grammars isn't one of its goals, so it doesn't include features needed to do so.
+- It doesn't always translate edge case behavior differences, include the same level of support for advanced features, or accurately reproduce subpattern results.
+- It doesn't include features needed to support TextMate grammars, since that isn't one of its goals.
 </details>
 
 ## 🏷️ About
