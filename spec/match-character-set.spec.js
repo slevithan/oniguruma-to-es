@@ -22,7 +22,7 @@ describe('CharacterSet', () => {
       });
     });
 
-    it('should be identity escape within a char class', () => {
+    it('should be an identity escape within a char class', () => {
       expect('O').toExactlyMatch(r`[\O]`);
       expect('a').not.toFindMatch(r`[\O]`);
     });
@@ -72,7 +72,7 @@ describe('CharacterSet', () => {
       expect(graphemes).not.toFindMatch(r`^\X\p{Any}`);
     });
 
-    it('should be identity escape within a char class', () => {
+    it('should be an identity escape within a char class', () => {
       expect('X').toExactlyMatch(r`[\X]`);
       expect('a').not.toFindMatch(r`[\X]`);
     });
@@ -102,7 +102,7 @@ describe('CharacterSet', () => {
       expect('\r\n').not.toFindMatch(r`\R\n`);
     });
 
-    it('should be identity escape within a char class', () => {
+    it('should be an identity escape within a char class', () => {
       expect('R').toExactlyMatch(r`[\R]`);
       expect('\n').not.toFindMatch(r`[\R]`);
     });
@@ -120,7 +120,7 @@ describe('CharacterSet', () => {
       expect('\n').not.toFindMatch({pattern: r`\N`, flags: 'm'});
     });
 
-    it('should be identity escape within a char class', () => {
+    it('should be an identity escape within a char class', () => {
       expect('N').toExactlyMatch(r`[\N]`);
       expect('a').not.toFindMatch(r`[\N]`);
     });
@@ -134,14 +134,14 @@ describe('CharacterSet', () => {
   // });
 
   describe('property', () => {
-    it(r`should be identity escape for incomplete \p \P`, () => {
+    it(r`should be an identity escape for incomplete \p \P`, () => {
       expect('p').toExactlyMatch(r`\p`);
       expect('P').toExactlyMatch(r`\P`);
       expect('p').toExactlyMatch(r`[\p]`);
       expect('P').toExactlyMatch(r`[\P]`);
     });
 
-    it(r`should be identity escape for single-letter name without braces`, () => {
+    it('should be an identity escape for single-letter name without braces', () => {
       expect('pL').toExactlyMatch(r`\pL`);
       expect('PL').toExactlyMatch(r`\PL`);
     });
@@ -159,7 +159,7 @@ describe('CharacterSet', () => {
       expect(() => toRegExpDetails(r`\p{,2}`)).toThrow();
     });
 
-    it(r`should throw for name without A-Za-z`, () => {
+    it('should throw for name without A-Za-z', () => {
       expect(() => toRegExpDetails(r`\p{}`)).toThrow();
       expect(() => toRegExpDetails(r`\p{^}`)).toThrow();
       expect(() => toRegExpDetails(r`\p{0}`)).toThrow();
@@ -168,26 +168,26 @@ describe('CharacterSet', () => {
       expect(() => toRegExpDetails(r`\p{__}`)).toThrow();
     });
 
-    it(r`should throw for name with non-ASCII-word character`, () => {
+    it('should throw for name with non-ASCII-word character', () => {
       expect(() => toRegExpDetails(r`\p{N'Ko}`)).toThrow();
       expect(() => toRegExpDetails(r`\p{Nko}`)).not.toThrow();
       expect(() => toRegExpDetails(r`\p{Hanunóo}`)).toThrow();
       expect(() => toRegExpDetails(r`\p{Hanunoo}`)).not.toThrow();
     });
 
-    it(r`should allow negating with leading ^`, () => {
+    it('should allow negating with leading ^', () => {
       expect('0').toExactlyMatch(r`\p{^L}`);
       expect('a').toExactlyMatch(r`\P{^L}`);
       expect('0').toExactlyMatch(r`[\p{^L}]`);
       expect('a').toExactlyMatch(r`[\P{^L}]`);
     });
 
-    it(r`should require a negating ^ to be the first character`, () => {
+    it('should require a negating ^ to be the first character', () => {
       expect(() => toRegExpDetails(r`\p{ ^L}`)).toThrow();
       expect(() => toRegExpDetails(r`\P{ ^L}`)).toThrow();
     });
 
-    it(r`should throw for key prefix`, () => {
+    it('should throw for key prefix', () => {
       expect(() => toRegExpDetails(r`\p{gc=L}`)).toThrow();
       expect(() => toRegExpDetails(r`\p{General_Category=L}`)).toThrow();
       expect(() => toRegExpDetails(r`\p{sc=Latin}`)).toThrow();
@@ -196,7 +196,7 @@ describe('CharacterSet', () => {
       expect(() => toRegExpDetails(r`\p{Script_Extensions=Latin}`)).toThrow();
     });
 
-    it(r`should throw for properties of strings`, () => {
+    it('should throw for properties of strings', () => {
       // ES2024 properties of strings
       [ 'Basic_Emoji',
         'Emoji_Keycap_Sequence',
@@ -210,7 +210,7 @@ describe('CharacterSet', () => {
       });
     });
 
-    it(r`should allow insignificant spaces, hyphens, underscores, and casing for categories and binary properties`, () => {
+    it('should allow insignificant spaces, hyphens, underscores, and casing for categories and binary properties', () => {
       [ 'Lowercase_Letter',
         'lowercaseletter',
         'LowercaseLetter',
@@ -235,7 +235,7 @@ describe('CharacterSet', () => {
       expect(toRegExpDetails(r`\p{asciihexdigit}`).pattern).toBe(r`\p{ASCII_Hex_Digit}`);
     });
 
-    it(r`should use best effort to allow insignificant spaces, hyphens, underscores, and casing for scripts`, () => {
+    it('should use best effort to allow insignificant spaces, hyphens, underscores, and casing for scripts', () => {
       [ 'Egyptian_Hieroglyphs',
         'EgyptianHieroglyphs',
         'egyptian-hieroglyphs',
@@ -249,7 +249,7 @@ describe('CharacterSet', () => {
     });
 
     // Documenting current behavior
-    it(r`should handle unknown properties as scripts`, () => {
+    it('should handle unknown properties as scripts', () => {
       expect(toRegExpDetails(r`\p{FakeProperty}`).pattern).toBe(r`\p{sc=Fake_Property}`);
       expect(() => toRegExp(r`\p{FakeProperty}`)).toThrow();
     });

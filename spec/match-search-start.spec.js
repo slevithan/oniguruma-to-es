@@ -8,7 +8,7 @@ describe('Assertion [search_start]', () => {
     jasmine.addMatchers(matchers);
   });
 
-  it('should be identity escape within a char class', () => {
+  it('should be an identity escape within a char class', () => {
     expect('G').toExactlyMatch(r`[\G]`);
     expect('\\').not.toFindMatch(r`[\G]`);
   });
