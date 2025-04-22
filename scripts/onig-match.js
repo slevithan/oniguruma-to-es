@@ -36,13 +36,19 @@ const env = agent ? (agent.startsWith('pnpm/') ? 'pnpm' : 'npm') : 'node';
 exec(process.argv.slice(2));
 
 async function exec(args) {
-  const {pattern, target, options} = getArgs(args);
+  const processedArgs = getArgs(args);
+  if (!processedArgs) {
+    err(null, 'pattern and target args expected');
+    return;
+  }
+  const {pattern, target, options} = processedArgs;
   printInput(pattern, target);
 
   const onigMatches = [];
   const onigT0 = performance.now();
   let onigMatch = await onigurumaResult(pattern, target, 0);
   const onigT1 = performance.now();
+  const onigPrevIndex = onigMatch.index;
   while (onigMatch.result !== null) {
     onigMatches.push(onigMatch);
     if (onigMatch.index === target.length) {
@@ -51,6 +57,11 @@ async function exec(args) {
       break;
     }
     onigMatch = await onigurumaResult(pattern, target, onigMatch.index + (onigMatch.result.length || 1));
+    if (onigMatch.index === onigPrevIndex) {
+      // Guard against infinite loop from V8 bug when searching zero-length pattern between a surrogate pair
+      err(null, 'Oniguruma search index did not change');
+      break;
+    }
   }
   printOnigResults(onigMatch, onigMatches);
   console.log(color('gray', `⚡ Oniguruma: ${(onigT1 - onigT0).toFixed(3)}ms`));
@@ -64,9 +75,15 @@ async function exec(args) {
   const libT0 = performance.now();
   let libMatch = transpiledRegExpResult(pattern, target, 0);
   const libT1 = performance.now();
+  const libPrevIndex = onigMatch.index;
   while (libMatch.result !== null) {
     libMatches.push(libMatch);
     libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
+    if (libMatch.index === libPrevIndex) {
+      // Guard against infinite loop from V8 bug when searching zero-length pattern between a surrogate pair
+      err(null, 'Library search index did not change');
+      break;
+    }
   }
   console.log(color('gray', `⚡ Library: ${(libT1 - libT0).toFixed(3)}ms`));
   try {
@@ -81,8 +98,7 @@ async function exec(args) {
 
 function getArgs([pattern, target, ...rest]) {
   if (typeof pattern !== 'string' || typeof target !== 'string') {
-    err(null, 'pattern and target args expected');
-    return;
+    return null;
   }
   const compare = !rest.includes('no-compare');
   // HACK: pnpm, unlike npm, auto-escapes backslashes in string args, so undo that here
@@ -114,7 +130,10 @@ function printInput(pattern, target) {
     console.log('');
   }
   console.log('Pattern:', color('yellow', `/${pattern}/`), color('gray', 'ONIG_OPTION_CAPTURE_GROUP enabled'));
-  console.log('String:', `${value(target)} ${color('gray', `(len ${target.length})`)}`);
+  const length = target.length;
+  const cpLength = [...target].length;
+  const lengthStr = `(len: ${length}${cpLength !== length ? `, code points: ${cpLength}` : ''})`;
+  console.log('String:', `${value(target)} ${color('gray', lengthStr)}`);
 }
 
 /**
