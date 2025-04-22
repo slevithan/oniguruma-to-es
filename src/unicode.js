@@ -3,13 +3,18 @@ import {slug} from 'oniguruma-parser/parser';
 
 // `\t\n\v\f\r\x20`
 const asciiSpaceChar = '[\t-\r ]';
-// Different than `PosixClassMap`'s `word`
-const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
 
 const CharsWithoutIgnoreCaseExpansion = new Set([
   cp(0x130), // İ
   cp(0x131), // ı
 ]);
+
+// Different than `PosixClassMap`'s `word`
+const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
+
+// Based on but adapted from <github.com/slevithan/emoji-regex-xs> for our use case
+const emojiSeq = r`\p{RI}{2}|\p{Emoji}(?:\p{EMod}|\uFE0F\u20E3?|[\x{E0020}-\x{E007E}]+\x{E007F})?`;
+const emoji = r`${emojiSeq}(?:\u200D(?:${emojiSeq}))*`;
 
 function getIgnoreCaseMatchChars(char) {
   // Some chars should not match the chars they case swap to
@@ -229,6 +234,7 @@ const UnicodePropertiesWithSpecificCase = new Set([
 export {
   asciiSpaceChar,
   defaultWordChar,
+  emoji,
   getIgnoreCaseMatchChars,
   JsUnicodePropertyMap,
   PosixClassMap,

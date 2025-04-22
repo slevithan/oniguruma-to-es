@@ -61,6 +61,7 @@ describe('CharacterSet', () => {
       '\x65\u0301', // é
       '\u2194\uFE0F', // ↔️
       '\u{1F469}\u{1F3FF}', // 👩🏿
+      '\u{1F469}\u{1F3FB}\u200D\u{1F3EB}', // 👩🏻‍🏫
     ];
 
     it('should match any Unicode grapheme', () => {
@@ -68,7 +69,7 @@ describe('CharacterSet', () => {
     });
 
     it('should match graphemes atomically', () => {
-      expect(graphemes).not.toFindMatch(r`\X\p{Any}`);
+      expect(graphemes).not.toFindMatch(r`^\X\p{Any}`);
     });
 
     it('should be identity escape within a char class', () => {

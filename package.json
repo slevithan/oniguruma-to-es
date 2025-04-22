@@ -23,7 +23,7 @@
   "types": "./dist/cjs/index.d.ts",
   "scripts": {
     "bundle:global": "esbuild src/index.js --global-name=OnigurumaToEs --bundle --minify --sourcemap --outfile=dist/index.min.js",
-    "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --external:emoji-regex-xs --external:oniguruma-parser --external:regex --external:regex-recursion --outfile=dist/esm/index.js",
+    "bundle:esm": "esbuild src/index.js --format=esm --bundle --sourcemap --external:oniguruma-parser --external:regex --external:regex-recursion --outfile=dist/esm/index.js",
     "bundle:cjs": "esbuild src/index.js --format=cjs --bundle --sourcemap --outfile=dist/cjs/index.js",
     "types": "tsc src/index.js --rootDir src --declaration --allowJs --emitDeclarationOnly --outDir types --lib ESNext",
     "prebuild": "rm -rf dist/* types/*",
@@ -49,7 +49,6 @@
     "transpiler"
   ],
   "dependencies": {
-    "emoji-regex-xs": "^1.0.0",
     "oniguruma-parser": "^0.11.0",
     "regex": "^6.0.1",
     "regex-recursion": "^6.0.2"
