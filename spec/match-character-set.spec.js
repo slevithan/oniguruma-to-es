@@ -57,12 +57,12 @@ describe('CharacterSet', () => {
     const graphemes = [
       '\0',
       '\r\n',
-      '\xE9', // é
-      '\x65\u0301', // é
-      '\u2194\uFE0F', // ↔️
+      '\u{E9}', // é
+      '\u{65}\u{301}', // é
+      '\u{2194}\u{FE0F}', // ↔️
       '\u{1F1EF}\u{1F1F5}', // 🇯🇵
       '\u{1F469}\u{1F3FF}', // 👩🏿
-      '\u{1F469}\u{1F3FB}\u200D\u{1F3EB}', // 👩🏻‍🏫
+      '\u{1F469}\u{1F3FB}\u{200D}\u{1F3EB}', // 👩🏻‍🏫
     ];
 
     it('should match any Unicode grapheme', () => {
@@ -70,7 +70,7 @@ describe('CharacterSet', () => {
     });
 
     it('should match graphemes atomically', () => {
-      expect(graphemes).not.toFindMatch(r`^\X\p{Any}`);
+      expect(graphemes).not.toFindMatch(r`^\X\O`);
     });
 
     it('should be an identity escape within a char class', () => {
