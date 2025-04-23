@@ -10,6 +10,13 @@ describe('Assertion', () => {
 
   // TODO: Test handling of assertion syntax within char classes
 
+  describe('grapheme_boundary', () => {
+    it('should throw as unsupported', () => {
+      expect(() => toRegExpDetails(r`\y`)).toThrow();
+      expect(() => toRegExpDetails(r`\Y`)).toThrow();
+    });
+  });
+
   describe('line_end', () => {
     it('should match at the end of the string', () => {
       expect('ba').toFindMatch('a$');
@@ -165,14 +172,6 @@ describe('Assertion', () => {
           'これは日本語です', '0日本語0',
         ]).toFindMatch(r`\B日本語\B`);
       });
-    });
-  });
-
-  describe('grapheme_boundary', () => {
-    // Supportable with close approximation, but extremely rare and not many use cases
-    it('should throw as unsupported', () => {
-      expect(() => toRegExpDetails(r`\y`)).toThrow();
-      expect(() => toRegExpDetails(r`\Y`)).toThrow();
     });
   });
 });

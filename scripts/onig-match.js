@@ -43,12 +43,13 @@ async function exec(args) {
   }
   const {pattern, target, options} = processedArgs;
   printInput(pattern, target);
+  const warnings = [];
 
   const onigMatches = [];
   const onigT0 = performance.now();
   let onigMatch = await onigurumaResult(pattern, target, 0);
   const onigT1 = performance.now();
-  const onigPrevIndex = onigMatch.index;
+  let onigNextPos = getNextPos(onigMatch);
   while (onigMatch.result !== null) {
     onigMatches.push(onigMatch);
     if (onigMatch.index === target.length) {
@@ -56,11 +57,14 @@ async function exec(args) {
       // beyond the string's length doesn't prevent a search
       break;
     }
-    onigMatch = await onigurumaResult(pattern, target, onigMatch.index + (onigMatch.result.length || 1));
-    if (onigMatch.index === onigPrevIndex) {
-      // Guard against infinite loop from V8 bug when searching zero-length pattern between a surrogate pair
-      err(null, 'Oniguruma search index did not change');
-      break;
+    onigMatch = await onigurumaResult(pattern, target, onigNextPos);
+    if (onigMatch.result !== null) {
+      if (onigMatch.index < onigNextPos) {
+        warnings.push(`Oniguruma match pos (${onigMatch.index}) < search pos (${onigNextPos}) - likely 0-len match between surrogate pair`);
+        onigNextPos++;
+      } else {
+        onigNextPos = getNextPos(onigMatch);
+      }
     }
   }
   printOnigResults(onigMatch, onigMatches);
@@ -68,6 +72,7 @@ async function exec(args) {
 
   if (!options.compare) {
     console.log(color('gray', '⏩ Skipped library comparison'));
+    printWarnings(warnings);
     return;
   }
 
@@ -75,14 +80,17 @@ async function exec(args) {
   const libT0 = performance.now();
   let libMatch = transpiledRegExpResult(pattern, target, 0);
   const libT1 = performance.now();
-  const libPrevIndex = onigMatch.index;
+  let libNextPos = getNextPos(libMatch);
   while (libMatch.result !== null) {
     libMatches.push(libMatch);
-    libMatch = transpiledRegExpResult(pattern, target, libMatch.index + (libMatch.result.length || 1));
-    if (libMatch.index === libPrevIndex) {
-      // Guard against infinite loop from V8 bug when searching zero-length pattern between a surrogate pair
-      err(null, 'Library search index did not change');
-      break;
+    libMatch = transpiledRegExpResult(pattern, target, libNextPos);
+    if (libMatch.result !== null) {
+      if (libMatch.index < libNextPos) {
+        warnings.push(`Library match pos (${libMatch.index}) < search pos (${libNextPos}) - likely 0-len match between surrogate pair`);
+        libNextPos++;
+      } else {
+        libNextPos = getNextPos(libMatch);
+      }
     }
   }
   console.log(color('gray', `⚡ Library: ${(libT1 - libT0).toFixed(3)}ms`));
@@ -94,6 +102,7 @@ async function exec(args) {
     // Ignore error; it's already been captured in the `libMatch` result
   }
   printLibComparison(onigMatch, onigMatches, libMatch, libMatches);
+  printWarnings(warnings);
 }
 
 function getArgs([pattern, target, ...rest]) {
@@ -120,6 +129,10 @@ function getArgs([pattern, target, ...rest]) {
   };
 }
 
+function getNextPos(match) {
+  return match.index + (match.result?.length || 1);
+}
+
 /**
 @param {string} pattern
 @param {string} target
@@ -134,21 +147,6 @@ function printInput(pattern, target) {
   const cpLength = [...target].length;
   const lengthStr = `(len: ${length}${cpLength !== length ? `, code points: ${cpLength}` : ''})`;
   console.log('String:', `${value(target)} ${color('gray', lengthStr)}`);
-}
-
-/**
-@param {MatchDetails} result
-@param {Array<MatchDetails>} matches
-*/
-function printOnigResults(result, matches) {
-  if (result.error) {
-    err(null, `Oniguruma error: ${result.error.message}`);
-  } else {
-    const output = matches.length ?
-      (matches.length > 1 ? matches : matches[0]) :
-      `${color('gray', 'No match')}`;
-    console.log(`Oniguruma results (${matches.length}):`, output);
-  }
 }
 
 /**
@@ -180,4 +178,29 @@ function printLibComparison(onigResult, onigMatches, libResult, libMatches) {
     }
   }
   return false;
+}
+
+/**
+@param {MatchDetails} result
+@param {Array<MatchDetails>} matches
+*/
+function printOnigResults(result, matches) {
+  if (result.error) {
+    err(null, `Oniguruma error: ${result.error.message}`);
+  } else {
+    const output = matches.length ?
+      (matches.length > 1 ? matches : matches[0]) :
+      `${color('gray', 'No match')}`;
+    console.log(`Oniguruma results (${matches.length}):`, output);
+  }
+}
+
+function printWarnings(warnings) {
+  if (!warnings.length) {
+    return;
+  }
+  console.log(color('gray', '\nWarnings:'));
+  for (const warning of warnings) {
+    console.log(color('gray', `❗ ${warning}`));
+  }
 }

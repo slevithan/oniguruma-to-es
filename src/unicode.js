@@ -12,10 +12,6 @@ const CharsWithoutIgnoreCaseExpansion = new Set([
 // Different than `PosixClassMap`'s `word`
 const defaultWordChar = r`[\p{L}\p{M}\p{N}\p{Pc}]`;
 
-// Based on but adapted from <github.com/slevithan/emoji-regex-xs> for our use case
-const e = r`\p{Emoji}(?:\p{EMod}|\uFE0F\u20E3?|[\x{E0020}-\x{E007E}]+\x{E007F})?`;
-const emoji = r`\p{RI}{2}|${e}(?:\u200D(?:${e}))*`;
-
 function getIgnoreCaseMatchChars(char) {
   // Some chars should not match the chars they case swap to
   if (CharsWithoutIgnoreCaseExpansion.has(char)) {
@@ -234,7 +230,6 @@ const UnicodePropertiesWithSpecificCase = new Set([
 export {
   asciiSpaceChar,
   defaultWordChar,
-  emoji,
   getIgnoreCaseMatchChars,
   JsUnicodePropertyMap,
   PosixClassMap,

@@ -1,5 +1,5 @@
 import {Accuracy, Target} from './options.js';
-import {asciiSpaceChar, defaultWordChar, emoji, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
+import {asciiSpaceChar, defaultWordChar, JsUnicodePropertyMap, PosixClassMap} from './unicode.js';
 import {cp, getNewCurrentFlags, getOrInsert, isMinTarget, r} from './utils.js';
 import {createAlternative, createAssertion, createBackreference, createCapturingGroup, createCharacter, createCharacterClass, createCharacterSet, createGroup, createLookaroundAssertion, createQuantifier, createSubroutine, createUnicodeProperty, hasOnlyChild, parse, slug} from 'oniguruma-parser/parser';
 import {traverse} from 'oniguruma-parser/traverser';
@@ -253,10 +253,13 @@ const /** @type {Visitor} */ FirstPassVisitor = {
       if (accuracy === 'strict') {
         throw new Error(r`Use of "\X" requires non-strict accuracy`);
       }
-      // Close approximation of an extended grapheme cluster. Details: <unicode.org/reports/tr29/>.
-      // Skip property name validation to allow `RGI_Emoji` through, since Onig doesn't support it
+      // Emoji pattern based on <github.com/slevithan/emoji-regex-xs> but adapted for our use case
+      const eBase = r`\p{Emoji}(?:\p{EMod}|\uFE0F\u20E3?|[\x{E0020}-\x{E007E}]+\x{E007F})?`;
+      const emoji = r`\p{RI}{2}|${eBase}(?:\u200D${eBase})*`;
       replaceWith(setParentDeep(parseFragment(
+        // Close approximation of an extended grapheme cluster; see: <unicode.org/reports/tr29/>
         r`(?>\r\n|${minTargetEs2024 ? r`\p{RGI_Emoji}` : emoji}|\P{M}\p{M}*)`,
+        // Allow JS `RGI_Emoji` through
         {skipPropertyNameValidation: true}
       ), parent));
     } else if (kind === 'hex') {
