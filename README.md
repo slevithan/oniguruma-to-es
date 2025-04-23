@@ -1014,16 +1014,17 @@ The following throw errors since they aren't yet supported. They're all extremel
 - Supportable:
   - Rarely-used character specifiers: Non-A-Za-z with `\cx` `\C-x`, meta `\M-x` `\M-\C-x`, octal code points `\o{…}`, and octal encoded bytes ≥ `\200`.
   - Code point sequences: `\x{H H …}` `\o{O O …}`.
-  - Grapheme boundaries: `\y` `\Y`.
-  - Flags `P` (POSIX is ASCII) and `y{g}` `y{w}` (grapheme boundary modes), and whole-pattern modifier `C` (don't capture group).
+  - Flag `P` (POSIX is ASCII), and whole-pattern modifier `C` (don't capture group).
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers `I` (ignore-case is ASCII) and `L` (find longest).
   - Named callout `(*SKIP)`.
 - Not supportable:
-  - Other callouts: `(?{…})`, etc.
+  - Text segment boundaries: `\y` `\Y`.
+  - Flags `y{g}` `y{w}` (text segment modes).
+  - Callouts via `(?{…})`, and most named callouts.
 
-See also the [supported features](#-supported-features) table (above) which describes some additional, rarely-used sub-features that aren't yet supported.
+See also the [supported features](#-supported-features) table (above), which describes some additional, rarely-used sub-features that aren't yet supported.
 
 Despite these gaps, ~99.99% of real-world Oniguruma regexes are supported, based on a sample of ~55k regexes used in TextMate grammars. Conditionals were used in three regexes, *overlapping* recursions in three regexes, and other unsupported features weren't used at all. Some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub.
 
