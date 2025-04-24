@@ -898,7 +898,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Unicode case folding (same as JS with flag <code>u</code>, <code>v</code>)<br>
+      ✔ Unicode case folding (same as JS with flag <code>u</code>, <code>v</code>)<sup>[8]</sup><br>
     </td>
   </tr>
   <tr valign="top">
@@ -946,7 +946,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
     </td>
   </tr>
   <tr valign="top">
-    <td>🆕 Word is ASCII</td>
+    <td>🆕 Word is ASCII<sup>[9]</sup></td>
     <td><code>W</code></td>
     <td align="middle">✅</td>
     <td align="middle">✅</td>
@@ -1017,6 +1017,8 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 5. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.
 6. Other absence function types aren't yet supported. They start with `(?~|` and are extremely rare. Note that absence functions behave differently in Oniguruma and Onigmo.
 7. Other named callouts aren't yet supported. They use the syntax `(*…)` and are extremely rare.
+8. When using flag `i`, Oniguruma can change the length of a match based on Unicode case conversion rules. However, the rules aren't applied consistently ([report](https://github.com/kkos/oniguruma/issues/351)), and it's extremely rare for this to change matches. Since the inconsistency is a bug and Oniguruma planned to disable case conversion length changes by default in future versions, the behavior isn't reproduced in this library.
+9. Combining flags `W` and `i` can result in Oniguruma bugs ([report](https://github.com/kkos/oniguruma/issues/349)). These bugs aren't reproduced in this library.
 
 ## ❌ Unsupported features
 
