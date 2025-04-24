@@ -53,7 +53,7 @@ function getOptions(options = {}) {
     // your environment. Later targets allow faster processing, simpler generated source, and
     // support for additional features.
     target: 'auto',
-    // Disables optimizations that simplify the pattern when it doesn't change the meaning.
+    // Disables minifications that simplify the pattern without changing the meaning.
     verbose: false,
     ...options,
     // Advanced options that override standard behavior, error checking, and flags when enabled.

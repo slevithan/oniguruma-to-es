@@ -273,10 +273,12 @@ JavaScript version used for generated regexes. Using `auto` detects the best val
 
 *Default: `false`.*
 
-By default, some simple minifications (like removing unneeded noncapturing groups) are performed during transpilation. Setting this option to `true` disables such changes.
+Disables minifications that simplify the pattern without changing the meaning.
+
+Example: By default, unneeded noncapturing groups might be removed during transpilation. Setting this option to `true` disables such changes.
 
 > [!TIP]
-> The [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) library includes a sophisticated [Oniguruma optimizer](https://github.com/slevithan/oniguruma-parser/blob/main/src/optimizer/README.md) that minifies and improves the search-time performance of Oniguruma regexes. If desired, you can call the optimizer first, and then pass its result to Oniguruma-To-ES. Although that isn't appropropriate in all cases (since it adds performance overhead and increases bundle size), the benefits of optimization do pass through when subsequently transpiling the pattern to JavaScript.
+> The [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) library includes a [regex optimizer](https://github.com/slevithan/oniguruma-parser/blob/main/src/optimizer/README.md) that goes far beyond the basic, built-in minifications. If desired, you can call the optimizer first, and then use its result for transpilation. That isn't appropropriate in all cases (since it adds performance overhead and increases bundle size), but the benefits of optimization do pass through to the transpiled, JavaScript version of a regex.
 
 ## ✅ Supported features
 
