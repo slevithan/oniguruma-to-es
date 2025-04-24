@@ -32,7 +32,7 @@ Oniguruma-To-ES deeply understands the hundreds of large and small differences b
 - [Options](#-options): [`accuracy`](#accuracy), [`avoidSubclass`](#avoidsubclass), [`flags`](#flags), [`global`](#global), [`hasIndices`](#hasindices), [`lazyCompileLength`](#lazycompilelength), [`rules`](#rules), [`target`](#target), [`verbose`](#verbose)
 - [Supported features](#-supported-features)
 - [Unsupported features](#-unsupported-features)
-- [Unicode](#️-unicode)
+- [Unicode](#-unicode)
 
 ## 🪧 Examples
 
@@ -1040,7 +1040,6 @@ See also the [supported features](#-supported-features) table (above), which des
 
 Despite these gaps, ~99.99% of real-world Oniguruma regexes are supported, based on a sample of ~55k regexes used in TextMate grammars. Conditionals were used in three regexes, *overlapping* recursions in three regexes, and other unsupported features weren't used at all. Some Oniguruma features are so exotic that they aren't used in *any* public code on GitHub.
 
-<a name="unicode"></a>
 ## 🌏 Unicode
 
 Oniguruma-To-ES fully supports mixed case-sensitivity (ex: `(?i)a(?-i)a`) and handles the Unicode edge cases regardless of JavaScript [target](#target).
