@@ -16,7 +16,7 @@
         <img src="https://upload.wikimedia.org/wikipedia/commons/c/c2/GitHub_Invertocat_Logo.svg" width="25" height="25" alt="GitHub">
       </a>
     </h1>
-    <p>Test the output of <a href="https://github.com/slevithan/oniguruma-to-es">Oniguruma-To-ES</a>, an advanced Oniguruma to JavaScript regex transpiler. See <a href="https://github.com/slevithan/oniguruma-to-es#-supported-features">Readme: Supported features</a>.</p>
+    <p>Test the output of <a href="https://github.com/slevithan/oniguruma-to-es">Oniguruma-To-ES</a>, an Oniguruma to JavaScript regex translator. See <a href="https://github.com/slevithan/oniguruma-to-es#-supported-features">supported features</a>.</p>
 
     <h2>Try it</h2>
     <p><textarea id="input" spellcheck="false" oninput="autoGrow(); showTranspiled()"></textarea></p>
@@ -24,34 +24,34 @@
     <p>
       <label><code>flags</code></label>
       <label>
-        <input type="checkbox" id="flag-i" onchange="setFlag('i', this.checked)">
         <kbd>i</kbd>
+        <input type="checkbox" id="flag-i" onchange="setFlag('i', this.checked)">
         <span class="tip tip-sm"><code>ignoreCase</code></span>
       </label>
       <label>
-        <input type="checkbox" id="flag-m" onchange="setFlag('m', this.checked)">
         <kbd>m</kbd>
-        <span class="tip tip-md"><code>dotAll</code> (JS flag <kbd>s</kbd>)</span>
+        <input type="checkbox" id="flag-m" onchange="setFlag('m', this.checked)">
+        <span class="tip tip-md"><code>dotAll</code>: JS flag <kbd>s</kbd></span>
       </label>
       <label>
-        <input type="checkbox" id="flag-x" onchange="setFlag('x', this.checked)">
         <kbd>x</kbd>
-        <span class="tip tip-lg"><code>extended</code> (insignificant whitespace and comments)</span>
+        <input type="checkbox" id="flag-x" onchange="setFlag('x', this.checked)">
+        <span class="tip tip-lg"><code>extended</code>: insignificant whitespace and comments</span>
       </label>
       <label>
-        <input type="checkbox" id="flag-D" onchange="setFlag('D', this.checked)">
         <kbd>D</kbd>
-        <span class="tip tip-sm"><code>digitIsAscii</code></span>
+        <input type="checkbox" id="flag-D" onchange="setFlag('D', this.checked)">
+        <span class="tip tip-lg"><code>digitIsAscii</code>: ASCII <code>\d</code>, <code>\p{Digit}</code>, <code>[[:digit:]]</code></span>
       </label>
       <label>
-        <input type="checkbox" id="flag-S" onchange="setFlag('S', this.checked)">
         <kbd>S</kbd>
-        <span class="tip tip-sm"><code>spaceIsAscii</code></span>
+        <input type="checkbox" id="flag-S" onchange="setFlag('S', this.checked)">
+        <span class="tip tip-lg"><code>spaceIsAscii</code>: ASCII <code>\s</code>, <code>\p{Space}</code>, <code>[[:space:]]</code></span>
       </label>
       <label>
-        <input type="checkbox" id="flag-W" onchange="setFlag('W', this.checked)">
         <kbd>W</kbd>
-        <span class="tip tip-sm"><code>wordIsAscii</code></span>
+        <input type="checkbox" id="flag-W" onchange="setFlag('W', this.checked)">
+        <span class="tip tip-lg"><code>wordIsAscii</code>: ASCII <code>\w</code>, <code>\p{Word}</code>, <code>[[:word:]]</code>, <code>\b</code></span>
       </label>
     </p>
     <p>
@@ -179,7 +179,7 @@
     </div>
     <div id="subclass-info" class="hidden info"><p>✅ A <code>RegExp</code> subclass was used for this pattern. It remains a native JavaScript regex and works the same in all contexts.</p></div>
     <div id="comparison-info" class="info"><p></p></div>
-    <p>See <a href="https://github.com/slevithan/oniguruma-to-es#-options">Readme: Options</a> for more details. The output shows the result of calling <code>toRegExp</code>.</p>
+    <p>The output shows the result of calling <code>toRegExp</code>. See <a href="https://github.com/slevithan/oniguruma-to-es#-options">options</a> for more details about each of the options above.</p>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"></script>

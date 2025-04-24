@@ -300,104 +300,6 @@ Even for features not marked with one of the above symbols, notice that nearly e
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="9">Flags</th>
-    <td colspan="5"><i>Supported in top-level flags and flag modifiers</i></td>
-  </tr>
-  <tr valign="top">
-    <td>Ignore case</td>
-    <td><code>i</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Unicode case folding (same as JS with flag <code>u</code>, <code>v</code>)<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>🆚 Dot all</td>
-    <td><code>m</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Equivalent to JS flag <code>s</code><br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>🆕 Extended</td>
-    <td><code>x</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Unicode whitespace ignored<br>
-      ✔ Line comments with <code>#</code><br>
-      ✔ Whitespace/comments allowed between a token and its quantifier<br>
-      ✔ Whitespace/comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a quantifier chain<br>
-      ✔ Whitespace/comments separate tokens (ex: <code>\1 0</code>)<br>
-      ✔ Whitespace and <code>#</code> not ignored in char classes<br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td colspan="5"><i>Currently supported only in top-level flags</i></td>
-  </tr>
-  <tr valign="top">
-    <td>🆕 Digit is ASCII</td>
-    <td><code>D</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ ASCII <code>\d</code>, <code>\p{Digit}</code>, <code>[[:digit:]]</code><br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>🆕 Space is ASCII</td>
-    <td><code>S</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ ASCII <code>\s</code>, <code>\p{Space}</code>, <code>[[:space:]]</code><br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>🆕 Word is ASCII</td>
-    <td><code>W</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ ASCII <code>\b</code>, <code>\w</code>, <code>\p{Word}</code>, <code>[[:word:]]</code><br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>🆕 Text segment mode is grapheme</td>
-    <td><code>y{g}</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Grapheme based <code>\X</code><br>
-    </td>
-  </tr>
-
-  <tr valign="top">
-    <th align="left" rowspan="2" valign="top">Flag modifiers</th>
-    <td>Group</td>
-    <td><code>(?im-x:…)</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Unicode case folding for <code>i</code><br>
-      ✔ Allows enabling and disabling the same flag (priority: disable)<br>
-      ✔ Allows lone or multiple <code>-</code><br>
-    </td>
-  </tr>
-  <tr valign="top">
-    <td>🆕 Directive</td>
-    <td><code>(?im-x)</code></td>
-    <td align="middle">✅</td>
-    <td align="middle">✅</td>
-    <td>
-      ✔ Continues until end of pattern or group (spanning alternatives)<br>
-    </td>
-  </tr>
-
-  <tr valign="top">
     <th align="left" rowspan="9">Characters</th>
     <td>Literal</td>
     <td><code>E</code>, <code>!</code></td>
@@ -981,6 +883,104 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td>
       ✔ Error<br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="9">Flags</th>
+    <td colspan="5"><i>Supported in top-level flags and flag modifiers</i></td>
+  </tr>
+  <tr valign="top">
+    <td>Ignore case</td>
+    <td><code>i</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode case folding (same as JS with flag <code>u</code>, <code>v</code>)<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆚 Dot all</td>
+    <td><code>m</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Equivalent to JS flag <code>s</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Extended</td>
+    <td><code>x</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode whitespace ignored<br>
+      ✔ Line comments with <code>#</code><br>
+      ✔ Whitespace/comments allowed between a token and its quantifier<br>
+      ✔ Whitespace/comments between a quantifier and the <code>?</code>/<code>+</code> that makes it lazy/possessive changes it to a quantifier chain<br>
+      ✔ Whitespace/comments separate tokens (ex: <code>\1 0</code>)<br>
+      ✔ Whitespace and <code>#</code> not ignored in char classes<br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td colspan="5"><i>Currently supported only in top-level flags</i></td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Digit is ASCII</td>
+    <td><code>D</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ ASCII <code>\d</code>, <code>\p{Digit}</code>, <code>[[:digit:]]</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Space is ASCII</td>
+    <td><code>S</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ ASCII <code>\s</code>, <code>\p{Space}</code>, <code>[[:space:]]</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Word is ASCII</td>
+    <td><code>W</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ ASCII <code>\w</code>, <code>\p{Word}</code>, <code>[[:word:]]</code>, <code>\b</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Text segment mode is grapheme</td>
+    <td><code>y{g}</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Grapheme <code>\X</code>, <code>\y</code><br>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <th align="left" rowspan="2" valign="top">Flag modifiers</th>
+    <td>Group</td>
+    <td><code>(?im-x:…)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Unicode case folding for <code>i</code><br>
+      ✔ Allows enabling and disabling the same flag (priority: disable)<br>
+      ✔ Allows lone or multiple <code>-</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Directive</td>
+    <td><code>(?im-x)</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Continues until end of pattern or group (spanning alternatives)<br>
     </td>
   </tr>
 
