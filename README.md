@@ -1006,7 +1006,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
   </tr>
 </table>
 
-The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, subpattern details on match results, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them). Where applicable, Oniguruma-To-ES follows the latest version of Oniguruma (currently 6.9.10).
+The table above doesn't include all aspects that Oniguruma-To-ES emulates (including error handling, subpattern details on match results, most aspects that work the same as in JavaScript, and many aspects of non-JavaScript features that work the same in the other regex flavors that support them). Where applicable, Oniguruma-To-ES follows the latest version of Oniguruma (6.9.10).
 
 ### Footnotes
 
@@ -1057,7 +1057,7 @@ Contributions are welcome. See the [guide](https://github.com/slevithan/onigurum
 
 ## 👀 Similar projects
 
-[JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a (seemingly abandoned) fork of Oniguruma with similar syntax and behavior. Although JsRegex and this library have important differences, JsRegex might be a better fit for some Ruby projects.
+[JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a fork of Oniguruma with similar syntax and behavior. Although JsRegex and this library have important differences, JsRegex might be a better fit for some Ruby projects.
 
 <details>
   <summary>Some high-level JsRegex differences</summary>
