@@ -931,7 +931,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ ASCII <code>\d</code>, <code>\p{Digit}</code>, <code>[[:digit:]]</code><br>
+      ✔ ASCII <code>\d</code>, <code>\p{Digit}</code>, etc.<br>
     </td>
   </tr>
   <tr valign="top">
@@ -940,7 +940,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ ASCII <code>\s</code>, <code>\p{Space}</code>, <code>[[:space:]]</code><br>
+      ✔ ASCII <code>\s</code>, <code>\p{Space}</code>, etc.<br>
     </td>
   </tr>
   <tr valign="top">
@@ -949,7 +949,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ ASCII <code>\w</code>, <code>\p{Word}</code>, <code>[[:word:]]</code>, <code>\b</code><br>
+      ✔ ASCII <code>\w</code>, <code>\p{Word}</code>, <code>\b</code>, etc.<br>
     </td>
   </tr>
   <tr valign="top">
@@ -958,7 +958,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td align="middle">✅</td>
     <td>
-      ✔ Grapheme <code>\X</code>, <code>\y</code><br>
+      ✔ Grapheme based <code>\X</code>, <code>\y</code><br>
     </td>
   </tr>
 
