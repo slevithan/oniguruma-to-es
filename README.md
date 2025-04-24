@@ -300,7 +300,7 @@ Even for features not marked with one of the above symbols, notice that nearly e
   </tr>
 
   <tr valign="top">
-    <th align="left" rowspan="8">Flags</th>
+    <th align="left" rowspan="9">Flags</th>
     <td colspan="5"><i>Supported in top-level flags and flag modifiers</i></td>
   </tr>
   <tr valign="top">
@@ -363,6 +363,15 @@ Even for features not marked with one of the above symbols, notice that nearly e
     <td align="middle">✅</td>
     <td>
       ✔ ASCII <code>\b</code>, <code>\w</code>, <code>\p{Word}</code>, <code>[[:word:]]</code><br>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td>🆕 Text segment mode is grapheme</td>
+    <td><code>y{g}</code></td>
+    <td align="middle">✅</td>
+    <td align="middle">✅</td>
+    <td>
+      ✔ Grapheme based <code>\X</code><br>
     </td>
   </tr>
 
@@ -1014,14 +1023,13 @@ The following throw errors since they aren't yet supported. They're all extremel
 - Supportable:
   - Rarely-used character specifiers: Non-A-Za-z with `\cx` `\C-x`, meta `\M-x` `\M-\C-x`, octal code points `\o{…}`, and octal encoded bytes ≥ `\200`.
   - Code point sequences: `\x{H H …}` `\o{O O …}`.
-  - Flag `P` (POSIX is ASCII), and whole-pattern modifier `C` (don't capture group).
+  - Flags `P` (POSIX is ASCII) and `y{w}` (text segment mode is word), and whole-pattern modifier `C` (don't capture group).
 - Supportable for some uses:
   - Conditionals: `(?(…)…)`, etc.
   - Whole-pattern modifiers `I` (ignore-case is ASCII) and `L` (find longest).
   - Named callout `(*SKIP)`.
 - Not supportable:
   - Text segment boundaries: `\y` `\Y`.
-  - Flags `y{g}` `y{w}` (text segment modes).
   - Callouts via `(?{…})`, and most named callouts.
 
 See also the [supported features](#-supported-features) table (above), which describes some additional, rarely-used sub-features that aren't yet supported.

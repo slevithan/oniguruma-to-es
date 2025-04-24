@@ -10,13 +10,6 @@ describe('Assertion', () => {
 
   // TODO: Test handling of assertion syntax within char classes
 
-  describe('grapheme_boundary', () => {
-    it('should throw as unsupported', () => {
-      expect(() => toRegExpDetails(r`\y`)).toThrow();
-      expect(() => toRegExpDetails(r`\Y`)).toThrow();
-    });
-  });
-
   describe('line_end', () => {
     it('should match at the end of the string', () => {
       expect('ba').toFindMatch('a$');
@@ -118,6 +111,13 @@ describe('Assertion', () => {
 
     it('should not match at positions other than the start of the string', () => {
       expect('ba').not.toFindMatch(r`\Aa`);
+    });
+  });
+
+  describe('text_segment_boundary', () => {
+    it('should throw as unsupported', () => {
+      expect(() => toRegExpDetails(r`\y`)).toThrow();
+      expect(() => toRegExpDetails(r`\Y`)).toThrow();
     });
   });
 

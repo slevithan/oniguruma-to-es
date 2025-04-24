@@ -184,8 +184,8 @@ const generator = {
     if (kind === 'word_boundary') {
       return negate ? r`\B` : r`\b`;
     }
-    // Kinds `grapheme_boundary`, `line_end`, `line_start`, `search_start`, and
-    // `string_end_newline` are never included in transformer output
+    // Kinds `line_end`, `line_start`, `search_start`, `string_end_newline`, and
+    // `text_segment_boundary` are never included in transformer output
     throw new Error(`Unexpected assertion kind "${kind}"`);
   },
 
@@ -405,7 +405,7 @@ const generator = {
     if (kind === 'word') {
       return negate ? r`\W` : r`\w`;
     }
-    // Kinds `any`, `grapheme`, `hex`, `newline`, `posix`, and `space` are never included in
+    // Kinds `any`, `hex`, `newline`, `posix`, `space`, and `text_segment` are never included in
     // transformer output
     throw new Error(`Unexpected character set kind "${kind}"`);
   },

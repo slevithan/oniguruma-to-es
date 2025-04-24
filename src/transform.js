@@ -41,8 +41,8 @@ AST represents what's needed to precisely reproduce Oniguruma behavior using Reg
 function transform(ast, options) {
   const opts = {
     // A couple edge cases exist where options `accuracy` and `bestEffortTarget` are used:
-    // - `CharacterSet` kind `grapheme` (`\X`): An exact representation would require heavy Unicode
-    //   data; a best-effort approximation requires knowing the target.
+    // - `CharacterSet` kind `text_segment` (`\X`): An exact representation would require heavy
+    //   Unicode data; a best-effort approximation requires knowing the target.
     // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex Unicode-based
     //   representations would be hard to change to ASCII-based after the fact in the generator
     //   based on `target`/`accuracy`, so produce the appropriate structure here.
@@ -154,9 +154,9 @@ const /** @type {Visitor} */ FirstPassVisitor = {
   Assertion({node, parent, key, container, root, remove, replaceWith}, state) {
     const {kind, negate} = node;
     const {asciiWordBoundaries, avoidSubclass, supportedGNodes, wordIsAscii} = state;
-    if (kind === 'grapheme_boundary') {
+    if (kind === 'text_segment_boundary') {
       // Supported by the parser but not yet for transpilation
-      throw new Error(`Unsupported grapheme boundary "\\${negate ? 'Y' : 'y'}"`);
+      throw new Error(`Unsupported text segment boundary "\\${negate ? 'Y' : 'y'}"`);
     } else if (kind === 'line_end') {
       replaceWith(setParentDeep(createLookaroundAssertion({body: [
         createAlternative({body: [createAssertion('string_end')]}),
@@ -249,7 +249,7 @@ const /** @type {Visitor} */ FirstPassVisitor = {
       replaceWith(setParent(createUnicodeProperty('Nd', {negate}), parent));
     } else if (kind === 'dot') {
       // No-op; doesn't need transformation
-    } else if (kind === 'grapheme') {
+    } else if (kind === 'text_segment') {
       if (accuracy === 'strict') {
         throw new Error(r`Use of "\X" requires non-strict accuracy`);
       }
@@ -259,7 +259,7 @@ const /** @type {Visitor} */ FirstPassVisitor = {
       replaceWith(setParentDeep(parseFragment(
         // Close approximation of an extended grapheme cluster; see: <unicode.org/reports/tr29/>
         r`(?>\r\n|${minTargetEs2024 ? r`\p{RGI_Emoji}` : emoji}|\P{M}\p{M}*)`,
-        // Allow JS `RGI_Emoji` through
+        // Allow JS property `RGI_Emoji` through
         {skipPropertyNameValidation: true}
       ), parent));
     } else if (kind === 'hex') {
@@ -332,9 +332,12 @@ const /** @type {Visitor} */ FirstPassVisitor = {
   },
 
   Flags({node, parent}) {
+    // Throw for flags supported by the parser but not yet for transpilation
     if (node.posixIsAscii) {
-      // Supported by the parser but not yet for transpilation
       throw new Error('Unsupported flag "P"');
+    }
+    if (node.textSegmentMode === 'word') {
+      throw new Error('Unsupported flag "y{w}"');
     }
     // Remove Onig flags that aren't available in JS
     [ 'digitIsAscii', // Flag D
@@ -342,6 +345,7 @@ const /** @type {Visitor} */ FirstPassVisitor = {
       'posixIsAscii', // Flag P
       'spaceIsAscii', // Flag S
       'wordIsAscii', // Flag W
+      'textSegmentMode', // Flag y{g} or y{w}
     ].forEach(f => delete node[f]);
     Object.assign(node, {
       // JS flag g; no Onig equiv

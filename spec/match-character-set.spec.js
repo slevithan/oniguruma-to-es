@@ -53,32 +53,6 @@ describe('CharacterSet', () => {
     });
   });
 
-  describe('grapheme', () => {
-    const graphemes = [
-      '\0',
-      '\r\n',
-      '\u{E9}', // é
-      '\u{65}\u{301}', // é
-      '\u{2194}\u{FE0F}', // ↔️
-      '\u{1F1EF}\u{1F1F5}', // 🇯🇵
-      '\u{1F469}\u{1F3FF}', // 👩🏿
-      '\u{1F469}\u{1F3FB}\u{200D}\u{1F3EB}', // 👩🏻‍🏫
-    ];
-
-    it('should match any Unicode grapheme', () => {
-      expect(graphemes).toExactlyMatch(r`\X`);
-    });
-
-    it('should match graphemes atomically', () => {
-      expect(graphemes).not.toFindMatch(r`^\X\O`);
-    });
-
-    it('should be an identity escape within a char class', () => {
-      expect('X').toExactlyMatch(r`[\X]`);
-      expect('a').not.toFindMatch(r`[\X]`);
-    });
-  });
-
   // TODO: Add me
   // describe('hex', () => {
   //   it('should', () => {
@@ -262,6 +236,32 @@ describe('CharacterSet', () => {
   //     expect('').toExactlyMatch(r``);
   //   });
   // });
+
+  describe('text_segment', () => {
+    const graphemes = [
+      '\0',
+      '\r\n',
+      '\u{E9}', // é
+      '\u{65}\u{301}', // é
+      '\u{2194}\u{FE0F}', // ↔️
+      '\u{1F1EF}\u{1F1F5}', // 🇯🇵
+      '\u{1F469}\u{1F3FF}', // 👩🏿
+      '\u{1F469}\u{1F3FB}\u{200D}\u{1F3EB}', // 👩🏻‍🏫
+    ];
+
+    it('should match any Unicode grapheme', () => {
+      expect(graphemes).toExactlyMatch(r`\X`);
+    });
+
+    it('should match graphemes atomically', () => {
+      expect(graphemes).not.toFindMatch(r`^\X\O`);
+    });
+
+    it('should be an identity escape within a char class', () => {
+      expect('X').toExactlyMatch(r`[\X]`);
+      expect('a').not.toFindMatch(r`[\X]`);
+    });
+  });
 
   // TODO: Add me
   // describe('word', () => {
