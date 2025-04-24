@@ -561,6 +561,7 @@ function getCharEscape(codePoint, {escDigit, inCharClass, useFlagV}) {
     (escDigit && isDigitCharCode(codePoint))
   ) {
     // Don't convert codePoint `0` to `\0` since that's corruptible by following literal digits
+    // Note: Not using raw strings to work around Bun ≤ 1.1.34 issue <github.com/oven-sh/bun/issues/7540>
     return codePoint > 0xFF ?
       `\\u{${codePoint.toString(16).toUpperCase()}}` :
       `\\x${codePoint.toString(16).toUpperCase().padStart(2, '0')}`;

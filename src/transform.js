@@ -254,7 +254,8 @@ const /** @type {Visitor} */ FirstPassVisitor = {
         throw new Error(r`Use of "\X" requires non-strict accuracy`);
       }
       // Emoji pattern based on <github.com/slevithan/emoji-regex-xs> but adapted for our use case
-      const eBase = r`\p{Emoji}(?:\p{EMod}|\uFE0F\u20E3?|[\x{E0020}-\x{E007E}]+\x{E007F})?`;
+      // Note: Not using raw strings to work around Bun ≤ 1.1.34 issue <github.com/oven-sh/bun/issues/7540>
+      const eBase = '\\p{Emoji}(?:\\p{EMod}|\\uFE0F\\u20E3?|[\\x{E0020}-\\x{E007E}]+\\x{E007F})?';
       const emoji = r`\p{RI}{2}|${eBase}(?:\u200D${eBase})*`;
       replaceWith(setParentDeep(parseFragment(
         // Close approximation of an extended grapheme cluster; see: <unicode.org/reports/tr29/>
