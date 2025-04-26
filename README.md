@@ -208,9 +208,9 @@ Disables advanced emulation that relies on returning a `RegExp` subclass. In cas
 
 ### `flags`
 
-Oniguruma flags; a string with `i`, `m`, `x`, `D`, `S`, `W` in any order (all optional).
+Oniguruma flags; a string with `i`, `m`, `x`, `D`, `S`, `W`, `y{g}` in any order (all optional).
 
-Flags can also be specified via modifiers in the pattern.
+Flags `i`, `m`, `x` can also be specified via modifiers in the pattern.
 
 > [!IMPORTANT]
 > Oniguruma and JavaScript both have an `m` flag but with different meanings. Oniguruma's `m` is equivalent to JavaScript's `s` (`dotAll`).
@@ -1061,11 +1061,11 @@ Contributions are welcome. See the [guide](https://github.com/slevithan/onigurum
 [JsRegex](https://github.com/jaynetics/js_regex) transpiles Ruby regexes to JavaScript. Ruby uses Onigmo, a fork of Oniguruma with similar syntax and behavior. Although JsRegex and this library have important differences, JsRegex might be a better fit for some Ruby projects.
 
 <details>
-  <summary>Some high-level JsRegex differences</summary>
+  <summary>Some high-level differences</summary>
 
-- It's written in Ruby, so regexes must be pre-transpiled on the server to use them in JavaScript.
-- It doesn't always translate edge case behavior differences, include the same level of support for advanced features, or accurately reproduce subpattern results.
-- It doesn't include features needed to support TextMate grammars, since that isn't one of its goals.
+- JsRegex is written in Ruby, so regexes must be pre-transpiled on the server to use them in JavaScript.
+- JsRegex is somewhat less rigorous in its translations. It doesn't always translate edge case behavior differences, include the same level of support for advanced features, or accurately reproduce subpattern results. Sometimes these are bugs that can be fixed, but in other cases it results from more fundamental limitations such as its lack of support for subclass-based emulation.
+- JsRegex isn't designed for use with TextMate grammars, so it doesn't include features that would be needed to handle them accurately.
 </details>
 
 ## 🏷️ About

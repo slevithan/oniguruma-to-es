@@ -40,8 +40,8 @@ function getOptions(options = {}) {
     // Disables advanced emulation that relies on returning a `RegExp` subclass, resulting in
     // certain patterns not being emulatable.
     avoidSubclass: false,
-    // Oniguruma flags; a string with `i`, `m`, `x`, `D`, `S`, `W` in any order (all optional).
-    // Oniguruma's `m` is equivalent to JavaScript's `s` (`dotAll`).
+    // Oniguruma flags; a string with `i`, `m`, `x`, `D`, `S`, `W`, `y{g}` in any order (all
+    // optional). Oniguruma's `m` is equivalent to JavaScript's `s` (`dotAll`).
     flags: '',
     // Include JavaScript flag `g` (`global`) in the result.
     global: false,
