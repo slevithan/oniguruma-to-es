@@ -46,15 +46,14 @@ toRegExp(String.raw`(?x)
 // → /(?<n>\p{Nd})(\p{sc=Greek})(?>\2|\1)(?:[[0a-z]&&\p{AHex}]){0,2}/v
 ```
 
-Although the example above is fairly straightforward, it shows several kinds of differences:
+Although the example above is fairly straightforward, it shows several kinds of translations:
 
-- **New syntax:** The `(?x)` free-spacing modifier and `\h` hex-digit shorthand aren't available in JavaScript.
-- **Syntax differences:** JavaScript doesn't allow duplicate group names in the same alternation path, requires a prefix and specific casing for Unicode scripts like `Greek`, and requires nested character classes for intersection of union and ranges. Oniguruma's `{…}` quantifiers allow an implicit `0` min.
-- **Behavior differences:** Oniguruma's `\d` is Unicode-based by default, backreferences to duplicate group names match the captured value of any of the groups, and `(…)` groups are noncapturing by default if named groups are present.
+- **New syntax:** JavaScript doesn't include the `(?x)` free-spacing modifier and `\h` hex-digit shorthand.
+- **Different rules:** JavaScript doesn't allow duplicate group names in the same alternation path, requires a prefix and specific casing for Unicode scripts like `Greek`, and requires nested character classes for intersection of union and ranges. Oniguruma's `{…}` quantifiers allow an implicit `0` min.
+- **Different behavior:** Oniguruma's `\d` is Unicode-based by default, backreferences to duplicate group names match the captured value of any of the groups, and `(…)` groups are noncapturing by default if named groups are present.
+- **Subclass-based emulation:** The `(?>…)` atomic group shown in the result was a simplification for readability. JavaScript doesn't support atomic groups, so the actual result uses `(?=(\2|\1))\3` to achieve the same effect, and then uses a `RegExp` subclass to automatically remove the added capturing group from reported match results.
 
-Many advanced features and edge cases are supported that would produce more complicated transformations.
-
-> If you have a keen eye, you might have noticed that the result used an atomic group `(?>…)`, which JavaScript doesn't natively support. That was a simplification for readability; the actual result uses `(?=(\2|\1))\3` to achieve the same effect, and then uses a `RegExp` subclass to automatically remove the added capturing group from reported match results.
+Many advanced features are supported that would produce more complicated transformations.
 
 This next example shows support for Unicode case folding with mixed case-sensitivity. Notice that code points `ſ` ([U+017F](https://codepoints.net/U+017F)) and `K` ([U+212A](https://codepoints.net/U+212A)) are added to the second, case-insensitive range if using a `target` prior to `ES2025`, and that modern JavaScript regex features (like flag groups) are used if supported by the `target`.
 
