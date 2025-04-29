@@ -264,8 +264,7 @@ const generator = {
     // <github.com/slevithan/oniguruma-to-es/issues/30>
     if (envFlags.bugLiteralHyphenIsRange && state.useFlagV && body.some(isLiteralHyphen)) {
       // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
-      body = body.filter(kid => !isLiteralHyphen(kid));
-      body.push(createCharacter(45));
+      body = [createCharacter(45), ...body.filter(kid => !isLiteralHyphen(kid))];
     }
     const genClass = () => `[${negate ? '^' : ''}${
       body.map(gen).join(kind === 'intersection' ? '&&' : '')
