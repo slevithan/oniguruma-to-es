@@ -51,7 +51,7 @@ Although the example above is fairly straightforward, it shows several kinds of 
 - **New syntax:** JavaScript doesn't include the `(?x)` free-spacing modifier and `\h` hex-digit shorthand.
 - **Different rules:** JavaScript doesn't allow duplicate group names in the same alternation path, requires a prefix and specific casing for Unicode scripts like `Greek`, and requires nested character classes for intersection of union and ranges. Oniguruma's `{…}` quantifiers allow an implicit `0` min.
 - **Different behavior:** Oniguruma's `\d` is Unicode-based by default, backreferences to duplicate group names match the captured value of any of the groups, and `(…)` groups are noncapturing by default if named groups are present.
-- **Subclass-based emulation:** The `(?>…)` atomic group shown in the result was a simplification for readability. JavaScript doesn't support atomic groups, so the actual result uses `(?=(\2|\1))\3` to achieve the same effect, and then uses a `RegExp` subclass to automatically remove the added capturing group from reported match results.
+- **Subclass-based emulation:** The `(?>…)` atomic group shown in the result was a simplification for readability. Since JavaScript doesn't support atomic groups, the actual result uses `(?=(\2|\1))\3` for the same effect, and then uses a `RegExp` subclass to automatically remove the added capturing group from reported matches.
 
 Many advanced features are supported that would produce more complicated transformations.
 
