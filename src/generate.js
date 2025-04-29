@@ -260,10 +260,9 @@ const generator = {
     if (kind === 'intersection' && !state.useFlagV) {
       throw new Error('Use of class intersection requires min target ES2024');
     }
-    // Work around WebKit parser bug by moving literal hyphens to the end of the class; see
+    // Work around a WebKit parser bug by moving literal hyphens to the beginning of the class; see
     // <github.com/slevithan/oniguruma-to-es/issues/30>
     if (envFlags.bugLiteralHyphenIsRange && state.useFlagV && body.some(isLiteralHyphen)) {
-      // Remove all hyphens then add one at the end; can't just sort in case of e.g. `[\d\-\-]`
       body = [createCharacter(45), ...body.filter(kid => !isLiteralHyphen(kid))];
     }
     const genClass = () => `[${negate ? '^' : ''}${
