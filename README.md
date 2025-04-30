@@ -1068,7 +1068,7 @@ Contributions are welcome. See the [guide](https://github.com/slevithan/onigurum
 <details>
   <summary>Some high-level differences</summary>
 
-- Although Oniguruma and Onigmo are quite similar, there are a variety of syntax and behavior differences. Where there differ, Oniguruma typically offers the superior capabilities (for example, more flexible lookbehind).
+- Although Oniguruma and Onigmo are quite similar, there are a variety of syntax and behavior differences. Where they differ, Oniguruma typically offers the superior capabilities (for example, more flexible lookbehind).
 - JsRegex is written in Ruby, so regexes must be pre-transpiled on the server to use them in JavaScript.
 - JsRegex is somewhat less rigorous in its translations. It doesn't always translate edge case behavior differences, include the same level of support for advanced features, or accurately reproduce subpattern results. Sometimes these are bugs that can be fixed, but in other cases it results from more fundamental limitations such as its lack of support for subclass-based emulation.
 - JsRegex isn't designed for use with TextMate grammars, so it doesn't include features that would be needed to handle them accurately.
