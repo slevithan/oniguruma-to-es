@@ -51,7 +51,7 @@ Although the example above is fairly straightforward, it shows several kinds of 
 - **New flags:** JavaScript regexes don't support flag `x` for insignificant whitespace and comments.
 - **New syntax:** JavaScript doesn't include standalone flag modifiers like `(?x)` or the `\h` hex-digit shorthand. *Note: ES2025 added support for flag groups like `(?i:…)`.*
 - **Different syntax rules:** JavaScript doesn't allow duplicate group names in the same alternation path, requires a prefix and specific casing for Unicode scripts like `Greek`, requires nested character classes for intersection of union and ranges, and doesn't allow an implicit `0` min for `{…}` quantifiers.
-- **Different behavior:** Oniguruma's `\d` is Unicode-based by default, backreferences to duplicate group names match the captured value of any of the groups, and `(…)` groups are noncapturing by default if named groups are present.
+- **Different behavior:** Oniguruma's `\d` is Unicode based by default, backreferences to duplicate group names match the captured value of any of the groups, and `(…)` groups are noncapturing by default if named groups are present.
 
 Many advanced features are supported that would produce more complicated transformations.
 
@@ -201,7 +201,7 @@ Using default `accuracy` adds support for the following features, depending on `
 - `ES2024` and earlier:
   - Enables use of case-insensitive backreferences to case-sensitive groups.
 - `ES2018`:
-  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII-based versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes are always Unicode-based.
+  - Enables use of POSIX classes `[:graph:]` and `[:print:]` using ASCII versions rather than the Unicode versions available for `ES2024` and later. Other POSIX classes are always Unicode based.
 </details>
 
 ### `avoidSubclass`
@@ -250,7 +250,7 @@ Lazy compilation relies on the `EmulatedRegExp` class.
 Advanced options that override standard behavior, error checking, and flags when enabled.
 
 - `allowOrphanBackrefs`: Useful with TextMate grammars that merge backreferences across patterns.
-- `asciiWordBoundaries`: Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
+- `asciiWordBoundaries`: Use ASCII `\b` and `\B`, which increases search performance of generated regexes.
 - `captureGroup`: Allow unnamed captures and numbered calls (backreferences and subroutines) when using named capture.
   - This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in `vscode-oniguruma`.
 - `recursionLimit`: Change the recursion depth limit from Oniguruma's `20` to an integer `2`–`20`.
@@ -1019,7 +1019,7 @@ The table above doesn't include all aspects that Oniguruma-To-ES emulates (inclu
 ### Footnotes
 
 1. Unicode blocks (which in Oniguruma are specified with an `In` prefix) are easily emulatable but their character data would significantly increase library weight. They're also rarely used, fundamentally flawed, and arguably unuseful given the availability of Unicode scripts and other properties.
-2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII-based versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
+2. With target `ES2018`, the specific POSIX classes `[:graph:]` and `[:print:]` use ASCII versions rather than the Unicode versions available for target `ES2024` and later, and they result in an error if using strict `accuracy`.
 3. Target `ES2018` has limited support for nested, negated character classes.
 4. It's not an error for *numbered* backreferences to come before their referenced group in Oniguruma, but an error is the best path for Oniguruma-To-ES because ① most placements are mistakes and can never match (based on the Oniguruma behavior for backreferences to nonparticipating groups), ② erroring matches the behavior of named backreferences, and ③ the edge cases where they're matchable rely on rules for backreference resetting within quantified groups that are different in JavaScript and aren't emulatable. Note that it's not a backreference in the first place if using `\10` or higher and not as many capturing groups are defined to the left (it's an octal or identity escape).
 5. Oniguruma's recursion depth limit is `20`. Oniguruma-To-ES uses the same limit by default but allows customizing it via the `rules.recursionLimit` option. Two rare uses of recursion aren't yet supported: overlapping recursions, and use of backreferences when a recursed subpattern contains captures. Patterns that would trigger an infinite recursion error in Oniguruma might find a match in Oniguruma-To-ES (since recursion is bounded), but future versions will detect this and error at transpilation time.

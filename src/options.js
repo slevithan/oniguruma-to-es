@@ -60,7 +60,7 @@ function getOptions(options = {}) {
     rules: {
       // Useful with TextMate grammars that merge backreferences across patterns.
       allowOrphanBackrefs: false,
-      // Use ASCII-based `\b` and `\B`, which increases search performance of generated regexes.
+      // Use ASCII `\b` and `\B`, which increases search performance of generated regexes.
       asciiWordBoundaries: false,
       // Allow unnamed captures and numbered calls (backreferences and subroutines) when using
       // named capture. This is Oniguruma option `ONIG_OPTION_CAPTURE_GROUP`; on by default in

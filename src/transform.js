@@ -43,8 +43,8 @@ function transform(ast, options) {
     // A couple edge cases exist where options `accuracy` and `bestEffortTarget` are used:
     // - `CharacterSet` kind `text_segment` (`\X`): An exact representation would require heavy
     //   Unicode data; a best-effort approximation requires knowing the target.
-    // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex Unicode-based
-    //   representations would be hard to change to ASCII-based after the fact in the generator
+    // - `CharacterSet` kind `posix` with values `graph` and `print`: Their complex Unicode
+    //   representations would be hard to change to ASCII versions after the fact in the generator
     //   based on `target`/`accuracy`, so produce the appropriate structure here.
     accuracy: 'default',
     asciiWordBoundaries: false,
@@ -292,7 +292,7 @@ const /** @type {Visitor} */ FirstPassVisitor = {
         node.key = 'sc';
       }
     } else if (kind === 'space') {
-      // Can't use JS's Unicode-based `\s` since unlike Onig it includes `\uFEFF`, excludes `\x85`
+      // Can't use JS's Unicode `\s` since unlike Onig it includes `\uFEFF` and excludes `\x85`
       replaceWith(setParent(createUnicodeProperty('space', {negate}), parent));
     } else if (kind === 'word') {
       replaceWith(setParentDeep(setNegate(parseFragment(defaultWordChar), negate), parent));
