@@ -1081,6 +1081,13 @@ Contributions are welcome. See the [guide](https://github.com/slevithan/onigurum
 
 Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) and [contributors](https://github.com/slevithan/oniguruma-to-es/graphs/contributors).
 
+Special thanks:
+
+- [Anthony Fu](https://github.com/antfu) for inspiring the project and adopting it in Shiki.
+- [RedCMD](https://github.com/RedCMD) for sharing deep Oniguruma and TextMate grammar expertise, and contributions to the parser.
+- [tonco-miyazawa](https://github.com/tonco-miyazawa) for sharing deep Oniguruma expertise.
+- [K. Kosako](https://github.com/kkos) for creating Oniguruma and maintaining it for 23 years.
+
 If you want to support this project, I'd love your help by contributing improvements ([guide](https://github.com/slevithan/oniguruma-to-es/blob/main/CONTRIBUTING.md)), sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
 
 MIT License.
