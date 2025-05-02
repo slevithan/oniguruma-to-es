@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       oniguruma-parser:
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.12.1
+        version: 0.12.1
       regex:
         specifier: ^6.0.1
         version: 6.0.1
@@ -22,8 +22,8 @@ importers:
         specifier: ^0.25.3
         version: 0.25.3
       jasmine:
-        specifier: ^5.7.0
-        version: 5.7.0
+        specifier: ^5.7.1
+        version: 5.7.1
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -256,11 +256,11 @@ packages:
   jackspeak@3.4.3:
     resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
 
-  jasmine-core@5.7.0:
-    resolution: {integrity: sha512-EnUzZBHxS1Ofq+FPWs16rs2YC9o6Hb3buKJQDlkhJBDx+Bm5wNF+J1gUS06dWuW2ozaQ3oNIA1SESX9M5LopOQ==}
+  jasmine-core@5.7.1:
+    resolution: {integrity: sha512-QnurrtpKsPoixxG2R3d1xP0St/2kcX5oTZyDyQJMY+Vzi/HUlu1kGm+2V8Tz+9lV991leB1l0xcsyz40s9xOOw==}
 
-  jasmine@5.7.0:
-    resolution: {integrity: sha512-pifsdoSBgOlAbw1Tg1Vm4LxXEzDv6a+dTzHUaI9aYYqdP+PiMFgz2Mce/7TBfvuP9kshl0yZn7+G0/G1n+yExw==}
+  jasmine@5.7.1:
+    resolution: {integrity: sha512-E/4fkRNy/9ALz6z3Z3/tYXFAohoznVy7In9FWutG2fqBSkILJHFzbgZtHJUw5UrL3jgUQ4sdGYOVZ5KpSXYjGw==}
     hasBin: true
 
   lru-cache@10.4.3:
@@ -274,8 +274,8 @@ packages:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  oniguruma-parser@0.12.0:
-    resolution: {integrity: sha512-fD9o5ebCmEAA9dLysajdQvuKzLL7cj+w7DQjuO3Cb6IwafENfx6iL+RGkmyW82pVRsvgzixsWinHvgxTMJvdIA==}
+  oniguruma-parser@0.12.1:
+    resolution: {integrity: sha512-8Unqkvk1RYc6yq2WBYRj4hdnsAxVze8i7iPfQr8e4uSP3tRv0rpZcbGUDvxfQQcdwHt/e9PrMvGCsa8OqG9X3w==}
 
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
@@ -521,12 +521,12 @@ snapshots:
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
 
-  jasmine-core@5.7.0: {}
+  jasmine-core@5.7.1: {}
 
-  jasmine@5.7.0:
+  jasmine@5.7.1:
     dependencies:
       glob: 10.4.5
-      jasmine-core: 5.7.0
+      jasmine-core: 5.7.1
 
   lru-cache@10.4.3: {}
 
@@ -536,7 +536,7 @@ snapshots:
 
   minipass@7.1.2: {}
 
-  oniguruma-parser@0.12.0: {}
+  oniguruma-parser@0.12.1: {}
 
   package-json-from-dist@1.0.1: {}
 
