@@ -22,7 +22,7 @@ const envFlags = {
   })(),
 };
 // Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/30>
-envFlags.bugLiteralHyphenIsRange = envFlags.unicodeSets ? (() => {
+envFlags.bugFlagVLiteralHyphenIsRange = envFlags.unicodeSets ? (() => {
   try {
     new RegExp(r`[\d\-a]`, 'v');
   } catch {

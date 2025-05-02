@@ -262,7 +262,7 @@ const generator = {
     }
     // Work around a WebKit parser bug by moving literal hyphens to the beginning of the class; see
     // <github.com/slevithan/oniguruma-to-es/issues/30>
-    if (envFlags.bugLiteralHyphenIsRange && state.useFlagV && body.some(isLiteralHyphen)) {
+    if (envFlags.bugFlagVLiteralHyphenIsRange && state.useFlagV && body.some(isLiteralHyphen)) {
       body = [createCharacter(45), ...body.filter(kid => !isLiteralHyphen(kid))];
     }
     const genClass = () => `[${negate ? '^' : ''}${
@@ -324,7 +324,7 @@ const generator = {
         ( // Allows many nested classes to work with `target` ES2018 which doesn't support nesting
           (!state.useFlagV || !state.verbose) &&
           parent.kind === 'union' &&
-          !(envFlags.bugLiteralHyphenIsRange && state.useFlagV)
+          !(envFlags.bugFlagVLiteralHyphenIsRange && state.useFlagV)
         ) ||
         ( !state.verbose &&
           parent.kind === 'intersection' &&
