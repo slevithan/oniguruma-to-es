@@ -276,7 +276,7 @@ const generator = {
       // of the generator
       if (
         // Already established `kind !== 'intersection'` if `!state.useFlagV`; don't check again
-        !state.useFlagV &&
+        (!state.useFlagV || envFlags.bugNestedClassIgnoresNegation) &&
         !negate
       ) {
         const negatedChildClasses = body.filter(

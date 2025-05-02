@@ -21,18 +21,17 @@ const envFlags = {
     return true;
   })(),
 };
-// Detect WebKit parser bug: <github.com/slevithan/oniguruma-to-es/issues/30>
-envFlags.bugLiteralHyphenIsRange = (() => {
-  if (!envFlags.unicodeSets) {
-    return false;
-  }
+// Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/30>
+envFlags.bugLiteralHyphenIsRange = envFlags.unicodeSets ? (() => {
   try {
     new RegExp(r`[\d\-a]`, 'v');
   } catch {
     return true;
   }
   return false;
-})();
+})() : false;
+// Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/38>
+envFlags.bugNestedClassIgnoresNegation = envFlags.unicodeSets && new RegExp('[[^a]]', 'v').test('a');
 
 function getNewCurrentFlags(current, {enable, disable}) {
   return {
