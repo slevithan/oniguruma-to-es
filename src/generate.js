@@ -258,7 +258,7 @@ const generator = {
     const {kind, negate, parent} = node;
     let {body} = node;
     if (kind === 'intersection' && !state.useFlagV) {
-      throw new Error('Use of class intersection requires min target ES2024');
+      throw new Error('Use of character class intersection requires min target ES2024');
     }
     // Work around a WebKit parser bug by moving literal hyphens to the beginning of the class; see
     // <github.com/slevithan/oniguruma-to-es/issues/30>
@@ -338,7 +338,7 @@ const generator = {
       return body.map(gen).join('');
     }
     if (!state.useFlagV && parent.type === 'CharacterClass') {
-      throw new Error('Use of nested character class requires min target ES2024');
+      throw new Error('Uses nested character class in a way that requires min target ES2024');
     }
     return genClass();
   },
