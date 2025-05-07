@@ -2,7 +2,7 @@
 
 Thanks for lending a hand 👋
 
-To understand how the code is structured, start with [`./src/index.js`](https://github.com/slevithan/oniguruma-to-es/blob/main/src/index.js), which exports the public API including `toRegExp`. If you have questions before starting development, feel free to open an issue.
+To understand how the code is structured, start with [`src/index.js`](https://github.com/slevithan/oniguruma-to-es/blob/main/src/index.js), which exports the public API including `toRegExp`. If you have questions before starting development, feel free to open an issue.
 
 ## Setup
 
@@ -16,14 +16,14 @@ To understand how the code is structured, start with [`./src/index.js`](https://
 - Tests live in `./spec`.
 - Please include tests alongside changes and new features.
 
-### Use and testing in Shiki
+### Testing in Shiki
 
-This library receives extensive additional test coverage prior to new releases via [Shiki](https://github.com/shikijs/shiki), a syntax highlighter that provides 220+ TextMate grammars (that include ~55k Oniguruma regexes). Shiki includes both Oniguruma and JavaScript regex [engines](https://shiki.style/guide/regex-engines), and its JavaScript engine is powered by this library.
+This library receives extensive additional test coverage prior to new releases via [Shiki](https://github.com/shikijs/shiki), a syntax highlighter that provides 220+ TextMate grammars (that include ~55k Oniguruma regexes). Shiki includes both Oniguruma and JavaScript [regex engines](https://shiki.style/guide/regex-engines), and its JavaScript engine is powered by this library.
 
-Shiki also provides a "compatibility report", created by comparing the highlighting results for its Oniguruma and JavaScript engines for all of the languages that Shiki provides. Given the huge number of real world regexes that Shiki tests against its language samples, the compatibility report serves as an extremely robust test for a large set of features, ensuring that the syntax and behavior relied on by those regexes is behaving exactly as it would in Oniguruma. As a result, if you're making sensitive changes to this library, it might be beneficial to also ensure that it doesn't negatively impact Shiki's report.
+Shiki also provides a "compatibility report" that's created by comparing the highlighting results for its Oniguruma and JavaScript engines for all of the languages that Shiki provides. Given the huge number of real world regexes that Shiki tests against its language samples, the compatibility report serves as an extremely robust test for a large set of features and edge cases, ensuring that the syntax and behavior relied on by those regexes is behaving exactly as it would in Oniguruma. As a result, if you're making sensitive changes to this library, it might be beneficial to also ensure that it doesn't negatively impact Shiki's report.
 
-- [Shiki's JS engine code](https://github.com/shikijs/shiki/blob/main/packages/engine-javascript/src/engine-compile.ts).
-- [Script for creating the compatibility report](https://github.com/shikijs/shiki/blob/main/scripts/report-engine-js-compat.ts).
+- [Shiki's JavaScript engine code](https://github.com/shikijs/shiki/blob/main/packages/engine-javascript/src/engine-compile.ts).
+- [Script for generating the compatibility report](https://github.com/shikijs/shiki/blob/main/scripts/report-engine-js-compat.ts).
 - [The generated report](https://shiki.style/references/engine-js-compat).
 
 ## Demo page

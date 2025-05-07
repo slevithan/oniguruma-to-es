@@ -83,7 +83,7 @@ str.match(toRegExp(pattern));
 ```
 
 <details>
-  <summary>Using a global name (no import)</summary>
+  <summary>Using a CDN and global name</summary>
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/oniguruma-to-es/dist/index.min.js"></script>
