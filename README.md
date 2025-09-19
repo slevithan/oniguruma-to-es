@@ -274,7 +274,7 @@ JavaScript version used for generated regexes. Using `auto` detects the best val
   - Generated regexes require Node.js 20 or any 2023-era browser ([compat table](https://caniuse.com/mdn-javascript_builtins_regexp_unicodesets)).
 - `ES2025`: Uses JS flag `v` and allows use of flag groups.
   - Benefits: Faster transpilation, simpler generated source.
-  - Generated regexes might use features that require Node.js 23 or a 2024-era browser (except Safari, which lacks support for flag groups).
+  - Generated regexes might use features that require Node.js 23 or a browser version released during 2024 to 2025 (in Safari's case).
 </details>
 
 ### `verbose`
@@ -1083,12 +1083,12 @@ Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) a
 
 ### Sponsors and backers
 
-[<img src="https://github.com/brc-dd.png" width="40" height="40">](https://github.com/brc-dd)
 [<img src="https://github.com/roboflow.png" width="40" height="40">](https://github.com/roboflow)
 
 ### Past sponsors
 
 [<img src="https://github.com/antfu.png" width="40" height="40">](https://github.com/antfu)
+[<img src="https://github.com/brc-dd.png" width="40" height="40">](https://github.com/brc-dd)
 
 ### Special thanks
 
@@ -1096,7 +1096,7 @@ Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) a
 - [RedCMD](https://github.com/RedCMD) and [tonco-miyazawa](https://github.com/tonco-miyazawa) for their deep Oniguruma expertise and frequent advice.
 - [K. Kosako](https://github.com/kkos) for creating Oniguruma and maintaining it for 23 years.
 
-If you want to support this project, I'd love your help by contributing improvements ([guide](https://github.com/slevithan/oniguruma-to-es/blob/main/CONTRIBUTING.md)), sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) ongoing development.
+If you use or want to support this project, I'd love your help by contributing improvements ([guide](https://github.com/slevithan/oniguruma-to-es/blob/main/CONTRIBUTING.md)), sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) maintenance and development.
 
 MIT License.
 
