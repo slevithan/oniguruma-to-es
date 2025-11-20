@@ -31,7 +31,13 @@ envFlags.bugFlagVLiteralHyphenIsRange = envFlags.unicodeSets ? (() => {
   return false;
 })() : false;
 // Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/38>
-envFlags.bugNestedClassIgnoresNegation = envFlags.unicodeSets && new RegExp('[[^a]]', 'v').test('a');
+envFlags.bugNestedClassIgnoresNegation = envFlags.unicodeSets ? (() => {
+  try {
+    return new RegExp("[[^a]]", "v").test("a");
+  } catch {
+    return false;
+  }
+})() : false;
 
 function getNewCurrentFlags(current, {enable, disable}) {
   return {
