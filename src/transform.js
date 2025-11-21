@@ -258,7 +258,7 @@ const /** @type {Visitor} */ FirstPassVisitor = {
       const eBase = '\\p{Emoji}(?:\\p{EMod}|\\uFE0F\\u20E3?|[\\x{E0020}-\\x{E007E}]+\\x{E007F})?';
       const emoji = r`\p{RI}{2}|${eBase}(?:\u200D${eBase})*`;
       replaceWith(setParentDeep(parseFragment(
-        // Close approximation of an extended grapheme cluster; see: <unicode.org/reports/tr29/>
+        // Close approximation of an extended grapheme cluster; see <unicode.org/reports/tr29/>
         r`(?>\r\n|${minTargetEs2024 ? r`\p{RGI_Emoji}` : emoji}|\P{M}\p{M}*)`,
         // Allow JS property `RGI_Emoji` through
         {skipPropertyNameValidation: true}
