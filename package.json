@@ -50,14 +50,14 @@
   ],
   "dependencies": {
     "oniguruma-parser": "^0.12.1",
-    "regex": "^6.0.1",
+    "regex": "^6.1.0",
     "regex-recursion": "^6.0.2"
   },
   "devDependencies": {
-    "esbuild": "^0.27.0",
-    "jasmine": "^5.12.0",
+    "esbuild": "^0.27.3",
+    "jasmine": "^6.1.0",
     "typescript": "^5.9.3",
     "vscode-oniguruma": "^2.0.1"
   },
-  "packageManager": "pnpm@10.23.0"
+  "packageManager": "pnpm@10.32.0"
 }
