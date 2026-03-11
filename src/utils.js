@@ -5,8 +5,9 @@ const r = String.raw;
 
 const envFlags = {
   flagGroups: (() => {
+    // Use globalThis to prevent being removed during bundling with Rolldown.
     try {
-      new RegExp('(?i:)');
+      new globalThis.RegExp('(?i:)');
     } catch {
       return false;
     }
@@ -16,7 +17,7 @@ const envFlags = {
     try {
       // Check for flag v support and also that nested classes can be parsed
       // See <github.com/slevithan/oniguruma-to-es/pull/41>
-      new RegExp('[[]]', 'v');
+      new globalThis.RegExp('[[]]', 'v');
     } catch {
       return false;
     }
