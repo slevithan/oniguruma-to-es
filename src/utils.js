@@ -3,38 +3,39 @@ import {EsVersion, Target} from './options.js';
 const cp = String.fromCodePoint;
 const r = String.raw;
 
-const envFlags = {
-  flagGroups: (() => {
-    // Use globalThis to prevent being removed during bundling with Rolldown.
-    try {
-      new globalThis.RegExp('(?i:)');
-    } catch {
-      return false;
-    }
-    return true;
-  })(),
-  unicodeSets: (() => {
-    try {
-      // Check for flag v support and also that nested classes can be parsed
-      // See <github.com/slevithan/oniguruma-to-es/pull/41>
-      new globalThis.RegExp('[[]]', 'v');
-    } catch {
-      return false;
-    }
-    return true;
-  })(),
-};
+const envFlags = {};
+// Use `globalThis` to prevent env-testing fns from being replaced with constants during bundling
+// with Rolldown; see <github.com/slevithan/oniguruma-to-es/issues/42>
+const globalRegExp = globalThis.RegExp;
+envFlags.flagGroups = (() => {
+  try {
+    new globalRegExp('(?i:)');
+  } catch {
+    return false;
+  }
+  return true;
+})();
+envFlags.unicodeSets = (() => {
+  try {
+    // Check for flag v support and also that nested classes can be parsed
+    // See <github.com/slevithan/oniguruma-to-es/pull/41>
+    new globalRegExp('[[]]', 'v');
+  } catch {
+    return false;
+  }
+  return true;
+})();
 // Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/30>
 envFlags.bugFlagVLiteralHyphenIsRange = envFlags.unicodeSets ? (() => {
   try {
-    new RegExp(r`[\d\-a]`, 'v');
+    new globalRegExp(r`[\d\-a]`, 'v');
   } catch {
     return true;
   }
   return false;
 })() : false;
 // Detect WebKit bug: <github.com/slevithan/oniguruma-to-es/issues/38>
-envFlags.bugNestedClassIgnoresNegation = envFlags.unicodeSets && new RegExp('[[^a]]', 'v').test('a');
+envFlags.bugNestedClassIgnoresNegation = envFlags.unicodeSets && new globalRegExp('[[^a]]', 'v').test('a');
 
 function getNewCurrentFlags(current, {enable, disable}) {
   return {
