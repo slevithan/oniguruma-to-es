@@ -122,6 +122,7 @@ describe('Subroutine [recursive]', () => {
       expect(() => toRegExpDetails(r`a\g<0>?(?<r>a\g<r>?)`)).toThrow();
       expect(() => toRegExpDetails(r`(?<r>a\g<r>?\g<r>?)`)).toThrow();
       expect(() => toRegExpDetails(r`(?<a>\g<b>(?<b>a\g<a>?))`)).toThrow();
+      expect(() => toRegExpDetails(r`(?<a>1\g<a>|2\g<b>|(?<b>3\g<a>|4\g<b>))`)).toThrow();
     });
 
     it('should exclude duplicated captures from result subpatterns', () => {

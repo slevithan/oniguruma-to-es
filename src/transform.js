@@ -567,7 +567,11 @@ const /** @type {Visitor} */ SecondPassVisitor = {
       }
     },
     exit({node}, {openRefs}) {
-      openRefs.delete(node.number);
+      // During `enter`, ownership of `openRefs` isn't claimed when recursive clones are replaced,
+      // so only the node that inserted the current entry should clear it on exit
+      if (openRefs.get(node.number) === node) {
+        openRefs.delete(node.number);
+      }
     },
   },
 
