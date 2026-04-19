@@ -286,7 +286,7 @@ Disables minifications that simplify the pattern without changing the meaning.
 Example: By default, unneeded noncapturing groups might be removed during transpilation. Setting this option to `true` disables such changes.
 
 > [!TIP]
-> The [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) library includes a [regex optimizer](https://github.com/slevithan/oniguruma-parser/blob/main/src/optimizer/README.md) that goes far beyond the basic, built-in minifications. If desired, you can call the optimizer first, and then use its result for transpilation. That isn't appropropriate in all cases (since it adds performance overhead and increases bundle size), but the benefits of optimization do pass through to the transpiled, JavaScript version of a regex.
+> The [oniguruma-parser](https://github.com/slevithan/oniguruma-parser) library includes a [regex optimizer](https://github.com/slevithan/oniguruma-parser/blob/main/src/optimizer/README.md) that goes far beyond these basic, built-in minifications. If desired, you can call its optimizer first, and then use the result for transpilation. That isn't appropropriate in all cases (since it adds performance overhead and increases bundle size), but the benefits of optimization do pass through to the transpiled, JavaScript version of a regex.
 
 ## ✅ Supported features
 
@@ -1081,6 +1081,12 @@ Contributions are welcome. See the [guide](https://github.com/slevithan/onigurum
 
 Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) and [contributors](https://github.com/slevithan/oniguruma-to-es/graphs/contributors).
 
+### Special thanks
+
+- [Anthony Fu](https://github.com/antfu) for inspiring the project and adopting it in Shiki.
+- [RedCMD](https://github.com/RedCMD) and [tonco-miyazawa](https://github.com/tonco-miyazawa) for their deep Oniguruma expertise and frequent advice.
+- [K. Kosako](https://github.com/kkos) for creating Oniguruma and maintaining it for 23 years.
+
 ### Sponsors and backers
 
 [<img src="https://github.com/roboflow.png" width="40" height="40">](https://github.com/roboflow)
@@ -1090,15 +1096,7 @@ Oniguruma-To-ES was created by [Steven Levithan](https://github.com/slevithan) a
 [<img src="https://github.com/antfu.png" width="40" height="40">](https://github.com/antfu)
 [<img src="https://github.com/brc-dd.png" width="40" height="40">](https://github.com/brc-dd)
 
-### Special thanks
-
-- [Anthony Fu](https://github.com/antfu) for inspiring the project and adopting it in Shiki.
-- [RedCMD](https://github.com/RedCMD) and [tonco-miyazawa](https://github.com/tonco-miyazawa) for their deep Oniguruma expertise and frequent advice.
-- [K. Kosako](https://github.com/kkos) for creating Oniguruma and maintaining it for 23 years.
-
 If you use or want to support this project, I'd love your help by contributing improvements ([guide](https://github.com/slevithan/oniguruma-to-es/blob/main/CONTRIBUTING.md)), sharing it with others, or [sponsoring](https://github.com/sponsors/slevithan) maintenance and development.
-
-MIT License.
 
 <!-- Badges -->
 
