@@ -49,14 +49,14 @@
     "transpiler"
   ],
   "dependencies": {
-    "oniguruma-parser": "^0.12.1",
+    "oniguruma-parser": "^0.12.2",
     "regex": "^6.1.0",
     "regex-recursion": "^6.0.2"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
     "jasmine": "^6.2.0",
-    "typescript": "^6.0.2",
+    "typescript": "^6.0.3",
     "vscode-oniguruma": "^2.0.1"
   },
   "packageManager": "pnpm@10.33.0"
